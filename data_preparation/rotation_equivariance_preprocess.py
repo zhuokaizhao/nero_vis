@@ -134,7 +134,7 @@ def main():
     # downsample factor when determining if an image is qualified
     downsample_factor = 1
     # object sizes upper limit
-    size_limit = 1.0
+    size_limit = 0.5
 
     # sets of parameters for different types of datasets
     if data_type == 'train' or data_type == 'val' or data_type == 'test':
@@ -291,7 +291,7 @@ def main():
                     key_bb_max_y = cur_bb[3]
 
                     # reject the candidates whose bounding box is too large for the extracted image
-                    if (key_bb_max_x-key_bb_min_x)*(key_bb_max_y-key_bb_min_y) > 0.5*size_limit*image_size[0]*image_size[1]:
+                    if (key_bb_max_x-key_bb_min_x)*(key_bb_max_y-key_bb_min_y) > size_limit*image_size[0]*image_size[1]:
                         num_rej_target_large_bb += 1
                         continue
                     # reject the candidates whose bounding box is too small
