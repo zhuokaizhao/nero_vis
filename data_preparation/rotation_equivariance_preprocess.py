@@ -82,11 +82,11 @@ def rotate_object(cur_bounding_box, origin, theta):
 
     # extract the min and max so that it matches with the bounding box format
     four_corners_rotated = np.array(four_corners_rotated)
-
-    x_min = np.min(four_corners_rotated[:, 0])
-    y_min = np.min(four_corners_rotated[:, 1])
-    x_max = np.max(four_corners_rotated[:, 0])
-    y_max = np.max(four_corners_rotated[:, 1])
+    # get min, max and converts back
+    x_min = np.min(four_corners_rotated[:, 0]) + cx
+    y_min = np.min(four_corners_rotated[:, 1]) + cy
+    x_max = np.max(four_corners_rotated[:, 0]) + cx
+    y_max = np.max(four_corners_rotated[:, 1]) + cy
 
     rotated_bounding_box = [x_min, y_min, x_max, y_max]
 
