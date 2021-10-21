@@ -453,12 +453,12 @@ def evaluate(mode, model_type, model, path, iou_thres, conf_thres, nms_thres, im
     # Get dataloader
     if mode == 'val':
         EVALUATE_TRANSFORMS = transforms.Compose([data_transform.GaussianJittering(img_size, percentage),
-                                                    data_transform.NonShiftAug(),
+                                                    data_transform.ShiftEqvAug(),
                                                     data_transform.ConvertLabel(original_names, desired_names),
                                                     data_transform.ToTensor()])
     elif mode == 'test':
         EVALUATE_TRANSFORMS = transforms.Compose([data_transform.FixedJittering(img_size, x_tran, y_tran),
-                                                    data_transform.NonShiftAug(),
+                                                    data_transform.ShiftEqvAug(),
                                                     data_transform.ConvertLabel(original_names, desired_names),
                                                     data_transform.ToTensor()])
 

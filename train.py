@@ -153,7 +153,7 @@ if __name__ == "__main__":
     # Get dataloader
     # dataset augmentation (jittering on the fly)
     NON_SHIFT_AUGMENTATION_TRANSFORMS = transforms.Compose([data_transform.GaussianJittering(opt.img_size, percentage),
-                                                            data_transform.NonShiftAug(),
+                                                            data_transform.ShiftEqvAug(),
                                                             data_transform.ConvertLabel(original_names, desired_names),
                                                             data_transform.ToTensor()])
     dataset = prepare_dataset.CreateDataset(list_path=train_path,
