@@ -1,3 +1,18 @@
+# actual dataset
+*.jpg
+*.txt
+*.zip
+*.nrrd
+*.csv
+
+# unused logging
+detection/yolov3/logs/*
+*.npy
+
+# output result
+detection/figs/*.html
+*.png
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -5,6 +20,18 @@ __pycache__/
 
 # C extensions
 *.so
+
+# models
+*.pt
+*.pth
+*.weights
+*.conv.74
+
+# training logs
+detection/logs/*
+
+# model evaluation results
+*.npz
 
 # Distribution / packaging
 .Python

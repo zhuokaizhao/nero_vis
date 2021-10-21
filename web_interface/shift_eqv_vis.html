@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang='en'>
+<head>
+    <meta charset='utf-8'>
+    <link rel="shortcut icon" href="#">
+    <!-- load d3.js -->
+    <script src='https://d3js.org/d3.v4.js'></script>
+    <title>shift_equivariance_vis</title>
+    <style>
+        h2 {
+            text-align: center;
+        }
+        html, body {
+            height: 100%;
+            margin: 0;
+        }
+
+        /* inputs */
+        #controller_wrapper {
+            text-align: center;
+            width: 750px;
+            margin: auto;
+            padding: auto;
+            overflow: auto;
+        }
+        #buttons, #sliders {
+            text-align: left;
+        }
+
+        /* plots */
+        #plot_wrapper {
+            text-align: center;
+            width: 1100px;
+            /* margin: auto ; */
+            /* overflow: auto; */
+        }
+        #normal_heatmap {
+            float:left;
+            position: relative;
+            left: 30px;
+        }
+        #si_heatmap {
+            float:left;
+            position: relative;
+            left: 50px;
+        }
+        #pt_heatmap {
+            float:left;
+            position: relative;
+            left: 70px;
+        }
+        #tooltip_div {
+            float:right;
+            /* left: 50px; */
+            position: relative;
+            top: -330px;
+            left: -20px;
+        }
+        #tooltip_text_div {
+            float:right;
+            /* left: 50px; */
+            position: relative;
+            top: -450px;
+            left: 250px;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- web page title -->
+    <h2>Visualizing shift equivariance in object detection networks</h2>
+    <form>
+        <div id="controller_wrapper">
+            <div id='buttons'>
+                <!-- mode between general and detail -->
+                <p>Visualization mode:
+                    <input type="radio" id="test" name="vis_mode" value="test" checked="checked">
+                    <label for="test">Average</label>
+                    <input type="radio" id="single_test" name="vis_mode" value="single_test">
+                    <label for="single_test">Single-image</label>
+                </p>
+                <!-- shift-equivariant networks -->
+                <p id='shift_equivariant_method'>Shift-equivariant method:
+                    <input type="radio" id="pretrained" name="si_method" value="pt">
+                    <label for="pre_trained">Data augmentation (pre-trained model)</label>
+                    <input type="radio" id="anti_aliasing" name="si_method" value="si" checked="checked">
+                    <label for="anti_aliasing">Anti-aliasing downsampling filters</label>
+                </p>
+                <!-- object class selection -->
+                <p>Object class:
+                    <input type="radio" id="car" name="object_class" value="car" checked="checked">
+                    <label for="car">Car</label>
+                    <input type="radio" id="bottle" name="object_class" value="bottle">
+                    <label for="bottle">Bottle</label>
+                    <input type="radio" id="cup" name="object_class" value="cup">
+                    <label for="cup">Cup</label>
+                    <input type="radio" id="chair" name="object_class" value="chair">
+                    <label for="chair">Chair</label>
+                    <input type="radio" id="book" name="object_class" value="book">
+                    <label for="book">Book</label>
+                </p>
+                <!-- quantity that we are plotting for test results-->
+                <p id='test_plot_quantities'>Plotted quantity:
+                    <input type="radio" id="plot_precision" name="plot_test_quantity" value="precision">
+                    <label for="plot_precision">Precision</label>
+                    <input type="radio" id="plot_recall" name="plot_test_quantity" value="recall">
+                    <label for="plot_recall">Recall</label>
+                    <input type="radio" id="plot_AP" name="plot_test_quantity" value="AP" checked="checked">
+                    <label for="plot_AP">AP</label>
+                    <input type="radio" id="plot_f1" name="plot_test_quantity" value="f1">
+                    <label for="plot_f1">F1</label>
+                </p>
+                <!-- quantity that we are plotting for single test results-->
+                <p id='single_test_plot_quantities'>Plotted quantity:
+                    <input type="radio" id="plot_conf" name="plot_single_test_quantity" value="conf" checked="checked">
+                    <label for="plot_conf">Confidence</label>
+                    <input type="radio" id="plot_iou" name="plot_single_test_quantity" value="iou">
+                    <label for="plot_iou">IOU</label>
+                    <input type="radio" id="plot_cf_iou" name="plot_single_test_quantity" value="cf_iou">
+                    <label for="plot_cf_iou">Confidence * IOU</label>
+                    <input type="radio" id="plot_cf_iou_pr" name="plot_single_test_quantity" value="cf_iou_pr">
+                    <label for="plot_cf_iou_pr">Confidence * IOU * precision</label>
+                </p>
+                <!-- jittering level selection -->
+                <p id='jittering_levels'>Jittering level:
+                    <input type="radio" id="0_jittering" name="jittering" value="0" checked="checked">
+                    <label for="0_jittering">0%</label>
+                    <input type="radio" id="20_jittering" name="jittering" value="20">
+                    <label for="20_jittering">20%</label>
+                    <input type="radio" id="40_jittering" name="jittering" value="40">
+                    <label for="40_jittering">40%</label>
+                    <input type="radio" id="60_jittering" name="jittering" value="60">
+                    <label for="60_jittering">60%</label>
+                    <input type="radio" id="80_jittering" name="jittering" value="80">
+                    <label for="80_jittering">80%</label>
+                    <input type="radio" id="100_jittering" name="jittering" value="100">
+                    <label for="100_jittering">100%</label>
+                </p>
+            </div>
+            <!-- <div id='sliders'>
+                <label for="jittering">Jittering level: </label>
+                <input type="range" min=0 max=100 step=20 id="jittering" value=0 oninput="selected_jittering.value = jittering.value">
+                <output name="selected_jittering" id="selected_jittering">0</output>
+                <label>%</label><br>
+            </div> -->
+        </div>
+
+    </form>
+
+
+    <div id="plot_wrapper">
+        <!-- normal model heatmap -->
+        <div id='normal_heatmap'></div>
+        <!-- shift-invariant model heatmap -->
+        <div id='si_heatmap'></div>
+        <!-- pretrained model -->
+        <div id='pt_heatmap'></div>
+        <!-- model tooltip -->
+        <div id="tooltip_div"></div>
+        <div id="tooltip_text_div"></div>
+    </div>
+
+    <!-- heatmap canvas -->
+    <div id="heatmap"></div>
+
+    <!-- scripts -->
+    <script src='data_loading.js'></script>
+    <script src='plot_functions.js'></script>
+    <script src='initializations.js'></script>
+    <!-- <script src='normal_single_heatmap.js'></script>
+    <script src='shift_invariant_single_heatmap.js'></script> -->
+    <script src='update_control.js'></script>
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
