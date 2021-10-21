@@ -122,7 +122,6 @@ def main():
 
         # load json for getting image/label paths
         all_image_names = []
-
         _coco = COCO(json_path)
         image_ids = sorted(_coco.getImgIds())
         for entry in _coco.loadImgs(image_ids):
