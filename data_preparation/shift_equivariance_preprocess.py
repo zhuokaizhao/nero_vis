@@ -1,4 +1,4 @@
-# the scripts processes the training dataset from COCO datasets for shift-equivariant experiments
+# the scripts processes the training dataset from COCO datasets for rotation-equivariant experiments
 import os
 import cv2
 import csv
@@ -15,6 +15,7 @@ from shutil import copy
 from matplotlib import colors
 from gluoncv import data, utils
 import plotly.offline as offline
+from pycocotools.coco import COCO
 import plotly.graph_objects as go
 from scipy.stats import truncnorm
 from matplotlib import pyplot as plt
@@ -54,9 +55,9 @@ def compute_label(cur_bounding_box, x_min, y_min, image_size):
 def main():
 
     # Training settings
-    parser = argparse.ArgumentParser(description='Preprocessing COCO dataset for shift-equivariant experiments')
+    parser = argparse.ArgumentParser(description='Preprocessing COCO dataset for rotation-equivariant experiments')
     # train, val, test, single-test or single-test-all-candidates
-    parser.add_argument('-t', '--data-type', action='store', nargs=1, dest='data_type')
+    parser.add_argument('-t', '--data-type', action='store', nargs=1, dest='data_type', required=True)
     # input directory for original COCO dataset
     parser.add_argument('-i', '--input-dir', action='store', nargs=1, dest='input_dir', required=True)
     # output directory for preprocessed COCO
@@ -98,18 +99,22 @@ def main():
     if data_type == 'train' or data_type == 'val' or data_type == 'test':
         # number of images in output dataset
         if data_type == 'train':
+            # image folder directory for later copying the original images (instead of re-saving)
             images_folder_dir = '/home/zhuokai/Desktop/nvme1n1p1/Data/coco/train2017'
             json_path = '/home/zhuokai/Desktop/nvme1n1p1/Data/coco/annotations/instances_train2017.json'
             dataset = data.COCODetection(root=input_dir, splits=['instances_train2017'], skip_empty=False)
             num_images = len(dataset)
             start_index = 0
         else:
+            # image folder directory for later copying the original images (instead of re-saving)
             images_folder_dir = '/home/zhuokai/Desktop/nvme1n1p1/Data/coco/val2017'
             json_path = '/home/zhuokai/Desktop/nvme1n1p1/Data/coco/annotations/instances_val2017.json'
             dataset = data.COCODetection(root=input_dir, splits=['instances_val2017'], skip_empty=False)
             num_images = len(dataset)
             start_index = 0
 
+        # translation range used to check to make sure current object supports all possible translation
+        # happened during training (in the augmentation scheme)
         x_translation = [-64, 64]
         y_translation = [-64, 64]
         # all the class names from the original COCO
@@ -117,7 +122,7 @@ def main():
 
         # load json for getting image/label paths
         all_image_names = []
-        from pycocotools.coco import COCO
+
         _coco = COCO(json_path)
         image_ids = sorted(_coco.getImgIds())
         for entry in _coco.loadImgs(image_ids):
@@ -194,8 +199,6 @@ def main():
 
         # go through all images in dataset
         for i in tqdm(range(start_index, len(dataset))):
-
-            cur_image_name = all_image_names[i]
 
             # stop if all done
             if num_extracted >= num_images:
@@ -301,10 +304,9 @@ def main():
                             line = str(int(class_id)) + ' ' + str(x_min) + ' ' + str(y_min) + ' ' + str(x_max) + ' ' + str(y_max)
                             myfile.write(line + '\n')
 
-                    # save the image
-                    # obtain the cut out image (y is row, x is col)
                     # copy the original image over if no scale is present
                     if downsample_factor == 1:
+                        cur_image_name = all_image_names[i]
                         img_extension = cur_image_name.split('.')[-1]
                         cut_out_image_path = os.path.join(image_dir, f'COCO_{i}_bb_{m}.' + img_extension)
                         copy(os.path.join(images_folder_dir, cur_image_name), cut_out_image_path)
