@@ -545,7 +545,7 @@ class RotEqvAug(ImgAug):
             iaa.Sharpen((0.0, 0.2)),
             iaa.AddToBrightness((-30, 30)),
             iaa.AddToHue((-20, 20)),
-            iaa.Fliplr(0.5),
+            # iaa.Fliplr(0.5),
             iaa.ScaleX((0.8, 1.2)),
             iaa.ScaleY((0.8, 1.2))
         ], random_order=True)
@@ -566,7 +566,7 @@ class GaussianRotation(object):
         else:
             # with gaussian, percentage is converted to different sigma value
             # rotation is the full 360 degree
-            self.sigma = 360*self.percentage/200/2
+            self.sigma = 360*self.percentage/150/2
             # distribution that has the support as the rotation limit
             self.a = (0 - 0) / self.sigma
             self.b = (360 - 0) / self.sigma
@@ -726,21 +726,22 @@ class GaussianRotation(object):
         if self.percentage == 0:
             rot = self.rot
         else:
-            # random jittering method 1
+            # random rotation
             rot = float(truncnorm.rvs(self.a, self.b, scale=self.sigma, size = 1)[0])
             self.rot = rot
 
-        # # save the rot stats out
-        # all_rots_path = f'/home/zhuokai/Desktop/UChicago/Research/nero_vis/logs/rotation_equivariance/all_rots_{self.percentage}.npy'
-        # # when the file exists, load and append
-        # if os.path.isfile(all_rots_path):
-        #     loaded_rots = np.load(all_rots_path)
-        #     all_rots = np.append(loaded_rots, [rot], axis=0)
-        # # when the file does not exist, save the first one
-        # else:
-        #     all_rots = np.array([rot])
-        # # save the trans
-        # np.save(all_rots_path, all_rots)
+        # save the rot stats out
+        all_rots_path = f'/home/zhuokai/Desktop/UChicago/Research/nero_vis/logs/rotation_equivariance/object_{self.percentage}-rotated/all_rots_{self.percentage}.npz'
+        # when the file exists, load and append
+        if os.path.isfile(all_rots_path):
+            loaded_rots = np.load(all_rots_path)['all_rotations']
+            all_rots = np.append(loaded_rots, [rot], axis=0)
+        # when the file does not exist, save the first one
+        else:
+            all_rots = np.array([rot])
+        # save the trans
+        np.savez(all_rots_path,
+                all_rotations=all_rots)
 
         # labels for current image
         processed_labels = []
