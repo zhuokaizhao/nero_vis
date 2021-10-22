@@ -637,7 +637,6 @@ class GaussianRotation(object):
 
     # helper function that extracts the FOV from original image, padding if needed
     def extract_img_with_pad(self, original_img, extracted_img_size, x_min, y_min, x_max, y_max):
-        print(original_img.shape)
         x_min = int(round(x_min))
         y_min = int(round(y_min))
         x_max = int(round(x_max))

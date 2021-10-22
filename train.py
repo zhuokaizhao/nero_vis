@@ -24,17 +24,17 @@ import imgaug.augmenters as iaa
 from terminaltables import AsciiTable
 
 import test
-import model
+# import model
 import prepare_dataset
 import data_transform
 
 
-os.environ['CUDA_VISIBLE_DEVICES']='1'
+os.environ['CUDA_VISIBLE_DEVICES']='0'
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    # purpose of generating dataset (shift-equivariance, scale-equivariance)
+    # purpose of generating dataset (shift-equivariance, rotation-equivariance, scale-equivariance)
     parser.add_argument('-p', '--purpose', action='store', nargs=1, dest='purpose')
     # input data related
     parser.add_argument("--data_name", type=str, help="Defines the name of the dataset (mnist or coco)")
@@ -97,6 +97,8 @@ if __name__ == "__main__":
     print(f'Training model type: {model_type}\n')
     if purpose == 'shift-equivariance':
         print(f'Jittering percentage: {percentage}')
+    elif purpose == 'rotation-equivariance':
+        print(f'Rotation percentage: {percentage}')
     elif purpose == 'scale-equivariance':
         print(f'Scale percentage: {percentage}')
     print(f'Model output dir: {model_dir}')
@@ -119,27 +121,6 @@ if __name__ == "__main__":
         # replace the pre-trained head with a new one
         model.roi_heads.box_predictor = FastRCNNPredictor(in_features, num_classes+1)
 
-
-    # from torchvision.models.detection import FasterRCNN
-    # from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
-    # from torchvision.models.detection.rpn import AnchorGenerator
-
-    # backbone = torchvision.models.vgg16(pretrained=True).features
-    # backbone.out_channels = 512
-
-    # anchor_generator = AnchorGenerator(sizes=((32, 64, 128, 256, 512),),
-    #                                 aspect_ratios=((0.5, 1.0, 2.0),))
-
-    # roi_pooler = torchvision.ops.MultiScaleRoIAlign(featmap_names=['0'],
-    #                                                 output_size=7,
-    #                                                 sampling_ratio=2)
-    # model = FasterRCNN(backbone,
-    #                     num_classes=num_classes+1,
-    #                     rpn_anchor_generator=anchor_generator,
-    #                     box_roi_pool=roi_pooler)
-    # in_features = model.roi_heads.box_predictor.cls_score.in_features
-    # model.roi_heads.box_predictor = FastRCNNPredictor(in_features, num_classes)
-
     model.to(device)
 
     # If specified we start from checkpoint
@@ -152,13 +133,19 @@ if __name__ == "__main__":
 
     # Get dataloader
     # dataset augmentation (jittering on the fly)
-    NON_SHIFT_AUGMENTATION_TRANSFORMS = transforms.Compose([data_transform.GaussianJittering(opt.img_size, percentage),
-                                                            data_transform.ShiftEqvAug(),
-                                                            data_transform.ConvertLabel(original_names, desired_names),
-                                                            data_transform.ToTensor()])
+    if purpose == 'shift-equivariance':
+        AUGMENTATION_TRANSFORMS = transforms.Compose([data_transform.GaussianJittering(opt.img_size, percentage),
+                                                        data_transform.ShiftEqvAug(),
+                                                        data_transform.ConvertLabel(original_names, desired_names),
+                                                        data_transform.ToTensor()])
+    elif purpose == 'rotation-equivariance':
+        AUGMENTATION_TRANSFORMS = transforms.Compose([data_transform.GaussianRotation(opt.img_size, percentage),
+                                                        data_transform.RotEqvAug(),
+                                                        data_transform.ConvertLabel(original_names, desired_names),
+                                                        data_transform.ToTensor()])
     dataset = prepare_dataset.CreateDataset(list_path=train_path,
                                             img_size=opt.img_size,
-                                            transform=NON_SHIFT_AUGMENTATION_TRANSFORMS)
+                                            transform=AUGMENTATION_TRANSFORMS)
 
     dataloader = torch.utils.data.DataLoader(
         dataset,
@@ -175,9 +162,16 @@ if __name__ == "__main__":
     all_val_mAPs = []
 
     # load the previous train/val loss and append
-    prev_train_loss_path = os.path.join(log_dir, f'faster_rcnn_{backbone_name}_{percentage}-jittered_train_loss_1_{previous_epochs}.npy')
-    prev_val_loss_path = os.path.join(log_dir, f'faster_rcnn_{backbone_name}_{percentage}-jittered_val_loss_1_{previous_epochs}.npy')
-    prev_val_mAP_path = os.path.join(log_dir, f'faster_rcnn_{backbone_name}_{percentage}-jittered_val_mAP_1_{previous_epochs}.npy')
+    if purpose == 'shift-equivariance':
+        prev_train_loss_path = os.path.join(log_dir, f'faster_rcnn_{backbone_name}_{percentage}-jittered_train_loss_1_{previous_epochs}.npy')
+        prev_val_loss_path = os.path.join(log_dir, f'faster_rcnn_{backbone_name}_{percentage}-jittered_val_loss_1_{previous_epochs}.npy')
+        prev_val_mAP_path = os.path.join(log_dir, f'faster_rcnn_{backbone_name}_{percentage}-jittered_val_mAP_1_{previous_epochs}.npy')
+    elif purpose == 'rotation-equivariance':
+        prev_train_loss_path = os.path.join(log_dir, f'faster_rcnn_{backbone_name}_{percentage}-rotated_train_loss_1_{previous_epochs}.npy')
+        prev_val_loss_path = os.path.join(log_dir, f'faster_rcnn_{backbone_name}_{percentage}-rotated_val_loss_1_{previous_epochs}.npy')
+        prev_val_mAP_path = os.path.join(log_dir, f'faster_rcnn_{backbone_name}_{percentage}-rotated_val_mAP_1_{previous_epochs}.npy')
+
+
     if os.path.isfile(prev_train_loss_path):
         prev_train_loss = np.load(prev_train_loss_path)
         prev_val_loss = np.load(prev_val_loss_path)
@@ -212,7 +206,7 @@ if __name__ == "__main__":
 
             # visualize for debugging purposes
             # utils.viz.plot_bbox(imgs[0].permute(1, 2, 0).numpy()*255, labels[:, 2:].numpy(), scores=None,
-            #                     labels=labels[:, 1].numpy(), class_names=desired_names)
+            #                     labels=labels[:, 1].numpy()-1, class_names=desired_names)
             # plt.show()
 
             # put images and targets on GPU
