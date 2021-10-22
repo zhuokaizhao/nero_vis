@@ -29,7 +29,7 @@ import model
 import data_transform
 import prepare_dataset
 
-os.environ['CUDA_VISIBLE_DEVICES']='2'
+os.environ['CUDA_VISIBLE_DEVICES']='0'
 
 
 def single_test_evaluate(model_type, model, path, iou_thres, conf_thres, nms_thres, img_size, batch_size, desired_names=None, original_names=None, pytorch_pt_names=None, lite_data=False):
@@ -612,6 +612,8 @@ if __name__ == "__main__":
         model_type = 'normal'
     if model_type != 'pt':
         percentage = opt.percentage
+    else:
+        percentage = 'pt'
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -955,9 +957,9 @@ if __name__ == "__main__":
     # rotation equivariance
     elif purpose == 'rotation-equivariance':
 
-        loss_path = os.path.join(output_dir, f'faster_rcnn_{backbone_name}_custom_coco_{mode}_{model_type}.npz')
+        loss_path = os.path.join(output_dir, f'faster_rcnn_{backbone_name}_{percentage}-rotated_{mode}_{model_type}.npz')
         # all the rotations
-        all_rotations = list(range(0, 360))
+        all_rotations = list(range(0, 360, 5))
 
         if prev_result_path != None:
             all_single_class_precision = np.load(prev_result_path)['all_single_class_precision']
