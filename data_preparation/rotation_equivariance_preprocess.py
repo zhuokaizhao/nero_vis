@@ -290,15 +290,6 @@ def main():
                     key_bb_max_x = cur_bb[2]
                     key_bb_max_y = cur_bb[3]
 
-                    # reject the candidates whose bounding box is too large for the extracted image
-                    if (key_bb_max_x-key_bb_min_x)*(key_bb_max_y-key_bb_min_y) > size_limit*image_size[0]*image_size[1]:
-                        num_rej_target_large_bb += 1
-                        continue
-                    # reject the candidates whose bounding box is too small
-                    elif (key_bb_max_x-key_bb_min_x)*(key_bb_max_y-key_bb_min_y) < 0.01*image_size[0]*image_size[1]:
-                        num_rej_target_small_bb += 1
-                        continue
-
                     # compute the center of the current key object
                     center_x = (key_bb_min_x + key_bb_max_x) / 2
                     center_y = (key_bb_min_y + key_bb_max_y) / 2
@@ -309,11 +300,32 @@ def main():
                         # rotate the bounding box
                         cur_bb_rotated = rotate_object(cur_bb, (center_x, center_y), rot)
 
-                        # the actual image after the data augmentation process wrt original image
-                        x_min_rotated = cur_bb_rotated[0]
-                        y_min_rotated = cur_bb_rotated[1]
-                        x_max_rotated = cur_bb_rotated[2]
-                        y_max_rotated = cur_bb_rotated[3]
+                        # the bb after the data augmentation process wrt original image
+                        key_bb_min_x_rotated = cur_bb_rotated[0]
+                        key_bb_min_y_rotated = cur_bb_rotated[1]
+                        key_bb_max_x_rotated = cur_bb_rotated[2]
+                        key_bb_max_y_rotated = cur_bb_rotated[3]
+
+                        # the center of the object
+                        center_x_rotated = (key_bb_min_x_rotated + key_bb_max_x_rotated) / 2
+                        center_y_rotated = (key_bb_min_y_rotated + key_bb_max_y_rotated) / 2
+
+                        # reject the candidates whose bounding box is too large for the extracted image
+                        if (key_bb_max_x_rotated-key_bb_min_x_rotated)*(key_bb_max_y_rotated-key_bb_min_y_rotated) > size_limit*image_size[0]*image_size[1]:
+                            num_rej_target_large_bb += 1
+                            not_qualified = True
+                            break
+                        # reject the candidates whose bounding box is too small
+                        elif (key_bb_max_x_rotated-key_bb_min_x_rotated)*(key_bb_max_y_rotated-key_bb_min_y_rotated) < 0.01*image_size[0]*image_size[1]:
+                            num_rej_target_small_bb += 1
+                            not_qualified = True
+                            break
+
+                        # compute if enough space
+                        x_min_rotated = center_x_rotated - image_size[1]//2
+                        y_min_rotated = center_y_rotated - image_size[0]//2
+                        x_max_rotated = center_x_rotated + image_size[1]//2
+                        y_max_rotated = center_y_rotated + image_size[0]//2
 
                         # make sure that the extracted image fits in the original image
                         if x_min_rotated < 0 or x_max_rotated >= width or y_min_rotated < 0 or y_max_rotated >= height:
