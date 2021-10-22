@@ -538,6 +538,19 @@ class ConvertLabel(object):
         return label_path, img, labels
 
 
+class RotEqvAug(ImgAug):
+    def __init__(self, ):
+        self.augmentations = iaa.Sequential([
+            iaa.Dropout([0.0, 0.01]),
+            iaa.Sharpen((0.0, 0.2)),
+            iaa.AddToBrightness((-30, 30)),
+            iaa.AddToHue((-20, 20)),
+            iaa.Fliplr(0.5),
+            iaa.ScaleX((0.8, 1.2)),
+            iaa.ScaleY((0.8, 1.2))
+        ], random_order=True)
+
+
 # perform random rotation during the data augmentation phase
 class GaussianRotation(object):
     def __init__(self, img_size, percentage):
@@ -599,7 +612,7 @@ class GaussianRotation(object):
         return rotated_bounding_box
 
     # helper function that computes labels for cut out images
-    def compute_label(self, cur_bounding_box, x_min, y_min, image_size, rot):
+    def compute_label(self, cur_bounding_box, x_min, y_min, image_size):
         # convert key object bounding box to be based on extracted image
         bb_x_min = cur_bounding_box[0] - x_min
         bb_y_min = cur_bounding_box[1] - y_min
@@ -609,9 +622,6 @@ class GaussianRotation(object):
         # compute the center of the object in the extracted image
         object_center_x = (bb_x_min + bb_x_max) / 2
         object_center_y = (bb_y_min + bb_y_max) / 2
-
-        # rotate the bounding box
-        cur_bounding_box_rotated = self.rotate_object(cur_bounding_box, (object_center_x, object_center_y), rot)
 
         # compute the width and height of the real bounding box of this object
         original_bb_width = cur_bounding_box[2] - cur_bounding_box[0]
@@ -627,10 +637,11 @@ class GaussianRotation(object):
 
     # helper function that extracts the FOV from original image, padding if needed
     def extract_img_with_pad(self, original_img, extracted_img_size, x_min, y_min, x_max, y_max):
-        x_min = round(x_min)
-        y_min = round(y_min)
-        x_max = round(x_max)
-        y_max = round(y_max)
+        print(original_img.shape)
+        x_min = int(round(x_min))
+        y_min = int(round(y_min))
+        x_max = int(round(x_max))
+        y_max = int(round(y_max))
         height, width = original_img.shape[:2]
         extracted_img = np.zeros((extracted_img_size, extracted_img_size, 3), dtype=np.uint8)
 
@@ -702,6 +713,11 @@ class GaussianRotation(object):
             # mirror padding
             extracted_img[0:abs(y_min), :, :] = original_img[0:abs(y_min), x_min:x_max, :]
 
+        # if all surroundings went out
+        elif x_min < 0 and y_min < 0 and x_max >= width-1 and y_max >= height-1:
+            print('all out')
+            extracted_img[abs(y_min):abs(height-y_min), abs(x_min):abs(width-x_min), :] = original_img
+
         return extracted_img
 
 
@@ -719,17 +735,17 @@ class GaussianRotation(object):
             rot = float(truncnorm.rvs(self.a, self.b, scale=self.sigma, size = 1)[0])
             self.rot = rot
 
-        # save the rot stats out
-        all_rots_path = f'/home/zhuokai/Desktop/UChicago/Research/nero_vis/logs/rotation_equivariance/all_rots_{self.percentage}.npy'
-        # when the file exists, load and append
-        if os.path.isfile(all_rots_path):
-            loaded_rots = np.load(all_rots_path)
-            all_rots = np.append(loaded_rots, [rot], axis=0)
-        # when the file does not exist, save the first one
-        else:
-            all_rots = np.array([rot])
-        # save the trans
-        np.save(all_rots_path, all_rots)
+        # # save the rot stats out
+        # all_rots_path = f'/home/zhuokai/Desktop/UChicago/Research/nero_vis/logs/rotation_equivariance/all_rots_{self.percentage}.npy'
+        # # when the file exists, load and append
+        # if os.path.isfile(all_rots_path):
+        #     loaded_rots = np.load(all_rots_path)
+        #     all_rots = np.append(loaded_rots, [rot], axis=0)
+        # # when the file does not exist, save the first one
+        # else:
+        #     all_rots = np.array([rot])
+        # # save the trans
+        # np.save(all_rots_path, all_rots)
 
         # labels for current image
         processed_labels = []
@@ -739,10 +755,11 @@ class GaussianRotation(object):
         key_id = int(all_ids[key_label_index])
         key_bb = all_bbs[key_label_index]
 
-        print(f'Before Image shape {img.shape}')
-        print(f'Before Labels shape {labels.shape}')
+        print(f'Original Image shape {img.shape}')
+        print(f'Original Labels shape {labels.shape}')
         utils.viz.plot_bbox(img, np.array([key_bb]), scores=None,
-                            labels=np.array([key_id]), class_names=self.coco_classes)
+                            labels=np.array([key_id]))
+        plt.save(f'/home/zhuokai/Desktop/UChicago/Research/nero_vis/figs/rotation_equivariance/original_{int(rot)}.png')
         plt.show()
 
         # center of the target object
@@ -755,81 +772,70 @@ class GaussianRotation(object):
 
         # make the largest possible image from original in preparation of rotation
         # (scipy.ndimage.rotate only supports rotation by center)
-        img_width = img.shape[0]
-        img_height = img.shape[1]
-        temp_width = np.min(np.abs(key_center_x-0), np.abs(key_center_x-img_width))
-        temp_height = np.min(np.abs(key_center_y-0), np.abs(key_center_y-img_height))
-        temp_img_min_x = key_center_x - temp_width
-        temp_img_min_y = key_center_y - temp_height
-        temp_img_max_x = key_center_x + temp_width
-        temp_img_max_y = key_center_y + temp_height
+        img_width = img.shape[1]
+        img_height = img.shape[0]
+        temp_width = min(np.abs(key_center_x-0), np.abs(key_center_x-img_width))
+        temp_height = min(np.abs(key_center_y-0), np.abs(key_center_y-img_height))
+        temp_img_min_x = int(key_center_x - temp_width)
+        temp_img_min_y = int(key_center_y - temp_height)
+        temp_img_max_x = int(key_center_x + temp_width)
+        temp_img_max_y = int(key_center_y + temp_height)
 
-        temp_img = img[temp_img_min_x:temp_img_max_x, temp_img_min_y, temp_img_max_y]
+        temp_img = img[temp_img_min_y:temp_img_max_y, temp_img_min_x:temp_img_max_x]
+        temp_bb = [key_bb_min_x-temp_img_min_x, key_bb_min_y-temp_img_min_y,
+                    key_bb_max_x-temp_img_min_x, key_bb_max_y-temp_img_min_y]
+        # visualize the temp img
+        utils.viz.plot_bbox(temp_img, np.array([temp_bb]), scores=None,
+                            labels=np.array([key_id]))
+        plt.save(f'/home/zhuokai/Desktop/UChicago/Research/nero_vis/figs/rotation_equivariance/temp_{int(rot)}.png')
+        plt.show()
 
         # rotate the image
         temp_image_rotated = ndimage.rotate(temp_img, self.rot, reshape=False)
 
-        # the cut-out image positions in the original image
-        temp_center_x = (temp_img_min_x + temp_img_max_x) / 2
-        temp_center_y = (temp_img_min_y + temp_img_max_y) / 2
+        # object center wrt temp image
+        temp_center_x = (temp_bb[0] + temp_bb[2]) / 2
+        temp_center_y = (temp_bb[1] + temp_bb[3]) / 2
+
+        # rotate the labels
+        temp_bb_rotated = self.rotate_object(temp_bb, (temp_center_x, temp_center_y), self.rot)
+
+        # visualize the rotated temp img
+        print(f'Rotated {self.rot} degrees')
+        utils.viz.plot_bbox(temp_image_rotated, np.array([temp_bb_rotated]), scores=None,
+                            labels=np.array([key_id]))
+        plt.show()
+
+        # the extracted image locations wrt temp image
         x_min = temp_center_x - self.img_size//2
         y_min = temp_center_y - self.img_size//2
         x_max = temp_center_x + self.img_size//2
         y_max = temp_center_y + self.img_size//2
 
+        # extract the image, pad if needed
+        extracted_img = self.extract_img_with_pad(temp_image_rotated, self.img_size, x_min, y_min, x_max, y_max)
+
         # compute the bounding box wrt extrated image
         key_bb_min_x, key_bb_min_y, key_bb_max_x, key_bb_max_y \
-            = self.compute_label(key_bb, x_min, y_min, self.img_size, self.rot)
+            = self.compute_label(temp_bb_rotated, x_min, y_min, self.img_size)
 
+        # final_bb = [key_bb_min_x, key_bb_min_y, key_bb_max_x, key_bb_max_y]
         processed_labels.append([key_id,
                                 key_bb_min_x,
                                 key_bb_min_y,
                                 key_bb_max_x,
                                 key_bb_max_y])
 
-        # check if other objects (surround) are also inside the current extracted image
-        # for n, l in enumerate(all_ids):
-        #     # if we are on the key object, continue to prevent double labelling
-        #     if n != key_label_index and self.coco_classes[l] in self.desired_classes:
-        #         # convert id k to custom list index
-        #         l_custom = self.desired_classes.index(self.coco_classes[l])
-
-        #         # scale the surrounding objects as well
-        #         cur_surround_bb = labels[n, 1:]
-
-        #         # check if the current object center is in the custom designed area
-        #         center_x = (cur_surround_bb[0] + cur_surround_bb[2]) / 2
-        #         center_y = (cur_surround_bb[1] + cur_surround_bb[3]) / 2
-        #         if (center_x > x_min and center_x < x_max-1
-        #             and center_y > y_min and center_y < y_max-1):
-
-        #             # create surround label
-        #             surround_bb_min_x, surround_bb_min_y, surround_bb_max_x, surround_bb_max_y \
-        #                 = self.compute_label(cur_surround_bb, x_min, y_min, self.img_size)
-
-        #             # reject the candidates whose bounding box is too large
-        #             if (surround_bb_max_x-surround_bb_min_x)*(surround_bb_max_y-surround_bb_min_y) > 0.5*self.img_size*self.img_size:
-        #                 continue
-
-        #             # construct the lable list
-        #             processed_labels.append([l_custom,
-        #                                     surround_bb_min_x,
-        #                                     surround_bb_min_y,
-        #                                     surround_bb_max_x,
-        #                                     surround_bb_max_y])
-
-        # extract the image, pad if needed
-        extracted_img = self.extract_img_with_pad(img, self.img_size, x_min, y_min, x_max, y_max)
-        # make the RGB from [0, 255] to [0, 1] - cannot do it here because imgaug does not accept float image
-        # extracted_img = extracted_img / 255
         processed_labels = np.array(processed_labels)
 
-        # print(f'Extracted Image shape {extracted_img.shape}')
-        # print(f'Extracted Labels shape {processed_labels.shape}')
-        # # vis takes [x_min, y_min, x_max, y_max] as bb inputs
-        # utils.viz.plot_bbox(extracted_img, processed_labels[:, 1:], scores=None,
-        #                     labels=processed_labels[:, 0], class_names=self.desired_classes)
-        # plt.show()
+        print(f'Extracted Image shape {extracted_img.shape}')
+        print(f'Extracted Labels shape {processed_labels.shape}')
+
+        # vis takes [x_min, y_min, x_max, y_max] as bb inputs
+        utils.viz.plot_bbox(extracted_img, processed_labels[:, 1:], scores=None,
+                            labels=processed_labels[:, 0])
+        plt.save(f'/home/zhuokai/Desktop/UChicago/Research/nero_vis/figs/rotation_equivariance/extracted_{int(rot)}.png')
+        plt.show()
 
         # save all the processed labels in a file
         # processed_labels_path = f'/home/zhuokai/Desktop/UChicago/Research/Visualizing-equivariant-properties/detection/logs_zz/shift_equivariance/pattern_investigation/processed_labels_{self.percentage}-jittered.csv'
