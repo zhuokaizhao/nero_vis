@@ -1002,7 +1002,7 @@ if __name__ == "__main__":
             all_single_class_recall[i] = recall
             all_single_class_AP[i] = AP
             all_single_class_f1[i] = f1
-            print(f"mAP at scale = {scale}: {AP.mean()}")
+            print(f"mAP at rotation = {rot}: {AP.mean()}")
 
         np.savez(loss_path,
                 all_single_class_precision=all_single_class_precision,
