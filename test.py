@@ -448,14 +448,20 @@ def single_test_evaluate(model_type, model, path, iou_thres, conf_thres, nms_thr
 
 # when used in validation, percentage, desired_names and original_names are needed for building dataloader
 # when used in test, those three are not needed
-def evaluate(mode, model_type, model, path, iou_thres, conf_thres, nms_thres, img_size, batch_size, desired_names=None, original_names=None, pytorch_pt_names=None, percentage=None, x_tran=None, y_tran=None):
+def evaluate(mode, purpose, model_type, model, path, iou_thres, conf_thres, nms_thres, img_size, batch_size, desired_names=None, original_names=None, pytorch_pt_names=None, percentage=None, x_tran=None, y_tran=None):
     model.eval()
     # Get dataloader
     if mode == 'val':
-        EVALUATE_TRANSFORMS = transforms.Compose([data_transform.GaussianJittering(img_size, percentage),
-                                                    data_transform.ShiftEqvAug(),
-                                                    data_transform.ConvertLabel(original_names, desired_names),
-                                                    data_transform.ToTensor()])
+        if purpose == 'shift-equivariance':
+            EVALUATE_TRANSFORMS = transforms.Compose([data_transform.GaussianJittering(img_size, percentage),
+                                                        data_transform.ShiftEqvAug(),
+                                                        data_transform.ConvertLabel(original_names, desired_names),
+                                                        data_transform.ToTensor()])
+        elif purpose == 'rotation-equivariance':
+            EVALUATE_TRANSFORMS = transforms.Compose([data_transform.GaussianRotation(img_size, percentage),
+                                                        data_transform.RotEqvAug(),
+                                                        data_transform.ConvertLabel(original_names, desired_names),
+                                                        data_transform.ToTensor()])
     elif mode == 'test':
         EVALUATE_TRANSFORMS = transforms.Compose([data_transform.FixedJittering(img_size, x_tran, y_tran),
                                                     data_transform.ShiftEqvAug(),
@@ -765,6 +771,7 @@ if __name__ == "__main__":
         if mode == 'val':
             loss, metrics_output = evaluate(
                 mode='val',
+                purpose=purpose,
                 model_type=model_type,
                 model=model,
                 path=valid_path,
@@ -801,6 +808,7 @@ if __name__ == "__main__":
                     # class_names = load_classes(test_dir, f'test_x_{x_trans}_y_{y_trans}', data_config["names"])
                     precision, recall, AP, f1, ap_class, max_conf, mean_conf = evaluate(
                         mode='test',
+                        purpose=purpose,
                         model_type=model_type,
                         model=model,
                         path=test_path,
@@ -991,8 +999,9 @@ if __name__ == "__main__":
                 # class_names = load_classes(test_dir, f'test_{naming_scale}_scaled', data_config["names"])
 
                 precision, recall, AP, f1, ap_class = evaluate(
-                    'test',
-                    model,
+                    mode='test',
+                    purpose=purpose,
+                    model=model,
                     path=test_path,
                     iou_thres=opt.iou_thres,
                     conf_thres=opt.conf_thres,
