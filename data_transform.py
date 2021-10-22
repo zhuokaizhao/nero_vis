@@ -650,7 +650,7 @@ class GaussianRotation(object):
             extracted_img = original_img[y_min:y_max, x_min:x_max, :]
 
         # if top left part went out
-        elif x_min < 0 and y_min < 0 and x_max < width-1 and y_max < height-1:
+        if x_min < 0 and y_min < 0 and x_max < width-1 and y_max < height-1:
             # print('top left went out')
             extracted_img[abs(y_min):, abs(x_min):, :] = original_img[0:y_max, 0:x_max, :]
             # mirror padding
@@ -659,14 +659,14 @@ class GaussianRotation(object):
             extracted_img[:abs(y_min), abs(x_min):, :] = original_img[0:abs(y_min), 0:x_max, :]
 
         # if left part went out
-        elif x_min < 0 and y_min >= 0 and x_max < width-1 and y_max < height-1:
+        if x_min < 0 and y_min >= 0 and x_max < width-1 and y_max < height-1:
             # print('left went out')
             extracted_img[:, abs(x_min):, :] = original_img[y_min:y_max, 0:x_max, :]
             # mirror padding
             extracted_img[:, :abs(x_min), :] = original_img[y_min:y_max, 0:abs(x_min), :]
 
         # if bottom left part went out
-        elif x_min < 0 and y_min >= 0 and x_max < width-1 and y_max > height-1:
+        if x_min < 0 and y_min >= 0 and x_max < width-1 and y_max > height-1:
             # print('bottom left went out')
             extracted_img[0:extracted_img_size-(y_max-height), abs(x_min):, :] = original_img[y_min:, 0:x_max, :]
             # mirror padding
@@ -675,14 +675,14 @@ class GaussianRotation(object):
             extracted_img[extracted_img_size-(y_max-height):, abs(x_min):, :] = original_img[2*height-y_max:, 0:extracted_img_size-abs(x_min), :]
 
         # if bottom part went out
-        elif x_min >= 0 and y_min >= 0 and x_max < width-1 and y_max > height-1:
+        if x_min >= 0 and y_min >= 0 and x_max < width-1 and y_max > height-1:
             # print('bottom went out')
             extracted_img[0:extracted_img_size-(y_max-height), :, :] = original_img[y_min:, x_min:x_max, :]
             # mirror padding
             extracted_img[extracted_img_size-(y_max-height):, :, :] = original_img[2*height-y_max:, x_min:x_max, :]
 
         # if bottom right part went out
-        elif x_min >= 0 and y_min >= 0 and x_max > width-1 and y_max > height-1:
+        if x_min >= 0 and y_min >= 0 and x_max > width-1 and y_max > height-1:
             # print('bottom right went out')
             extracted_img[0:extracted_img_size-(y_max-height), 0:extracted_img_size-(x_max-width), :] = original_img[y_min:, x_min:, :]
             # mirror padding
@@ -691,14 +691,14 @@ class GaussianRotation(object):
             extracted_img[0:extracted_img_size-(y_max-height), extracted_img_size-(x_max-width):, :] = original_img[y_min:, 2*width-x_max:, :]
 
         # if right part went out
-        elif x_min >= 0 and y_min >= 0 and x_max > width-1 and y_max < height-1:
+        if x_min >= 0 and y_min >= 0 and x_max > width-1 and y_max < height-1:
             # print('\nright went out')
             extracted_img[:, 0:extracted_img_size-(x_max-width), :] = original_img[y_min:y_max, x_min:, :]
             # mirror padding
             extracted_img[:, extracted_img_size-(x_max-width):, :] = original_img[y_min:y_max, 2*width-x_max:, :]
 
         # if top right part went out
-        elif x_min >= 0 and y_min < 0 and x_max >= width-1 and y_max < height-1:
+        if x_min >= 0 and y_min < 0 and x_max >= width-1 and y_max < height-1:
             # print('top right went out')
             extracted_img[abs(y_min):, 0:extracted_img_size-(x_max-width), :] = original_img[0:y_max, x_min:, :]
             # mirror padding
@@ -707,16 +707,12 @@ class GaussianRotation(object):
             extracted_img[abs(y_min):, extracted_img_size-(x_max-width):, :] = original_img[0:y_max, 2*width-x_max:, :]
 
         # if top part went out
-        elif x_min >= 0 and y_min < 0 and x_max < width-1 and y_max < height-1:
+        if x_min >= 0 and y_min < 0 and x_max < width-1 and y_max < height-1:
             # print('top went out')
             extracted_img[abs(y_min):, :, :] = original_img[0:y_max, x_min:x_max, :]
             # mirror padding
             extracted_img[0:abs(y_min), :, :] = original_img[0:abs(y_min), x_min:x_max, :]
 
-        # if all surroundings went out
-        elif x_min < 0 and y_min < 0 and x_max >= width-1 and y_max >= height-1:
-            print('all out')
-            extracted_img[abs(y_min):abs(height-y_min), abs(x_min):abs(width-x_min), :] = original_img
 
         return extracted_img
 
@@ -755,12 +751,12 @@ class GaussianRotation(object):
         key_id = int(all_ids[key_label_index])
         key_bb = all_bbs[key_label_index]
 
-        print(f'Original Image shape {img.shape}')
-        print(f'Original Labels shape {labels.shape}')
-        utils.viz.plot_bbox(img, np.array([key_bb]), scores=None,
-                            labels=np.array([key_id]))
-        plt.save(f'/home/zhuokai/Desktop/UChicago/Research/nero_vis/figs/rotation_equivariance/original_{int(rot)}.png')
-        plt.show()
+        # print(f'Original Image shape {img.shape}')
+        # print(f'Original Labels shape {labels.shape}')
+        # utils.viz.plot_bbox(img, np.array([key_bb]), scores=None,
+        #                     labels=np.array([key_id]))
+        # plt.savefig(f'/home/zhuokai/Desktop/UChicago/Research/nero_vis/figs/rotation_equivariance/original_{int(rot)}.png')
+        # plt.show()
 
         # center of the target object
         key_bb_min_x = key_bb[0]
@@ -784,11 +780,11 @@ class GaussianRotation(object):
         temp_img = img[temp_img_min_y:temp_img_max_y, temp_img_min_x:temp_img_max_x]
         temp_bb = [key_bb_min_x-temp_img_min_x, key_bb_min_y-temp_img_min_y,
                     key_bb_max_x-temp_img_min_x, key_bb_max_y-temp_img_min_y]
-        # visualize the temp img
-        utils.viz.plot_bbox(temp_img, np.array([temp_bb]), scores=None,
-                            labels=np.array([key_id]))
-        plt.save(f'/home/zhuokai/Desktop/UChicago/Research/nero_vis/figs/rotation_equivariance/temp_{int(rot)}.png')
-        plt.show()
+        # # visualize the temp img
+        # utils.viz.plot_bbox(temp_img, np.array([temp_bb]), scores=None,
+        #                     labels=np.array([key_id]))
+        # plt.savefig(f'/home/zhuokai/Desktop/UChicago/Research/nero_vis/figs/rotation_equivariance/temp_{int(rot)}.png')
+        # plt.show()
 
         # rotate the image
         temp_image_rotated = ndimage.rotate(temp_img, self.rot, reshape=False)
@@ -800,11 +796,12 @@ class GaussianRotation(object):
         # rotate the labels
         temp_bb_rotated = self.rotate_object(temp_bb, (temp_center_x, temp_center_y), self.rot)
 
-        # visualize the rotated temp img
-        print(f'Rotated {self.rot} degrees')
-        utils.viz.plot_bbox(temp_image_rotated, np.array([temp_bb_rotated]), scores=None,
-                            labels=np.array([key_id]))
-        plt.show()
+        # # visualize the rotated temp img
+        # print(f'Rotated {self.rot} degrees')
+        # utils.viz.plot_bbox(temp_image_rotated, np.array([temp_bb_rotated]), scores=None,
+        #                     labels=np.array([key_id]))
+        # plt.savefig(f'/home/zhuokai/Desktop/UChicago/Research/nero_vis/figs/rotation_equivariance/rotated_{int(rot)}.png')
+        # plt.show()
 
         # the extracted image locations wrt temp image
         x_min = temp_center_x - self.img_size//2
@@ -828,14 +825,14 @@ class GaussianRotation(object):
 
         processed_labels = np.array(processed_labels)
 
-        print(f'Extracted Image shape {extracted_img.shape}')
-        print(f'Extracted Labels shape {processed_labels.shape}')
+        # print(f'Extracted Image shape {extracted_img.shape}')
+        # print(f'Extracted Labels shape {processed_labels.shape}')
 
-        # vis takes [x_min, y_min, x_max, y_max] as bb inputs
-        utils.viz.plot_bbox(extracted_img, processed_labels[:, 1:], scores=None,
-                            labels=processed_labels[:, 0])
-        plt.save(f'/home/zhuokai/Desktop/UChicago/Research/nero_vis/figs/rotation_equivariance/extracted_{int(rot)}.png')
-        plt.show()
+        # # vis takes [x_min, y_min, x_max, y_max] as bb inputs
+        # utils.viz.plot_bbox(extracted_img, processed_labels[:, 1:], scores=None,
+        #                     labels=processed_labels[:, 0])
+        # plt.savefig(f'/home/zhuokai/Desktop/UChicago/Research/nero_vis/figs/rotation_equivariance/extracted_{int(rot)}.png')
+        # plt.show()
 
         # save all the processed labels in a file
         # processed_labels_path = f'/home/zhuokai/Desktop/UChicago/Research/Visualizing-equivariant-properties/detection/logs_zz/shift_equivariance/pattern_investigation/processed_labels_{self.percentage}-jittered.csv'
