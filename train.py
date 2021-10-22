@@ -139,7 +139,7 @@ if __name__ == "__main__":
                                                         data_transform.ConvertLabel(original_names, desired_names),
                                                         data_transform.ToTensor()])
     elif purpose == 'rotation-equivariance':
-        AUGMENTATION_TRANSFORMS = transforms.Compose([data_transform.GaussianRotation(opt.img_size, percentage),
+        AUGMENTATION_TRANSFORMS = transforms.Compose([data_transform.GaussianRotation(opt.img_size, fixed_rot=False, percentage=percentage),
                                                         data_transform.RotEqvAug(),
                                                         data_transform.ConvertLabel(original_names, desired_names),
                                                         data_transform.ToTensor()])

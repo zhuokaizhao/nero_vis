@@ -553,23 +553,26 @@ class RotEqvAug(ImgAug):
 
 # perform random rotation during the data augmentation phase
 class GaussianRotation(object):
-    def __init__(self, img_size, percentage):
+    def __init__(self, img_size, fixed_rot, percentage=None, rot=None):
 
         random.seed(0)
         np.random.seed(0)
 
         self.img_size = img_size
-        self.percentage = percentage
 
-        if percentage == 0:
-            self.rot = 0
+        if fixed_rot == True:
+            self.rot = rot
         else:
-            # with gaussian, percentage is converted to different sigma value
-            # rotation is the full 360 degree
-            self.sigma = 360*self.percentage/150/2
-            # distribution that has the support as the rotation limit
-            self.a = (0 - 0) / self.sigma
-            self.b = (360 - 0) / self.sigma
+            self.percentage = percentage
+            if percentage == 0:
+                self.rot = 0
+            else:
+                # with gaussian, percentage is converted to different sigma value
+                # rotation is the full 360 degree
+                self.sigma = 360*self.percentage/150/2
+                # distribution that has the support as the rotation limit
+                self.a = (0 - 0) / self.sigma
+                self.b = (360 - 0) / self.sigma
 
     # helper function that rotates the object by its bounding box center (origin)
     # returns the rotated bounding box in the same format (x_min, y_min, x_max, y_max)

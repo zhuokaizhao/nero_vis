@@ -29,7 +29,7 @@ import model
 import data_transform
 import prepare_dataset
 
-os.environ['CUDA_VISIBLE_DEVICES']='0'
+os.environ['CUDA_VISIBLE_DEVICES']='2'
 
 
 def single_test_evaluate(model_type, model, path, iou_thres, conf_thres, nms_thres, img_size, batch_size, desired_names=None, original_names=None, pytorch_pt_names=None, lite_data=False):
@@ -448,7 +448,7 @@ def single_test_evaluate(model_type, model, path, iou_thres, conf_thres, nms_thr
 
 # when used in validation, percentage, desired_names and original_names are needed for building dataloader
 # when used in test, those three are not needed
-def evaluate(mode, purpose, model_type, model, path, iou_thres, conf_thres, nms_thres, img_size, batch_size, desired_names=None, original_names=None, pytorch_pt_names=None, percentage=None, x_tran=None, y_tran=None):
+def evaluate(mode, purpose, model_type, model, path, iou_thres, conf_thres, nms_thres, img_size, batch_size, desired_names=None, original_names=None, pytorch_pt_names=None, percentage=None, x_tran=None, y_tran=None, rot=None):
     model.eval()
     # Get dataloader
     if mode == 'val':
@@ -458,15 +458,21 @@ def evaluate(mode, purpose, model_type, model, path, iou_thres, conf_thres, nms_
                                                         data_transform.ConvertLabel(original_names, desired_names),
                                                         data_transform.ToTensor()])
         elif purpose == 'rotation-equivariance':
-            EVALUATE_TRANSFORMS = transforms.Compose([data_transform.GaussianRotation(img_size, percentage),
+            EVALUATE_TRANSFORMS = transforms.Compose([data_transform.GaussianRotation(img_size, fixed_rot=False, percentage=percentage),
                                                         data_transform.RotEqvAug(),
                                                         data_transform.ConvertLabel(original_names, desired_names),
                                                         data_transform.ToTensor()])
     elif mode == 'test':
-        EVALUATE_TRANSFORMS = transforms.Compose([data_transform.FixedJittering(img_size, x_tran, y_tran),
-                                                    data_transform.ShiftEqvAug(),
-                                                    data_transform.ConvertLabel(original_names, desired_names),
-                                                    data_transform.ToTensor()])
+        if purpose == 'shift-equivariance':
+            EVALUATE_TRANSFORMS = transforms.Compose([data_transform.FixedJittering(img_size, x_tran, y_tran),
+                                                        data_transform.ShiftEqvAug(),
+                                                        data_transform.ConvertLabel(original_names, desired_names),
+                                                        data_transform.ToTensor()])
+        elif purpose == 'rotation-equivariance':
+            EVALUATE_TRANSFORMS = transforms.Compose([data_transform.GaussianRotation(img_size, fixed_rot=True, rot=rot),
+                                                        data_transform.RotEqvAug(),
+                                                        data_transform.ConvertLabel(original_names, desired_names),
+                                                        data_transform.ToTensor()])
 
     dataset = prepare_dataset.CreateDataset(list_path=path,
                                             img_size=img_size,
@@ -958,6 +964,66 @@ if __name__ == "__main__":
                         all_F_measure=results_list[20])
 
                 print(f'\nTest result has been save to npz file at {loss_path}')
+
+    # rotation equivariance
+    elif purpose == 'rotation-equivariance':
+
+        loss_path = os.path.join(output_dir, f'faster_rcnn_{backbone_name}_custom_coco_{mode}_{model_type}.npz')
+        # all the rotations
+        all_rotations = list(range(0, 360))
+
+        if prev_result_path != None:
+            all_single_class_precision = np.load(prev_result_path)['all_single_class_precision']
+            all_single_class_recall = np.load(prev_result_path)['all_single_class_recall']
+            all_single_class_AP = np.load(prev_result_path)['all_single_class_AP']
+            all_single_class_f1 = np.load(prev_result_path)['all_single_class_f1']
+            print(f'Previously evaluated result has been loaded from {prev_result_path}')
+        else:
+            # initialize all the results (5 classes)
+            all_single_class_precision = np.zeros((len(all_rotations), 5))
+            all_single_class_recall = np.zeros((len(all_rotations), 5))
+            all_single_class_AP = np.zeros((len(all_rotations), 5))
+            all_single_class_f1 = np.zeros((len(all_rotations), 5))
+
+        for i, rot in enumerate(all_rotations):
+            # for continusly testing purpose
+            if all_single_class_AP[i, 0] != 0:
+                print(f'Skipping evaluation at scale={scale}')
+                continue
+
+            print(f'Evaluating rot={rot}')
+
+            precision, recall, AP, f1, ap_class, max_conf, mean_conf = evaluate(
+                mode='test',
+                purpose=purpose,
+                model_type=model_type,
+                model=model,
+                path=test_path,
+                iou_thres=iou_thres,
+                conf_thres=conf_thres,
+                nms_thres=nms_thres,
+                img_size=opt.img_size,
+                batch_size=opt.batch_size,
+                desired_names=desired_names,
+                original_names=original_names,
+                pytorch_pt_names=pytorch_pt_names,
+                rot=rot
+            )
+
+            # save the results
+            all_single_class_precision[i] = precision
+            all_single_class_recall[i] = recall
+            all_single_class_AP[i] = AP
+            all_single_class_f1[i] = f1
+            print(f"mAP at scale = {scale}: {AP.mean()}")
+
+        np.savez(loss_path,
+                all_single_class_precision=all_single_class_precision,
+                all_single_class_recall=all_single_class_recall,
+                all_single_class_AP=all_single_class_AP,
+                all_single_class_f1=all_single_class_f1)
+
+        print(f'\nTesting result has been saved to {loss_path}')
 
     # scale equivariance case
     elif purpose == 'scale-equivariance':
