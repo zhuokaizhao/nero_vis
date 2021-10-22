@@ -730,18 +730,18 @@ class GaussianRotation(object):
             rot = float(truncnorm.rvs(self.a, self.b, scale=self.sigma, size = 1)[0])
             self.rot = rot
 
-        # save the rot stats out
-        all_rots_path = f'/home/zhuokai/Desktop/UChicago/Research/nero_vis/logs/rotation_equivariance/object_{self.percentage}-rotated/all_rots_{self.percentage}.npz'
-        # when the file exists, load and append
-        if os.path.isfile(all_rots_path):
-            loaded_rots = np.load(all_rots_path)['all_rotations']
-            all_rots = np.append(loaded_rots, [rot], axis=0)
-        # when the file does not exist, save the first one
-        else:
-            all_rots = np.array([rot])
-        # save the trans
-        np.savez(all_rots_path,
-                all_rotations=all_rots)
+        # # save the rot stats out
+        # all_rots_path = f'/home/zhuokai/Desktop/UChicago/Research/nero_vis/logs/rotation_equivariance/object_{self.percentage}-rotated/all_rots_{self.percentage}.npz'
+        # # when the file exists, load and append
+        # if os.path.isfile(all_rots_path):
+        #     loaded_rots = np.load(all_rots_path)['all_rotations']
+        #     all_rots = np.append(loaded_rots, [rot], axis=0)
+        # # when the file does not exist, save the first one
+        # else:
+        #     all_rots = np.array([rot])
+        # # save the trans
+        # np.savez(all_rots_path,
+        #         all_rotations=all_rots)
 
         # labels for current image
         processed_labels = []
