@@ -589,7 +589,7 @@ if __name__ == "__main__":
     parser.add_argument("--batch_size", type=int, default=100, help="size of each image batch")
     parser.add_argument("--data_config", type=str, help="path to data config file")
     parser.add_argument("--percentage", type=int, help="percentage of jittering or scailing")
-    parser.add_argument("--model_path", type=str, help="path to saved model")
+    parser.add_argument("--model_path", type=str, help="path to load model")
     parser.add_argument("--nms_thres", type=float, default=0.5, help="iou thresshold for non-maximum suppression")
     parser.add_argument("--n_cpu", type=int, default=8, help="number of cpu threads to use during batch generation")
     parser.add_argument("--img_size", type=int, default=128, help="size of each image dimension")
@@ -698,6 +698,13 @@ if __name__ == "__main__":
     else:
         prev_result_path = None
 
+    # make sure the confidence threshold is low
+    conf_thres = 1e-4
+    # conf_thres = 0.1
+    # iou threshold is to define acceptable predictions
+    iou_thres = 0.5
+    nms_thres = 0.5
+
     if purpose == 'shift-equivariance':
 
         if mode == 'test':
@@ -707,33 +714,18 @@ if __name__ == "__main__":
             negative_trans = [-x for x in negative_trans]
             x_translation = negative_trans + [0] + positive_trans
             y_translation = negative_trans + [0] + positive_trans
-            # make sure the confidence threshold is low
-            conf_thres = 1e-4
-            # conf_thres = 0.1
-            # iou threshold is to define acceptable predictions
-            iou_thres = 0.5
-            nms_thres = 0.5
+
 
         elif mode == 'dense-test':
             # for test_2 (dense sampling between -16 to 16)
             x_translation = list(range(-10, 11))
             y_translation = list(range(-10, 11))
-            # make sure the confidence threshold is low
-            conf_thres = 1e-4
-            # iou threshold is to define acceptable predictions
-            iou_thres = 0.5
-            nms_thres = 0.5
 
         elif mode == 'single-test':
             x_translation = list(range(-opt.img_size//2, opt.img_size//2))
             y_translation = list(range(-opt.img_size//2, opt.img_size//2))
             # enforce the batch size to be 1
             opt.batch_size = 1
-            # make sure the confidence threshold is low
-            conf_thres = 1e-4
-            # iou threshold is to define acceptable predictions
-            iou_thres = 0.5
-            nms_thres = 0.5
 
         elif mode == 'single-test-all-candidates':
             # for test (sparse sampling between -64 to 63)
@@ -744,11 +736,6 @@ if __name__ == "__main__":
             y_translation = negative_trans + [0] + positive_trans
             # enforce the batch size to be 1
             opt.batch_size = 1
-            # make sure the confidence threshold is low
-            conf_thres = 1e-4
-            # iou threshold is to define acceptable predictions
-            iou_thres = 0.5
-            nms_thres = 0.5
 
             # list that contains all the image and label indices
             all_candidates_path = data_config['candidates_list']

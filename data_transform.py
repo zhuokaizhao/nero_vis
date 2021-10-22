@@ -559,6 +559,7 @@ class GaussianRotation(object):
         np.random.seed(0)
 
         self.img_size = img_size
+        self.fixed_rot = fixed_rot
 
         if fixed_rot == True:
             self.rot = rot
@@ -726,12 +727,13 @@ class GaussianRotation(object):
         all_bbs = labels[:, 1:]
 
         # randomly choose a rotation for the key object
-        if self.percentage == 0:
-            rot = self.rot
-        else:
-            # random rotation
-            rot = float(truncnorm.rvs(self.a, self.b, scale=self.sigma, size = 1)[0])
-            self.rot = rot
+        if not self.fixed_rot:
+            if self.percentage == 0:
+                rot = self.rot
+            else:
+                # random rotation
+                rot = float(truncnorm.rvs(self.a, self.b, scale=self.sigma, size = 1)[0])
+                self.rot = rot
 
         # # save the rot stats out
         # all_rots_path = f'/home/zhuokai/Desktop/UChicago/Research/nero_vis/logs/rotation_equivariance/object_{self.percentage}-rotated/all_rots_{self.percentage}.npz'
