@@ -568,12 +568,21 @@ class GaussianRotation(object):
             if percentage == 0:
                 self.rot = 0
             else:
-                # with gaussian, percentage is converted to different sigma value
-                # rotation is the full 360 degree
-                self.sigma = 360*self.percentage/150/2
-                # distribution that has the support as the rotation limit
-                self.a = (0 - 0) / self.sigma
-                self.b = (360 - 0) / self.sigma
+                # # with gaussian, percentage is converted to different sigma value
+                # # rotation is the full 360 degree
+                # self.sigma = 360*self.percentage/150/2
+                # # distribution that has the support as the rotation limit
+                # self.a = (0 - 0) / self.sigma
+                # self.b = (360 - 0) / self.sigma
+                self.mu = 0
+                if percentage == 33:
+                    self.kappa = 100/(4*percentage) * np.pi
+                elif percentage == 66:
+                    self.kappa = 100/(5*percentage) * np.pi
+                elif percentage == 100:
+                    self.kappa = 100/(8*percentage) * np.pi
+
+
 
     # helper function that rotates the object by its bounding box center (origin)
     # returns the rotated bounding box in the same format (x_min, y_min, x_max, y_max)
@@ -732,7 +741,7 @@ class GaussianRotation(object):
                 rot = self.rot
             else:
                 # random rotation
-                rot = float(truncnorm.rvs(self.a, self.b, scale=self.sigma, size = 1)[0])
+                rot = float(np.random.vonmises(self.mu, self.kappa, 1)/np.pi*180)
                 self.rot = rot
 
         # # save the rot stats out
