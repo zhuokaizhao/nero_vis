@@ -13,9 +13,9 @@ for percentage in all_percentages:
     if percentage == 33:
         kappa = 100/(4*percentage) * np.pi
     elif percentage == 66:
-        kappa = 100/(4*percentage) * np.pi
+        kappa = 100/(5*percentage) * np.pi
     elif percentage == 100:
-        kappa = 100/(6*percentage) * np.pi
+        kappa = 100/(8*percentage) * np.pi
 
     all_rots = np.random.vonmises(mu, kappa, 10000) / np.pi * 180
 
