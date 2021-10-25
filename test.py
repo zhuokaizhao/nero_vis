@@ -29,7 +29,7 @@ import model
 import data_transform
 import prepare_dataset
 
-os.environ['CUDA_VISIBLE_DEVICES']='0'
+os.environ['CUDA_VISIBLE_DEVICES']='1'
 
 
 def single_test_evaluate(model_type, model, path, iou_thres, conf_thres, nms_thres, img_size, batch_size, desired_names=None, original_names=None, pytorch_pt_names=None, lite_data=False):
@@ -470,7 +470,6 @@ def evaluate(mode, purpose, model_type, model, path, iou_thres, conf_thres, nms_
                                                         data_transform.ToTensor()])
         elif purpose == 'rotation-equivariance':
             EVALUATE_TRANSFORMS = transforms.Compose([data_transform.GaussianRotation(img_size, fixed_rot=True, rot=rot),
-                                                        data_transform.RotEqvAug(),
                                                         data_transform.ConvertLabel(original_names, desired_names),
                                                         data_transform.ToTensor()])
 
@@ -504,8 +503,10 @@ def evaluate(mode, purpose, model_type, model, path, iou_thres, conf_thres, nms_
         # plt.show()
 
         if model_type == 'pt':
+            # print(f'Before conversion target = {targets}')
             for i in range(len(targets)):
                 targets[i, 1] = pytorch_pt_names.index(desired_names[int(targets[i, 1])-1]) + 1
+            # print(f'After conversion target = {targets}')
 
         # Extract class labels from targets
         labels += targets[:, 1].tolist()
@@ -582,14 +583,18 @@ def evaluate(mode, purpose, model_type, model, path, iou_thres, conf_thres, nms_
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    # shift-equivariance or scale equivariance
+    # shift-equivariance, rotation-equivariance or scale equivariance
     parser.add_argument('-p', '--purpose', type=str, dest='purpose')
     parser.add_argument('-m', '--mode', type=str, help='test, single-test, or single-test-all-candidates mode')
     parser.add_argument("--data_name", type=str, help="Defines the name of the dataset (coco, mnist, or coco-lite, mnist-lite)")
     parser.add_argument("--batch_size", type=int, default=100, help="size of each image batch")
     parser.add_argument("--data_config", type=str, help="path to data config file")
     parser.add_argument("--percentage", type=int, help="percentage of jittering or scailing")
+    # model type (normal, si, or pt)
+    parser.add_argument('--model_type', action='store', type=str)
+    # pt model does not need a model path
     parser.add_argument("--model_path", type=str, help="path to load model")
+    # nms, n_cpu, img_size could just use the defaults
     parser.add_argument("--nms_thres", type=float, default=0.5, help="iou thresshold for non-maximum suppression")
     parser.add_argument("--n_cpu", type=int, default=8, help="number of cpu threads to use during batch generation")
     parser.add_argument("--img_size", type=int, default=128, help="size of each image dimension")
@@ -597,8 +602,7 @@ if __name__ == "__main__":
     parser.add_argument('-o', '--output_dir', type=str)
     # previous result path (for continuly inferencing)
     parser.add_argument('--prev_result_path', type=str)
-    # model type (normal, si, or pt)
-    parser.add_argument('--model_type', action='store', type=str)
+
     parser.add_argument("--verbose", "-v", default=False, action='store_true', help="Makes the testing more verbose")
     opt = parser.parse_args()
 
@@ -957,7 +961,11 @@ if __name__ == "__main__":
     # rotation equivariance
     elif purpose == 'rotation-equivariance':
 
-        loss_path = os.path.join(output_dir, f'faster_rcnn_{backbone_name}_{percentage}-rotated_{mode}_{model_type}.npz')
+        if model_type == 'pt':
+            loss_path = os.path.join(output_dir, f'faster_rcnn_{backbone_name}_{mode}_{model_type}.npz')
+        else:
+            loss_path = os.path.join(output_dir, f'faster_rcnn_{backbone_name}_{percentage}-rotated_{mode}_{model_type}.npz')
+
         # all the rotations
         all_rotations = list(range(0, 360, 5))
 
@@ -1004,7 +1012,7 @@ if __name__ == "__main__":
             all_single_class_recall[i] = recall
             all_single_class_AP[i] = AP
             all_single_class_f1[i] = f1
-            print(f"mAP at rotation = {rot}: {AP.mean()}")
+            print(f"APs at rotation = {rot}: {AP}")
 
         np.savez(loss_path,
                 all_single_class_precision=all_single_class_precision,
