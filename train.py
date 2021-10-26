@@ -46,8 +46,8 @@ if __name__ == "__main__":
     parser.add_argument("--checkpoint_path", type=str, help="if specified starts from checkpoint model")
     parser.add_argument("--n_cpu", type=int, default=8, help="number of cpu threads to use during batch generation")
     parser.add_argument("--img_size", type=int, default=128, help="size of each image dimension")
-    parser.add_argument("--checkpoint_interval", type=int, default=1, help="interval between saving model weights")
-    parser.add_argument("--evaluation_interval", type=int, default=1, help="interval evaluations on validation set")
+    parser.add_argument("--checkpoint_interval", type=int, default=5, help="interval between saving model weights")
+    parser.add_argument("--evaluation_interval", type=int, default=5, help="interval evaluations on validation set")
     parser.add_argument("--log_dir", type=str, help="Defines the directory where the training log files are stored")
     parser.add_argument("--verbose", "-v", default=False, action='store_true', help="Makes the training more verbose")
     # output model directory

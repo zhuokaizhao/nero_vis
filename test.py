@@ -564,7 +564,7 @@ def evaluate(mode,
                 all_losses.append(losses.item())
                 model.eval()
                 output_dict = model(imgs)
-                print(f"Avg val confidence: {torch.mean(output_dict[0]['scores'])}")
+                # print(f"Avg val confidence: {torch.mean(output_dict[0]['scores'])}")
 
             outputs = utilities.non_max_suppression(output_dict, conf_thres=conf_thres, nms_thres=nms_thres)
             sample_metrics += utilities.get_batch_statistics(outputs, targets.cpu(), iou_threshold=iou_thres)
