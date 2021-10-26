@@ -46,8 +46,8 @@ if __name__ == "__main__":
     parser.add_argument("--checkpoint_path", type=str, help="if specified starts from checkpoint model")
     parser.add_argument("--n_cpu", type=int, default=8, help="number of cpu threads to use during batch generation")
     parser.add_argument("--img_size", type=int, default=128, help="size of each image dimension")
-    parser.add_argument("--checkpoint_interval", type=int, default=5, help="interval between saving model weights")
-    parser.add_argument("--evaluation_interval", type=int, default=5, help="interval evaluations on validation set")
+    parser.add_argument("--checkpoint_interval", type=int, default=1, help="interval between saving model weights")
+    parser.add_argument("--evaluation_interval", type=int, default=1, help="interval evaluations on validation set")
     parser.add_argument("--log_dir", type=str, help="Defines the directory where the training log files are stored")
     parser.add_argument("--verbose", "-v", default=False, action='store_true', help="Makes the training more verbose")
     # output model directory
@@ -139,7 +139,11 @@ if __name__ == "__main__":
                                                         data_transform.ConvertLabel(original_names, desired_names),
                                                         data_transform.ToTensor()])
     elif purpose == 'rotation-equivariance':
-        AUGMENTATION_TRANSFORMS = transforms.Compose([data_transform.GaussianRotation(opt.img_size, fixed_rot=False, percentage=percentage),
+        AUGMENTATION_TRANSFORMS = transforms.Compose([data_transform.RandomRotationShift(img_size=opt.img_size,
+                                                                                         fixed_rot=False,
+                                                                                         fixed_shift=False,
+                                                                                         rot_percentage=percentage,
+                                                                                         shift_percentage=100),
                                                         data_transform.RotEqvAug(),
                                                         data_transform.ConvertLabel(original_names, desired_names),
                                                         data_transform.ToTensor()])
@@ -241,9 +245,6 @@ if __name__ == "__main__":
                 optimizer.step()
                 optimizer.zero_grad()
 
-            # optimizer.step()
-            # lr_scheduler.step()
-
         all_train_losses.append(np.mean(train_batch_loss))
         print(f'Epoch {epoch} loss: {all_train_losses[-1]}\n')
 
@@ -291,7 +292,10 @@ if __name__ == "__main__":
                 print( "---- mAP not measured (no detections found by model)")
 
         if epoch % opt.checkpoint_interval == 0:
-            model_path = os.path.join(model_dir, f'faster_rcnn_{backbone_name}_{percentage}-jittered_ckpt_{epoch}.pth')
+            if purpose == 'shift-equivariance':
+                model_path = os.path.join(model_dir, f'faster_rcnn_{backbone_name}_{percentage}-jittered_ckpt_{epoch}.pth')
+            elif purpose == 'rotation-equivariance':
+                model_path = os.path.join(model_dir, f'faster_rcnn_{backbone_name}_{percentage}-rotated_ckpt_{epoch}.pth')
 
             torch.save(model.state_dict(), model_path)
             print(f'\nmodel has been saved to {model_path}')
@@ -304,9 +308,14 @@ if __name__ == "__main__":
             print(f'Number of all_train_losses: {len(all_train_losses)}')
             print(f'Number of all_val_losses: {len(all_val_losses)}')
             print(f'Number of all_val_mAPs: {len(all_val_mAPs)}')
-            train_loss_path = os.path.join(log_dir, f'faster_rcnn_{backbone_name}_{percentage}-jittered_train_loss_1_{epoch}.npy')
-            val_loss_path = os.path.join(log_dir, f'faster_rcnn_{backbone_name}_{percentage}-jittered_val_loss_1_{epoch}.npy')
-            val_mAP_path = os.path.join(log_dir, f'faster_rcnn_{backbone_name}_{percentage}-jittered_val_mAP_1_{epoch}.npy')
+            if purpose == 'shift-equivariance':
+                train_loss_path = os.path.join(log_dir, f'faster_rcnn_{backbone_name}_{percentage}-jittered_train_loss_1_{epoch}.npy')
+                val_loss_path = os.path.join(log_dir, f'faster_rcnn_{backbone_name}_{percentage}-jittered_val_loss_1_{epoch}.npy')
+                val_mAP_path = os.path.join(log_dir, f'faster_rcnn_{backbone_name}_{percentage}-jittered_val_mAP_1_{epoch}.npy')
+            elif purpose == 'rotation-equivariance':
+                train_loss_path = os.path.join(log_dir, f'faster_rcnn_{backbone_name}_{percentage}-rotated_train_loss_1_{epoch}.npy')
+                val_loss_path = os.path.join(log_dir, f'faster_rcnn_{backbone_name}_{percentage}-rotated_val_loss_1_{epoch}.npy')
+                val_mAP_path = os.path.join(log_dir, f'faster_rcnn_{backbone_name}_{percentage}-rotated_val_mAP_1_{epoch}.npy')
 
             # save them
             np.save(train_loss_path, all_train_losses)

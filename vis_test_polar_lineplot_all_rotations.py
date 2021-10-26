@@ -61,7 +61,7 @@ if __name__ == "__main__":
 
     plot_quantities = ['all_single_class_AP', 'all_single_class_precision', 'all_single_class_recall', 'all_single_class_f1']
     # all_rotations = ['0', '33', '66', '100', 'pt']
-    all_rotations = ['0', '100', 'pt']
+    all_rotations = ['0', '33', '66', '100', 'pt']
     object_classes = ['car', 'bottle', 'cup', 'chair', 'book']
 
     for plot_quantity in plot_quantities:

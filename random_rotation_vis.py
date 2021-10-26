@@ -6,8 +6,9 @@ from matplotlib import pyplot as plt
 
 all_percentages = [33, 66, 100]
 bins = list(range(-180, 190, 10))
+colors = ['green', 'cyan', 'pink']
 
-for percentage in all_percentages:
+for i, percentage in enumerate(all_percentages):
     # von mises
     mu = 0
     if percentage == 33:
@@ -32,7 +33,10 @@ for percentage in all_percentages:
     #     rot = float(truncnorm.rvs(a, b, scale=sigma, size = 1)[0])
     #     all_rots.append(rot)
 
-    plt.hist(all_rots, bins=bins, label=f'{percentage} rotation', alpha=0.3)
+    n, x, _ = plt.hist(all_rots, bins=bins, alpha=0.7, color=colors[i])
+    bin_centers = 0.5 * (x[1:] + x[:-1])
+    plt.plot(bin_centers, n, label=f'{percentage} rotation', color=colors[i])
+
 
 plt.legend()
 plt.show()

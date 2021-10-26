@@ -864,3 +864,270 @@ class GaussianRotation(object):
         # plt.show()
 
         return label_path, extracted_img, processed_labels
+
+
+# performs random rotation and shift during the data augmentation phase
+class RandomRotationShift(object):
+    def __init__(self,
+                 img_size,
+                 fixed_rot,
+                 fixed_shift,
+                 rot_percentage=None,
+                 shift_percentage=None,
+                 rot=None,
+                 x_tran=None,
+                 y_tran=None):
+
+        # random.seed(0)
+        # np.random.seed(0)
+
+        self.img_size = img_size
+        self.fixed_rot = fixed_rot
+        self.fixed_shift = fixed_shift
+
+        if fixed_rot == True:
+            self.rot = rot
+        else:
+            self.rot_percentage = rot_percentage
+            if self.rot_percentage == 0:
+                self.rot = 0
+            else:
+                # von mises distribution
+                self.mu = 0
+                if self.rot_percentage == 33:
+                    self.kappa = 100/(4*self.rot_percentage) * np.pi
+                elif self.rot_percentage == 66:
+                    self.kappa = 100/(5*self.rot_percentage) * np.pi
+                elif self.rot_percentage == 100:
+                    self.kappa = 100/(8*self.rot_percentage) * np.pi
+
+        if fixed_shift == True:
+            self.x_tran = x_tran
+            self.y_tran = y_tran
+        else:
+            self.shift_percentage = shift_percentage
+            if self.shift_percentage == 0:
+                self.x_tran = 0
+                self.y_tran = 0
+            else:
+                # with gaussian, percentage is converted to different sigma value
+                self.sigma_x = self.img_size*self.shift_percentage/200/2
+                self.sigma_y = self.img_size*self.shift_percentage/200/2
+                # distribution that has the support as the image boundary
+                self.a = (-64 - 0) / self.sigma_x
+                self.b = (63 - 0) / self.sigma_y
+
+
+    # helper function that rotates the object by its bounding box center (origin)
+    # returns the rotated bounding box in the same format (x_min, y_min, x_max, y_max)
+    def rotate_object(self, cur_bounding_box, origin, theta):
+
+        # decode inputs
+        x_min, y_min, x_max, y_max = cur_bounding_box
+        cx, cy = origin
+        theta = theta / 180.0 * np.pi
+
+        # assemble four corners (order doesn't matter)
+        four_corners = [(x_min, y_min), (x_min, y_max), (x_max, y_min), (x_max, y_max)]
+        four_corners_rotated = []
+
+        # rotate four corners in order
+        for cur_corner in four_corners:
+
+            # translate points to origin
+            x_local = cur_corner[0] - cx
+            y_local = cur_corner[1] - cy
+
+            # apply rotation
+            # x_rot = x*cos(theta) - y*sin(theta)
+            # y_rot = x*sin(theta) + y*cos(theta)
+            x_local_rotated = x_local * np.cos(theta) - y_local * np.sin(theta)
+            y_local_rotated = x_local * np.sin(theta) + y_local * np.cos(theta)
+
+            four_corners_rotated.append((x_local_rotated, y_local_rotated))
+
+        # extract the min and max so that it matches with the bounding box format
+        four_corners_rotated = np.array(four_corners_rotated)
+        # get min, max and converts back
+        x_min = np.min(four_corners_rotated[:, 0]) + cx
+        y_min = np.min(four_corners_rotated[:, 1]) + cy
+        x_max = np.max(four_corners_rotated[:, 0]) + cx
+        y_max = np.max(four_corners_rotated[:, 1]) + cy
+
+        rotated_bounding_box = [x_min, y_min, x_max, y_max]
+
+        return rotated_bounding_box
+
+    # helper function that computes labels for cut out images
+    def compute_label(self, cur_bounding_box, x_min, y_min, image_size):
+        # convert key object bounding box to be based on extracted image
+        bb_x_min = cur_bounding_box[0] - x_min
+        bb_y_min = cur_bounding_box[1] - y_min
+        bb_x_max = cur_bounding_box[2] - x_min
+        bb_y_max = cur_bounding_box[3] - y_min
+
+        # compute the center of the object in the extracted image
+        object_center_x = (bb_x_min + bb_x_max) / 2
+        object_center_y = (bb_y_min + bb_y_max) / 2
+
+        # compute the width and height of the real bounding box of this object
+        original_bb_width = cur_bounding_box[2] - cur_bounding_box[0]
+        original_bb_height = cur_bounding_box[3] - cur_bounding_box[1]
+
+        # compute the range of the bounding box, do the clamping if go out of extracted image
+        bb_min_x = max(0, object_center_x - original_bb_width/2)
+        bb_max_x = min(image_size-1, object_center_x + original_bb_width/2)
+        bb_min_y = max(0, object_center_y - original_bb_height/2)
+        bb_max_y = min(image_size-1, object_center_y + original_bb_height/2)
+
+        return bb_min_x, bb_min_y, bb_max_x, bb_max_y
+
+    # helper function that extracts the FOV from original image, padding if needed
+    def extract_img(self, original_img, extracted_img_size, x_min, y_min, x_max, y_max):
+        x_min = int(round(x_min))
+        y_min = int(round(y_min))
+        x_max = int(round(x_max))
+        y_max = int(round(y_max))
+        height, width = original_img.shape[:2]
+        extracted_img = np.zeros((extracted_img_size, extracted_img_size, 3), dtype=np.uint8)
+
+        # extract the image
+        extracted_img = original_img[y_min:y_max, x_min:x_max, :]
+
+        return extracted_img
+
+
+    def __call__(self, data):
+        label_path, img, labels = data
+
+        all_ids = labels[:, 0].astype(int)
+        all_bbs = labels[:, 1:]
+
+        # randomly choose a rotation for the key object
+        if not self.fixed_rot:
+            if self.rot_percentage == 0:
+                rot = self.rot
+            else:
+                # random rotation
+                rot = float(np.random.vonmises(self.mu, self.kappa, 1)/np.pi*180)
+                self.rot = rot
+
+        # randomly choose a shift for the key object
+        if not self.fixed_shift:
+            # randomly choose a translation for the key object
+            if self.shift_percentage == 0:
+                x_tran = self.x_tran
+                y_tran = self.y_tran
+            else:
+                # random jittering method 1
+                x_tran = float(truncnorm.rvs(self.a, self.b, scale=self.sigma_x, size = 1)[0])
+                y_tran = float(truncnorm.rvs(self.a, self.b, scale=self.sigma_y, size = 1)[0])
+                self.x_tran = x_tran
+                self.y_tran = y_tran
+
+        # labels for current image
+        processed_labels = []
+        # analyze the img path to get the key bb index
+        key_label_index = int(label_path.split('_')[-1].split('.')[0])
+        # get the target bb
+        key_id = int(all_ids[key_label_index])
+        key_bb = all_bbs[key_label_index]
+
+        # visualize the original image
+        # print(f'Original Image shape {img.shape}')
+        # print(f'Original Labels shape {labels.shape}')
+        # utils.viz.plot_bbox(img, np.array([key_bb]), scores=None,
+        #                     labels=np.array([key_id]))
+        # plt.savefig(f'/home/zhuokai/Desktop/UChicago/Research/nero_vis/figs/rotation_equivariance/original_{int(rot)}.png')
+        # plt.show()
+
+        # center of the target object
+        key_bb_min_x = key_bb[0]
+        key_bb_min_y = key_bb[1]
+        key_bb_max_x = key_bb[2]
+        key_bb_max_y = key_bb[3]
+        key_center_x = (key_bb_min_x + key_bb_max_x) / 2
+        key_center_y = (key_bb_min_y + key_bb_max_y) / 2
+
+        # make the largest possible image from original in preparation of rotation
+        # (scipy.ndimage.rotate only supports rotation by center)
+        img_width = img.shape[1]
+        img_height = img.shape[0]
+        temp_width = min(np.abs(key_center_x-0), np.abs(key_center_x-img_width))
+        temp_height = min(np.abs(key_center_y-0), np.abs(key_center_y-img_height))
+        temp_img_min_x = int(key_center_x - temp_width)
+        temp_img_min_y = int(key_center_y - temp_height)
+        temp_img_max_x = int(key_center_x + temp_width)
+        temp_img_max_y = int(key_center_y + temp_height)
+
+        temp_img = img[temp_img_min_y:temp_img_max_y, temp_img_min_x:temp_img_max_x]
+        temp_bb = [key_bb_min_x-temp_img_min_x, key_bb_min_y-temp_img_min_y,
+                    key_bb_max_x-temp_img_min_x, key_bb_max_y-temp_img_min_y]
+
+        # visualize the temp img
+        # utils.viz.plot_bbox(temp_img, np.array([temp_bb]), scores=None,
+        #                     labels=np.array([key_id]))
+        # plt.savefig(f'/home/zhuokai/Desktop/UChicago/Research/nero_vis/figs/rotation_equivariance/temp_{int(rot)}.png')
+        # plt.show()
+
+        # rotate the image
+        # original image shape
+        temp_image_rotated = ndimage.rotate(temp_img, self.rot, reshape=True, mode='reflect')
+
+        # object center wrt temp image
+        temp_center_x = (temp_bb[0] + temp_bb[2]) / 2
+        temp_center_y = (temp_bb[1] + temp_bb[3]) / 2
+
+        # rotate the labels
+        temp_bb_rotated = self.rotate_object(temp_bb, (temp_center_x, temp_center_y), self.rot)
+
+        # add the padding offsets
+        width_offset = temp_image_rotated.shape[1] - temp_img.shape[1]
+        height_offset = temp_image_rotated.shape[0] - temp_img.shape[0]
+        temp_bb_rotated = [
+            temp_bb_rotated[0] + width_offset/2,
+            temp_bb_rotated[1] + height_offset/2,
+            temp_bb_rotated[2] + width_offset/2,
+            temp_bb_rotated[3] + height_offset/2
+        ]
+
+        # visualize the rotated temp img
+        # print(f'Rotated {self.rot} degrees')
+        # utils.viz.plot_bbox(temp_image_rotated, np.array([temp_bb_rotated]), scores=None,
+        #                     labels=np.array([key_id]))
+        # plt.savefig(f'/home/zhuokai/Desktop/UChicago/Research/nero_vis/figs/rotation_equivariance/rotated_{int(rot)}.png')
+        # plt.show()
+
+        # the cut-out image positions in the original image
+        # the move of actual object and the window are opposite, thus minus
+        temp_center_x_rotated = (temp_bb_rotated[0] + temp_bb_rotated[2]) / 2
+        temp_center_y_rotated = (temp_bb_rotated[1] + temp_bb_rotated[3]) / 2
+        x_min = temp_center_x_rotated - self.img_size//2 - x_tran
+        y_min = temp_center_y_rotated - self.img_size//2 - y_tran
+        x_max = temp_center_x_rotated + self.img_size//2 - x_tran
+        y_max = temp_center_y_rotated + self.img_size//2 - y_tran
+
+        # extract the image, pad if needed
+        extracted_img = self.extract_img(temp_image_rotated, self.img_size, x_min, y_min, x_max, y_max)
+
+        # compute the bounding box wrt extrated image
+        key_bb_min_x, key_bb_min_y, key_bb_max_x, key_bb_max_y \
+            = self.compute_label(temp_bb_rotated, x_min, y_min, self.img_size)
+
+        # final_bb = [key_bb_min_x, key_bb_min_y, key_bb_max_x, key_bb_max_y]
+        processed_labels.append([key_id,
+                                key_bb_min_x,
+                                key_bb_min_y,
+                                key_bb_max_x,
+                                key_bb_max_y])
+
+        processed_labels = np.array(processed_labels)
+
+        # vis takes [x_min, y_min, x_max, y_max] as bb inputs
+        # print(f'Shifted (x_tran, y_tran) = ({x_tran}, {y_tran})')
+        # utils.viz.plot_bbox(extracted_img, processed_labels[:, 1:], scores=None,
+        #                     labels=processed_labels[:, 0])
+        # plt.savefig(f'/home/zhuokai/Desktop/UChicago/Research/nero_vis/figs/rotation_equivariance/extracted_{int(rot)}.png')
+        # plt.show()
+
+        return label_path, extracted_img, processed_labels

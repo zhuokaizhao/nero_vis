@@ -29,7 +29,7 @@ import model
 import data_transform
 import prepare_dataset
 
-os.environ['CUDA_VISIBLE_DEVICES']='1'
+os.environ['CUDA_VISIBLE_DEVICES']='0'
 
 
 def single_test_evaluate(model_type, model, path, iou_thres, conf_thres, nms_thres, img_size, batch_size, desired_names=None, original_names=None, pytorch_pt_names=None, lite_data=False):
@@ -448,17 +448,43 @@ def single_test_evaluate(model_type, model, path, iou_thres, conf_thres, nms_thr
 
 # when used in validation, percentage, desired_names and original_names are needed for building dataloader
 # when used in test, those three are not needed
-def evaluate(mode, purpose, model_type, model, path, iou_thres, conf_thres, nms_thres, img_size, batch_size, desired_names=None, original_names=None, pytorch_pt_names=None, percentage=None, x_tran=None, y_tran=None, rot=None):
+def evaluate(mode,
+             purpose,
+             model_type,
+             model,
+             path,
+             iou_thres,
+             conf_thres,
+             nms_thres,
+             img_size,
+             batch_size,
+             desired_names=None,
+             original_names=None,
+             pytorch_pt_names=None,
+             rot_percentage=None,
+             shift_percentage=None,
+             rot=None,
+             x_tran=None,
+             y_tran=None):
+
     model.eval()
     # Get dataloader
     if mode == 'val':
         if purpose == 'shift-equivariance':
-            EVALUATE_TRANSFORMS = transforms.Compose([data_transform.GaussianJittering(img_size, percentage),
+            EVALUATE_TRANSFORMS = transforms.Compose([data_transform.RandomRotationShift(img_size=img_size,
+                                                                                         fixed_rot=False,
+                                                                                         fixed_shift=False,
+                                                                                         rot_percentage=100,
+                                                                                         shift_percentage=shift_percentage),
                                                         data_transform.ShiftEqvAug(),
                                                         data_transform.ConvertLabel(original_names, desired_names),
                                                         data_transform.ToTensor()])
         elif purpose == 'rotation-equivariance':
-            EVALUATE_TRANSFORMS = transforms.Compose([data_transform.GaussianRotation(img_size, fixed_rot=False, percentage=percentage),
+            EVALUATE_TRANSFORMS = transforms.Compose([data_transform.RandomRotationShift(img_size=img_size,
+                                                                                         fixed_rot=False,
+                                                                                         fixed_shift=False,
+                                                                                         rot_percentage=rot_percentage,
+                                                                                         shift_percentage=100),
                                                         data_transform.RotEqvAug(),
                                                         data_transform.ConvertLabel(original_names, desired_names),
                                                         data_transform.ToTensor()])
