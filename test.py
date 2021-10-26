@@ -495,7 +495,12 @@ def evaluate(mode,
                                                         data_transform.ConvertLabel(original_names, desired_names),
                                                         data_transform.ToTensor()])
         elif purpose == 'rotation-equivariance':
-            EVALUATE_TRANSFORMS = transforms.Compose([data_transform.GaussianRotation(img_size, fixed_rot=True, rot=rot),
+            EVALUATE_TRANSFORMS = transforms.Compose([data_transform.RandomRotationShift(img_size=img_size,
+                                                                                         fixed_rot=True,
+                                                                                         fixed_shift=True,
+                                                                                         rot=rot,
+                                                                                         x_tran=0,
+                                                                                         y_tran=0),
                                                         data_transform.ConvertLabel(original_names, desired_names),
                                                         data_transform.ToTensor()])
 

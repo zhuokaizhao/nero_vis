@@ -251,23 +251,41 @@ if __name__ == "__main__":
         if epoch % opt.evaluation_interval == 0:
             print("---- Evaluating Model ----")
 
-            # added: get the val loss as the train does
             # Evaluate the model on the validation set
-            loss, metrics_output = test.evaluate(
-                mode='val',
-                purpose=purpose,
-                model_type=model_type,
-                model=model,
-                path=valid_path,
-                iou_thres=0.5,
-                conf_thres=0.5,
-                nms_thres=0.4,
-                img_size=opt.img_size,
-                batch_size=opt.batch_size,
-                desired_names=desired_names,
-                original_names=original_names,
-                percentage=percentage
-            )
+            if purpose == 'shift-equivariance':
+                loss, metrics_output = test.evaluate(
+                    mode='val',
+                    purpose=purpose,
+                    model_type=model_type,
+                    model=model,
+                    path=valid_path,
+                    iou_thres=0.5,
+                    conf_thres=0.5,
+                    nms_thres=0.4,
+                    img_size=opt.img_size,
+                    batch_size=opt.batch_size,
+                    desired_names=desired_names,
+                    original_names=original_names,
+                    rot_percentage=100,
+                    shift_percentage=percentage
+                )
+            elif purpose == 'rotation-equivariance':
+                loss, metrics_output = test.evaluate(
+                    mode='val',
+                    purpose=purpose,
+                    model_type=model_type,
+                    model=model,
+                    path=valid_path,
+                    iou_thres=0.5,
+                    conf_thres=0.5,
+                    nms_thres=0.4,
+                    img_size=opt.img_size,
+                    batch_size=opt.batch_size,
+                    desired_names=desired_names,
+                    original_names=original_names,
+                    rot_percentage=percentage,
+                    shift_percentage=100
+                )
 
             all_val_losses.append(np.mean(loss))
 

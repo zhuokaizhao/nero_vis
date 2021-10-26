@@ -545,7 +545,6 @@ class RotEqvAug(ImgAug):
             iaa.Sharpen((0.0, 0.2)),
             iaa.AddToBrightness((-30, 30)),
             iaa.AddToHue((-20, 20)),
-            # iaa.Fliplr(0.5),
             iaa.ScaleX((0.8, 1.2)),
             iaa.ScaleY((0.8, 1.2))
         ], random_order=True)
