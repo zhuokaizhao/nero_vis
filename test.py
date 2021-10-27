@@ -620,6 +620,7 @@ if __name__ == "__main__":
     parser.add_argument("--data_name", type=str, help="Defines the name of the dataset (coco, mnist, or coco-lite, mnist-lite)")
     parser.add_argument("--batch_size", type=int, default=100, help="size of each image batch")
     parser.add_argument("--data_config", type=str, help="path to data config file")
+    # percentage is only for naming use
     parser.add_argument("--percentage", type=int, help="percentage of jittering or scailing")
     # model type (normal, si, or pt)
     parser.add_argument('--model_type', action='store', type=str)

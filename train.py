@@ -24,12 +24,11 @@ import imgaug.augmenters as iaa
 from terminaltables import AsciiTable
 
 import test
-# import model
 import prepare_dataset
 import data_transform
 
 
-os.environ['CUDA_VISIBLE_DEVICES']='0'
+os.environ['CUDA_VISIBLE_DEVICES']='1'
 
 
 if __name__ == "__main__":

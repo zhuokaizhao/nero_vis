@@ -1011,8 +1011,12 @@ class RandomRotationShift(object):
                 rot = float(np.random.vonmises(self.mu, self.kappa, 1)/np.pi*180)
                 self.rot = rot
 
+        # if shifts are fixed as inputs
+        if self.fixed_shift:
+            x_tran = self.x_tran
+            y_tran = self.y_tran
         # randomly choose a shift for the key object
-        if not self.fixed_shift:
+        else:
             # randomly choose a translation for the key object
             if self.shift_percentage == 0:
                 x_tran = self.x_tran
