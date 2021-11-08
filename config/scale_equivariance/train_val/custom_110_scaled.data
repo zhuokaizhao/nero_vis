@@ -1,5 +1,0 @@
-classes=5
-train=/home/zhuokai/Desktop/nvme1n1p1/Data/processed_coco/small_dataset/scale_equivariance/object_110-scaled/train.txt
-valid=/home/zhuokai/Desktop/nvme1n1p1/Data/processed_coco/small_dataset/scale_equivariance/object_110-scaled/val.txt
-names=/home/zhuokai/Desktop/nvme1n1p1/Data/processed_coco/small_dataset/scale_equivariance/object_110-scaled/custom.names
-mode=110-scaled

@@ -1,0 +1,6 @@
+classes=5
+test=/home/zhuokai/Desktop/nvme1n1p1/Data/processed_coco/small_dataset/shift_equivariance/single_test/all_candidates/car/
+candidates_list=/home/zhuokai/Desktop/nvme1n1p1/Data/processed_coco/small_dataset/shift_equivariance/single_test/all_candidates/car_single_test_candidates_val.npz
+original_names=/home/zhuokai/Desktop/nvme1n1p1/Data/coco/pre_processed/coco.names
+desired_names=/home/zhuokai/Desktop/nvme1n1p1/Data/processed_coco/small_dataset/shift_equivariance/single_test/all_candidates/car/image_174_0/custom.names
+pytorch_pt_names=/home/zhuokai/Desktop/nvme1n1p1/Data/processed_coco/small_dataset/shift_equivariance/pytorch_coco.names

@@ -1,0 +1,3 @@
+classes=10
+test=/home/zhuokai/Desktop/nvme1n1p1/Data/processed_mnist/single_test/9/
+desired_names=/home/zhuokai/Desktop/nvme1n1p1/Data/processed_mnist/single_test/9/custom.names

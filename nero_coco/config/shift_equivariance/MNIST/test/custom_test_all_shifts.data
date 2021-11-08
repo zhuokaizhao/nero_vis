@@ -1,0 +1,4 @@
+classes=5
+test=/home/zhuokai/Desktop/nvme1n1p1/Data/processed_coco/small_dataset/shift_equivariance/test/
+coco_names=/home/zhuokai/Desktop/nvme1n1p1/Data/coco/pre_processed/coco.names
+desired_names=/home/zhuokai/Desktop/nvme1n1p1/Data/processed_coco/small_dataset/shift_equivariance/test/custom.names

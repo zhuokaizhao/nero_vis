@@ -1,0 +1,4 @@
+classes=10
+train=/home/zhuokai/Desktop/nvme1n1p1/Data/processed_mnist/train/train.txt
+valid=/home/zhuokai/Desktop/nvme1n1p1/Data/processed_mnist/val/val.txt
+desired_names=/home/zhuokai/Desktop/nvme1n1p1/Data/processed_mnist/train/custom.names
