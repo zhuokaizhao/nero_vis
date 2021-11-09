@@ -178,7 +178,7 @@ def test(model, device, test_loader):
 def main():
     # Training settings
     parser = argparse.ArgumentParser(description='NERO plots with MNIST')
-    # mode (train, test, or analyze mode)
+    # mode (train, test_rot_eqv, test_trans_eqv or analyze)
     parser.add_argument('--mode', required=True, action='store', nargs=1, dest='mode')
     # network method (non-eqv, eqv, etc)
     parser.add_argument('-n', '--network_model', action='store', nargs=1, dest='network_model')
@@ -313,6 +313,9 @@ def main():
         starting_epoch = 0
         if network_model == 'non-eqv':
             model = models.Non_Eqv_Net_MNIST().to(device)
+            # from pytorch_model_summary import summary
+            # print(summary(model, torch.zeros((1, 1, 29, 29)).to(device)))
+            # exit()
 
         elif network_model == 'rot-eqv':
             model = models.Rot_Eqv_Net_MNIST(image_size=image_size, num_rotation=num_rotation).to(device)
@@ -398,21 +401,26 @@ def main():
                 print(f'\nLoss graph has been saved to {loss_path}')
 
 
-    elif mode == 'test':
-        test_batch_size = args.test_batch_size
+    elif 'test' in mode:
+
+        if args.test_batch_size == None:
+            test_batch_size = 1000
+        else:
+            test_batch_size = args.test_batch_size
+
         network_model = args.network_model[0]
         # directory to load the model from
         model_dir = args.model_dir[0]
         test_kwargs = {'batch_size': test_batch_size}
 
         # number of groups for e2cnn
-        if network_model == 'rot-eqv' or 'trans-rot-eqv':
+        if network_model == 'rot-eqv':
             num_rotation = 8
 
         # basic settings for pytorch
         if torch.cuda.is_available():
             # additional kwargs
-            cuda_kwargs = {'num_workers': 1,
+            cuda_kwargs = {'num_workers': 8,
                             'pin_memory': True,
                             'shuffle': True}
             test_kwargs.update(cuda_kwargs)
@@ -427,73 +435,41 @@ def main():
             device = torch.device('cpu')
 
         # model
-        if data_name == 'mnist':
-            if network_model == 'non-eqv':
-                model = models.Non_Eqv_Net_MNIST().to(device)
+        if network_model == 'non-eqv':
+            model = models.Non_Eqv_Net_MNIST().to(device)
 
-            elif network_model == 'trans-eqv':
-                model = models.Trans_Eqv_Net_MNIST().to(device)
+        elif network_model == 'rot-eqv':
+            model = models.Rot_Eqv_Net_MNIST(image_size=image_size, num_rotation=num_rotation).to(device)
 
-            elif network_model == 'rot-eqv':
-                model = models.Rot_Eqv_Net_MNIST(image_size=image_size, num_rotation=num_rotation).to(device)
-
-        elif data_name == 'cifar-10':
-            if network_model == 'non-eqv':
-                model = models.vgg19_bn(network_model, image_size=image_size).to(device)
-
-            elif network_model == 'trans-eqv':
-                model = models.vgg19_bn(network_model, image_size=image_size).to(device)
-
-            elif network_model == 'rot-eqv':
-                model = models.vgg19_bn(network_model, image_size=image_size, num_groups=8).to(device)
+        elif network_model == 'trans-eqv':
+            model = models.Trans_Eqv_Net_MNIST().to(device)
 
         # load previously trained model
         trained_model = torch.load(model_dir)
         model.load_state_dict(trained_model['state_dict'])
-        trained_epoch = trained_model['epoch']
-
-        all_degree_general_losses = []
-        all_degree_general_accuracy = []
-        all_degree_categorical_losses = []
-        all_degree_categorical_accuracy = []
 
         if verbose:
             print(f'\nmode: {mode}')
             print(f'GPU usage: {device}')
             print(f'netowrk model: {network_model}')
-            print(f'dataset: {data_name}')
             print(f'testing batch size: {test_batch_size}')
             print(f'input model dir: {model_dir}')
 
-        # suppose the padding size is 64x64, mnist has 28x28 image, cifar has 32x32 image
-        # if data_name == 'mnist' or data_name == 'mnist-rot':
-        #     num_move = image_size[0] - 28
-        # elif data_name == 'cifar-10':
-        #     num_move = image_size[0] - 32
-        # elif data_name == 'cifar-100':
-        #     raise NotImplementedError('Not ready yet')
         if image_size == None:
             image_size = (29, 29)
+
         # test on each rotation degree
-        # rotation
-        max_rot = 360
-        increment = 1
-        # plot error at each moved position as a heatmap
-        # general_loss_heatmap = np.zeros((max_rot//increment, num_move))
-        # general_accuracy_heatmap = np.zeros((max_rot//increment, num_move))
-        # categorical_loss_heatmap = np.zeros((max_rot//increment, num_move, 10))
-        # categorical_accuracy_heatmap = np.zeros((max_rot//increment, num_move, 10))
-        general_loss_heatmap = np.zeros(max_rot//increment)
-        general_accuracy_heatmap = np.zeros(max_rot//increment)
-        categorical_loss_heatmap = np.zeros((max_rot//increment, 10))
-        categorical_accuracy_heatmap = np.zeros((max_rot//increment, 10))
-        for k in range(0, max_rot, increment):
-            print(f'\n Testing rotation angle {k}/{max_rot-increment}')
-            # consider we are changing distance as variable, row == col
-            # row
-            # for i in range(num_move):
-            #     print(f'\nRow {i}/{num_move-1}, Column {i}/{num_move-1}')
-            if data_name == 'mnist':
+        if mode == 'test_rot_eqv':
+            max_rot = 360
+            increment = 1
+            general_loss_heatmap = np.zeros(max_rot//increment)
+            general_accuracy_heatmap = np.zeros(max_rot//increment)
+            categorical_loss_heatmap = np.zeros((max_rot//increment, 10))
+            categorical_accuracy_heatmap = np.zeros((max_rot//increment, 10))
+
+            for k in range(0, max_rot, increment):
+                print(f'\n Testing rotation angle {k}/{max_rot-increment}')
+                # row
                 transform = torchvision.transforms.Compose([
                     # transform includes upsample, rotate, downsample and padding (right and bottom) to image_size
                     torchvision.transforms.Resize(28*3),
@@ -503,72 +479,41 @@ def main():
                     torchvision.transforms.Pad((0, 0, 1, 1), fill=0, padding_mode='constant'),
                 ])
 
-                # split into train and validation dataset
+                # prepare test dataset
                 dataset = datasets.MnistDataset(mode='test', transform=transform)
                 test_loader = torch.utils.data.DataLoader(dataset, **test_kwargs)
 
-            elif data_name == 'mnist-rot':
-                transform = torchvision.transforms.Compose([
-                    # transform includes upsample, rotate, downsample and padding (right and bottom) to image_size
-                    torchvision.transforms.Resize(28*3),
-                    torchvision.transforms.RandomRotation((k, k), resample=Image.BILINEAR, expand=False),
-                    torchvision.transforms.Resize(28),
-                    torchvision.transforms.Pad((i, i, image_size[1]-28-i, image_size[0]-28-i), fill=0, padding_mode='constant'),
-                ])
+                # test the model
+                general_loss, general_accuracy, categorical_loss, categorical_accuracy = test(model, device, test_loader)
+                general_loss_heatmap[k//increment] = general_loss
+                general_accuracy_heatmap[k//increment] = general_accuracy
+                categorical_loss_heatmap[k//increment, :] = categorical_loss
+                categorical_accuracy_heatmap[k//increment, :] = categorical_accuracy
 
-                # split into train and validation dataset
-                dataset = datasets.MnistRotDataset(mode='test', transform=transform)
-                test_loader = torch.utils.data.DataLoader(dataset, **test_kwargs)
+                print(f'Rotation {k} accuracy: {general_accuracy}')
 
-            elif data_name == 'cifar-10':
-                # prepare the image in the correct position
-                transform = torchvision.transforms.Compose([
-                    # transform includes upsample, rotate, downsample and padding (right and bottom) to image_size
-                    torchvision.transforms.Resize(32*3),
-                    torchvision.transforms.RandomRotation((k, k), expand=False, fill=0),
-                    torchvision.transforms.Resize(32),
-                    # (left, top, right and bottom)
-                    torchvision.transforms.Pad((i, i, image_size[1]-32-i, image_size[0]-32-i), fill=0, padding_mode='constant'),
-                    torchvision.transforms.ToTensor(),
-                    torchvision.transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
-                ])
+            # save the accuracy as npz file
+            if network_model == 'non-eqv':
+                loss_path = os.path.join(figs_dir, f'{network_model}_mnist_{image_size[0]}x{image_size[1]}_angle-increment{increment}_epoch{trained_epoch}_result.npz')
+            elif network_model == 'trans-eqv':
+                loss_path = os.path.join(figs_dir, f'{network_model}_mnist_{image_size[0]}x{image_size[1]}_angle-increment{increment}_epoch{trained_epoch}_result.npz')
+            elif network_model == 'rot-eqv':
+                loss_path = os.path.join(figs_dir, f'{network_model}_rot-group{num_rotation}_mnist_{image_size[0]}x{image_size[1]}_angle-increment{increment}_epoch{trained_epoch}_result.npz')
+            elif network_model == 'trans-rot-eqv':
+                loss_path = os.path.join(figs_dir, f'{network_model}_rot-group{num_rotation}_mnist_{image_size[0]}x{image_size[1]}_angle-increment{increment}_epoch{trained_epoch}_result.npz')
 
-                test_data = torchvision.datasets.CIFAR10(root='/home/zhuokai/Desktop/nvme1n1p1/Data/CIFAR-10/',
-                                                        train=False,
-                                                        download=True,
-                                                        transform=transform)
+            np.savez(loss_path,
+                    general_loss_heatmap=general_loss_heatmap,
+                    general_accuracy_heatmap=general_accuracy_heatmap,
+                    categorical_loss_heatmap=categorical_loss_heatmap,
+                    categorical_accuracy_heatmap=categorical_accuracy_heatmap)
 
-                test_loader = torch.utils.data.DataLoader(test_data, **test_kwargs)
+            print(f'\nTesting result has been saved to {loss_path}')
 
-            elif data_name == 'cifar-100':
-                raise NotImplementedError('Not ready yet')
-
-            # test the model
-            general_loss, general_accuracy, categorical_loss, categorical_accuracy = test(model, device, test_loader)
-            general_loss_heatmap[k//increment] = general_loss
-            general_accuracy_heatmap[k//increment] = general_accuracy
-            categorical_loss_heatmap[k//increment, :] = categorical_loss
-            categorical_accuracy_heatmap[k//increment, :] = categorical_accuracy
-
-            print(f'Rotation {k} accuracy: {general_accuracy}')
-
-        # save the accuracy as npz file
-        if network_model == 'non-eqv':
-            loss_path = os.path.join(figs_dir, f'{network_model}_{data_name}_{image_size[0]}x{image_size[1]}_angle-increment{increment}_epoch{trained_epoch}_result.npz')
-        elif network_model == 'trans-eqv':
-            loss_path = os.path.join(figs_dir, f'{network_model}_{data_name}_{image_size[0]}x{image_size[1]}_angle-increment{increment}_epoch{trained_epoch}_result.npz')
-        elif network_model == 'rot-eqv':
-            loss_path = os.path.join(figs_dir, f'{network_model}_rot-group{num_rotation}_{data_name}_{image_size[0]}x{image_size[1]}_angle-increment{increment}_epoch{trained_epoch}_result.npz')
-        elif network_model == 'trans-rot-eqv':
-            loss_path = os.path.join(figs_dir, f'{network_model}_rot-group{num_rotation}_{data_name}_{image_size[0]}x{image_size[1]}_angle-increment{increment}_epoch{trained_epoch}_result.npz')
-
-        np.savez(loss_path,
-                general_loss_heatmap=general_loss_heatmap,
-                general_accuracy_heatmap=general_accuracy_heatmap,
-                categorical_loss_heatmap=categorical_loss_heatmap,
-                categorical_accuracy_heatmap=categorical_accuracy_heatmap)
-
-        print(f'\nTesting result has been saved to {loss_path}')
+        # plot error at each moved position as a heatmap
+        elif mode == 'test_trans_eqv':
+            # suppose the padding size is 64x64, mnist has 28x28 images
+            num_move = image_size[0] - 28
 
 
     elif mode == 'analyze':
