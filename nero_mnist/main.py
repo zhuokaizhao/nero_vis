@@ -177,33 +177,35 @@ def test(model, device, test_loader):
 
 def main():
     # Training settings
-    parser = argparse.ArgumentParser(description='Visualizing rotation equivariance')
-    # mode (data, train, or test mode)
+    parser = argparse.ArgumentParser(description='NERO plots with MNIST')
+    # mode (train, test, or analyze mode)
     parser.add_argument('--mode', required=True, action='store', nargs=1, dest='mode')
     # network method (non-eqv, eqv, etc)
-    parser.add_argument('-n', '--network-model', action='store', nargs=1, dest='network_model')
+    parser.add_argument('-n', '--network_model', action='store', nargs=1, dest='network_model')
     # dataset
-    parser.add_argument('-d', '--data-name', action='store', nargs=1, dest='data_name')
+    # parser.add_argument('-d', '--data-name', action='store', nargs=1, dest='data_name')
     # image dimension after padding
-    parser.add_argument('-s', '--image-size', action='store', nargs=1, dest='image_size')
+    parser.add_argument('-s', '--image_size', action='store', nargs=1, dest='image_size')
     # training batch size
-    parser.add_argument('--train-batch-size', type=int, dest='train_batch_size',
+    parser.add_argument('--train_batch_size', type=int, dest='train_batch_size',
                         help='input batch size for training')
     # validation batch size
-    parser.add_argument('--val-batch-size', type=int, dest='val_batch_size',
+    parser.add_argument('--val_batch_size', type=int, dest='val_batch_size',
                         help='input batch size for validation')
     # test batch size
-    parser.add_argument('--test-batch-size', type=int, dest='test_batch_size',
+    parser.add_argument('--test_batch_size', type=int, dest='test_batch_size',
                         help='input batch size for testing')
     # number of training epochs
-    parser.add_argument('-e', '--num-epoch', type=int, dest='num_epoch',
+    parser.add_argument('-e', '--num_epoch', type=int, dest='num_epoch',
                         help='number of epochs to train')
+    # save the checkpoint model to the output model directory
+    parser.add_argument("--checkpoint_interval", type=int, default=5, help="interval between saving model weights")
     # checkpoint path for continuing training
-    parser.add_argument('-c', '--checkpoint-dir', action='store', nargs=1, dest='checkpoint_path')
+    parser.add_argument('-c', '--checkpoint_dir', action='store', nargs=1, dest='checkpoint_path')
     # input or output model directory
-    parser.add_argument('-m', '--model-dir', action='store', nargs=1, dest='model_dir')
-    # output directory (tfrecord in 'data' mode, figure in 'training' mode)
-    parser.add_argument('-o', '--output-dir', action='store', nargs=1, dest='output_dir')
+    parser.add_argument('-m', '--model_dir', action='store', nargs=1, dest='model_dir')
+    # output figs directory
+    parser.add_argument('-o', '--output_dir', action='store', nargs=1, dest='output_dir')
     # verbosity
     parser.add_argument('-v', '--verbose', action='store_true', dest='verbose', default=False)
 
@@ -211,7 +213,6 @@ def main():
 
     # input variables
     mode = args.mode[0]
-    data_name = args.data_name[0]
     if args.image_size != None:
         image_size = (int(args.image_size[0].split('x')[0]), int(args.image_size[0].split('x')[1]))
     else:
@@ -225,18 +226,8 @@ def main():
         network_model = args.network_model[0]
         # default train_batch_size and val_batch_size if not assigned
         if args.train_batch_size == None:
-            if data_name == 'mnist' or data_name == 'mnist-rot':
-                train_batch_size = 64
-                if 'rot' in network_model:
-                    val_batch_size = 100
-                else:
-                    val_batch_size = 1000
-            elif data_name == 'cifar-10':
-                train_batch_size = 128
-                if 'rot' in network_model:
-                    val_batch_size = 200
-                else:
-                    val_batch_size = 500
+            train_batch_size = 64
+            val_batch_size = 1000
         else:
             train_batch_size = args.train_batch_size
             val_batch_size = args.val_batch_size
@@ -245,19 +236,12 @@ def main():
         num_epoch = args.num_epoch
 
         # number of groups for e2cnn
-        if network_model == 'rot-eqv' or 'trans-rot-eqv':
+        if network_model == 'rot-eqv':
             num_rotation = 8
 
-        # assign learning rate for different models
         # MNIST models use Adam
-        if data_name == 'mnist' or data_name == 'mnist-rot':
-            learning_rate = 5e-5
-            weight_decay = 1e-5
-        # VGG uses SGD
-        elif data_name == 'cifar-10':
-            learning_rate = 0.001
-            momentum = 0.9
-            weight_decay = 5e-4
+        learning_rate = 5e-5
+        weight_decay = 1e-5
 
         # checkpoint path to load the model from
         if args.checkpoint_path != None:
@@ -273,7 +257,7 @@ def main():
         val_kwargs = {'batch_size': val_batch_size}
         if torch.cuda.is_available():
             # additional cuda kwargs
-            cuda_kwargs = {'num_workers': 1,
+            cuda_kwargs = {'num_workers': 8,
                             'pin_memory': True,
                             'shuffle': True}
             train_kwargs.update(cuda_kwargs)
@@ -292,7 +276,6 @@ def main():
             print(f'\nmode: {mode}')
             print(f'GPU usage: {device}')
             print(f'netowrk model: {network_model}')
-            print(f'dataset: {data_name}')
             if image_size != None:
                 print(f'Padded image size: {image_size[0]}x{image_size[1]}')
             else:
@@ -303,67 +286,24 @@ def main():
             print(f'epoch size: {num_epoch}')
             print(f'initial learning rate: {learning_rate}')
             print(f'optimizer weight decay: {weight_decay}')
-            if data_name == 'cifar-10':
-                print(f'optimizer momentum: {momentum}')
-            print(f'input checkpoint path: {checkpoint_path}')
+            print(f'model input checkpoint path: {checkpoint_path}')
 
-        if data_name == 'mnist':
-            # transform
-            if image_size != None:
-                transform = torchvision.transforms.Compose([
-                    # transform includes padding (right and bottom) to image_size and totensor
-                    torchvision.transforms.Pad((0, 0, image_size[1]-28, image_size[0]-28), fill=0, padding_mode='constant'),
-                ])
-            else:
-                transform = torchvision.transforms.Compose([
-                    # transform includes padding (right and bottom) to 29x29 (for model purpose) and totensor
-                    torchvision.transforms.Pad((0, 0, 1, 1), fill=0, padding_mode='constant'),
-                ])
-                image_size = (29, 29)
+        # transform
+        if image_size != None:
+            transform = torchvision.transforms.Compose([
+                # transform includes padding (right and bottom) to image_size and totensor
+                torchvision.transforms.Pad((0, 0, image_size[1]-28, image_size[0]-28), fill=0, padding_mode='constant'),
+            ])
+        else:
+            transform = torchvision.transforms.Compose([
+                # transform includes padding (right and bottom) to 29x29 (for model purpose) and totensor
+                torchvision.transforms.Pad((0, 0, 1, 1), fill=0, padding_mode='constant'),
+            ])
+            image_size = (29, 29)
 
-            # split into train and validation dataset
-            dataset = datasets.MnistDataset(mode='train', transform=transform)
-            train_data, val_data = torch.utils.data.random_split(dataset, [50000, 10000])
-
-        elif data_name == 'mnist-rot':
-            # transform
-            if image_size != None:
-                transform = torchvision.transforms.Compose([
-                    # transform includes padding (right and bottom) to image_size and totensor
-                    torchvision.transforms.Pad((0, 0, image_size[1]-28, image_size[0]-28), fill=0, padding_mode='constant'),
-                ])
-            else:
-                transform = torchvision.transforms.Compose([
-                    # transform includes padding (right and bottom) to 29x29 (for model purpose) and totensor
-                    torchvision.transforms.Pad((0, 0, 1, 1), fill=0, padding_mode='constant'),
-                ])
-
-            # split into train and validation dataset
-            dataset = datasets.MnistRotDataset(mode='train', transform=transform)
-            train_data, val_data = torch.utils.data.random_split(dataset, [10000, 2000])
-
-        elif data_name == 'cifar-10':
-            # split into train and validation dataset
-            # pad the image from 32x32 to image_size on right and bottom (left, top, right and bottom)
-            if image_size != None:
-                transform = torchvision.transforms.Compose([
-                    torchvision.transforms.Pad((0, 0, image_size[1]-32, image_size[0]-32), fill=0, padding_mode='constant'),
-                    torchvision.transforms.ToTensor(),
-                    torchvision.transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
-                ])
-            else:
-                transform = torchvision.transforms.Compose([
-                    torchvision.transforms.RandomCrop(32, padding=4),
-                    torchvision.transforms.ToTensor(),
-                    torchvision.transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
-                ])
-
-            dataset = torchvision.datasets.CIFAR10(root='/home/zhuokai/Desktop/nvme1n1p1/Data/CIFAR-10/',
-                                                    train=True,
-                                                    download=True,
-                                                    transform=transform)
-
-            train_data, val_data = torch.utils.data.random_split(dataset, [45000, 5000])
+        # split into train and validation dataset
+        dataset = datasets.MnistDataset(mode='train', transform=transform)
+        train_data, val_data = torch.utils.data.random_split(dataset, [50000, 10000])
 
         # pytorch data loader
         train_loader = torch.utils.data.DataLoader(train_data, **train_kwargs)
@@ -371,29 +311,16 @@ def main():
 
         # model
         starting_epoch = 0
-        if data_name == 'mnist':
-            if network_model == 'non-eqv':
-                model = models.Non_Eqv_Net_MNIST().to(device)
+        if network_model == 'non-eqv':
+            model = models.Non_Eqv_Net_MNIST().to(device)
 
-            elif network_model == 'trans-eqv':
-                model = models.Trans_Eqv_Net_MNIST().to(device)
+        elif network_model == 'rot-eqv':
+            model = models.Rot_Eqv_Net_MNIST(image_size=image_size, num_rotation=num_rotation).to(device)
 
-            elif network_model == 'rot-eqv':
-                model = models.Rot_Eqv_Net_MNIST(image_size=image_size, num_rotation=num_rotation).to(device)
+        elif network_model == 'trans-eqv':
+            model = models.Trans_Eqv_Net_MNIST().to(device)
 
-            optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, weight_decay=weight_decay)
-
-        elif data_name == 'cifar-10':
-            if network_model == 'non-eqv':
-                model = models.vgg19_bn(network_model).to(device)
-
-            elif network_model == 'trans-eqv':
-                model = models.vgg19_bn(network_model).to(device)
-
-            elif network_model == 'rot-eqv':
-                model = models.vgg11_bn(network_model, image_size, num_groups=2).to(device)
-
-            optimizer = optim.SGD(model.parameters(), lr=learning_rate, momentum=momentum, weight_decay=weight_decay)
+        optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, weight_decay=weight_decay)
 
         # load previously trained model information
         if checkpoint_path != None:
@@ -419,56 +346,56 @@ def main():
                     cur_epoch_val_loss, num_correct, len(val_loader.dataset),
                     100. * num_correct / len(val_loader.dataset)))
 
-        # save model as a checkpoint so further training could be resumed
-        if network_model == 'non-eqv':
-            model_path = os.path.join(model_dir, f'{network_model}_{data_name}_{image_size[0]}x{image_size[1]}_batch{train_batch_size}_epoch{epoch+1}.pt')
-        elif network_model == 'trans-eqv':
-            model_path = os.path.join(model_dir, f'{network_model}_{data_name}_{image_size[0]}x{image_size[1]}_batch{train_batch_size}_epoch{epoch+1}.pt')
-        elif network_model == 'rot-eqv':
-            model_path = os.path.join(model_dir, f'{network_model}_rot-group{num_rotation}_{data_name}_{image_size[0]}x{image_size[1]}_batch{train_batch_size}_epoch{epoch+1}.pt')
-        elif network_model == 'trans-rot-eqv':
-            model_path = os.path.join(model_dir, f'{network_model}_rot-group{num_rotation}_{data_name}_{image_size[0]}x{image_size[1]}_batch{train_batch_size}_epoch{epoch+1}.pt')
-        else:
-            raise Exception(f'Unknown network model {network_model}')
+            if (epoch+1) % args.checkpoint_interval == 0:
 
-        # if trained on multiple GPU's, store model.module.state_dict()
-        if torch.cuda.device_count() > 1:
-            model_checkpoint = {
-                                    'epoch': epoch+1,
-                                    'state_dict': model.module.state_dict(),
-                                    'optimizer': optimizer.state_dict(),
-                                    'train_loss': all_epoch_train_losses,
-                                    'val_loss': all_epoch_val_losses
-                                }
-        else:
-            model_checkpoint = {
-                                    'epoch': epoch+1,
-                                    'state_dict': model.state_dict(),
-                                    'optimizer': optimizer.state_dict(),
-                                    'train_loss': all_epoch_train_losses,
-                                    'val_loss': all_epoch_val_losses
-                                }
+                # save model as a checkpoint so further training could be resumed
+                if network_model == 'non-eqv':
+                    model_path = os.path.join(model_dir, f'{network_model}_mnist_{image_size[0]}x{image_size[1]}_batch{train_batch_size}_epoch{epoch+1}.pt')
+                elif network_model == 'trans-eqv':
+                    model_path = os.path.join(model_dir, f'{network_model}_mnist_{image_size[0]}x{image_size[1]}_batch{train_batch_size}_epoch{epoch+1}.pt')
+                elif network_model == 'rot-eqv':
+                    model_path = os.path.join(model_dir, f'{network_model}_rot-group{num_rotation}_mnist_{image_size[0]}x{image_size[1]}_batch{train_batch_size}_epoch{epoch+1}.pt')
+                else:
+                    raise Exception(f'Unknown network model {network_model}')
 
-        torch.save(model_checkpoint, model_path)
-        print(f'\nTrained model checkpoint has been saved to {model_path}\n')
+                # if trained on multiple GPU's, store model.module.state_dict()
+                if torch.cuda.device_count() > 1:
+                    model_checkpoint = {
+                                            'epoch': epoch+1,
+                                            'state_dict': model.module.state_dict(),
+                                            'optimizer': optimizer.state_dict(),
+                                            'train_loss': all_epoch_train_losses,
+                                            'val_loss': all_epoch_val_losses
+                                        }
+                else:
+                    model_checkpoint = {
+                                            'epoch': epoch+1,
+                                            'state_dict': model.state_dict(),
+                                            'optimizer': optimizer.state_dict(),
+                                            'train_loss': all_epoch_train_losses,
+                                            'val_loss': all_epoch_val_losses
+                                        }
 
-        # save loss graph and model
-        if checkpoint_path != None:
-            checkpoint = torch.load(checkpoint_path)
-            prev_train_losses = checkpoint['train_loss']
-            prev_val_losses = checkpoint['val_loss']
-            all_epoch_train_losses = prev_train_losses + all_epoch_train_losses
-            all_epoch_val_losses = prev_val_losses + all_epoch_val_losses
+                torch.save(model_checkpoint, model_path)
+                print(f'\nTrained model checkpoint has been saved to {model_path}\n')
 
-        plt.plot(all_epoch_train_losses, label='Train')
-        plt.plot(all_epoch_val_losses, label='Validation')
-        plt.title(f'Training and validation loss on {network_model} model')
-        plt.xlabel('Epoch')
-        plt.ylabel('Loss')
-        plt.legend(loc='upper right')
-        loss_path = os.path.join(figs_dir, f'{network_model}_{data_name}_batch{train_batch_size}_epoch{epoch+1}_loss.png')
-        plt.savefig(loss_path)
-        print(f'\nLoss graph has been saved to {loss_path}')
+                # save loss graph and model
+                if checkpoint_path != None:
+                    checkpoint = torch.load(checkpoint_path)
+                    prev_train_losses = checkpoint['train_loss']
+                    prev_val_losses = checkpoint['val_loss']
+                    all_epoch_train_losses = prev_train_losses + all_epoch_train_losses
+                    all_epoch_val_losses = prev_val_losses + all_epoch_val_losses
+
+                plt.plot(all_epoch_train_losses, label='Train')
+                plt.plot(all_epoch_val_losses, label='Validation')
+                plt.title(f'Training and validation loss on {network_model} model')
+                plt.xlabel('Epoch')
+                plt.ylabel('Loss')
+                plt.legend(loc='upper right')
+                loss_path = os.path.join(figs_dir, f'{network_model}_mnist_batch{train_batch_size}_epoch{epoch+1}_loss.png')
+                plt.savefig(loss_path)
+                print(f'\nLoss graph has been saved to {loss_path}')
 
 
     elif mode == 'test':
