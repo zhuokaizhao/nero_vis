@@ -447,6 +447,7 @@ def main():
         # load previously trained model
         trained_model = torch.load(model_dir)
         model.load_state_dict(trained_model['state_dict'])
+        trained_epoch = trained_model['epoch']
 
         if verbose:
             print(f'\nmode: {mode}')
