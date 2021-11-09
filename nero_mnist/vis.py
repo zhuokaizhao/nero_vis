@@ -1,9 +1,12 @@
-import plotly
 import numpy as np
 import matplotlib.cm as cm
 import matplotlib.pyplot as plt
+import plotly
 import plotly.express as px
 import plotly.graph_objects as go
+from plotly.subplots import make_subplots
+
+
 
 
 def plot_save_line(all_degree_accuracy, title, result_path):
@@ -51,67 +54,73 @@ def plot_save_circle(all_degree_losses, all_degree_accuracy, title, result_path)
     plt.savefig(result_path, bbox_inches='tight')
 
 
-def plot_interactive_line_polar(digit, non_eqv_results, eqv_results, title, result_path):
+def plot_interactive_line_polar(digits, non_eqv_results, eqv_results, title, result_path):
 
-    # non_eqv_gen_losses = non_eqv_results['all_degree_general_losses']
-    # non_eqv_gen_accuracy = non_eqv_results['all_degree_general_accuracy']
-    # non_eqv_categorical_losses = non_eqv_results['all_degree_categorical_losses']
-    # non_eqv_categorical_accuuracy = non_eqv_results['all_degree_categorical_accuracy']
+    # plot for all digits
+    # fig = go.Figure()
+    subplot_names = []
+    for digit in digits:
+        subplot_names.append(f'Digit {digit}')
 
-    # eqv_gen_losses = eqv_results['all_degree_general_losses']
-    # eqv_gen_accuracy = eqv_results['all_degree_general_accuracy']
-    # eqv_categorical_losses = eqv_results['all_degree_categorical_losses']
-    # eqv_categorical_accuuracy = eqv_results['all_degree_categorical_accuracy']
-    non_eqv_gen_accuracy = non_eqv_results['categorical_accuracy_heatmap'][:, digit]
-    eqv_gen_accuracy = eqv_results['categorical_accuracy_heatmap'][:, digit]
-    angles = list(range(len(non_eqv_gen_accuracy)))
+    fig = make_subplots(rows=2, cols=5,
+                        subplot_titles=subplot_names,
+                        specs=[[{'type': 'polar'}, {'type': 'polar'}, {'type': 'polar'}, {'type': 'polar'}, {'type': 'polar'}],
+                               [{'type': 'polar'}, {'type': 'polar'}, {'type': 'polar'}, {'type': 'polar'}, {'type': 'polar'}]])
+    for i, digit in enumerate(digits):
 
-    fig = go.Figure()
-    # non eqv accuracy
-    fig.add_trace(go.Scatterpolar(
-        r = non_eqv_gen_accuracy,
-        theta = angles,
-        # customdata=non_eqv_categorical_accuuracy,
-        mode = 'lines',
-        name = 'Non-eqv accuracy',
-        line_color = 'peru'
-    ))
+        # subplot position (start with 1)
+        row = i // 5 + 1
+        col = i % 5 + 1
 
-    # eqv accuracy
-    fig.add_trace(go.Scatterpolar(
-        r = eqv_gen_accuracy,
-        theta = angles,
-        # customdata=eqv_categorical_accuuracy,
-        mode = 'lines',
-        name = 'Eqv accuracy',
-        line_color = 'darkviolet'
-    ))
+        non_eqv_gen_accuracy = non_eqv_results['categorical_accuracy_heatmap'][:, int(digit)]
+        eqv_gen_accuracy = eqv_results['categorical_accuracy_heatmap'][:, int(digit)]
+        angles = list(range(len(non_eqv_gen_accuracy)))
 
-    fig.update_traces(
-        hovertemplate=
-        "Rotated angle: %{theta:.0f}<br>" +
-        "General accuracy: %{r:.1%}<br>"
-        # "Digit 0 accuracy: %{customdata[0]:.1%}<br>" +
-        # "Digit 1 accuracy: %{customdata[1]:.1%}<br>" +
-        # "Digit 2 accuracy: %{customdata[2]:.1%}<br>" +
-        # "Digit 3 accuracy: %{customdata[3]:.1%}<br>" +
-        # "Digit 4 accuracy: %{customdata[4]:.1%}<br>" +
-        # "Digit 5 accuracy: %{customdata[5]:.1%}<br>" +
-        # "Digit 6 accuracy: %{customdata[6]:.1%}<br>" +
-        # "Digit 7 accuracy: %{customdata[7]:.1%}<br>" +
-        # "Digit 8 accuracy: %{customdata[8]:.1%}<br>" +
-        # "Digit 9 accuracy: %{customdata[9]:.1%}"
-    )
+        # non eqv accuracy
+        fig.add_trace(go.Scatterpolar(r = non_eqv_gen_accuracy,
+                                        theta = angles,
+                                        # customdata=non_eqv_categorical_accuuracy,
+                                        mode = 'lines',
+                                        name = 'Non-Eqv',
+                                        line_color = 'peru'),
+            row = row,
+            col = col
+        )
+
+        # eqv accuracy
+        fig.add_trace(go.Scatterpolar(r = eqv_gen_accuracy,
+                                        theta = angles,
+                                        # customdata=eqv_categorical_accuuracy,
+                                        mode = 'lines',
+                                        name = 'Rot-Eqv',
+                                        line_color = 'darkviolet'),
+            row = row,
+            col = col
+        )
+
+        fig.update_traces(
+            hovertemplate=
+            "Rotated angle: %{theta:.0f}<br>" +
+            "Accuracy: %{r:.1%}<br>"
+        )
+
+        fig.update_annotations(yshift=20)
+
+    # only show one legend
+    for i, trace in enumerate(fig['data']):
+        if i > 1:
+            trace['showlegend'] = False
 
     fig.update_layout(
-        title = title,
-        showlegend = True,
-        hovermode='x',
-        title_x=0.5
+        hovermode='x'
     )
 
-    # fig.show()
-    fig.write_html(result_path)
+    # fig.for_each_annotation(lambda a: a.update(text = subplot_names[a.text]))
+    if result_path[-4:] == 'html':
+        fig.write_html(result_path)
+    else:
+        fig.write_image(result_path)
+
     print(f'\nInteractive polar plot has been saved to {result_path}')
 
 

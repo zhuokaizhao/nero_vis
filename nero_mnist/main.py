@@ -204,6 +204,10 @@ def main():
     parser.add_argument('-c', '--checkpoint_dir', action='store', nargs=1, dest='checkpoint_path')
     # input or output model directory
     parser.add_argument('-m', '--model_dir', action='store', nargs=1, dest='model_dir')
+    # input directory for non-eqv model output when in analyze mode
+    parser.add_argument('--non_eqv_path', action='store', nargs=1, dest='non_eqv_path')
+    # input directory for eqv model output when in analyze mode
+    parser.add_argument('--eqv_path', action='store', nargs=1, dest='eqv_path')
     # output figs directory
     parser.add_argument('-o', '--output_dir', action='store', nargs=1, dest='output_dir')
     # verbosity
@@ -517,38 +521,26 @@ def main():
             num_move = image_size[0] - 28
 
 
-    elif mode == 'analyze':
+    elif 'analyze' in mode:
+        non_eqv_path = args.non_eqv_path[0]
+        eqv_path = args.eqv_path[0]
         if verbose:
             print(f'\nmode: {mode}')
-            print(f'dataset: {data_name}')
+            print(f'input non-eqv result dir: {non_eqv_path}')
+            print(f'input eqv result dir: {eqv_path}')
             print(f'output figures dir: {figs_dir}')
 
-        # load the non-eqv result
-        non_eqv_dir = '/home/zhuokai/Desktop/UChicago/Research/Visualizing-equivariant-properties/classification/mnist/figs/non_eqv'
-        non_eqv_name = 'non-eqv_mnist_29x29_angle-increment1_epoch50_result.npz'
-        non_eqv_path = os.path.join(non_eqv_dir, non_eqv_name)
+        # load the non-eqv and eqv result
         non_eqv_result = np.load(non_eqv_path)
+        rot_eqv_result = np.load(eqv_path)
 
-        # load the trans-eqv result
-        # trans_eqv_dir = '/home/zhuokai/Desktop/UChicago/Research/Visualizing-equivariant-properties/classification/mnist/figs/trans_eqv'
-        # trans_eqv_name = 'trans-eqv_mnist_64x64_angle-increment1_epoch50_result.npz'
-        # trans_eqv_path = os.path.join(trans_eqv_dir, trans_eqv_name)
-        # trans_eqv_result = np.load(trans_eqv_path)
+        # plot interactive polar line plots
+        result_path = os.path.join(figs_dir, f'mnist_{mode}.pdf')
 
-        # load the rot-eqv result
-        rot_eqv_dir = '/home/zhuokai/Desktop/UChicago/Research/Visualizing-equivariant-properties/classification/mnist/figs/rot_eqv'
-        rot_eqv_name = 'rot-eqv_rot-group8_mnist_29x29_angle-increment1_epoch30_result.npz'
-        rot_eqv_path = os.path.join(rot_eqv_dir, rot_eqv_name)
-        rot_eqv_result = np.load(rot_eqv_path)
-
-
-        # test for each individual digit
-        for i in range(10):
-            plot_title = f'Non-equivariant vs Equivariant model on {data_name} Digit {i}'
-            result_path = os.path.join(figs_dir, f'{data_name}_test_digit_{i}.html')
-
-            # vis.plot_interactive_polar_heatmap(data_name, non_eqv_result, trans_eqv_result, rot_eqv_result, plot_title, result_path)
-            vis.plot_interactive_line_polar(i, non_eqv_result, rot_eqv_result, plot_title, result_path)
+        if mode == 'rot_eqv_analyze':
+            # plot_title = f'Non-equivariant vs Equivariant model on {data_name} Digit {i}'
+            plotting_digits = list(range(10))
+            vis.plot_interactive_line_polar(plotting_digits, non_eqv_result, rot_eqv_result, None, result_path)
 
 
 
