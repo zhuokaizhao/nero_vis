@@ -64,8 +64,10 @@ class Downsample(torch.nn.Module):
 ######################################## For MNIST dataset ########################################
 # non-rotation nor translation equivariant network
 class Non_Eqv_Net_MNIST(torch.nn.Module):
-    def __init__(self, n_classes=10):
+    def __init__(self, type, n_classes=10):
         super(Non_Eqv_Net_MNIST, self).__init__()
+        # type either shift or rotation, matters in the length of fc layers
+        self.type = type
         # convolution 1
         self.block1 = torch.nn.Sequential(
             torch.nn.Conv2d(in_channels=1,
@@ -151,12 +153,20 @@ class Non_Eqv_Net_MNIST(torch.nn.Module):
         )
 
         # fully connected
-        self.fully_net = torch.nn.Sequential(
-            torch.nn.Linear(576, 64),
-            torch.nn.BatchNorm1d(64),
-            torch.nn.ELU(inplace=True),
-            torch.nn.Linear(64, n_classes),
-        )
+        if self.type == 'rotation':
+            self.fully_net = torch.nn.Sequential(
+                torch.nn.Linear(576, 64),
+                torch.nn.BatchNorm1d(64),
+                torch.nn.ELU(inplace=True),
+                torch.nn.Linear(64, n_classes),
+            )
+        elif self.type == 'shift':
+            self.fully_net = torch.nn.Sequential(
+                torch.nn.Linear(10816, 64),
+                torch.nn.BatchNorm1d(64),
+                torch.nn.ELU(inplace=True),
+                torch.nn.Linear(64, n_classes),
+            )
 
 
     def forward(self, x):
@@ -181,9 +191,9 @@ class Non_Eqv_Net_MNIST(torch.nn.Module):
 
 
 # translation equivariant network using full-convolution techniques
-class Trans_Eqv_Net_MNIST(torch.nn.Module):
+class Shift_Eqv_Net_MNIST(torch.nn.Module):
     def __init__(self, n_classes=10):
-        super(Trans_Eqv_Net_MNIST, self).__init__()
+        super(Shift_Eqv_Net_MNIST, self).__init__()
         # convolution 1
         self.block1 = torch.nn.Sequential(
             torch.nn.Conv2d(in_channels=1,
@@ -274,7 +284,7 @@ class Trans_Eqv_Net_MNIST(torch.nn.Module):
 
         # fully connected
         self.fully_net = torch.nn.Sequential(
-            torch.nn.Linear(12544, 64),
+            torch.nn.Linear(14400, 64),
             torch.nn.BatchNorm1d(64),
             torch.nn.ELU(inplace=True),
             torch.nn.Linear(64, n_classes),

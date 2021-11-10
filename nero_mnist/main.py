@@ -12,6 +12,7 @@ from subprocess import call
 import torch.nn.functional as F
 import matplotlib.pyplot as plt
 import plotly.graph_objects as go
+from pytorch_model_summary import summary
 from torch.optim.lr_scheduler import StepLR
 
 from PIL import Image
@@ -178,12 +179,12 @@ def test(model, device, test_loader):
 def main():
     # Training settings
     parser = argparse.ArgumentParser(description='NERO plots with MNIST')
-    # mode (train, test_rot_eqv, test_trans_eqv or analyze)
+    # mode (train, test or analyze)
     parser.add_argument('--mode', required=True, action='store', nargs=1, dest='mode')
+    # type of equivariance (rotation, or shift)
+    parser.add_argument('--type', required=True, action='store', nargs=1, dest='type')
     # network method (non-eqv, eqv, etc)
     parser.add_argument('-n', '--network_model', action='store', nargs=1, dest='network_model')
-    # dataset
-    # parser.add_argument('-d', '--data-name', action='store', nargs=1, dest='data_name')
     # image dimension after padding
     parser.add_argument('-s', '--image_size', action='store', nargs=1, dest='image_size')
     # training batch size
@@ -217,17 +218,21 @@ def main():
 
     # input variables
     mode = args.mode[0]
+    type = args.type[0]
     if args.image_size != None:
         image_size = (int(args.image_size[0].split('x')[0]), int(args.image_size[0].split('x')[1]))
     else:
         image_size = None
+    # model type (non-eqv or eqv)
+    if mode == 'train' or mode == 'test':
+        network_model = args.network_model[0]
     # output graph directory
     figs_dir = args.output_dir[0]
     verbose = args.verbose
 
     # training mode
     if mode == 'train':
-        network_model = args.network_model[0]
+
         # default train_batch_size and val_batch_size if not assigned
         if args.train_batch_size == None:
             train_batch_size = 64
@@ -238,10 +243,6 @@ def main():
 
         # number of training epoch
         num_epoch = args.num_epoch
-
-        # number of groups for e2cnn
-        if network_model == 'rot-eqv':
-            num_rotation = 8
 
         # MNIST models use Adam
         learning_rate = 5e-5
@@ -276,12 +277,24 @@ def main():
         else:
             device = torch.device('cpu')
 
+        # when training for rotation equivariance tests
+        if type == 'rotation':
+            if image_size == None:
+                # padded to 29x29 to use odd-size filters with stride 2 when downsampling a feature map in the model
+                image_size = (29, 29)
+
+        # when training for shift equivariance tests
+        elif type == 'shift':
+            # padded to 69x69 to use odd-size filters with stride 2 when downsampling a feature map in the model
+            if image_size == None:
+                image_size = (69, 69)
+
         if verbose:
             print(f'\nmode: {mode}')
             print(f'GPU usage: {device}')
             print(f'netowrk model: {network_model}')
             if image_size != None:
-                print(f'Padded image size: {image_size[0]}x{image_size[1]}')
+                print(f'Padded image size: {image_size[1]}x{image_size[0]}')
             else:
                 print(f'Padded image size: {image_size}')
             print(f'training batch size: {train_batch_size}')
@@ -292,18 +305,10 @@ def main():
             print(f'optimizer weight decay: {weight_decay}')
             print(f'model input checkpoint path: {checkpoint_path}')
 
-        # transform
-        if image_size != None:
-            transform = torchvision.transforms.Compose([
-                # transform includes padding (right and bottom) to image_size and totensor
-                torchvision.transforms.Pad((0, 0, image_size[1]-28, image_size[0]-28), fill=0, padding_mode='constant'),
-            ])
-        else:
-            transform = torchvision.transforms.Compose([
-                # transform includes padding (right and bottom) to 29x29 (for model purpose) and totensor
-                torchvision.transforms.Pad((0, 0, 1, 1), fill=0, padding_mode='constant'),
-            ])
-            image_size = (29, 29)
+        # data transform
+        transform = torchvision.transforms.Compose([
+            torchvision.transforms.Pad(((image_size[1]-28)//2, (image_size[0]-28)//2, (image_size[1]-28)//2+1, (image_size[0]-28)//2+1), fill=0, padding_mode='constant'),
+        ])
 
         # split into train and validation dataset
         dataset = datasets.MnistDataset(mode='train', transform=transform)
@@ -315,18 +320,29 @@ def main():
 
         # model
         starting_epoch = 0
+        if type == 'rotation':
+            if network_model == 'non-eqv':
+                model = models.Non_Eqv_Net_MNIST(type).to(device)
+            elif network_model == 'rot-eqv':
+                # number of groups for e2cnn
+                num_rotation = 8
+                model = models.Rot_Eqv_Net_MNIST(image_size=image_size, num_rotation=num_rotation).to(device)
+            else:
+                raise Exception(f'Wrong network model type {network_model}')
+
+        elif type == 'shift':
+            if network_model == 'non-eqv':
+                model = models.Non_Eqv_Net_MNIST(type).to(device)
+            elif network_model == 'shift-eqv':
+                model = models.Shift_Eqv_Net_MNIST().to(device)
+            else:
+                raise Exception(f'Wrong network model type {network_model}')
+
+        # visualize the model structure
         if network_model == 'non-eqv':
-            model = models.Non_Eqv_Net_MNIST().to(device)
-            # from pytorch_model_summary import summary
-            # print(summary(model, torch.zeros((1, 1, 29, 29)).to(device)))
-            # exit()
+            print(summary(model, torch.zeros((1, 1, image_size[1], image_size[0])).to(device)))
 
-        elif network_model == 'rot-eqv':
-            model = models.Rot_Eqv_Net_MNIST(image_size=image_size, num_rotation=num_rotation).to(device)
-
-        elif network_model == 'trans-eqv':
-            model = models.Trans_Eqv_Net_MNIST().to(device)
-
+        # optimizer
         optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, weight_decay=weight_decay)
 
         # load previously trained model information
@@ -532,7 +548,15 @@ def main():
 
         # load the non-eqv and eqv result
         non_eqv_result = np.load(non_eqv_path)
-        rot_eqv_result = np.load(eqv_path)
+        eqv_result = np.load(eqv_path)
+
+        # print out average error per digit for both models
+        print(non_eqv_result['categorical_accuracy_heatmap'].shape)
+        for i in range(non_eqv_result['categorical_accuracy_heatmap'].shape[1]):
+            cur_non_eqv_avg = np.mean(non_eqv_result['categorical_accuracy_heatmap'][:, i])
+            cur_eqv_avg = np.mean(eqv_result['categorical_accuracy_heatmap'][:, i])
+            print(f'\nDigit {i} avg accuracy for Non-eqv model: {cur_non_eqv_avg}')
+            print(f'Digit {i} avg accuracy for Eqv model: {cur_eqv_avg}')
 
         # plot interactive polar line plots
         result_path = os.path.join(figs_dir, f'mnist_{mode}.pdf')
@@ -540,7 +564,7 @@ def main():
         if mode == 'rot_eqv_analyze':
             # plot_title = f'Non-equivariant vs Equivariant model on {data_name} Digit {i}'
             plotting_digits = list(range(10))
-            vis.plot_interactive_line_polar(plotting_digits, non_eqv_result, rot_eqv_result, None, result_path)
+            vis.plot_interactive_line_polar(plotting_digits, non_eqv_result, eqv_result, None, result_path)
 
 
 
