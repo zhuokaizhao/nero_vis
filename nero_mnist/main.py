@@ -431,10 +431,6 @@ def main():
         model_dir = args.model_dir[0]
         test_kwargs = {'batch_size': test_batch_size}
 
-        # number of groups for e2cnn
-        if network_model == 'rot-eqv':
-            num_rotation = 8
-
         # basic settings for pytorch
         if torch.cuda.is_available():
             # additional kwargs
@@ -454,18 +450,32 @@ def main():
 
         # model
         if network_model == 'non-eqv':
-            model = models.Non_Eqv_Net_MNIST().to(device)
+            model = models.Non_Eqv_Net_MNIST(type).to(device)
 
         elif network_model == 'rot-eqv':
+            # number of groups for e2cnn
+            num_rotation = 8
             model = models.Rot_Eqv_Net_MNIST(image_size=image_size, num_rotation=num_rotation).to(device)
 
-        elif network_model == 'trans-eqv':
-            model = models.Trans_Eqv_Net_MNIST().to(device)
+        elif network_model == 'shift-eqv':
+            model = models.Shift_Eqv_Net_MNIST().to(device)
 
         # load previously trained model
         trained_model = torch.load(model_dir)
         model.load_state_dict(trained_model['state_dict'])
         trained_epoch = trained_model['epoch']
+
+        # when training for rotation equivariance tests
+        if type == 'rotation':
+            if image_size == None:
+                # padded to 29x29 to use odd-size filters with stride 2 when downsampling a feature map in the model
+                image_size = (29, 29)
+
+        # when training for shift equivariance tests
+        elif type == 'shift':
+            # padded to 69x69 to use odd-size filters with stride 2 when downsampling a feature map in the model
+            if image_size == None:
+                image_size = (69, 69)
 
         if verbose:
             print(f'\nmode: {mode}')
@@ -474,11 +484,8 @@ def main():
             print(f'testing batch size: {test_batch_size}')
             print(f'input model dir: {model_dir}')
 
-        if image_size == None:
-            image_size = (29, 29)
-
         # test on each rotation degree
-        if mode == 'test_rot_eqv':
+        if type == 'rotation':
             max_rot = 360
             increment = 1
             general_loss_heatmap = np.zeros(max_rot//increment)
@@ -514,11 +521,7 @@ def main():
             # save the accuracy as npz file
             if network_model == 'non-eqv':
                 loss_path = os.path.join(figs_dir, f'{network_model}_mnist_{image_size[0]}x{image_size[1]}_angle-increment{increment}_epoch{trained_epoch}_result.npz')
-            elif network_model == 'trans-eqv':
-                loss_path = os.path.join(figs_dir, f'{network_model}_mnist_{image_size[0]}x{image_size[1]}_angle-increment{increment}_epoch{trained_epoch}_result.npz')
             elif network_model == 'rot-eqv':
-                loss_path = os.path.join(figs_dir, f'{network_model}_rot-group{num_rotation}_mnist_{image_size[0]}x{image_size[1]}_angle-increment{increment}_epoch{trained_epoch}_result.npz')
-            elif network_model == 'trans-rot-eqv':
                 loss_path = os.path.join(figs_dir, f'{network_model}_rot-group{num_rotation}_mnist_{image_size[0]}x{image_size[1]}_angle-increment{increment}_epoch{trained_epoch}_result.npz')
 
             np.savez(loss_path,
@@ -530,9 +533,74 @@ def main():
             print(f'\nTesting result has been saved to {loss_path}')
 
         # plot error at each moved position as a heatmap
-        elif mode == 'test_trans_eqv':
-            # suppose the padding size is 64x64, mnist has 28x28 images
-            num_move = image_size[0] - 28
+        elif type == 'shift':
+            # shift use the image coordinate system
+            # |-----> x
+            # |
+            # |
+            # v y
+            shift_amount = (image_size[0] - 29)//2
+            general_loss_heatmap = np.zeros((shift_amount*2+1, shift_amount*2+1))
+            general_accuracy_heatmap = np.zeros((shift_amount*2+1, shift_amount*2+1))
+            categorical_loss_heatmap = np.zeros((shift_amount*2+1, shift_amount*2+1, 10))
+            categorical_accuracy_heatmap = np.zeros((shift_amount*2+1, shift_amount*2+1, 10))
+            for y_shift in range(-shift_amount, shift_amount+1):
+                for x_shift in range(-shift_amount, shift_amount+1):
+                    # pad the MNIST image
+                    print(f'\n Testing shift amount x = {x_shift}, y = {y_shift}')
+
+                    # padding information based on shift left, top, right and bottom
+                    # example 1
+                    # if y_shift = -20, x_shift = -20, digit is at top left corner
+                    # so left_padding = 0, top padding = 0, right padding = 40, bottom padding = 40
+                    # example 2
+                    # if y_shift = 20, x_shift = 20, digit is at bottom right corner
+                    # so left_padding = 40, top padding = 40, right padding = 0, bottom padding = 0
+                    # example 3
+                    # if y_shift = 20, x_shift = -20, digit is at bottom left corner
+                    # so left_padding = 0, top padding = 40, right padding = 40, bottom padding = 0
+                    # example 4
+                    # if y_shift = -20, x_shift = 20, digit is at top right corner
+                    # so left_padding = 40, top padding = 0, right padding = 0, bottom padding = 40
+                    left_padding = np.abs(x_shift + shift_amount)
+                    top_padding = np.abs(y_shift + shift_amount)
+                    right_padding = np.abs(x_shift - shift_amount)
+                    bottom_padding = np.abs(y_shift - shift_amount)
+
+                    # row
+                    transform = torchvision.transforms.Compose([
+                        # padding according to shift
+                        torchvision.transforms.Pad((left_padding, top_padding, right_padding, bottom_padding), fill=0, padding_mode='constant'),
+                        # traditional 1 padding for being odd
+                        torchvision.transforms.Pad((0, 0, 1, 1), fill=0, padding_mode='constant')
+                    ])
+
+                    # prepare test dataset
+                    dataset = datasets.MnistDataset(mode='test', transform=transform)
+                    test_loader = torch.utils.data.DataLoader(dataset, **test_kwargs)
+
+                    # test the model
+                    general_loss, general_accuracy, categorical_loss, categorical_accuracy = test(model, device, test_loader)
+                    general_loss_heatmap[y_shift+shift_amount, x_shift+shift_amount] = general_loss
+                    general_accuracy_heatmap[y_shift+shift_amount, x_shift+shift_amount] = general_accuracy
+                    categorical_loss_heatmap[y_shift+shift_amount, x_shift+shift_amount, :] = categorical_loss
+                    categorical_accuracy_heatmap[y_shift+shift_amount, x_shift+shift_amount, :] = categorical_accuracy
+
+                    print(f'shift amount x = {x_shift}, y = {y_shift} accuracy: {general_accuracy}')
+
+            # save the accuracy as npz file
+            if network_model == 'non-eqv':
+                loss_path = os.path.join(figs_dir, f'{network_model}_mnist_{image_size[0]}x{image_size[1]}_epoch{trained_epoch}_result.npz')
+            elif network_model == 'shift-eqv':
+                loss_path = os.path.join(figs_dir, f'{network_model}_mnist_{image_size[0]}x{image_size[1]}_epoch{trained_epoch}_result.npz')
+
+            np.savez(loss_path,
+                    general_loss_heatmap=general_loss_heatmap,
+                    general_accuracy_heatmap=general_accuracy_heatmap,
+                    categorical_loss_heatmap=categorical_loss_heatmap,
+                    categorical_accuracy_heatmap=categorical_accuracy_heatmap)
+
+            print(f'\nTesting result has been saved to {loss_path}')
 
 
     elif 'analyze' in mode:
