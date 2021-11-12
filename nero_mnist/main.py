@@ -248,7 +248,8 @@ def main():
     # when training/testing for scale equivariance tests
     elif type == 'scale':
         if image_size == None:
-            image_size = (59, 59)
+            # image_size = (59, 59)
+            image_size = (29, 29)
 
     # training mode
     if mode == 'train':
@@ -296,11 +297,6 @@ def main():
                 device = torch.device('cuda:0')
         else:
             device = torch.device('cpu')
-
-        # when training for scale equivariance tests
-        # elif type == 'scale':
-        #     if image_size == None:
-        #         image_size =
 
         if verbose:
             print(f'\nmode: {mode}')
@@ -355,7 +351,13 @@ def main():
             if network_model == 'non-eqv':
                 model = models.Non_Eqv_Net_MNIST(type).to(device)
             elif network_model == 'scale-eqv':
-                model = models.Scale_Eqv_Net_MNIST().to(device)
+                method = 'DSS'
+                model = models.Scale_Eqv_Net_MNIST(method=method).to(device)
+            else:
+                raise Exception(f'Wrong network model type {network_model}')
+
+        else:
+            raise Exception(f'Wrong type {type}')
 
         # visualize the model structure
         if network_model == 'non-eqv':
@@ -391,10 +393,12 @@ def main():
             if (epoch+1) % args.checkpoint_interval == 0:
 
                 # save model as a checkpoint so further training could be resumed
-                if network_model == 'non-eqv' or network_model == 'shift-eqv' or network_model == 'scale-eqv':
+                if network_model == 'non-eqv' or network_model == 'shift-eqv':
                     model_path = os.path.join(model_dir, f'{network_model}_mnist_{image_size[0]}x{image_size[1]}_batch{train_batch_size}_epoch{epoch+1}.pt')
                 elif network_model == 'rot-eqv':
                     model_path = os.path.join(model_dir, f'{network_model}_rot-group{num_rotation}_mnist_{image_size[0]}x{image_size[1]}_batch{train_batch_size}_epoch{epoch+1}.pt')
+                elif network_model == 'scale-eqv':
+                    model_path = os.path.join(model_dir, f'{network_model}_{method}_mnist_{image_size[0]}x{image_size[1]}_batch{train_batch_size}_epoch{epoch+1}.pt')
                 else:
                     raise Exception(f'Unknown network model {network_model}')
 
@@ -486,7 +490,9 @@ def main():
             model = models.Shift_Eqv_Net_MNIST().to(device)
 
         elif network_model == 'scale-eqv':
-            model = models.Scale_Eqv_Net_MNIST().to(device)
+            num_scale = 7
+            scales = [1.0]
+            model = models.Scale_Eqv_Net_MNIST(num_scale=num_scale, scales=scales).to(device)
 
         # load previously trained model
         trained_model = torch.load(model_dir)
@@ -616,7 +622,8 @@ def main():
 
         # test on each scale from 0.5 to 2
         elif type == 'scale':
-            all_scales = list(np.arange(0.5, 2.1, 0.1))
+            # all_scales = list(np.arange(0.5, 2.1, 0.1))
+            all_scales = [0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
             general_loss_heatmap = np.zeros(len(all_scales))
             general_accuracy_heatmap = np.zeros(len(all_scales))
             categorical_loss_heatmap = np.zeros((len(all_scales), 10))
@@ -720,12 +727,13 @@ def main():
                 print(f'Digit {i} avg accuracy for Eqv model: {cur_eqv_avg}')
 
             # make and save the plot
+            all_scales = [0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
             # plot interactive polar line plots
             result_path = os.path.join(figs_dir, f'mnist_{mode}_{type}.html')
             # plot_title = f'Non-equivariant vs Equivariant model on {data_name} Digit {i}'
             plot_title = None
             plotting_digits = list(range(10))
-            vis.plot_interactive_line(plotting_digits, non_eqv_result, eqv_result, plot_title, result_path)
+            vis.plot_interactive_line(plotting_digits, all_scales, non_eqv_result, eqv_result, plot_title, result_path)
 
 
 if __name__ == '__main__':

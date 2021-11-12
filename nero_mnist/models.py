@@ -1,12 +1,17 @@
 import torch
+# from torch._C import T
 import e2cnn
 import torchvision
 import numpy as np
 from e2cnn import gspaces
 import torch.utils.model_zoo as model_zoo
 
+# For SESN
 from impl.ses_conv import SESMaxProjection
 from impl.ses_conv import SESConv_Z2_H, SESConv_H_H
+
+# For DSS
+from impl.deep_scale_space import Dconv2d, BesselConv2d, ScaleMaxProjection
 
 def get_pad_layer(pad_type):
     if(pad_type in ['refl','reflect']):
@@ -172,7 +177,8 @@ class Non_Eqv_Net_MNIST(torch.nn.Module):
             )
         elif self.type == 'scale':
             self.fully_net = torch.nn.Sequential(
-                torch.nn.Linear(6400, 64),
+                # torch.nn.Linear(6400, 64),
+                torch.nn.Linear(576, 64),
                 torch.nn.BatchNorm1d(64),
                 torch.nn.ELU(inplace=True),
                 torch.nn.Linear(64, n_classes),
@@ -475,100 +481,171 @@ class Rot_Eqv_Net_MNIST(torch.nn.Module):
 
 # non-rotation nor translation equivariant network
 class Scale_Eqv_Net_MNIST(torch.nn.Module):
-    def __init__(self, n_classes=10):
+    def __init__(self, method, n_classes=10):
         super(Scale_Eqv_Net_MNIST, self).__init__()
-        # type either shift or rotation, matters in the length of fc layers
-        self.type = type
-        # convolution 1
-        self.block1 = torch.nn.Sequential(
-            SESConv_Z2_H(in_channels=1,
-                            out_channels=24,
-                            kernel_size=7,
-                            effective_size=7,
-                            stride=1,
-                            padding=1,
-                            bias=False),
-            SESMaxProjection(),
-            torch.nn.BatchNorm2d(num_features=24),
-            torch.nn.ReLU(inplace=True)
-        )
+        if method == 'SESN':
+            num_scale = 7
+            scales = [1.0]
+            # convolution 1
+            self.block1 = torch.nn.Sequential(
+                SESConv_Z2_H(in_channels=1,
+                                out_channels=24,
+                                kernel_size=7,
+                                effective_size=num_scale,
+                                scales=scales,
+                                stride=1,
+                                padding=1,
+                                bias=False),
+                SESMaxProjection(),
+                torch.nn.BatchNorm2d(num_features=24),
+                torch.nn.ReLU(inplace=True)
+            )
 
-        # convolution 2
-        self.block2 = torch.nn.Sequential(
-            SESConv_Z2_H(in_channels=24,
-                            out_channels=48,
-                            kernel_size=5,
-                            effective_size=7,
-                            stride=1,
-                            padding=2,
-                            bias=False),
-            SESMaxProjection(),
-            torch.nn.BatchNorm2d(num_features=48),
-            torch.nn.ReLU(inplace=True)
-        )
+            # convolution 2
+            self.block2 = torch.nn.Sequential(
+                SESConv_Z2_H(in_channels=24,
+                                out_channels=48,
+                                kernel_size=5,
+                                effective_size=num_scale,
+                                scales=scales,
+                                stride=1,
+                                padding=2,
+                                bias=False),
+                SESMaxProjection(),
+                torch.nn.BatchNorm2d(num_features=48),
+                torch.nn.ReLU(inplace=True)
+            )
+
+            # convolution 3
+            self.block3 = torch.nn.Sequential(
+                SESConv_Z2_H(in_channels=48,
+                                out_channels=48,
+                                kernel_size=5,
+                                effective_size=num_scale,
+                                scales=scales,
+                                stride=1,
+                                padding=2,
+                                bias=False),
+                SESMaxProjection(),
+                torch.nn.BatchNorm2d(num_features=48),
+                torch.nn.ReLU(inplace=True)
+            )
+
+            # convolution 4
+            self.block4 = torch.nn.Sequential(
+                SESConv_Z2_H(in_channels=48,
+                                out_channels=96,
+                                kernel_size=5,
+                                effective_size=num_scale,
+                                scales=scales,
+                                stride=1,
+                                padding=2,
+                                bias=False),
+                SESMaxProjection(),
+                torch.nn.BatchNorm2d(num_features=96),
+                torch.nn.ReLU(inplace=True)
+            )
+
+            # convolution 5
+            self.block5 = torch.nn.Sequential(
+                SESConv_Z2_H(in_channels=96,
+                                out_channels=96,
+                                kernel_size=5,
+                                effective_size=num_scale,
+                                scales=scales,
+                                stride=1,
+                                padding=2,
+                                bias=False),
+                SESMaxProjection(),
+                torch.nn.BatchNorm2d(num_features=96),
+                torch.nn.ReLU(inplace=True)
+            )
+
+            # convolution 6
+            self.block6 = torch.nn.Sequential(
+                SESConv_Z2_H(in_channels=96,
+                                out_channels=64,
+                                kernel_size=5,
+                                effective_size=num_scale,
+                                scales=scales,
+                                stride=1,
+                                padding=1,
+                                bias=False),
+                SESMaxProjection(),
+                torch.nn.BatchNorm2d(num_features=64),
+                torch.nn.ReLU(inplace=True)
+            )
+
+        elif method == 'DSS':
+            n_scales = 4
+            scale_sizes = 1
+            init = 'he'
+            # convolution 1
+            self.block1 = torch.nn.Sequential(
+                BesselConv2d(n_channels=1, base=2, zero_scale=0.25, n_scales=n_scales),
+                Dconv2d(1, 24, kernel_size=[scale_sizes, 7, 7], base=2,
+                        io_scales=[n_scales, n_scales], padding=1, init=init),
+                ScaleMaxProjection(),
+                torch.nn.BatchNorm2d(num_features=24),
+                torch.nn.ReLU(inplace=True)
+            )
+
+            # convolution 2
+            self.block2 = torch.nn.Sequential(
+                BesselConv2d(n_channels=24, base=2, zero_scale=0.25, n_scales=n_scales),
+                Dconv2d(24, 48, kernel_size=[scale_sizes, 5, 5], base=2,
+                        io_scales=[n_scales, n_scales], padding=2, init=init),
+                ScaleMaxProjection(),
+                torch.nn.BatchNorm2d(num_features=48),
+                torch.nn.ReLU(inplace=True)
+            )
+
+            # convolution 3
+            self.block3 = torch.nn.Sequential(
+                BesselConv2d(n_channels=48, base=2, zero_scale=0.25, n_scales=n_scales),
+                Dconv2d(48, 48, kernel_size=[scale_sizes, 5, 5], base=2,
+                        io_scales=[n_scales, n_scales], padding=2, init=init),
+                ScaleMaxProjection(),
+                torch.nn.BatchNorm2d(num_features=48),
+                torch.nn.ReLU(inplace=True)
+            )
+
+            # convolution 4
+            self.block4 = torch.nn.Sequential(
+                BesselConv2d(n_channels=48, base=2, zero_scale=0.25, n_scales=n_scales),
+                Dconv2d(48, 96, kernel_size=[scale_sizes, 5, 5], base=2,
+                        io_scales=[n_scales, n_scales], padding=2, init=init),
+                ScaleMaxProjection(),
+                torch.nn.BatchNorm2d(num_features=96),
+                torch.nn.ReLU(inplace=True)
+            )
+
+            # convolution 5
+            self.block5 = torch.nn.Sequential(
+                BesselConv2d(n_channels=96, base=2, zero_scale=0.25, n_scales=n_scales),
+                Dconv2d(96, 96, kernel_size=[scale_sizes, 5, 5], base=2,
+                        io_scales=[n_scales, n_scales], padding=2, init=init),
+                ScaleMaxProjection(),
+                torch.nn.BatchNorm2d(num_features=96),
+                torch.nn.ReLU(inplace=True)
+            )
+
+            # convolution 6
+            self.block6 = torch.nn.Sequential(
+                BesselConv2d(n_channels=96, base=2, zero_scale=0.25, n_scales=n_scales),
+                Dconv2d(96, 64, kernel_size=[scale_sizes, 5, 5], base=2,
+                        io_scales=[n_scales, n_scales], padding=1, init=init),
+                ScaleMaxProjection(),
+                torch.nn.BatchNorm2d(num_features=64),
+                torch.nn.ReLU(inplace=True)
+            )
 
         self.pool1 = torch.nn.Sequential(
             torch.nn.AvgPool2d(kernel_size=2, stride=2)
         )
 
-        # convolution 3
-        self.block3 = torch.nn.Sequential(
-            SESConv_Z2_H(in_channels=48,
-                            out_channels=48,
-                            kernel_size=5,
-                            effective_size=7,
-                            stride=1,
-                            padding=2,
-                            bias=False),
-            SESMaxProjection(),
-            torch.nn.BatchNorm2d(num_features=48),
-            torch.nn.ReLU(inplace=True)
-        )
-
-        # convolution 4
-        self.block4 = torch.nn.Sequential(
-            SESConv_Z2_H(in_channels=48,
-                            out_channels=96,
-                            kernel_size=5,
-                            effective_size=7,
-                            stride=1,
-                            padding=2,
-                            bias=False),
-            SESMaxProjection(),
-            torch.nn.BatchNorm2d(num_features=96),
-            torch.nn.ReLU(inplace=True)
-        )
-
         self.pool2 = torch.nn.Sequential(
             torch.nn.AvgPool2d(kernel_size=2, stride=2)
-        )
-
-        # convolution 5
-        self.block5 = torch.nn.Sequential(
-            SESConv_Z2_H(in_channels=96,
-                            out_channels=96,
-                            kernel_size=5,
-                            effective_size=7,
-                            stride=1,
-                            padding=2,
-                            bias=False),
-            SESMaxProjection(),
-            torch.nn.BatchNorm2d(num_features=96),
-            torch.nn.ReLU(inplace=True)
-        )
-
-        # convolution 6
-        self.block6 = torch.nn.Sequential(
-            SESConv_Z2_H(in_channels=96,
-                            out_channels=64,
-                            kernel_size=5,
-                            effective_size=7,
-                            stride=1,
-                            padding=1,
-                            bias=False),
-            SESMaxProjection(),
-            torch.nn.BatchNorm2d(num_features=64),
-            torch.nn.ReLU(inplace=True)
         )
 
         self.pool3 = torch.nn.Sequential(
@@ -576,12 +653,22 @@ class Scale_Eqv_Net_MNIST(torch.nn.Module):
         )
 
         # fully connected
-        self.fully_net = torch.nn.Sequential(
-            torch.nn.Linear(6400, 64),
-            torch.nn.BatchNorm1d(64),
-            torch.nn.ELU(inplace=True),
-            torch.nn.Linear(64, n_classes),
-        )
+        if method == 'SESN':
+            self.fully_net = torch.nn.Sequential(
+                torch.nn.Linear(576, 64),
+                # torch.nn.Linear(6400, 64),
+                torch.nn.BatchNorm1d(64),
+                torch.nn.ELU(inplace=True),
+                torch.nn.Linear(64, n_classes),
+            )
+        elif method == 'DSS':
+            self.fully_net = torch.nn.Sequential(
+                torch.nn.Linear(2304, 64),
+                # torch.nn.Linear(6400, 64),
+                torch.nn.BatchNorm1d(64),
+                torch.nn.ELU(inplace=True),
+                torch.nn.Linear(64, n_classes),
+            )
 
 
     def forward(self, x):
@@ -603,6 +690,8 @@ class Scale_Eqv_Net_MNIST(torch.nn.Module):
         x = self.fully_net(x.reshape(x.shape[0], -1))
 
         return x
+
+
 
 ####################################### For CIFAR-10 Dataset #######################################
 # translation equivariant VGG with full convolution
