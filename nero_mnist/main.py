@@ -293,6 +293,11 @@ def main():
                 image_size = (69, 69)
 
         # when training for scale equivariance tests
+        elif type == 'scale':
+            if image_size == None:
+                image_size = (59, 59)
+
+        # when training for scale equivariance tests
         # elif type == 'scale':
         #     if image_size == None:
         #         image_size =
@@ -345,6 +350,12 @@ def main():
                 model = models.Shift_Eqv_Net_MNIST().to(device)
             else:
                 raise Exception(f'Wrong network model type {network_model}')
+
+        elif type == 'scale':
+            if network_model == 'non-eqv':
+                model = models.Non_Eqv_Net_MNIST(type).to(device)
+            elif network_model == 'scale-eqv':
+                model = models.Scale_Eqv_Net_MNIST().to(device)
 
         # visualize the model structure
         if network_model == 'non-eqv':
