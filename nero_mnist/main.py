@@ -710,6 +710,23 @@ def main():
             eqv_plot_title = None
             vis.plot_interactive_heatmap('Shift-Eqv', plotting_digits, eqv_result, eqv_plot_title, eqv_result_path)
 
+        elif type == 'scale':
+            # print out average error per digit for both models
+            print(non_eqv_result['categorical_accuracy_heatmap'].shape)
+            for i in range(non_eqv_result['categorical_accuracy_heatmap'].shape[1]):
+                cur_non_eqv_avg = np.mean(non_eqv_result['categorical_accuracy_heatmap'][:, i])
+                cur_eqv_avg = np.mean(eqv_result['categorical_accuracy_heatmap'][:, i])
+                print(f'\nDigit {i} avg accuracy for Non-eqv model: {cur_non_eqv_avg}')
+                print(f'Digit {i} avg accuracy for Eqv model: {cur_eqv_avg}')
+
+            # make and save the plot
+            # plot interactive polar line plots
+            result_path = os.path.join(figs_dir, f'mnist_{mode}_{type}.html')
+            # plot_title = f'Non-equivariant vs Equivariant model on {data_name} Digit {i}'
+            plot_title = None
+            plotting_digits = list(range(10))
+            vis.plot_interactive_line(plotting_digits, non_eqv_result, eqv_result, plot_title, result_path)
+
 
 if __name__ == '__main__':
     main()
