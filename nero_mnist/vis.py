@@ -127,7 +127,7 @@ def plot_interactive_line_polar(digits, non_eqv_results, eqv_results, plot_title
     print(f'\nInteractive polar plot has been saved to {result_path}')
 
 
-def plot_interactive_heatmap(digits, results, plot_title, result_path):
+def plot_interactive_heatmap(name, digits, results, plot_title, result_path):
 
     # plot for all digits
     # fig = go.Figure()
@@ -154,7 +154,7 @@ def plot_interactive_heatmap(digits, results, plot_title, result_path):
                                     x = np.array(list(range(horizontal_translation)))-20,
                                     y = np.array(list(range(vertical_translation)))-20,
                                     customdata=accuracy,
-                                    name = 'Non-eqv accuracy',
+                                    name = name,
                                     type='heatmap',
                                     coloraxis='coloraxis1'),
             row = row,

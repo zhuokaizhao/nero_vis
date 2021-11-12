@@ -230,7 +230,7 @@ def main():
         network_model = args.network_model[0]
     # output graph directory
     figs_dir = args.output_dir[0]
-    vis = args.vis
+    vis_data = args.vis
     verbose = args.verbose
 
     # training mode
@@ -520,7 +520,7 @@ def main():
                 ])
 
                 # prepare test dataset
-                dataset = datasets.MnistDataset(mode='test', transform=transform, vis=vis)
+                dataset = datasets.MnistDataset(mode='test', transform=transform, vis=vis_data)
                 test_loader = torch.utils.data.DataLoader(dataset, **test_kwargs)
 
                 # test the model
@@ -590,7 +590,7 @@ def main():
                     ])
 
                     # prepare test dataset
-                    dataset = datasets.MnistDataset(mode='test', transform=transform, vis=vis)
+                    dataset = datasets.MnistDataset(mode='test', transform=transform, vis=vis_data)
                     test_loader = torch.utils.data.DataLoader(dataset, **test_kwargs)
 
                     # test the model
@@ -662,11 +662,11 @@ def main():
             # non-eqv
             non_eqv_result_path = os.path.join(figs_dir, f'mnist_{mode}_{type}_non_eqv.html')
             non_eqv_plot_title = None
-            vis.plot_interactive_heatmap(plotting_digits, non_eqv_result, non_eqv_plot_title, non_eqv_result_path)
+            vis.plot_interactive_heatmap('Non-Eqv', plotting_digits, non_eqv_result, non_eqv_plot_title, non_eqv_result_path)
             # eqv
             eqv_result_path = os.path.join(figs_dir, f'mnist_{mode}_{type}_eqv.html')
             eqv_plot_title = None
-            vis.plot_interactive_heatmap(plotting_digits, eqv_result, eqv_plot_title, eqv_result_path)
+            vis.plot_interactive_heatmap('Shift-Eqv', plotting_digits, eqv_result, eqv_plot_title, eqv_result_path)
 
 
 if __name__ == '__main__':
