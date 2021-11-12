@@ -391,7 +391,7 @@ def main():
             if (epoch+1) % args.checkpoint_interval == 0:
 
                 # save model as a checkpoint so further training could be resumed
-                if network_model == 'non-eqv' or network_model == 'shift-eqv':
+                if network_model == 'non-eqv' or network_model == 'shift-eqv' or network_model == 'scale-eqv':
                     model_path = os.path.join(model_dir, f'{network_model}_mnist_{image_size[0]}x{image_size[1]}_batch{train_batch_size}_epoch{epoch+1}.pt')
                 elif network_model == 'rot-eqv':
                     model_path = os.path.join(model_dir, f'{network_model}_rot-group{num_rotation}_mnist_{image_size[0]}x{image_size[1]}_batch{train_batch_size}_epoch{epoch+1}.pt')
