@@ -54,7 +54,7 @@ def plot_save_circle(all_degree_losses, all_degree_accuracy, title, result_path)
     plt.savefig(result_path, bbox_inches='tight')
 
 
-def plot_interactive_line_polar(digits, non_eqv_results, eqv_results, title, result_path):
+def plot_interactive_line_polar(digits, non_eqv_results, eqv_results, plot_title, result_path):
 
     # plot for all digits
     # fig = go.Figure()
@@ -64,31 +64,33 @@ def plot_interactive_line_polar(digits, non_eqv_results, eqv_results, title, res
 
     fig = make_subplots(rows=2, cols=5,
                         subplot_titles=subplot_names,
-                        specs=[[{'type': 'polar'}, {'type': 'polar'}, {'type': 'polar'}, {'type': 'polar'}, {'type': 'polar'}],
-                               [{'type': 'polar'}, {'type': 'polar'}, {'type': 'polar'}, {'type': 'polar'}, {'type': 'polar'}]])
+                        # specs=[[{'type': 'polar'}, {'type': 'polar'}, {'type': 'polar'}, {'type': 'polar'}, {'type': 'polar'}],
+                        #        [{'type': 'polar'}, {'type': 'polar'}, {'type': 'polar'}, {'type': 'polar'}, {'type': 'polar'}]]
+                               )
     for i, digit in enumerate(digits):
 
         # subplot position (start with 1)
         row = i // 5 + 1
         col = i % 5 + 1
 
-        non_eqv_gen_accuracy = non_eqv_results['categorical_accuracy_heatmap'][:, int(digit)]
-        eqv_gen_accuracy = eqv_results['categorical_accuracy_heatmap'][:, int(digit)]
-        angles = list(range(len(non_eqv_gen_accuracy)))
+        non_eqv_accuracy = non_eqv_results['categorical_accuracy_heatmap'][:, int(digit)]
+        eqv_accuracy = eqv_results['categorical_accuracy_heatmap'][:, int(digit)]
+        angles = list(range(len(non_eqv_accuracy)))
 
         # non eqv accuracy
-        fig.add_trace(go.Scatterpolar(r = non_eqv_gen_accuracy,
+        fig.add_trace(go.Scatterpolar(r = non_eqv_accuracy,
                                         theta = angles,
                                         # customdata=non_eqv_categorical_accuuracy,
                                         mode = 'lines',
                                         name = 'Non-Eqv',
+                                        type = 'polar',
                                         line_color = 'peru'),
             row = row,
             col = col
         )
 
         # eqv accuracy
-        fig.add_trace(go.Scatterpolar(r = eqv_gen_accuracy,
+        fig.add_trace(go.Scatterpolar(r = eqv_accuracy,
                                         theta = angles,
                                         # customdata=eqv_categorical_accuuracy,
                                         mode = 'lines',
@@ -112,6 +114,7 @@ def plot_interactive_line_polar(digits, non_eqv_results, eqv_results, title, res
             trace['showlegend'] = False
 
     fig.update_layout(
+        title = plot_title,
         hovermode='x'
     )
 
@@ -124,81 +127,83 @@ def plot_interactive_line_polar(digits, non_eqv_results, eqv_results, title, res
     print(f'\nInteractive polar plot has been saved to {result_path}')
 
 
-def plot_interactive_heatmap(non_eqv_results, eqv_results, plot_title, result_path):
+def plot_interactive_heatmap(digits, results, plot_title, result_path):
 
-    non_eqv_gen_losses = non_eqv_results['general_loss_heatmap']
-    non_eqv_gen_accuuracy = non_eqv_results['general_accuracy_heatmap']
-    non_eqv_categorical_losses = non_eqv_results['categorical_loss_heatmap']
-    non_eqv_categorical_accuracy = non_eqv_results['categorical_accuracy_heatmap']
+    # plot for all digits
+    # fig = go.Figure()
+    subplot_names = []
+    for digit in digits:
+        subplot_names.append(f'Digit {digit}')
 
-    eqv_gen_losses = eqv_results['general_loss_heatmap']
-    eqv_gen_accuuracy = eqv_results['general_accuracy_heatmap']
-    eqv_categorical_losses = eqv_results['categorical_loss_heatmap']
-    eqv_categorical_accuuracy = eqv_results['categorical_accuracy_heatmap']
+    fig = make_subplots(rows=2, cols=5,
+                        subplot_titles=subplot_names,)
 
-    vertical_translation = len(non_eqv_gen_accuuracy)
-    horizontal_translation = len(non_eqv_gen_accuuracy[0])
+    for i, digit in enumerate(digits):
 
-    fig = plotly.tools.make_subplots(rows=1, cols=2, horizontal_spacing=0.05)
-    # non eqv accuracy
-    fig.add_trace(
-        go.Heatmap(z = non_eqv_gen_accuuracy,
-                    x = list(range(horizontal_translation)),
-                    y = list(range(vertical_translation)),
-                    customdata=non_eqv_categorical_accuracy,
-                    name = 'Non-eqv accuracy',
-                    type='heatmap',
-                    coloraxis='coloraxis1'),
-        row=1, col=1)
+        # subplot position (start with 1)
+        row = i // 5 + 1
+        col = i % 5 + 1
 
-    # eqv accuracy
-    fig.add_trace(
-        go.Heatmap(z = eqv_gen_accuuracy,
-                    x = list(range(horizontal_translation)),
-                    y = list(range(vertical_translation)),
-                    customdata=non_eqv_categorical_accuracy,
-                    name = 'Eqv accuracy',
-                    type='heatmap',
-                    coloraxis='coloraxis1'),
-        row=1, col=2)
+        accuracy = results['categorical_accuracy_heatmap'][:, :, int(digit)]
 
-    fig.update_traces(
-        hovertemplate=
-        "General accuracy: %{z:.1%}<br>" +
-        "Airplane accuracy: %{customdata[0]:.1%}<br>" +
-        "Automobile accuracy: %{customdata[1]:.1%}<br>" +
-        "Bird accuracy: %{customdata[2]:.1%}<br>" +
-        "Cat accuracy: %{customdata[3]:.1%}<br>" +
-        "Deer accuracy: %{customdata[4]:.1%}<br>" +
-        "Dog accuracy: %{customdata[5]:.1%}<br>" +
-        "Frog accuracy: %{customdata[6]:.1%}<br>" +
-        "Horse accuracy: %{customdata[7]:.1%}<br>" +
-        "Ship accuracy: %{customdata[8]:.1%}<br>" +
-        "Truck accuracy: %{customdata[9]:.1%}"
-    )
+        vertical_translation = len(accuracy)
+        horizontal_translation = len(accuracy[0])
 
-    # set x axes on top
-    fig.update_xaxes(side='top', row=1, col=1)
-    fig.update_xaxes(side='top', row=1, col=2)
-    # reverse both y axes
-    fig.update_yaxes(autorange='reversed', row=1, col=1)
-    fig.update_yaxes(autorange='reversed', row=1, col=2)
+        # plot accuracy
+        fig.add_trace(go.Heatmap(z = accuracy,
+                                    x = np.array(list(range(horizontal_translation)))-20,
+                                    y = np.array(list(range(vertical_translation)))-20,
+                                    customdata=accuracy,
+                                    name = 'Non-eqv accuracy',
+                                    type='heatmap',
+                                    coloraxis='coloraxis1'),
+            row = row,
+            col = col
+        )
+
+        # set x axes on top
+        # fig.update_xaxes(side='top')
+        # fig.update_xaxes(side='top')
+        # reverse both y axes
+        fig.update_yaxes(autorange='reversed')
+        fig.update_yaxes(autorange='reversed')
+
+        fig.update_layout(
+            title = plot_title,
+            showlegend = False,
+            hovermode='x',
+            # title_x=0.5,
+            # xaxis=dict(title='x translation'),
+            # yaxis=dict(title='y translation'),
+            coloraxis=dict(colorscale = 'Viridis')
+        )
+
+        fig.update_coloraxes(colorbar=dict(title='Accuracy'))
+
+        fig.update_annotations(yshift=20)
+
+    # only show one legend
+    for i, trace in enumerate(fig['data']):
+        if i > 1:
+            trace['showlegend'] = False
 
     fig.update_layout(
         title = plot_title,
-        showlegend = True,
         hovermode='x',
-        title_x=0.5,
-        # xaxis=dict(title='x translation'),
-        # yaxis=dict(title='y translation'),
-        coloraxis=dict(colorscale = 'Viridis')
     )
 
-    fig.update_coloraxes(colorbar=dict(title='Accuracy'))
+    fig.update_yaxes(
+        scaleanchor = "x",
+        scaleratio = 1,
+    )
 
-    # fig.show()
-    fig.write_html(result_path)
-    print(f'\nInteractive heatmaps has been saved to {result_path}')
+    # fig.for_each_annotation(lambda a: a.update(text = subplot_names[a.text]))
+    if result_path[-4:] == 'html':
+        fig.write_html(result_path)
+    else:
+        fig.write_image(result_path)
+
+    print(f'\nInteractive heatmap has been saved to {result_path}')
 
 
 def plot_interactive_polar_heatmap(data_name, non_eqv_results, trans_eqv_results, rot_eqv_results, plot_title, result_path):

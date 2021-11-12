@@ -181,7 +181,7 @@ def main():
     parser = argparse.ArgumentParser(description='NERO plots with MNIST')
     # mode (train, test or analyze)
     parser.add_argument('--mode', required=True, action='store', nargs=1, dest='mode')
-    # type of equivariance (rotation, or shift)
+    # type of equivariance (rotation, shift, or scale)
     parser.add_argument('--type', required=True, action='store', nargs=1, dest='type')
     # network method (non-eqv, eqv, etc)
     parser.add_argument('-n', '--network_model', action='store', nargs=1, dest='network_model')
@@ -288,6 +288,11 @@ def main():
             # padded to 69x69 to use odd-size filters with stride 2 when downsampling a feature map in the model
             if image_size == None:
                 image_size = (69, 69)
+
+        # when training for scale equivariance tests
+        # elif type == 'scale':
+        #     if image_size == None:
+        #         image_size =
 
         if verbose:
             print(f'\nmode: {mode}')
@@ -417,7 +422,6 @@ def main():
                 loss_path = os.path.join(figs_dir, f'{network_model}_mnist_batch{train_batch_size}_epoch{epoch+1}_loss.png')
                 plt.savefig(loss_path)
                 print(f'\nLoss graph has been saved to {loss_path}')
-
 
     elif 'test' in mode:
 
@@ -602,6 +606,7 @@ def main():
 
             print(f'\nTesting result has been saved to {loss_path}')
 
+        # plot
 
     elif 'analyze' in mode:
         non_eqv_path = args.non_eqv_path[0]
@@ -616,22 +621,42 @@ def main():
         non_eqv_result = np.load(non_eqv_path)
         eqv_result = np.load(eqv_path)
 
-        # print out average error per digit for both models
-        print(non_eqv_result['categorical_accuracy_heatmap'].shape)
-        for i in range(non_eqv_result['categorical_accuracy_heatmap'].shape[1]):
-            cur_non_eqv_avg = np.mean(non_eqv_result['categorical_accuracy_heatmap'][:, i])
-            cur_eqv_avg = np.mean(eqv_result['categorical_accuracy_heatmap'][:, i])
-            print(f'\nDigit {i} avg accuracy for Non-eqv model: {cur_non_eqv_avg}')
-            print(f'Digit {i} avg accuracy for Eqv model: {cur_eqv_avg}')
+        if type == 'rotation':
+            # print out average error per digit for both models
+            print(non_eqv_result['categorical_accuracy_heatmap'].shape)
+            for i in range(non_eqv_result['categorical_accuracy_heatmap'].shape[1]):
+                cur_non_eqv_avg = np.mean(non_eqv_result['categorical_accuracy_heatmap'][:, i])
+                cur_eqv_avg = np.mean(eqv_result['categorical_accuracy_heatmap'][:, i])
+                print(f'\nDigit {i} avg accuracy for Non-eqv model: {cur_non_eqv_avg}')
+                print(f'Digit {i} avg accuracy for Eqv model: {cur_eqv_avg}')
 
-        # plot interactive polar line plots
-        result_path = os.path.join(figs_dir, f'mnist_{mode}.pdf')
-
-        if mode == 'rot_eqv_analyze':
+            # make and save the plot
+            # plot interactive polar line plots
+            result_path = os.path.join(figs_dir, f'mnist_{mode}_{type}.html')
             # plot_title = f'Non-equivariant vs Equivariant model on {data_name} Digit {i}'
+            plot_title = None
             plotting_digits = list(range(10))
-            vis.plot_interactive_line_polar(plotting_digits, non_eqv_result, eqv_result, None, result_path)
+            vis.plot_interactive_line_polar(plotting_digits, non_eqv_result, eqv_result, plot_title, result_path)
 
+        elif type == 'shift':
+            # print out average error per digit for both models
+            print(non_eqv_result['categorical_accuracy_heatmap'].shape)
+            for i in range(non_eqv_result['categorical_accuracy_heatmap'].shape[2]):
+                cur_non_eqv_avg = np.mean(non_eqv_result['categorical_accuracy_heatmap'][:, :, i])
+                cur_eqv_avg = np.mean(eqv_result['categorical_accuracy_heatmap'][:, :, i])
+                print(f'\nDigit {i} avg accuracy for Non-eqv model: {cur_non_eqv_avg}')
+                print(f'Digit {i} avg accuracy for Eqv model: {cur_eqv_avg}')
+
+            # make and save the plot
+            plotting_digits = list(range(10))
+            # non-eqv
+            non_eqv_result_path = os.path.join(figs_dir, f'mnist_{mode}_{type}_non_eqv.html')
+            non_eqv_plot_title = None
+            vis.plot_interactive_heatmap(plotting_digits, non_eqv_result, non_eqv_plot_title, non_eqv_result_path)
+            # eqv
+            eqv_result_path = os.path.join(figs_dir, f'mnist_{mode}_{type}_eqv.html')
+            eqv_plot_title = None
+            vis.plot_interactive_heatmap(plotting_digits, eqv_result, eqv_plot_title, eqv_result_path)
 
 
 if __name__ == '__main__':
