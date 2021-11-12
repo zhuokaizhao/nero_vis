@@ -233,6 +233,23 @@ def main():
     vis_data = args.vis
     verbose = args.verbose
 
+    # when training/testing for rotation equivariance tests
+    if type == 'rotation':
+        if image_size == None:
+            # padded to 29x29 to use odd-size filters with stride 2 when downsampling a feature map in the model
+            image_size = (29, 29)
+
+    # when training/testing for shift equivariance tests
+    elif type == 'shift':
+        # padded to 69x69 to use odd-size filters with stride 2 when downsampling a feature map in the model
+        if image_size == None:
+            image_size = (69, 69)
+
+    # when training/testing for scale equivariance tests
+    elif type == 'scale':
+        if image_size == None:
+            image_size = (59, 59)
+
     # training mode
     if mode == 'train':
 
@@ -279,23 +296,6 @@ def main():
                 device = torch.device('cuda:0')
         else:
             device = torch.device('cpu')
-
-        # when training for rotation equivariance tests
-        if type == 'rotation':
-            if image_size == None:
-                # padded to 29x29 to use odd-size filters with stride 2 when downsampling a feature map in the model
-                image_size = (29, 29)
-
-        # when training for shift equivariance tests
-        elif type == 'shift':
-            # padded to 69x69 to use odd-size filters with stride 2 when downsampling a feature map in the model
-            if image_size == None:
-                image_size = (69, 69)
-
-        # when training for scale equivariance tests
-        elif type == 'scale':
-            if image_size == None:
-                image_size = (59, 59)
 
         # when training for scale equivariance tests
         # elif type == 'scale':
@@ -485,22 +485,13 @@ def main():
         elif network_model == 'shift-eqv':
             model = models.Shift_Eqv_Net_MNIST().to(device)
 
+        elif network_model == 'scale-eqv':
+            model = models.Scale_Eqv_Net_MNIST().to(device)
+
         # load previously trained model
         trained_model = torch.load(model_dir)
         model.load_state_dict(trained_model['state_dict'])
         trained_epoch = trained_model['epoch']
-
-        # when training for rotation equivariance tests
-        if type == 'rotation':
-            if image_size == None:
-                # padded to 29x29 to use odd-size filters with stride 2 when downsampling a feature map in the model
-                image_size = (29, 29)
-
-        # when training for shift equivariance tests
-        elif type == 'shift':
-            # padded to 69x69 to use odd-size filters with stride 2 when downsampling a feature map in the model
-            if image_size == None:
-                image_size = (69, 69)
 
         if verbose:
             print(f'\nmode: {mode}')
@@ -557,7 +548,7 @@ def main():
 
             print(f'\nTesting result has been saved to {loss_path}')
 
-        # plot error at each moved position as a heatmap
+        # test on each shift from -20 to 20
         elif type == 'shift':
             # shift use the image coordinate system
             # |-----> x
@@ -614,11 +605,7 @@ def main():
                     print(f'shift amount x = {x_shift}, y = {y_shift} accuracy: {general_accuracy}')
 
             # save the accuracy as npz file
-            if network_model == 'non-eqv':
-                loss_path = os.path.join(figs_dir, f'{network_model}_mnist_{image_size[0]}x{image_size[1]}_epoch{trained_epoch}_result.npz')
-            elif network_model == 'shift-eqv':
-                loss_path = os.path.join(figs_dir, f'{network_model}_mnist_{image_size[0]}x{image_size[1]}_epoch{trained_epoch}_result.npz')
-
+            loss_path = os.path.join(figs_dir, f'{network_model}_mnist_{image_size[0]}x{image_size[1]}_epoch{trained_epoch}_result.npz')
             np.savez(loss_path,
                     general_loss_heatmap=general_loss_heatmap,
                     general_accuracy_heatmap=general_accuracy_heatmap,
@@ -627,7 +614,47 @@ def main():
 
             print(f'\nTesting result has been saved to {loss_path}')
 
-        # plot
+        # test on each scale from 0.5 to 2
+        elif type == 'scale':
+            all_scales = list(np.arange(0.5, 2.1, 0.1))
+            general_loss_heatmap = np.zeros(len(all_scales))
+            general_accuracy_heatmap = np.zeros(len(all_scales))
+            categorical_loss_heatmap = np.zeros((len(all_scales), 10))
+            categorical_accuracy_heatmap = np.zeros((len(all_scales), 10))
+
+            for k, scale in enumerate(all_scales):
+                print(f'\n Testing scale {scale}')
+                # prepare data transform
+                resize_size = int(28 * scale)
+                transform = torchvision.transforms.Compose([
+                    # resize and pad the image equally to image_size
+                    torchvision.transforms.Resize(resize_size),
+                    torchvision.transforms.Pad(((image_size[1]-resize_size)//2, (image_size[0]-resize_size)//2, (image_size[1]-resize_size)//2+1, (image_size[0]-resize_size)//2+1), fill=0, padding_mode='constant'),
+                ])
+
+
+                # prepare test dataset
+                dataset = datasets.MnistDataset(mode='test', transform=transform, vis=vis_data)
+                test_loader = torch.utils.data.DataLoader(dataset, **test_kwargs)
+
+                # test the model
+                general_loss, general_accuracy, categorical_loss, categorical_accuracy = test(model, device, test_loader)
+                general_loss_heatmap[k] = general_loss
+                general_accuracy_heatmap[k] = general_accuracy
+                categorical_loss_heatmap[k, :] = categorical_loss
+                categorical_accuracy_heatmap[k, :] = categorical_accuracy
+
+                print(f'Scale {scale} accuracy: {general_accuracy}')
+
+            # save the accuracy as npz file
+            loss_path = os.path.join(figs_dir, f'{network_model}_mnist_{image_size[0]}x{image_size[1]}_epoch{trained_epoch}_result.npz')
+            np.savez(loss_path,
+                    general_loss_heatmap=general_loss_heatmap,
+                    general_accuracy_heatmap=general_accuracy_heatmap,
+                    categorical_loss_heatmap=categorical_loss_heatmap,
+                    categorical_accuracy_heatmap=categorical_accuracy_heatmap)
+
+            print(f'\nTesting result has been saved to {loss_path}')
 
     elif 'analyze' in mode:
         non_eqv_path = args.non_eqv_path[0]
