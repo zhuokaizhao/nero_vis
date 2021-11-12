@@ -10,7 +10,7 @@ from mlxtend.data import loadlocal_mnist
 # MNIST dataset class
 class MnistDataset(torch.utils.data.Dataset):
 
-    def __init__(self, mode, transform=None):
+    def __init__(self, mode, transform=None, vis=False):
         assert mode in ['train', 'test']
         data_dir = '/home/zhuokai/Desktop/nvme1n1p1/Data/MNIST/original'
 
@@ -23,6 +23,7 @@ class MnistDataset(torch.utils.data.Dataset):
 
         self.mode = mode
         self.transform = transform
+        self.vis = vis
 
         self.images, self.labels = loadlocal_mnist(images_path=images_path,
                                                    labels_path=labels_path)
@@ -40,6 +41,10 @@ class MnistDataset(torch.utils.data.Dataset):
         image = Image.fromarray(image)
         if self.transform is not None:
             image = self.transform(image)
+            if self.vis:
+                # Image.fromarray(np.asarray(image).astype(np.uint8)).save('/home/zhuokai/Desktop/UChicago/Research/nero_vis/nero_mnist/figs/rot_eqv_test/rotated.png')
+                Image.fromarray(np.asarray(image).astype(np.uint8)).save('/home/zhuokai/Desktop/UChicago/Research/nero_vis/nero_mnist/figs/shift_eqv_test/shifted.png')
+                exit()
             image = self.to_tensor(np.array(image))
             image = self.normalize(image)
 

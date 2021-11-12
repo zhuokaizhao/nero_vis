@@ -211,6 +211,8 @@ def main():
     parser.add_argument('--eqv_path', action='store', nargs=1, dest='eqv_path')
     # output figs directory
     parser.add_argument('-o', '--output_dir', action='store', nargs=1, dest='output_dir')
+    # if visualizing data
+    parser.add_argument('--vis', action='store_true', dest='vis', default=False)
     # verbosity
     parser.add_argument('-v', '--verbose', action='store_true', dest='verbose', default=False)
 
@@ -228,6 +230,7 @@ def main():
         network_model = args.network_model[0]
     # output graph directory
     figs_dir = args.output_dir[0]
+    vis = args.vis
     verbose = args.verbose
 
     # training mode
@@ -438,9 +441,16 @@ def main():
         # basic settings for pytorch
         if torch.cuda.is_available():
             # additional kwargs
-            cuda_kwargs = {'num_workers': 8,
+            if vis:
+                num_workers = 1
+                shuffle = False
+            else:
+                num_workers = 8
+                shuffle = True
+
+            cuda_kwargs = {'num_workers': num_workers,
                             'pin_memory': True,
-                            'shuffle': True}
+                            'shuffle': shuffle}
             test_kwargs.update(cuda_kwargs)
 
             # device set up
@@ -510,7 +520,7 @@ def main():
                 ])
 
                 # prepare test dataset
-                dataset = datasets.MnistDataset(mode='test', transform=transform)
+                dataset = datasets.MnistDataset(mode='test', transform=transform, vis=vis)
                 test_loader = torch.utils.data.DataLoader(dataset, **test_kwargs)
 
                 # test the model
@@ -580,7 +590,7 @@ def main():
                     ])
 
                     # prepare test dataset
-                    dataset = datasets.MnistDataset(mode='test', transform=transform)
+                    dataset = datasets.MnistDataset(mode='test', transform=transform, vis=vis)
                     test_loader = torch.utils.data.DataLoader(dataset, **test_kwargs)
 
                     # test the model
