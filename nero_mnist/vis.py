@@ -159,7 +159,7 @@ def plot_interactive_heatmap(name, digits, results, plot_title, result_path):
     print(f'\nInteractive heatmap has been saved to {result_path}')
 
 
-def plot_interactive_line(digits, non_eqv_results, eqv_results, plot_title, result_path):
+def plot_interactive_line(digits, scales, non_eqv_results, eqv_results, plot_title, result_path):
     # plot for all digits
     # fig = go.Figure()
     subplot_names = []
@@ -176,7 +176,6 @@ def plot_interactive_line(digits, non_eqv_results, eqv_results, plot_title, resu
 
         non_eqv_accuracy = non_eqv_results['categorical_accuracy_heatmap'][:, int(digit)]
         eqv_accuracy = eqv_results['categorical_accuracy_heatmap'][:, int(digit)]
-        scales = list(range(len(non_eqv_accuracy)))
 
         # non eqv accuracy
         fig.add_trace(go.Scatter(x = scales,
@@ -193,7 +192,7 @@ def plot_interactive_line(digits, non_eqv_results, eqv_results, plot_title, resu
                                 y = eqv_accuracy,
                                 mode = 'lines',
                                 name = 'Scale-Eqv',
-                                line_color = 'peru'),
+                                line_color = 'darkviolet'),
             row = row,
             col = col
         )
