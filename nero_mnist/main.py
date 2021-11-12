@@ -625,7 +625,11 @@ def main():
             for k, scale in enumerate(all_scales):
                 print(f'\n Testing scale {scale}')
                 # prepare data transform
-                resize_size = int(28 * scale)
+                resize_size = int(np.floor(28 * scale))
+                # size difference must be odd
+                if (image_size[1]-resize_size) % 2 == 0:
+                    resize_size += 1
+
                 transform = torchvision.transforms.Compose([
                     # resize and pad the image equally to image_size
                     torchvision.transforms.Resize(resize_size),
