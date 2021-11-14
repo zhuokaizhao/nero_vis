@@ -12,6 +12,17 @@ from scipy.ndimage.interpolation import rotate
 
 import plot
 
+def wrap_around(in_value, min, max):
+
+    while (in_value < min or in_value > max):
+        if (in_value < min):
+            in_value += (max-min)
+        if (in_value > max):
+            in_value -= (max-min)
+
+    return in_value
+
+
 def write_flo(filename, flow):
     """
     write optical flow in Middlebury .flo format
@@ -34,12 +45,52 @@ def write_flo(filename, flow):
 # assign intensity from distance and peak value
 def get_intensity(center_pos, pos, peak_intensity, diameter):
 
-    inside_exp_top = -(pos[0] - center_pos[0])^2 - (pos[1] - center_pos[1])^2
-    inside_exp_bottom = 1/8 * diameter^2
+    inside_exp_top = -(pos[0] - center_pos[0])**2 - (pos[1] - center_pos[1])**2
+    inside_exp_bottom = 1 / 8 * diameter**2
     intensity = peak_intensity * np.exp(inside_exp_top/inside_exp_bottom)
 
     return intensity
 
+
+# form image from particle position array
+def form_image(positions, diameters, peak_intensities, image_size):
+
+    image = np.zeros(image_size)
+
+    for i in range(len(positions)):
+        pos = positions[i]
+        # draw peak intensity as the center pixel
+        image[pos[0], pos[1]] = peak_intensities[i]
+
+        # if diameter larger than zero, draw other pixels
+        if diameters[i] > 1:
+            if diameters[i] == 2:
+                for j in range(-1, 1):
+                    for k in range(0, 2):
+                        if j == 0 and k == 0:
+                            continue
+                        elif pos[0]+j >= 0 and pos[0] + j < image_size[0] and pos[1]+k >= 0 and pos[1] + k < image_size[1]:
+                            image[pos[0]+j, pos[1]+k] = get_intensity(pos, (pos[0]+j, pos[1]+k), peak_intensities[i], diameters[i])
+
+            elif diameters[i] == 3:
+                for j in range(-1, 2):
+                    for k in range(-1, 2):
+                        if j == 0 and k == 0:
+                            continue
+                        elif pos[0]+j >= 0 and pos[0] + j < image_size[0] and pos[1]+k >= 0 and pos[1] + k < image_size[1]:
+                            image[pos[0]+j, pos[1]+k] = get_intensity(pos, (pos[0]+j, pos[1]+k), peak_intensities[i], diameters[i])
+
+            elif diameters[i] == 4:
+                for j in range(-2, 2):
+                    for k in range(-1, 3):
+                        if j == 0 and k == 0:
+                            continue
+                        elif pos[0]+j >= 0 and pos[0] + j < image_size[0] and pos[1]+k >= 0 and pos[1] + k < image_size[1]:
+                            image[pos[0]+j, pos[1]+k] = get_intensity(pos, (pos[0]+j, pos[1]+k), peak_intensities[i], diameters[i])
+            else:
+                raise Exception(f'Unsupported diameter {diameters[i]}')
+
+    return image
 
 
 # save image
@@ -57,46 +108,6 @@ def save_velocity(mode, velocity, path):
         np.save(path, velocity)
     elif mode == 'flo':
         write_flo(path, velocity)
-
-
-# form image from particle position array
-def form_image(positions, diameters, peak_intensities, image_size):
-
-    image = np.zeros(image_size)
-
-    for i, pos in positions:
-        # draw peak intensity as the center pixel
-        image[pos[0], pos[1]] = peak_intensities[i]
-
-        # if diameter larger than zero, draw other pixels
-        if diameters[i] > 1:
-            if diameters[i] == 2:
-                for j in range(-1, 1):
-                    for k in range(0, 2):
-                        if j == 0 and k == 0:
-                            continue
-                        else:
-                            image[pos[0]+j, pos[1]+k] = get_intensity(pos, (pos[0]+j, pos[1]+k), peak_intensities[i], diameters[i])
-
-            elif diameters[i] == 3:
-                for j in range(-1, 2):
-                    for k in range(-1, 2):
-                        if j == 0 and k == 0:
-                            continue
-                        else:
-                            image[pos[0]+j, pos[1]+k] = get_intensity(pos, (pos[0]+j, pos[1]+k), peak_intensities[i], diameters[i])
-
-            elif diameters[i] == 4:
-                for j in range(-2, 2):
-                    for k in range(-1, 3):
-                        if j == 0 and k == 0:
-                            continue
-                        else:
-                            image[pos[0]+j, pos[1]+k] = get_intensity(pos, (pos[0]+j, pos[1]+k), peak_intensities[i], diameters[i])
-            else:
-                raise Exception(f'Unsupported diameter {diameters[i]}')
-
-    return Image.fromarray(image)
 
 
 def main():
@@ -175,7 +186,7 @@ def main():
             cur_velocity = cur_velocity / (2*np.pi) * 1024
 
             # for each z
-            for z in range(cur_velocity.shape[2]):
+            for z in range(51, cur_velocity.shape[2]):
                 # only velocities in x and y
                 cur_velocity_2d = cur_velocity[:, :, z, :2]
 
@@ -188,26 +199,28 @@ def main():
                     cur_velocity_2d[:, :, 1] = -cur_label_rotated_temp[:, :, 0] * np.sin(math.radians(rot)) + cur_label_rotated_temp[:, :, 1] * np.cos(math.radians(rot))
 
                 # take only the center 256*256 as velocity field
-                cur_velocity_2d = cur_velocity_2d[384:640, 384:640, :]
+                # cur_velocity_2d = cur_velocity_2d[384:640, 384:640, :]
 
                 # random initalize particle positions
-                frame1_particle_pos = np.zeros((num_particles, 2))
+                frame1_particle_pos = np.zeros((num_particles, 2), dtype=int)
                 frame1_particle_pos[:, 0] = np.random.randint(low=0, high=image_size[0], size=num_particles, dtype=int)
                 frame1_particle_pos[:, 1] = np.random.randint(low=0, high=image_size[1], size=num_particles, dtype=int)
 
                 # random initialize particle radius
-                all_particle_diameters = np.random.randint(low=1, high=4, size=num_particles, dtype=int)
+                all_particle_diameters = np.random.randint(low=1, high=5, size=num_particles, dtype=int)
 
                 # random initialize peak intensity
-                all_peak_intensities = np.random.randint(low=200, high=255, size=num_particles, dtype=int)
+                all_peak_intensities = np.random.randint(low=200, high=256, size=num_particles, dtype=int)
 
                 # generate particle image pairs and velcoty ground truth
                 # use velocity to compute particle positions in the second frame
-                frame2_particle_pos = np.zeros((num_particles, 2))
+                frame2_particle_pos = np.zeros((num_particles, 2), dtype=int)
                 for a in range(num_particles):
                     # in position array, it is the same coordinate as the image, where row is y, col is x
-                    frame2_particle_pos[a, 0] = frame1_particle_pos[a, 0] + cur_velocity_2d[frame1_particle_pos[a, 0], frame1_particle_pos[a, 1], 1] * dt
-                    frame2_particle_pos[a, 1] = frame1_particle_pos[a, 1] + cur_velocity_2d[frame1_particle_pos[a, 0], frame1_particle_pos[a, 1], 0] * dt
+                    potential_0 = frame1_particle_pos[a, 0] + cur_velocity_2d[frame1_particle_pos[a, 0], frame1_particle_pos[a, 1], 1] * dt
+                    frame2_particle_pos[a, 0] = wrap_around(potential_0, 0, 255)
+                    potential_1 = frame1_particle_pos[a, 1] + cur_velocity_2d[frame1_particle_pos[a, 0], frame1_particle_pos[a, 1], 0] * dt
+                    frame2_particle_pos[a, 1] = wrap_around(potential_1, 0, 255)
 
                 # form image for frame 1 and 2
                 image_1 = form_image(frame1_particle_pos, all_particle_diameters, all_peak_intensities, image_size)
@@ -225,15 +238,14 @@ def main():
 
                 # visualize ground truth velocity if requested
                 if vis_data:
-                    max_truth = 3
                     # visualize ground truth
-                    flow_vis, _ = plot.visualize_flow(cur_velocity_2d, max_vel=max_truth)
+                    flow_vis, max_truth = plot.visualize_flow(cur_velocity_2d)
                     # convert to Image
                     flow_vis_image = Image.fromarray(flow_vis)
                     # display the image
                     plt.imshow(flow_vis_image)
                     # superimpose quiver plot on color-coded images
-                    skip = 7
+                    skip = 28
                     x = np.linspace(0, cur_velocity_2d.shape[0]-1, cur_velocity_2d.shape[0])
                     y = np.linspace(0, cur_velocity_2d.shape[1]-1, cur_velocity_2d.shape[1])
                     y_pos, x_pos = np.meshgrid(x, y)
