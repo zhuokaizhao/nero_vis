@@ -159,12 +159,15 @@ def plot_interactive_heatmap(name, digits, results, plot_title, result_path):
     print(f'\nInteractive heatmap has been saved to {result_path}')
 
 
-def plot_interactive_line(digits, scales, non_eqv_results, eqv_results, plot_title, result_path):
+def plot_interactive_line(digits, scales, all_labels, all_results, plot_title, result_path):
+
+
     # plot for all digits
     # fig = go.Figure()
     subplot_names = []
     for digit in digits:
         subplot_names.append(f'Digit {digit}')
+    all_colors = ['peru', 'darkviolet', 'green']
 
     fig = make_subplots(rows=2, cols=5,
                         subplot_titles=subplot_names)
@@ -174,28 +177,17 @@ def plot_interactive_line(digits, scales, non_eqv_results, eqv_results, plot_tit
         row = i // 5 + 1
         col = i % 5 + 1
 
-        non_eqv_accuracy = non_eqv_results['categorical_accuracy_heatmap'][:, int(digit)]
-        eqv_accuracy = eqv_results['categorical_accuracy_heatmap'][:, int(digit)]
-
-        # non eqv accuracy
-        fig.add_trace(go.Scatter(x = scales,
-                                y = non_eqv_accuracy,
-                                mode = 'lines',
-                                name = 'Non-Eqv',
-                                line_color = 'peru'),
-            row = row,
-            col = col
-        )
-
-        # eqv accuracy
-        fig.add_trace(go.Scatter(x = scales,
-                                y = eqv_accuracy,
-                                mode = 'lines',
-                                name = 'Scale-Eqv',
-                                line_color = 'darkviolet'),
-            row = row,
-            col = col
-        )
+        for k, cur_result in enumerate(all_results):
+            cur_accuracy = cur_result['categorical_accuracy_heatmap'][:, int(digit)]
+            # non eqv accuracy
+            fig.add_trace(go.Scatter(x = scales,
+                                     y = cur_accuracy,
+                                    mode = 'lines',
+                                    name = all_labels[k],
+                                    line_color = all_colors[k]),
+                row = row,
+                col = col
+            )
 
         fig.update_traces(
             hovertemplate=
@@ -207,7 +199,7 @@ def plot_interactive_line(digits, scales, non_eqv_results, eqv_results, plot_tit
 
     # only show one legend
     for i, trace in enumerate(fig['data']):
-        if i > 1:
+        if i > 2:
             trace['showlegend'] = False
 
     fig.update_layout(

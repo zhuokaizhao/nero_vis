@@ -351,6 +351,9 @@ def main():
             if network_model == 'non-eqv':
                 model = models.Non_Eqv_Net_MNIST(type).to(device)
             elif network_model == 'scale-eqv':
+                # Scale-Equivariant Steerable Networks
+                method = 'SESN'
+                # Deep Scale Spaces: Equivariant Over Scale
                 method = 'DSS'
                 model = models.Scale_Eqv_Net_MNIST(method=method).to(device)
             else:
@@ -490,9 +493,11 @@ def main():
             model = models.Shift_Eqv_Net_MNIST().to(device)
 
         elif network_model == 'scale-eqv':
-            num_scale = 7
-            scales = [1.0]
-            model = models.Scale_Eqv_Net_MNIST(num_scale=num_scale, scales=scales).to(device)
+            # Scale-Equivariant Steerable Networks
+            method = 'SESN'
+            # Deep Scale Spaces: Equivariant Over Scale
+            # method = 'DSS'
+            model = models.Scale_Eqv_Net_MNIST(method=method).to(device)
 
         # load previously trained model
         trained_model = torch.load(model_dir)
@@ -623,7 +628,7 @@ def main():
         # test on each scale from 0.5 to 2
         elif type == 'scale':
             # all_scales = list(np.arange(0.5, 2.1, 0.1))
-            all_scales = [0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
+            all_scales = [0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
             general_loss_heatmap = np.zeros(len(all_scales))
             general_accuracy_heatmap = np.zeros(len(all_scales))
             categorical_loss_heatmap = np.zeros((len(all_scales), 10))
@@ -677,8 +682,13 @@ def main():
             print(f'output figures dir: {figs_dir}')
 
         # load the non-eqv and eqv result
+        non_eqv_path = 'output/scale_eqv_test/non_eqv_2/non-eqv_mnist_29x29_epoch50_result.npz'
+        sesn_eqv_path = 'output/scale_eqv_test/scale_eqv_2/scale-eqv_mnist_29x29_epoch50_result.npz'
+        dss_eqv_path = 'output/scale_eqv_test/scale_eqv_3/scale-eqv_mnist_29x29_epoch50_result.npz'
         non_eqv_result = np.load(non_eqv_path)
-        eqv_result = np.load(eqv_path)
+        eqv_result = np.load(sesn_eqv_path)
+        sesn_eqv_result = np.load(sesn_eqv_path)
+        dss_eqv_result = np.load(dss_eqv_path)
 
         if type == 'rotation':
             # print out average error per digit for both models
@@ -719,21 +729,21 @@ def main():
 
         elif type == 'scale':
             # print out average error per digit for both models
-            print(non_eqv_result['categorical_accuracy_heatmap'].shape)
-            for i in range(non_eqv_result['categorical_accuracy_heatmap'].shape[1]):
-                cur_non_eqv_avg = np.mean(non_eqv_result['categorical_accuracy_heatmap'][:, i])
-                cur_eqv_avg = np.mean(eqv_result['categorical_accuracy_heatmap'][:, i])
-                print(f'\nDigit {i} avg accuracy for Non-eqv model: {cur_non_eqv_avg}')
-                print(f'Digit {i} avg accuracy for Eqv model: {cur_eqv_avg}')
+            # print(non_eqv_result['categorical_accuracy_heatmap'].shape)
+            # for i in range(non_eqv_result['categorical_accuracy_heatmap'].shape[1]):
+            #     cur_non_eqv_avg = np.mean(non_eqv_result['categorical_accuracy_heatmap'][:, i])
+            #     cur_eqv_avg = np.mean(eqv_result['categorical_accuracy_heatmap'][:, i])
+            #     print(f'\nDigit {i} avg accuracy for Non-eqv model: {cur_non_eqv_avg}')
+            #     print(f'Digit {i} avg accuracy for Eqv model: {cur_eqv_avg}')
 
             # make and save the plot
-            all_scales = [0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
+            all_scales = [0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
             # plot interactive polar line plots
             result_path = os.path.join(figs_dir, f'mnist_{mode}_{type}.html')
             # plot_title = f'Non-equivariant vs Equivariant model on {data_name} Digit {i}'
             plot_title = None
             plotting_digits = list(range(10))
-            vis.plot_interactive_line(plotting_digits, all_scales, non_eqv_result, eqv_result, plot_title, result_path)
+            vis.plot_interactive_line(plotting_digits, all_scales, ['Non-Eqv', 'SESN', 'DSS'], [non_eqv_result, sesn_eqv_result, dss_eqv_result], plot_title, result_path)
 
 
 if __name__ == '__main__':

@@ -44,7 +44,7 @@ class MnistDataset(torch.utils.data.Dataset):
             if self.vis:
                 # Image.fromarray(np.asarray(image).astype(np.uint8)).save('/home/zhuokai/Desktop/UChicago/Research/nero_vis/nero_mnist/figs/rot_eqv_test/rotated.png')
                 # Image.fromarray(np.asarray(image).astype(np.uint8)).save('/home/zhuokai/Desktop/UChicago/Research/nero_vis/nero_mnist/figs/shift_eqv_test/shifted.png')
-                Image.fromarray(np.asarray(image).astype(np.uint8)).save('/home/zhuokai/Desktop/UChicago/Research/nero_vis/nero_mnist/figs/scale_eqv_test/scaled.png')
+                Image.fromarray(np.asarray(image).astype(np.uint8)).save('/home/zhuokai/Desktop/UChicago/Research/nero_vis/nero_mnist/figs/scale_eqv_test_2/scaled.png')
                 exit()
             image = self.to_tensor(np.array(image))
             image = self.normalize(image)
