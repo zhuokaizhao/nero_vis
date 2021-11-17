@@ -169,7 +169,7 @@ def main():
     if mode == 'train' or mode == 'val':
         rotation_angles = [0]
     elif mode == 'test':
-        rotation_angles = list(range(0, 360, 2))
+        rotation_angles = list(range(0, 360, 5))
 
     # process each rotation angle
     for i, rot in enumerate(rotation_angles):
