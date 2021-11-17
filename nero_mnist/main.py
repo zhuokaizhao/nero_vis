@@ -210,6 +210,8 @@ def main():
     parser.add_argument('--non_eqv_path', action='store', nargs=1, dest='non_eqv_path')
     # input directory for eqv model output when in analyze mode
     parser.add_argument('--eqv_path', action='store', nargs=1, dest='eqv_path')
+    # input directory for aug eqv model output when in analyze mode
+    parser.add_argument('--aug_eqv_path', action='store', nargs=1, dest='aug_eqv_path')
     # output figs directory
     parser.add_argument('-o', '--output_dir', action='store', nargs=1, dest='output_dir')
     # if visualizing data
@@ -712,20 +714,18 @@ def main():
     elif 'analyze' in mode:
         non_eqv_path = args.non_eqv_path[0]
         eqv_path = args.eqv_path[0]
+        aug_eqv_path = args.aug_eqv_path[0]
         if verbose:
             print(f'\nmode: {mode}')
             print(f'input non-eqv result dir: {non_eqv_path}')
             print(f'input eqv result dir: {eqv_path}')
+            print(f'input aug-eqv result dir: {aug_eqv_path}')
             print(f'output figures dir: {figs_dir}')
 
         # load the non-eqv and eqv result
-        non_eqv_path = 'output/scale_eqv_test/non_eqv_2/non-eqv_mnist_29x29_epoch50_result.npz'
-        sesn_eqv_path = 'output/scale_eqv_test/scale_eqv_2/scale-eqv_mnist_29x29_epoch50_result.npz'
-        dss_eqv_path = 'output/scale_eqv_test/scale_eqv_3/scale-eqv_mnist_29x29_epoch50_result.npz'
         non_eqv_result = np.load(non_eqv_path)
-        eqv_result = np.load(sesn_eqv_path)
-        sesn_eqv_result = np.load(sesn_eqv_path)
-        dss_eqv_result = np.load(dss_eqv_path)
+        eqv_result = np.load(eqv_path)
+        aug_eqv_result = np.load(aug_eqv_path)
 
         if type == 'rotation':
             # print out average error per digit for both models
@@ -733,8 +733,10 @@ def main():
             for i in range(non_eqv_result['categorical_accuracy_heatmap'].shape[1]):
                 cur_non_eqv_avg = np.mean(non_eqv_result['categorical_accuracy_heatmap'][:, i])
                 cur_eqv_avg = np.mean(eqv_result['categorical_accuracy_heatmap'][:, i])
+                cur_aug_eqv_avg = np.mean(aug_eqv_result['categorical_accuracy_heatmap'][:, i])
                 print(f'\nDigit {i} avg accuracy for Non-eqv model: {cur_non_eqv_avg}')
                 print(f'Digit {i} avg accuracy for Eqv model: {cur_eqv_avg}')
+                print(f'Digit {i} avg accuracy for Aug-Eqv model: {cur_aug_eqv_avg}')
 
             # make and save the plot
             # plot interactive polar line plots
@@ -742,7 +744,13 @@ def main():
             # plot_title = f'Non-equivariant vs Equivariant model on {data_name} Digit {i}'
             plot_title = None
             plotting_digits = list(range(10))
-            vis.plot_interactive_line_polar(plotting_digits, non_eqv_result, eqv_result, plot_title, result_path)
+            all_colors = ['peru', 'darkviolet', 'green']
+            vis.plot_interactive_line_polar(plotting_digits,
+                                            ['CNN', 'E2CNN', 'CNN+Augmentation'],
+                                            all_colors,
+                                            [non_eqv_result, eqv_result, aug_eqv_result],
+                                            plot_title,
+                                            result_path)
 
         elif type == 'shift':
             # print out average error per digit for both models

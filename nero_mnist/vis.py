@@ -7,51 +7,38 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
 
-def plot_interactive_line_polar(digits, non_eqv_results, eqv_results, plot_title, result_path):
+def plot_interactive_line_polar(digits, all_labels, all_colors, all_results, plot_title, result_path):
 
     # plot for all digits
-    # fig = go.Figure()
     subplot_names = []
     for digit in digits:
         subplot_names.append(f'Digit {digit}')
 
+    # 10 digits, divided into 2*5 subplots
     fig = make_subplots(rows=2, cols=5,
                         subplot_titles=subplot_names,
-                        # specs=[[{'type': 'polar'}, {'type': 'polar'}, {'type': 'polar'}, {'type': 'polar'}, {'type': 'polar'}],
-                        #        [{'type': 'polar'}, {'type': 'polar'}, {'type': 'polar'}, {'type': 'polar'}, {'type': 'polar'}]]
-                               )
+                        specs=[[{'type': 'polar'}, {'type': 'polar'}, {'type': 'polar'}, {'type': 'polar'}, {'type': 'polar'}],
+                               [{'type': 'polar'}, {'type': 'polar'}, {'type': 'polar'}, {'type': 'polar'}, {'type': 'polar'}]]
+                        )
     for i, digit in enumerate(digits):
 
         # subplot position (start with 1)
         row = i // 5 + 1
         col = i % 5 + 1
 
-        non_eqv_accuracy = non_eqv_results['categorical_accuracy_heatmap'][:, int(digit)]
-        eqv_accuracy = eqv_results['categorical_accuracy_heatmap'][:, int(digit)]
-        angles = list(range(len(non_eqv_accuracy)))
+        for j, cur_result in enumerate(all_results):
+            cur_accuracy = cur_result['categorical_accuracy_heatmap'][:, int(digit)]
+            angles = list(range(len(cur_accuracy)))
 
-        # non eqv accuracy
-        fig.add_trace(go.Scatterpolar(r = non_eqv_accuracy,
-                                        theta = angles,
-                                        # customdata=non_eqv_categorical_accuuracy,
-                                        mode = 'lines',
-                                        name = 'Non-Eqv',
-                                        type = 'polar',
-                                        line_color = 'peru'),
-            row = row,
-            col = col
-        )
-
-        # eqv accuracy
-        fig.add_trace(go.Scatterpolar(r = eqv_accuracy,
-                                        theta = angles,
-                                        # customdata=eqv_categorical_accuuracy,
-                                        mode = 'lines',
-                                        name = 'Rot-Eqv',
-                                        line_color = 'darkviolet'),
-            row = row,
-            col = col
-        )
+            # non eqv accuracy
+            fig.add_trace(go.Scatterpolar(r = cur_accuracy,
+                                            theta = angles,
+                                            mode = 'lines',
+                                            name = all_labels[j],
+                                            line_color = all_colors[j]),
+                row = row,
+                col = col
+            )
 
         fig.update_traces(
             hovertemplate=
@@ -63,7 +50,7 @@ def plot_interactive_line_polar(digits, non_eqv_results, eqv_results, plot_title
 
     # only show one legend
     for i, trace in enumerate(fig['data']):
-        if i > 1:
+        if i > (len(all_labels)-1):
             trace['showlegend'] = False
 
     fig.update_layout(
@@ -159,7 +146,7 @@ def plot_interactive_heatmap(name, digits, results, plot_title, result_path):
     print(f'\nInteractive heatmap has been saved to {result_path}')
 
 
-def plot_interactive_line(digits, scales, all_labels, all_results, plot_title, result_path):
+def plot_interactive_line(digits, scales, all_labels, all_colors, all_results, plot_title, result_path):
 
 
     # plot for all digits
@@ -167,7 +154,6 @@ def plot_interactive_line(digits, scales, all_labels, all_results, plot_title, r
     subplot_names = []
     for digit in digits:
         subplot_names.append(f'Digit {digit}')
-    all_colors = ['peru', 'darkviolet', 'green']
 
     fig = make_subplots(rows=2, cols=5,
                         subplot_titles=subplot_names)
