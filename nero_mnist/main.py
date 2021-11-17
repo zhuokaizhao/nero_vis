@@ -370,10 +370,10 @@ def main():
             if network_model == 'non-eqv':
                 model = models.Non_Eqv_Net_MNIST(type).to(device)
             elif network_model == 'scale-eqv':
-                # Scale-Equivariant Steerable Networks
+                # Scale-Equivariant Steerable Networks (newer)
                 method = 'SESN'
                 # Deep Scale Spaces: Equivariant Over Scale
-                method = 'DSS'
+                # method = 'DSS'
                 model = models.Scale_Eqv_Net_MNIST(method=method).to(device)
             else:
                 raise Exception(f'Wrong network model type {network_model}')
@@ -508,7 +508,7 @@ def main():
             device = torch.device('cpu')
 
         # model
-        if network_model == 'non-eqv':
+        if network_model == 'non-eqv' or network_model == 'aug-eqv':
             model = models.Non_Eqv_Net_MNIST(type).to(device)
 
         elif network_model == 'rot-eqv':
