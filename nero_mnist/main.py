@@ -21,6 +21,7 @@ from PIL import Image
 import vis
 import models
 import datasets
+import data_transform
 
 os.environ['CUDA_VISIBLE_DEVICES']='0'
 
@@ -347,8 +348,21 @@ def main():
         elif type == 'shift':
             if network_model == 'non-eqv':
                 model = models.Non_Eqv_Net_MNIST(type).to(device)
+                transform = torchvision.transforms.Compose([
+                    torchvision.transforms.Pad(((image_size[1]-28)//2, (image_size[0]-28)//2, (image_size[1]-28)//2+1, (image_size[0]-28)//2+1), fill=0, padding_mode='constant'),
+                ])
             elif network_model == 'shift-eqv':
                 model = models.Shift_Eqv_Net_MNIST().to(device)
+                transform = torchvision.transforms.Compose([
+                    torchvision.transforms.Pad(((image_size[1]-28)//2, (image_size[0]-28)//2, (image_size[1]-28)//2+1, (image_size[0]-28)//2+1), fill=0, padding_mode='constant'),
+                ])
+            elif network_model == 'aug-eqv':
+                model = models.Non_Eqv_Net_MNIST(type).to(device)
+                # data transform
+                transform = torchvision.transforms.Compose([
+                    # random padding
+                    data_transform.RandomShift(28, image_size[0])
+                ])
             else:
                 raise Exception(f'Wrong network model type {network_model}')
 
@@ -409,7 +423,7 @@ def main():
             if (epoch+1) % args.checkpoint_interval == 0:
 
                 # save model as a checkpoint so further training could be resumed
-                if network_model == 'non-eqv' or network_model == 'shift-eqv':
+                if network_model == 'non-eqv' or network_model == 'shift-eqv' or network_model == 'aug-eqv':
                     model_path = os.path.join(model_dir, f'{network_model}_mnist_{image_size[0]}x{image_size[1]}_batch{train_batch_size}_epoch{epoch+1}.pt')
                 elif network_model == 'rot-eqv':
                     model_path = os.path.join(model_dir, f'{network_model}_rot-group{num_rotation}_mnist_{image_size[0]}x{image_size[1]}_batch{train_batch_size}_epoch{epoch+1}.pt')
@@ -559,7 +573,7 @@ def main():
                 print(f'Rotation {k} accuracy: {general_accuracy}')
 
             # save the accuracy as npz file
-            if network_model == 'non-eqv':
+            if network_model == 'non-eqv' or network_model == 'aug-eqv':
                 loss_path = os.path.join(figs_dir, f'{network_model}_mnist_{image_size[0]}x{image_size[1]}_angle-increment{increment}_epoch{trained_epoch}_result.npz')
             elif network_model == 'rot-eqv':
                 loss_path = os.path.join(figs_dir, f'{network_model}_rot-group{num_rotation}_mnist_{image_size[0]}x{image_size[1]}_angle-increment{increment}_epoch{trained_epoch}_result.npz')
