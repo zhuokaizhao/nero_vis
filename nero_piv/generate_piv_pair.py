@@ -139,7 +139,7 @@ def main():
     if args.image_size != None:
         image_size = (int(args.image_size[0].split('x')[0]), int(args.image_size[0].split('x')[1]))
     else:
-        image_size = (256, 256)
+        image_size = (1024, 1024)
     # number of particles in each frame
     num_particles = int(args.num_particles[0])
     # output graph directory
@@ -171,6 +171,7 @@ def main():
     # process each rotation angle
     for i, rot in enumerate(rotation_angles):
         cur_output_dir = os.path.join(output_dir, f'rotated_{rot}')
+        os.makedirs(cur_output_dir, exist_ok=True)
 
         # velocity goes from time step 1 to 5024 with stride 20
         for t in tqdm(range(1, 5024, 20)):
@@ -179,7 +180,8 @@ def main():
 
             # loaded data has coordinate (z, y, x, (v_z, v_y, v_x))
             # convert to (x, y, z, (v_x, v_y, v_z))
-            cur_velocity = np.moveaxis(cur_velocity, [0, 1, 2], [2, 1, 0])
+            # in image axis row is y, col is x, thus [0, 1, 2] to [2, 0, 1], instead of [2, 1, 0]
+            cur_velocity = np.moveaxis(cur_velocity, [0, 1, 2], [2, 0, 1])
             cur_velocity = cur_velocity[:, :, :, ::-1]
 
             # convert velocity from [0, 2pi] to [0, 1024]
@@ -200,6 +202,8 @@ def main():
 
                 # take only the center 256*256 as velocity field
                 # cur_velocity_2d = cur_velocity_2d[384:640, 384:640, :]
+                if cur_velocity_2d.shape[:2] != image_size:
+                    raise Exception(f'Velocity field shape {cur_velocity_2d.shape[:2]} and image shape {image_size} are different')
 
                 # random initalize particle positions
                 frame1_particle_pos = np.zeros((num_particles, 2), dtype=int)
@@ -217,9 +221,9 @@ def main():
                 frame2_particle_pos = np.zeros((num_particles, 2), dtype=int)
                 for a in range(num_particles):
                     # in position array, it is the same coordinate as the image, where row is y, col is x
-                    potential_0 = frame1_particle_pos[a, 0] + cur_velocity_2d[frame1_particle_pos[a, 0], frame1_particle_pos[a, 1], 1] * dt
+                    potential_0 = frame1_particle_pos[a, 0] + cur_velocity_2d[frame1_particle_pos[a, 0], frame1_particle_pos[a, 1], 0] * dt
                     frame2_particle_pos[a, 0] = wrap_around(potential_0, 0, 255)
-                    potential_1 = frame1_particle_pos[a, 1] + cur_velocity_2d[frame1_particle_pos[a, 0], frame1_particle_pos[a, 1], 0] * dt
+                    potential_1 = frame1_particle_pos[a, 1] + cur_velocity_2d[frame1_particle_pos[a, 0], frame1_particle_pos[a, 1], 1] * dt
                     frame2_particle_pos[a, 1] = wrap_around(potential_1, 0, 255)
 
                 # form image for frame 1 and 2
