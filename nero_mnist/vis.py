@@ -188,7 +188,7 @@ def plot_interactive_3D_scatter(digits, all_labels, all_colors, all_results, plo
                                         name = all_labels[j],
                                         mode='markers',
                                         marker=dict(
-                                            size=3,
+                                            size=2,
                                             color=all_colors[j],
                                             opacity=0.3
                                         )
@@ -211,7 +211,6 @@ def plot_interactive_3D_scatter(digits, all_labels, all_colors, all_results, plo
 
         fig.update_layout(
             title = plot_title,
-            showlegend = False,
             hovermode='x',
             # title_x=0.5,
             # xaxis=dict(title='x translation'),
