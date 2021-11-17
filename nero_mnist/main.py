@@ -248,6 +248,7 @@ def main():
 
     # when training/testing for scale equivariance tests
     elif type == 'scale':
+        all_scales = [0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
         if image_size == None:
             # image_size = (59, 59)
             image_size = (29, 29)
@@ -369,12 +370,23 @@ def main():
         elif type == 'scale':
             if network_model == 'non-eqv':
                 model = models.Non_Eqv_Net_MNIST(type).to(device)
+                transform = torchvision.transforms.Compose([
+                    torchvision.transforms.Pad(((image_size[1]-28)//2, (image_size[0]-28)//2, (image_size[1]-28)//2+1, (image_size[0]-28)//2+1), fill=0, padding_mode='constant')
+                ])
             elif network_model == 'scale-eqv':
                 # Scale-Equivariant Steerable Networks (newer)
                 method = 'SESN'
                 # Deep Scale Spaces: Equivariant Over Scale
                 # method = 'DSS'
                 model = models.Scale_Eqv_Net_MNIST(method=method).to(device)
+                transform = torchvision.transforms.Compose([
+                    torchvision.transforms.Pad(((image_size[1]-28)//2, (image_size[0]-28)//2, (image_size[1]-28)//2+1, (image_size[0]-28)//2+1), fill=0, padding_mode='constant')
+                ])
+            elif network_model == 'aug-eqv':
+                model = models.Non_Eqv_Net_MNIST(type).to(device)
+                transform = torchvision.transforms.Compose([
+                    data_transform.RandomScale(all_scales, 28, image_size[0])
+                ])
             else:
                 raise Exception(f'Wrong network model type {network_model}')
 
@@ -654,8 +666,6 @@ def main():
 
         # test on each scale from 0.5 to 2
         elif type == 'scale':
-            # all_scales = list(np.arange(0.5, 2.1, 0.1))
-            all_scales = [0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
             general_loss_heatmap = np.zeros(len(all_scales))
             general_accuracy_heatmap = np.zeros(len(all_scales))
             categorical_loss_heatmap = np.zeros((len(all_scales), 10))

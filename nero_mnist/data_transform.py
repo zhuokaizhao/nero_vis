@@ -1,8 +1,9 @@
 # provide custom data augmentation for training MNIST models
+import random
 import torchvision
 import numpy as np
 
-# perform random jittering during the data augmentation phase
+# perform random shift during the data augmentation phase
 class RandomShift(object):
     def __init__(self, img_size, target_img_size):
 
@@ -24,5 +25,28 @@ class RandomShift(object):
 
         # do the padding
         image = torchvision.transforms.Pad((self.left_padding, self.top_padding, self.right_padding, self.bottom_padding), fill=0, padding_mode='constant')(image)
+
+        return image
+
+
+# perform random scale during the data augmentation phase
+class RandomScale(object):
+    def __init__(self, scale_factors, img_size, target_img_size):
+
+        # random.seed(0)
+        # np.random.seed(0)
+
+        self.img_size = img_size
+        self.target_img_size = target_img_size
+        # randomly pick a scale factor
+        self.scale = random.choice(scale_factors)
+
+
+    def __call__(self, image):
+
+        # resize and pad the image equally to image_size
+        resize_size = int(np.floor(self.img_size * self.scale))
+        image = torchvision.transforms.Resize(resize_size)(image)
+        image = torchvision.transforms.Pad(((self.img_size-resize_size)//2, (self.img_size-resize_size)//2, (self.img_size-resize_size)//2+1, (self.img_size-resize_size)//2+1), fill=0, padding_mode='constant')(image)
 
         return image
