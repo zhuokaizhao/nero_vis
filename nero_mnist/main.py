@@ -314,28 +314,33 @@ def main():
             print(f'optimizer weight decay: {weight_decay}')
             print(f'model input checkpoint path: {checkpoint_path}')
 
-        # data transform
-        transform = torchvision.transforms.Compose([
-            torchvision.transforms.Pad(((image_size[1]-28)//2, (image_size[0]-28)//2, (image_size[1]-28)//2+1, (image_size[0]-28)//2+1), fill=0, padding_mode='constant'),
-        ])
-
-        # split into train and validation dataset
-        dataset = datasets.MnistDataset(mode='train', transform=transform)
-        train_data, val_data = torch.utils.data.random_split(dataset, [50000, 10000])
-
-        # pytorch data loader
-        train_loader = torch.utils.data.DataLoader(train_data, **train_kwargs)
-        val_loader = torch.utils.data.DataLoader(val_data, **val_kwargs)
-
         # model
         starting_epoch = 0
         if type == 'rotation':
             if network_model == 'non-eqv':
                 model = models.Non_Eqv_Net_MNIST(type).to(device)
+                # data transform
+                transform = torchvision.transforms.Compose([
+                    torchvision.transforms.Pad(((image_size[1]-28)//2, (image_size[0]-28)//2, (image_size[1]-28)//2+1, (image_size[0]-28)//2+1), fill=0, padding_mode='constant'),
+                ])
             elif network_model == 'rot-eqv':
                 # number of groups for e2cnn
                 num_rotation = 8
                 model = models.Rot_Eqv_Net_MNIST(image_size=image_size, num_rotation=num_rotation).to(device)
+                # data transform
+                transform = torchvision.transforms.Compose([
+                    torchvision.transforms.Pad(((image_size[1]-28)//2, (image_size[0]-28)//2, (image_size[1]-28)//2+1, (image_size[0]-28)//2+1), fill=0, padding_mode='constant'),
+                ])
+            elif network_model == 'aug-eqv':
+                model = models.Non_Eqv_Net_MNIST(type).to(device)
+                # data transform
+                transform = torchvision.transforms.Compose([
+                    # transform includes upsample, rotate, downsample and padding (right and bottom) to image_size
+                    torchvision.transforms.Resize(28*3),
+                    torchvision.transforms.RandomRotation(degrees=(-180, 180), resample=Image.BILINEAR, expand=False),
+                    torchvision.transforms.Resize(28),
+                    torchvision.transforms.Pad(((image_size[1]-28)//2, (image_size[0]-28)//2, (image_size[1]-28)//2+1, (image_size[0]-28)//2+1), fill=0, padding_mode='constant'),
+                ])
             else:
                 raise Exception(f'Wrong network model type {network_model}')
 
@@ -365,6 +370,14 @@ def main():
         # visualize the model structure
         if network_model == 'non-eqv':
             print(summary(model, torch.zeros((1, 1, image_size[1], image_size[0])).to(device)))
+
+        # split into train and validation dataset
+        dataset = datasets.MnistDataset(mode='train', transform=transform)
+        train_data, val_data = torch.utils.data.random_split(dataset, [50000, 10000])
+
+        # pytorch data loader
+        train_loader = torch.utils.data.DataLoader(train_data, **train_kwargs)
+        val_loader = torch.utils.data.DataLoader(val_data, **val_kwargs)
 
         # optimizer
         optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, weight_decay=weight_decay)
