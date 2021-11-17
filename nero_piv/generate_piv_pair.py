@@ -1,7 +1,6 @@
 # The script generates the pair data for PIV
 import os
 import math
-# from numpy.lib.npyio import load
 import h5py
 import argparse
 import numpy as np
@@ -12,6 +11,7 @@ from scipy.ndimage.interpolation import rotate
 
 import plot
 
+# wrap around the particles
 def wrap_around(in_value, min, max):
 
     while (in_value < min or in_value > max):
@@ -125,6 +125,8 @@ def main():
     parser.add_argument('-n', '--num_particles', required=True, action='store', nargs=1, dest='num_particles')
     # output figs directory
     parser.add_argument('-o', '--output_dir', required=True, action='store', nargs=1, dest='output_dir')
+    # velocity field save type
+    parser.add_argument('-t', '--output_type', required=True, action='store', nargs=1, dest='output_type')
     # if visualizing data
     parser.add_argument('--vis', action='store_true', dest='vis', default=False)
     # verbosity
@@ -139,11 +141,12 @@ def main():
     if args.image_size != None:
         image_size = (int(args.image_size[0].split('x')[0]), int(args.image_size[0].split('x')[1]))
     else:
-        image_size = (1024, 1024)
+        image_size = (256, 256)
     # number of particles in each frame
     num_particles = int(args.num_particles[0])
     # output graph directory
     output_dir = args.output_dir[0]
+    output_type = args.output_type[0]
     vis_data = args.vis
     verbose = args.verbose
 
@@ -170,6 +173,7 @@ def main():
 
     # process each rotation angle
     for i, rot in enumerate(rotation_angles):
+        print(f'\nRotating angle = {rot}')
         cur_output_dir = os.path.join(output_dir, f'rotated_{rot}')
         os.makedirs(cur_output_dir, exist_ok=True)
 
@@ -187,8 +191,14 @@ def main():
             # convert velocity from [0, 2pi] to [0, 1024]
             cur_velocity = cur_velocity / (2*np.pi) * 1024
 
+            # training takes all the z slices, while testing only takes one slice
+            if mode == 'train':
+                z_range = [0, cur_velocity.shape[2]]
+            else:
+                z_range = [51, 52]
+
             # for each z
-            for z in range(51, cur_velocity.shape[2]):
+            for z in range(z_range[0], z_range[1]):
                 # only velocities in x and y
                 cur_velocity_2d = cur_velocity[:, :, z, :2]
 
@@ -201,7 +211,9 @@ def main():
                     cur_velocity_2d[:, :, 1] = -cur_label_rotated_temp[:, :, 0] * np.sin(math.radians(rot)) + cur_label_rotated_temp[:, :, 1] * np.cos(math.radians(rot))
 
                 # take only the center 256*256 as velocity field
-                # cur_velocity_2d = cur_velocity_2d[384:640, 384:640, :]
+                center_start_idx = (cur_velocity_2d.shape[0] - image_size[0])//2
+                center_end_idx = (cur_velocity_2d.shape[0] + image_size[0])//2
+                cur_velocity_2d = cur_velocity_2d[center_start_idx:center_end_idx, center_start_idx:center_end_idx, :]
                 if cur_velocity_2d.shape[:2] != image_size:
                     raise Exception(f'Velocity field shape {cur_velocity_2d.shape[:2]} and image shape {image_size} are different')
 
@@ -222,9 +234,9 @@ def main():
                 for a in range(num_particles):
                     # in position array, it is the same coordinate as the image, where row is y, col is x
                     potential_0 = frame1_particle_pos[a, 0] + cur_velocity_2d[frame1_particle_pos[a, 0], frame1_particle_pos[a, 1], 0] * dt
-                    frame2_particle_pos[a, 0] = wrap_around(potential_0, 0, 255)
+                    frame2_particle_pos[a, 0] = wrap_around(potential_0, 0, image_size[0]-1)
                     potential_1 = frame1_particle_pos[a, 1] + cur_velocity_2d[frame1_particle_pos[a, 0], frame1_particle_pos[a, 1], 1] * dt
-                    frame2_particle_pos[a, 1] = wrap_around(potential_1, 0, 255)
+                    frame2_particle_pos[a, 1] = wrap_around(potential_1, 0, image_size[1]-1)
 
                 # form image for frame 1 and 2
                 image_1 = form_image(frame1_particle_pos, all_particle_diameters, all_peak_intensities, image_size)
@@ -237,19 +249,25 @@ def main():
                 save_image(image_2, image_size, image_2_path)
 
                 # save the ground truth
-                label_path = os.path.join(cur_output_dir, f'isotropic_1024_velocity_{data_name}_z_{z}_t_{t}.npy')
-                save_velocity('npy', cur_velocity_2d, label_path)
+                label_path = os.path.join(cur_output_dir, f'isotropic_1024_velocity_{data_name}_z_{z}_t_{t}.{output_type}')
+                # Normally, since training is for LiteFlowNet-en, it takes flo format
+                if mode == 'train' or mode == 'val':
+                    if output_type == 'npy':
+                        raise Exception(f'For training flo should be used as save velocity type')
+
+                save_velocity(output_type, cur_velocity_2d, label_path)
 
                 # visualize ground truth velocity if requested
                 if vis_data:
+                    max_truth = 3
                     # visualize ground truth
-                    flow_vis, max_truth = plot.visualize_flow(cur_velocity_2d)
+                    flow_vis, _ = plot.visualize_flow(cur_velocity_2d)
                     # convert to Image
                     flow_vis_image = Image.fromarray(flow_vis)
                     # display the image
                     plt.imshow(flow_vis_image)
                     # superimpose quiver plot on color-coded images
-                    skip = 28
+                    skip = int(image_size[0]/256 * 7)
                     x = np.linspace(0, cur_velocity_2d.shape[0]-1, cur_velocity_2d.shape[0])
                     y = np.linspace(0, cur_velocity_2d.shape[1]-1, cur_velocity_2d.shape[1])
                     y_pos, x_pos = np.meshgrid(x, y)
