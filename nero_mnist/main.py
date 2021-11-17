@@ -727,6 +727,8 @@ def main():
         eqv_result = np.load(eqv_path)
         aug_eqv_result = np.load(aug_eqv_path)
 
+        all_colors = ['peru', 'darkviolet', 'green']
+
         if type == 'rotation':
             # print out average error per digit for both models
             print(non_eqv_result['categorical_accuracy_heatmap'].shape)
@@ -744,7 +746,6 @@ def main():
             # plot_title = f'Non-equivariant vs Equivariant model on {data_name} Digit {i}'
             plot_title = None
             plotting_digits = list(range(10))
-            all_colors = ['peru', 'darkviolet', 'green']
             vis.plot_interactive_line_polar(plotting_digits,
                                             ['CNN', 'E2CNN', 'CNN+Augmentation'],
                                             all_colors,
@@ -758,19 +759,21 @@ def main():
             for i in range(non_eqv_result['categorical_accuracy_heatmap'].shape[2]):
                 cur_non_eqv_avg = np.mean(non_eqv_result['categorical_accuracy_heatmap'][:, :, i])
                 cur_eqv_avg = np.mean(eqv_result['categorical_accuracy_heatmap'][:, :, i])
+                cur_aug_eqv_avg = np.mean(aug_eqv_result['categorical_accuracy_heatmap'][:, i])
                 print(f'\nDigit {i} avg accuracy for Non-eqv model: {cur_non_eqv_avg}')
                 print(f'Digit {i} avg accuracy for Eqv model: {cur_eqv_avg}')
+                print(f'Digit {i} avg accuracy for Aug-Eqv model: {cur_aug_eqv_avg}')
 
             # make and save the plot
             plotting_digits = list(range(10))
-            # non-eqv
-            non_eqv_result_path = os.path.join(figs_dir, f'mnist_{mode}_{type}_non_eqv.html')
-            non_eqv_plot_title = None
-            vis.plot_interactive_heatmap('Non-Eqv', plotting_digits, non_eqv_result, non_eqv_plot_title, non_eqv_result_path)
-            # eqv
-            eqv_result_path = os.path.join(figs_dir, f'mnist_{mode}_{type}_eqv.html')
-            eqv_plot_title = None
-            vis.plot_interactive_heatmap('Shift-Eqv', plotting_digits, eqv_result, eqv_plot_title, eqv_result_path)
+            plot_title = None
+            result_path = os.path.join(figs_dir, f'mnist_{mode}_{type}.html')
+            vis.plot_interactive_3D_scatter(plotting_digits,
+                                            ['CNN', 'Anti-Aliasing', 'CNN+Augmentation'],
+                                            all_colors,
+                                            [non_eqv_result, eqv_result, aug_eqv_result],
+                                            plot_title,
+                                            result_path)
 
         elif type == 'scale':
             # print out average error per digit for both models
