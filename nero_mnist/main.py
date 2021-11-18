@@ -745,7 +745,8 @@ def main():
             result_path = os.path.join(figs_dir, f'mnist_{mode}_{type}.html')
             # plot_title = f'Non-equivariant vs Equivariant model on {data_name} Digit {i}'
             plot_title = None
-            plotting_digits = list(range(10))
+            # plotting_digits = list(range(10))
+            plotting_digits = [2, 3, 5]
             vis.plot_interactive_line_polar(plotting_digits,
                                             ['CNN', 'E2CNN', 'CNN+Augmentation'],
                                             all_colors,
@@ -768,9 +769,8 @@ def main():
             plotting_digits = list(range(10))
             plot_title = None
             result_path = os.path.join(figs_dir, f'mnist_{mode}_{type}.html')
-            vis.plot_interactive_3D_scatter(plotting_digits,
+            vis.plot_interactive_heatmap(plotting_digits,
                                             ['CNN', 'Anti-Aliasing', 'CNN+Augmentation'],
-                                            all_colors,
                                             [non_eqv_result, eqv_result, aug_eqv_result],
                                             plot_title,
                                             result_path)
@@ -791,7 +791,7 @@ def main():
             # plot_title = f'Non-equivariant vs Equivariant model on {data_name} Digit {i}'
             plot_title = None
             plotting_digits = list(range(10))
-            vis.plot_interactive_line(plotting_digits, all_scales, ['Non-Eqv', 'SESN', 'DSS'], [non_eqv_result, sesn_eqv_result, dss_eqv_result], plot_title, result_path)
+            # vis.plot_interactive_line(plotting_digits, all_scales, ['Non-Eqv', 'SESN', 'DSS'], [non_eqv_result, sesn_eqv_result, dss_eqv_result], plot_title, result_path)
 
 
 if __name__ == '__main__':
