@@ -188,7 +188,7 @@ def main():
     if mode == 'train' or mode == 'val':
         rotation_angles = [0]
     elif mode == 'test':
-        rotation_angles = list(range(0, 50, 30))
+        rotation_angles = list(range(0, 360, 5))
 
     # when doing rotation, simulation/image field of view needs to be larger in the first place
     if len(rotation_angles) == 1:
@@ -206,7 +206,6 @@ def main():
     # all rotations use the same set of particle initializations
     # however, different z slice and time step should have different initializations
     all_timesteps = list(range(1, 5024, 20))
-    all_timesteps = list(range(1, 4, 20))
 
     # velocity goes from time step 1 to 5024 with stride 20
     for t in tqdm(all_timesteps):
@@ -234,9 +233,9 @@ def main():
             num_particles = int(particle_densities * simulation_size[0] * simulation_size[1])
             # random initalize particle positions
             frame1_particle_pos = np.random.randint(low=0, high=simulation_size[0], size=[num_particles, 2], dtype=int)
-            # random initialize particle radius
+            # random initialize particle radius (1-4)
             all_particle_diameters = np.random.randint(low=1, high=5, size=num_particles, dtype=int)
-            # random initialize peak intensity
+            # random initialize peak intensity (200-255)
             all_peak_intensities = np.random.randint(low=200, high=256, size=num_particles, dtype=int)
             # particle positions in the second frame
             frame2_particle_pos = np.zeros(frame1_particle_pos.shape, dtype=int)
