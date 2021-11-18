@@ -59,6 +59,9 @@ def form_image(positions, diameters, peak_intensities, image_size):
 
     for i in range(len(positions)):
         pos = positions[i]
+        if pos.any() < 0 or pos.any() >= image_size[0]:
+            continue
+
         # draw peak intensity as the center pixel
         image[pos[0], pos[1]] = peak_intensities[i]
 
@@ -102,7 +105,16 @@ def save_image(image, image_size, path):
 
 
 # save labels to flow
-def save_velocity(mode, velocity, path):
+def save_velocity(mode, velocity, size, path):
+
+    # when velocity size is larger than output size, take the center
+    if size != velocity.shape[:2]:
+        center_start_idx = (velocity.shape[0] - size[0])//2
+        center_end_idx = (velocity.shape[0] + size[0])//2
+        velocity = velocity[center_start_idx:center_end_idx, center_start_idx:center_end_idx, :]
+
+    print(velocity.shape)
+    exit()
 
     if mode == 'npy':
         np.save(path, velocity)
@@ -121,8 +133,6 @@ def main():
     parser.add_argument('--data_name', required=True, action='store', nargs=1, dest='data_name')
     # image dimension
     parser.add_argument('-s', '--image_size', action='store', nargs=1, dest='image_size')
-    # number of particles
-    parser.add_argument('-n', '--num_particles', required=True, action='store', nargs=1, dest='num_particles')
     # output figs directory
     parser.add_argument('-o', '--output_dir', required=True, action='store', nargs=1, dest='output_dir')
     # velocity field save type
@@ -142,8 +152,6 @@ def main():
         image_size = (int(args.image_size[0].split('x')[0]), int(args.image_size[0].split('x')[1]))
     else:
         image_size = (256, 256)
-    # number of particles in each frame
-    num_particles = int(args.num_particles[0])
     # output graph directory
     output_dir = args.output_dir[0]
     output_type = args.output_type[0]
@@ -155,8 +163,7 @@ def main():
         print(f'Input dir: {input_dir}')
         print(f'Data name: {data_name}')
         print(f'Output image size: {image_size}')
-        print(f'Num particles: {num_particles}')
-        print(f'Output directory: {output_dir}')
+        print(f'Output directory: {output_dir}\n')
 
     # every 10 DNS time-steps (0.0002 per step) is stored, data downloaded has stride 20
     time_stride = 20
@@ -169,7 +176,13 @@ def main():
     if mode == 'train' or mode == 'val':
         rotation_angles = [0]
     elif mode == 'test':
-        rotation_angles = list(range(0, 360, 5))
+        rotation_angles = list(range(0, 360, 45))
+
+    # when doing rotation, simulation/image field of view needs to be larger in the first place
+    if len(rotation_angles) == 1:
+        simulation_size = image_size
+    else:
+        simulation_size = np.ceil(image_size / np.sqrt(2) * 2).astype(int)
 
     # training takes all the z slices, while testing only takes one slice
     if mode == 'train':
@@ -181,95 +194,89 @@ def main():
     # all rotations use the same set of particle initializations
     # however, different z slice and time step should have different initializations
     all_timesteps = list(range(1, 5024, 20))
-    num_timesteps = len(all_timesteps)
-    num_z_slices = len(z_range)
-    # random initalize particle positions
-    frame1_particle_pos = np.zeros((num_timesteps, num_z_slices, num_particles, 2), dtype=int)
-    frame1_particle_pos[:, :, :, 0] = np.random.randint(low=0, high=image_size[0], size=num_timesteps*num_z_slices*num_particles, dtype=int).reshape((num_timesteps, num_z_slices, num_particles))
-    frame1_particle_pos[:, :, :, 1] = np.random.randint(low=0, high=image_size[1], size=num_timesteps*num_z_slices*num_particles, dtype=int).reshape((num_timesteps, num_z_slices, num_particles))
+    all_timesteps = list(range(1, 4, 20))
 
-    # random initialize particle radius
-    all_particle_diameters = np.zeros((num_timesteps, num_z_slices, num_particles), dtype=int)
-    all_particle_diameters = np.random.randint(low=1, high=5, size=num_timesteps*num_z_slices*num_particles, dtype=int).reshape((num_timesteps, num_z_slices, num_particles))
+    # velocity goes from time step 1 to 5024 with stride 20
+    for t in tqdm(all_timesteps):
+        # load the velocity
+        cur_key = f'Velocity_{str(t).zfill(4)}'
+        cur_velocity = loaded_file[cur_key]
 
-    # random initialize peak intensity
-    all_peak_intensities = np.zeros((num_timesteps, num_z_slices, num_particles), dtype=int)
-    all_peak_intensities = np.random.randint(low=200, high=256, size=num_timesteps*num_z_slices*num_particles, dtype=int).reshape((num_timesteps, num_z_slices, num_particles))
+        # loaded data has coordinate (z, y, x, (v_z, v_y, v_x))
+        # convert to (x, y, z, (v_x, v_y, v_z))
+        # in image axis row is y, col is x, thus [0, 1, 2] to [2, 0, 1], instead of [2, 1, 0]
+        cur_velocity = np.moveaxis(cur_velocity, [0, 1, 2], [2, 0, 1])
+        cur_velocity = cur_velocity[:, :, :, ::-1]
 
-    # particle positions in the second frame
-    frame2_particle_pos = np.zeros((num_timesteps, num_z_slices, num_particles, 2), dtype=int)
+        # convert velocity from [0, 2pi] to [0, 1024]
+        cur_velocity = cur_velocity / (2*np.pi) * 1024
 
-    # when doing rotations, we need to keep 0-rotation data untouched all the time
-    if len(rotation_angles) != 1:
-        frame1_rotated_particle_pos = np.zeros((num_particles, 2), dtype=int)
-        frame2_rotated_particle_pos = np.zeros((num_particles, 2), dtype=int)
+        # for each z
+        for z in enumerate(z_range):
+            # only velocities in x and y
+            cur_velocity_2d = cur_velocity[:, :, z, :2]
 
-    # process each rotation angle
-    for rot in rotation_angles:
-        print(f'\nRotating angle = {rot}')
-        cur_output_dir = os.path.join(output_dir, f'rotated_{rot}')
-        os.makedirs(cur_output_dir, exist_ok=True)
+            # initalize current time step and z slice's randomization
+            # particle density and number of particles
+            particle_densities = np.random.uniform(0.05, 0.1, size=1)
+            num_particles = int(particle_densities * simulation_size[0] * simulation_size[1])
+            # random initalize particle positions
+            frame1_particle_pos = np.random.randint(low=0, high=simulation_size[0], size=[num_particles, 2], dtype=int)
+            # random initialize particle radius
+            all_particle_diameters = np.random.randint(low=1, high=5, size=num_particles, dtype=int)
+            # random initialize peak intensity
+            all_peak_intensities = np.random.randint(low=200, high=256, size=num_particles, dtype=int)
+            # particle positions in the second frame
+            frame2_particle_pos = np.zeros(frame1_particle_pos.shape, dtype=int)
+            # when doing rotations, we need to keep 0-rotation data untouched all the time
+            if len(rotation_angles) != 1:
+                frame1_rotated_particle_pos = np.zeros(frame1_particle_pos.shape, dtype=int)
+                frame2_rotated_particle_pos = np.zeros(frame2_particle_pos.shape, dtype=int)
 
-        # velocity goes from time step 1 to 5024 with stride 20
-        for i, t in enumerate(tqdm(all_timesteps)):
-            cur_key = f'Velocity_{str(t).zfill(4)}'
-            cur_velocity = loaded_file[cur_key]
-
-            # loaded data has coordinate (z, y, x, (v_z, v_y, v_x))
-            # convert to (x, y, z, (v_x, v_y, v_z))
-            # in image axis row is y, col is x, thus [0, 1, 2] to [2, 0, 1], instead of [2, 1, 0]
-            cur_velocity = np.moveaxis(cur_velocity, [0, 1, 2], [2, 0, 1])
-            cur_velocity = cur_velocity[:, :, :, ::-1]
-
-            # convert velocity from [0, 2pi] to [0, 1024]
-            cur_velocity = cur_velocity / (2*np.pi) * 1024
-
-            # for each z
-            for j, z in enumerate(z_range):
-                # only velocities in x and y
-                cur_velocity_2d = cur_velocity[:, :, z, :2]
+            # process with each rotation angle
+            for rot in rotation_angles:
+                cur_output_dir = os.path.join(output_dir, f'rotated_{rot}')
+                os.makedirs(cur_output_dir, exist_ok=True)
 
                 # rotate the velocity field if needed
                 if rot != 0:
-                    # rotate the velocity field (counterclock wise)
+                    # rotate the entire loaded velocity field (counterclock wise)
                     cur_label_rotated_temp = rotate(cur_velocity_2d, angle=int(rot), reshape=False)
                     # rotate each velocity vector too (counterclock wise)
                     cur_velocity_2d[:, :, 0] = cur_label_rotated_temp[:, :, 0] * np.cos(math.radians(rot)) + cur_label_rotated_temp[:, :, 1] * np.sin(math.radians(rot))
                     cur_velocity_2d[:, :, 1] = -cur_label_rotated_temp[:, :, 0] * np.sin(math.radians(rot)) + cur_label_rotated_temp[:, :, 1] * np.cos(math.radians(rot))
 
-                # take only the center 256*256 as velocity field
-                center_start_idx = (cur_velocity_2d.shape[0] - image_size[0])//2
-                center_end_idx = (cur_velocity_2d.shape[0] + image_size[0])//2
+                # take only the simulation size as velocity field
+                center_start_idx = (cur_velocity_2d.shape[0] - simulation_size[0])//2
+                center_end_idx = (cur_velocity_2d.shape[0] + simulation_size[0])//2
                 cur_velocity_2d = cur_velocity_2d[center_start_idx:center_end_idx, center_start_idx:center_end_idx, :]
 
                 # sanity check to make sure velocity fields have the same size as particle images
-                if cur_velocity_2d.shape[:2] != image_size:
-                    raise Exception(f'Velocity field shape {cur_velocity_2d.shape[:2]} and image shape {image_size} are different')
+                if cur_velocity_2d.shape[:2] < image_size:
+                    raise Exception(f'Velocity field shape {cur_velocity_2d.shape} smaller than image shape {image_size}')
 
                 # only compute/simulate particles when 0 rotation, otherwise just rotate the particle locations
                 if rot == 0:
-                    for a in range(num_particles):
-                        # in position array, it is the same coordinate as the image, where row is y, col is x
-                        potential_0 = frame1_particle_pos[i, j, a, 0] + cur_velocity_2d[frame1_particle_pos[i, j, a, 0], frame1_particle_pos[i, j, a, 1], 0] * dt
-                        frame2_particle_pos[i, j, a, 0] = wrap_around(potential_0, 0, image_size[0]-1)
-                        potential_1 = frame1_particle_pos[i, j, a, 1] + cur_velocity_2d[frame1_particle_pos[i, j, a, 0], frame1_particle_pos[i, j, a, 1], 1] * dt
-                        frame2_particle_pos[i, j, a, 1] = wrap_around(potential_1, 0, image_size[1]-1)
+                    # compute frame 2 particle positions
+                    frame2_particle_pos[:, 1] = frame1_particle_pos[:, 1] + cur_velocity_2d[frame1_particle_pos[:, 0], frame1_particle_pos[:, 1], 1] * dt
+                    frame2_particle_pos[:, 0] = frame1_particle_pos[:, 0] + cur_velocity_2d[frame1_particle_pos[:, 0], frame1_particle_pos[:, 1], 0] * dt
 
-                    # form image for frame 1 and 2
-                    image_1 = form_image(frame1_particle_pos[i, j], all_particle_diameters[i, j], all_peak_intensities[i, j], image_size)
-                    image_2 = form_image(frame2_particle_pos[i, j], all_particle_diameters[i, j], all_peak_intensities[i, j], image_size)
+                    # form image for both frame 1 and 2
+                    image_1 = form_image(frame1_particle_pos, all_particle_diameters, all_peak_intensities, image_size)
+                    image_2 = form_image(frame2_particle_pos, all_particle_diameters, all_peak_intensities, image_size)
 
-                # rotate the 0-rotation particle positions
+                # rotate the 0-rotation particle positions for other rotation angles
                 else:
-                    for a in range(num_particles):
-                        potential_0 = frame1_particle_pos[i, j, a, 0] * np.cos(math.radians(rot)) + frame1_particle_pos[i, j, a, 1] * np.sin(math.radians(rot))
-                        frame1_rotated_particle_pos[a, 0] = wrap_around(potential_0, 0, image_size[0]-1)
-                        potential_1 = -frame1_particle_pos[i, j, a, 0] * np.sin(math.radians(rot)) + frame1_particle_pos[i, j, a, 1] * np.cos(math.radians(rot))
-                        frame2_rotated_particle_pos[a, 1] = wrap_around(potential_1, 0, image_size[1]-1)
+                    # first frame
+                    frame1_rotated_particle_pos[:, 1] = -(frame1_particle_pos[:, 0]-128) * np.sin(math.radians(rot)) + (frame1_particle_pos[:, 1]-128) * np.cos(math.radians(rot)) + 128
+                    frame1_rotated_particle_pos[:, 0] = (frame1_particle_pos[:, 0]-128) * np.cos(math.radians(rot)) + (frame1_particle_pos[:, 1]-128) * np.sin(math.radians(rot)) + 128
+                    # second frame
+                    frame1_rotated_particle_pos[:, 1] = -(frame2_particle_pos[:, 0]-128) * np.sin(math.radians(rot)) + (frame2_particle_pos[:, 1]-128) * np.cos(math.radians(rot)) + 128
+                    frame1_rotated_particle_pos[:, 0] = (frame2_particle_pos[:, 0]-128) * np.cos(math.radians(rot)) + (frame2_particle_pos[:, 1]-128) * np.sin(math.radians(rot)) + 128
 
                     # form image for frame 1 and 2
-                    image_1 = form_image(frame1_rotated_particle_pos, all_particle_diameters[i, j], all_peak_intensities[i, j], image_size)
-                    image_2 = form_image(frame2_rotated_particle_pos, all_particle_diameters[i, j], all_peak_intensities[i, j], image_size)
+                    image_1 = form_image(frame1_rotated_particle_pos, all_particle_diameters, all_peak_intensities, image_size)
+                    image_2 = form_image(frame2_rotated_particle_pos, all_particle_diameters, all_peak_intensities, image_size)
 
                 # save image 1 and 2
                 image_1_path = os.path.join(cur_output_dir, f'isotropic_1024_image_{data_name}_z_{z}_t_{t}_0.png')
@@ -284,7 +291,8 @@ def main():
                     if output_type == 'npy':
                         raise Exception(f'For training flo should be used as save velocity type')
 
-                save_velocity(output_type, cur_velocity_2d, label_path)
+                # only save the image size velocity
+                save_velocity(output_type, cur_velocity_2d, image_size, label_path)
 
                 # visualize ground truth velocity if requested
                 if vis_data:
