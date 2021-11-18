@@ -288,13 +288,13 @@ def main():
                     image_2 = form_image(frame2_rotated_particle_pos, all_particle_diameters, all_peak_intensities, image_size, simulation_size)
 
                 # save image 1 and 2
-                image_1_path = os.path.join(cur_output_dir, f'isotropic_1024_image_{data_name}_z_{z}_t_{t}_0_rotated_{rot}.png')
+                image_1_path = os.path.join(cur_output_dir, f'isotropic_1024_image_{data_name}_t_{t}_z_{z}_0_rotated_{rot}.png')
                 save_image(image_1, image_size, image_1_path)
-                image_2_path = os.path.join(cur_output_dir, f'isotropic_1024_image_{data_name}_z_{z}_t_{t}_1_rotated_{rot}.png')
+                image_2_path = os.path.join(cur_output_dir, f'isotropic_1024_image_{data_name}_t_{t}_z_{z}_1_rotated_{rot}.png')
                 save_image(image_2, image_size, image_2_path)
 
                 # save the ground truth
-                label_path = os.path.join(cur_output_dir, f'isotropic_1024_velocity_{data_name}_z_{z}_t_{t}_rotated_{rot}.{output_type}')
+                label_path = os.path.join(cur_output_dir, f'isotropic_1024_velocity_{data_name}_t_{t}_z_{z}_rotated_{rot}.{output_type}')
                 # Normally, since training is for LiteFlowNet-en, it takes flo format
                 if mode == 'train' or mode == 'val':
                     if output_type == 'npy':
@@ -326,7 +326,7 @@ def main():
                                     scale_units='inches')
                     Q._init()
                     assert isinstance(Q.scale, float)
-                    gt_path = os.path.join(cur_output_dir, f'isotropic_1024_gt_vis_{data_name}_z_{z}_t_{t}_rotated_{rot}.png')
+                    gt_path = os.path.join(cur_output_dir, f'isotropic_1024_gt_vis_{data_name}_t_{t}_z_{z}_rotated_{rot}.png')
                     plt.savefig(gt_path, bbox_inches='tight', dpi=100)
                     plt.close('all')
 
