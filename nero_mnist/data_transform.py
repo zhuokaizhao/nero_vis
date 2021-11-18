@@ -11,17 +11,19 @@ class RandomShift(object):
         # np.random.seed(0)
 
         # maximum padding in one side
-        max_padding = int(target_img_size - img_size)
-
-        # random number on the left and top padding amount
-        self.left_padding = np.random.randint(low=0, high=max_padding+1, size=1, dtype=int)
-        self.top_padding = np.random.randint(low=0, high=max_padding+1, size=1, dtype=int)
-        # the rest of padding is taken care of by right and bottom padding
-        self.right_padding = target_img_size - img_size - self.left_padding
-        self.bottom_padding = target_img_size - img_size - self.top_padding
+        self.img_size = img_size
+        self.target_img_size = target_img_size
+        self.max_padding = int(target_img_size - img_size)
 
 
     def __call__(self, image):
+
+        # random number on the left and top padding amount
+        self.left_padding = np.random.randint(low=0, high=self.max_padding+1, size=1, dtype=int)
+        self.top_padding = np.random.randint(low=0, high=self.max_padding+1, size=1, dtype=int)
+        # the rest of padding is taken care of by right and bottom padding
+        self.right_padding = self.target_img_size - self.img_size - self.left_padding
+        self.bottom_padding = self.target_img_size - self.img_size - self.top_padding
 
         # do the padding
         image = torchvision.transforms.Pad((self.left_padding, self.top_padding, self.right_padding, self.bottom_padding), fill=0, padding_mode='constant')(image)
@@ -47,6 +49,6 @@ class RandomScale(object):
         # resize and pad the image equally to image_size
         resize_size = int(np.floor(self.img_size * self.scale))
         image = torchvision.transforms.Resize(resize_size)(image)
-        image = torchvision.transforms.Pad(((self.img_size-resize_size)//2, (self.img_size-resize_size)//2, (self.img_size-resize_size)//2+1, (self.img_size-resize_size)//2+1), fill=0, padding_mode='constant')(image)
+        image = torchvision.transforms.Pad(((self.target_img_size-resize_size)//2, (self.target_img_size-resize_size)//2, (self.target_img_size-resize_size)//2+1, (self.target_img_size-resize_size)//2+1), fill=0, padding_mode='constant')(image)
 
         return image
