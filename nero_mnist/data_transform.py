@@ -48,6 +48,10 @@ class RandomScale(object):
         self.scale = random.choice(self.scale_factors)
         # resize and pad the image equally to image_size
         resize_size = int(np.floor(self.img_size * self.scale))
+        # size difference must be odd
+        if (self.img_size - resize_size) % 2 == 0:
+            resize_size += 1
+
         image = torchvision.transforms.Resize(resize_size)(image)
         image = torchvision.transforms.Pad(((self.target_img_size-resize_size)//2, (self.target_img_size-resize_size)//2, (self.target_img_size-resize_size)//2+1, (self.target_img_size-resize_size)//2+1), fill=0, padding_mode='constant')(image)
 
