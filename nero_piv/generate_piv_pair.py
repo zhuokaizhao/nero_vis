@@ -300,9 +300,9 @@ def main():
 
                 # save image 1 and 2
                 if not label_only:
-                    image_1_path = os.path.join(cur_output_dir, f'isotropic_1024_image_{data_name}_t_{t}_z_{z}_rotated_{rot}_0.png')
+                    image_1_path = os.path.join(cur_output_dir, f'isotropic_1024_image_{data_name}_t_{t}_z_{z}_rotated_{rot}_0.tif')
                     save_image(image_1, image_size, image_1_path)
-                    image_2_path = os.path.join(cur_output_dir, f'isotropic_1024_image_{data_name}_t_{t}_z_{z}_rotated_{rot}_1.png')
+                    image_2_path = os.path.join(cur_output_dir, f'isotropic_1024_image_{data_name}_t_{t}_z_{z}_rotated_{rot}_1.tif')
                     save_image(image_2, image_size, image_2_path)
 
                 # only save the image size velocity
