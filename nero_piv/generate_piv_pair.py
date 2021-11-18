@@ -11,17 +11,6 @@ from scipy.ndimage.interpolation import rotate
 
 import plot
 
-# wrap around the particles
-def wrap_around(in_value, min, max):
-
-    while (in_value < min or in_value > max):
-        if (in_value < min):
-            in_value += (max-min)
-        if (in_value > max):
-            in_value -= (max-min)
-
-    return in_value
-
 
 def write_flo(filename, flow):
     """
@@ -52,16 +41,40 @@ def get_intensity(center_pos, pos, peak_intensity, diameter):
     return intensity
 
 
+# the funtion get the center area of an area
+def get_center_area(input, input_size, output_size):
+
+    if input_size[0] < output_size[0] or input_size[1] < output_size[1]:
+        raise Exception(f'Input size {input_size} cannot be smaller than output size {output_size}')
+
+    # define position ranges
+    center_start_idx = (input_size[0] - output_size[0])//2
+    center_end_idx = (input_size[0] + output_size[0])//2
+
+    output = input[center_start_idx:center_end_idx, center_start_idx:center_end_idx]
+
+    return output
+
+
 # form image from particle position array
-def form_image(positions, diameters, peak_intensities, image_size):
+def form_image(positions, diameters, peak_intensities, image_size, simulation_size):
 
     image = np.zeros(image_size)
+
+    # define position ranges
+    center_start_idx = (simulation_size[0] - image_size[0])//2
+    center_end_idx = (simulation_size[0] + image_size[0])//2
+    position_range = [center_start_idx, center_end_idx]
 
     for i in range(len(positions)):
         pos = np.array(positions[i])
 
-        if pos[0] < 0 or pos[0] >= image_size[0] or pos[1] < 0 or pos[1] >= image_size[1]:
+        if pos[0] < position_range[0] or pos[0] >= position_range[1] or pos[1] < position_range[0] or pos[1] >= position_range[1]:
             continue
+        else:
+            # transform to image coordinate
+            pos[0] = pos[0] - center_start_idx
+            pos[1] = pos[1] - center_start_idx
 
         # draw peak intensity as the center pixel
         image[pos[0], pos[1]] = peak_intensities[i]
@@ -109,10 +122,11 @@ def save_image(image, image_size, path):
 def save_velocity(mode, velocity, size, path):
 
     # when velocity size is larger than output size, take the center
-    if size != velocity.shape[:2]:
-        center_start_idx = (velocity.shape[0] - size[0])//2
-        center_end_idx = (velocity.shape[0] + size[0])//2
-        velocity = velocity[center_start_idx:center_end_idx, center_start_idx:center_end_idx, :]
+    if size[0] != velocity.shape[0] or size[1] != velocity.shape[1]:
+        # center_start_idx = (velocity.shape[0] - size[0])//2
+        # center_end_idx = (velocity.shape[0] + size[0])//2
+        # velocity = velocity[center_start_idx:center_end_idx, center_start_idx:center_end_idx, :]
+        velocity = get_center_area(velocity, velocity.shape[:2], size)
 
     if mode == 'npy':
         np.save(path, velocity)
@@ -245,45 +259,43 @@ def main():
                     cur_velocity_2d[:, :, 1] = -cur_label_rotated_temp[:, :, 0] * np.sin(math.radians(rot)) + cur_label_rotated_temp[:, :, 1] * np.cos(math.radians(rot))
 
                 # take only the simulation size as velocity field
-                center_start_idx = (cur_velocity_2d.shape[0] - simulation_size[0])//2
-                center_end_idx = (cur_velocity_2d.shape[0] + simulation_size[0])//2
-                cur_velocity_2d = cur_velocity_2d[center_start_idx:center_end_idx, center_start_idx:center_end_idx, :]
+                cur_velocity_2d = get_center_area(cur_velocity_2d, cur_velocity_2d.shape[:2], simulation_size)
 
                 # sanity check to make sure velocity fields have the same size as particle images
-                if cur_velocity_2d.shape[:2] < image_size:
+                if cur_velocity_2d.shape[0] < image_size[0]:
                     raise Exception(f'Velocity field shape {cur_velocity_2d.shape} smaller than image shape {image_size}')
 
                 # only compute/simulate particles when 0 rotation, otherwise just rotate the particle locations
                 if rot == 0:
                     # compute frame 2 particle positions
-                    frame2_particle_pos[:, 1] = frame1_particle_pos[:, 1] + cur_velocity_2d[frame1_particle_pos[:, 0], frame1_particle_pos[:, 1], 1] * dt
-                    frame2_particle_pos[:, 0] = frame1_particle_pos[:, 0] + cur_velocity_2d[frame1_particle_pos[:, 0], frame1_particle_pos[:, 1], 0] * dt
+                    frame2_particle_pos[:, 1] = frame1_particle_pos[:, 1] + cur_velocity_2d[frame1_particle_pos[:, 0], frame1_particle_pos[:, 1], 0] * dt
+                    frame2_particle_pos[:, 0] = frame1_particle_pos[:, 0] + cur_velocity_2d[frame1_particle_pos[:, 0], frame1_particle_pos[:, 1], 1] * dt
 
                     # form image for both frame 1 and 2
-                    image_1 = form_image(frame1_particle_pos, all_particle_diameters, all_peak_intensities, image_size)
-                    image_2 = form_image(frame2_particle_pos, all_particle_diameters, all_peak_intensities, image_size)
+                    image_1 = form_image(frame1_particle_pos, all_particle_diameters, all_peak_intensities, image_size, simulation_size)
+                    image_2 = form_image(frame2_particle_pos, all_particle_diameters, all_peak_intensities, image_size, simulation_size)
 
                 # rotate the 0-rotation particle positions for other rotation angles
                 else:
                     # first frame
-                    frame1_rotated_particle_pos[:, 1] = (frame1_particle_pos[:, 0]-128) * np.sin(math.radians(rot)) + (frame1_particle_pos[:, 1]-128) * np.cos(math.radians(rot)) + 128
-                    frame1_rotated_particle_pos[:, 0] = (frame1_particle_pos[:, 0]-128) * np.cos(math.radians(rot)) - (frame1_particle_pos[:, 1]-128) * np.sin(math.radians(rot)) + 128
+                    frame1_rotated_particle_pos[:, 1] = (frame1_particle_pos[:, 0]-simulation_size[0]//2) * np.sin(math.radians(rot)) + (frame1_particle_pos[:, 1]-simulation_size[1]//2) * np.cos(math.radians(rot)) + simulation_size[1]//2
+                    frame1_rotated_particle_pos[:, 0] = (frame1_particle_pos[:, 0]-simulation_size[0]//2) * np.cos(math.radians(rot)) - (frame1_particle_pos[:, 1]-simulation_size[1]//2) * np.sin(math.radians(rot)) + simulation_size[0]//2
                     # second frame
-                    frame1_rotated_particle_pos[:, 1] = (frame2_particle_pos[:, 0]-128) * np.sin(math.radians(rot)) + (frame2_particle_pos[:, 1]-128) * np.cos(math.radians(rot)) + 128
-                    frame1_rotated_particle_pos[:, 0] = (frame2_particle_pos[:, 0]-128) * np.cos(math.radians(rot)) - (frame2_particle_pos[:, 1]-128) * np.sin(math.radians(rot)) + 128
+                    frame2_rotated_particle_pos[:, 1] = (frame2_particle_pos[:, 0]-simulation_size[0]//2) * np.sin(math.radians(rot)) + (frame2_particle_pos[:, 1]-simulation_size[1]//2) * np.cos(math.radians(rot)) + simulation_size[1]//2
+                    frame2_rotated_particle_pos[:, 0] = (frame2_particle_pos[:, 0]-simulation_size[0]//2) * np.cos(math.radians(rot)) - (frame2_particle_pos[:, 1]-simulation_size[1]//2) * np.sin(math.radians(rot)) + simulation_size[0]//2
 
                     # form image for frame 1 and 2
-                    image_1 = form_image(frame1_rotated_particle_pos, all_particle_diameters, all_peak_intensities, image_size)
-                    image_2 = form_image(frame2_rotated_particle_pos, all_particle_diameters, all_peak_intensities, image_size)
+                    image_1 = form_image(frame1_rotated_particle_pos, all_particle_diameters, all_peak_intensities, image_size, simulation_size)
+                    image_2 = form_image(frame2_rotated_particle_pos, all_particle_diameters, all_peak_intensities, image_size, simulation_size)
 
                 # save image 1 and 2
-                image_1_path = os.path.join(cur_output_dir, f'isotropic_1024_image_{data_name}_z_{z}_t_{t}_0.png')
+                image_1_path = os.path.join(cur_output_dir, f'isotropic_1024_image_{data_name}_z_{z}_t_{t}_0_rotated_{rot}.png')
                 save_image(image_1, image_size, image_1_path)
-                image_2_path = os.path.join(cur_output_dir, f'isotropic_1024_image_{data_name}_z_{z}_t_{t}_1.png')
+                image_2_path = os.path.join(cur_output_dir, f'isotropic_1024_image_{data_name}_z_{z}_t_{t}_1_rotated_{rot}.png')
                 save_image(image_2, image_size, image_2_path)
 
                 # save the ground truth
-                label_path = os.path.join(cur_output_dir, f'isotropic_1024_velocity_{data_name}_z_{z}_t_{t}.{output_type}')
+                label_path = os.path.join(cur_output_dir, f'isotropic_1024_velocity_{data_name}_z_{z}_t_{t}_rotated_{rot}.{output_type}')
                 # Normally, since training is for LiteFlowNet-en, it takes flo format
                 if mode == 'train' or mode == 'val':
                     if output_type == 'npy':
@@ -295,27 +307,29 @@ def main():
                 # visualize ground truth velocity if requested
                 if vis_data:
                     max_truth = 3
+                    vis_velocity = get_center_area(cur_velocity_2d, simulation_size, image_size)
                     # visualize ground truth
-                    flow_vis, _ = plot.visualize_flow(cur_velocity_2d)
+                    flow_vis, _ = plot.visualize_flow(vis_velocity)
                     # convert to Image
                     flow_vis_image = Image.fromarray(flow_vis)
                     # display the image
                     plt.imshow(flow_vis_image)
                     # superimpose quiver plot on color-coded images
                     skip = int(image_size[0]/256 * 7)
-                    x = np.linspace(0, cur_velocity_2d.shape[0]-1, cur_velocity_2d.shape[0])
-                    y = np.linspace(0, cur_velocity_2d.shape[1]-1, cur_velocity_2d.shape[1])
+                    x = np.linspace(0, vis_velocity.shape[0]-1, vis_velocity.shape[0])
+                    y = np.linspace(0, vis_velocity.shape[1]-1, vis_velocity.shape[1])
                     y_pos, x_pos = np.meshgrid(x, y)
                     Q = plt.quiver(y_pos[::skip, ::skip],
                                     x_pos[::skip, ::skip],
-                                    cur_velocity_2d[::skip, ::skip, 0]/max_truth,
-                                    -cur_velocity_2d[::skip, ::skip, 1]/max_truth,
+                                    vis_velocity[::skip, ::skip, 0]/max_truth,
+                                    -vis_velocity[::skip, ::skip, 1]/max_truth,
                                     # scale=4.0,
                                     scale_units='inches')
                     Q._init()
                     assert isinstance(Q.scale, float)
-                    plt.show()
-                    exit()
+                    gt_path = os.path.join(cur_output_dir, f'isotropic_1024_gt_vis_{data_name}_z_{z}_t_{t}_rotated_{rot}.png')
+                    plt.savefig(gt_path, bbox_inches='tight', dpi=100)
+                    plt.close('all')
 
 
 
