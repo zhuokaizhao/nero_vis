@@ -147,14 +147,14 @@ def main():
     parser.add_argument('-s', '--image_size', action='store', nargs=1, dest='image_size')
     # output figs directory
     parser.add_argument('-o', '--output_dir', required=True, action='store', nargs=1, dest='output_dir')
-    # velocity field save type
-    parser.add_argument('-t', '--output_type', required=True, action='store', nargs=1, dest='output_type')
-    # if visualizing data
-    parser.add_argument('--vis', action='store_true', dest='vis', default=False)
     # image only flag
     parser.add_argument('--image_only', action='store_true', dest='image_only', default=False)
     # label only flag
     parser.add_argument('--label_only', action='store_true', dest='label_only', default=False)
+    # velocity field save type
+    parser.add_argument('-t', '--output_type', action='store', nargs=1, dest='output_type')
+    # if visualizing data
+    parser.add_argument('--vis', action='store_true', dest='vis', default=False)
     # verbosity
     parser.add_argument('-v', '--verbose', action='store_true', dest='verbose', default=False)
 
@@ -170,10 +170,11 @@ def main():
         image_size = np.array([256, 256])
     # output graph directory
     output_dir = args.output_dir[0]
-    output_type = args.output_type[0]
-    vis_data = args.vis
     image_only = args.image_only
     label_only = args.label_only
+    if not image_only:
+        output_type = args.output_type[0]
+    vis_data = args.vis
     verbose = args.verbose
 
     if verbose:
@@ -183,7 +184,8 @@ def main():
         print(f'Input dir: {input_dir}')
         print(f'Data name: {data_name}')
         print(f'Output image size: {image_size}')
-        print(f'Output velocity field format: {output_type}')
+        if not image_only:
+            print(f'Output velocity field format: {output_type}')
         print(f'Output directory: {output_dir}\n')
 
     # every 10 DNS time-steps (0.0002 per step) is stored, data downloaded has stride 20
