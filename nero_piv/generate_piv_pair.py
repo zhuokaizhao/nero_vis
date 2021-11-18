@@ -151,6 +151,10 @@ def main():
     parser.add_argument('-t', '--output_type', required=True, action='store', nargs=1, dest='output_type')
     # if visualizing data
     parser.add_argument('--vis', action='store_true', dest='vis', default=False)
+    # image only flag
+    parser.add_argument('--image_only', action='store_true', dest='image_only', default=False)
+    # label only flag
+    parser.add_argument('--label_only', action='store_true', dest='label_only', default=False)
     # verbosity
     parser.add_argument('-v', '--verbose', action='store_true', dest='verbose', default=False)
 
@@ -168,13 +172,18 @@ def main():
     output_dir = args.output_dir[0]
     output_type = args.output_type[0]
     vis_data = args.vis
+    image_only = args.image_only
+    label_only = args.label_only
     verbose = args.verbose
 
     if verbose:
         print(f'\nMode: {mode}')
+        print(f'Image only: {image_only}')
+        print(f'Label only: {label_only}')
         print(f'Input dir: {input_dir}')
         print(f'Data name: {data_name}')
         print(f'Output image size: {image_size}')
+        print(f'Output velocity field format: {output_type}')
         print(f'Output directory: {output_dir}\n')
 
     # every 10 DNS time-steps (0.0002 per step) is stored, data downloaded has stride 20
@@ -288,20 +297,22 @@ def main():
                     image_2 = form_image(frame2_rotated_particle_pos, all_particle_diameters, all_peak_intensities, image_size, simulation_size)
 
                 # save image 1 and 2
-                image_1_path = os.path.join(cur_output_dir, f'isotropic_1024_image_{data_name}_t_{t}_z_{z}_0_rotated_{rot}.png')
-                save_image(image_1, image_size, image_1_path)
-                image_2_path = os.path.join(cur_output_dir, f'isotropic_1024_image_{data_name}_t_{t}_z_{z}_1_rotated_{rot}.png')
-                save_image(image_2, image_size, image_2_path)
-
-                # save the ground truth
-                label_path = os.path.join(cur_output_dir, f'isotropic_1024_velocity_{data_name}_t_{t}_z_{z}_rotated_{rot}.{output_type}')
-                # Normally, since training is for LiteFlowNet-en, it takes flo format
-                if mode == 'train' or mode == 'val':
-                    if output_type == 'npy':
-                        raise Exception(f'For training flo should be used as save velocity type')
+                if not label_only:
+                    image_1_path = os.path.join(cur_output_dir, f'isotropic_1024_image_{data_name}_t_{t}_z_{z}_0_rotated_{rot}.tif')
+                    save_image(image_1, image_size, image_1_path)
+                    image_2_path = os.path.join(cur_output_dir, f'isotropic_1024_image_{data_name}_t_{t}_z_{z}_1_rotated_{rot}.tif')
+                    save_image(image_2, image_size, image_2_path)
 
                 # only save the image size velocity
-                save_velocity(output_type, cur_velocity_2d, image_size, label_path)
+                if not image_only:
+                    # save the ground truth
+                    label_path = os.path.join(cur_output_dir, f'isotropic_1024_velocity_{data_name}_t_{t}_z_{z}_rotated_{rot}.{output_type}')
+                    # Normally, since training is for LiteFlowNet-en, it takes flo format
+                    if mode == 'train' or mode == 'val':
+                        if output_type == 'npy':
+                            raise Exception(f'For training flo should be used as save velocity type')
+
+                    save_velocity(output_type, cur_velocity_2d, image_size, label_path)
 
                 # visualize ground truth velocity if requested
                 if vis_data:
