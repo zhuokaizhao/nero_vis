@@ -58,8 +58,9 @@ def form_image(positions, diameters, peak_intensities, image_size):
     image = np.zeros(image_size)
 
     for i in range(len(positions)):
-        pos = positions[i]
-        if pos.any() < 0 or pos.any() >= image_size[0]:
+        pos = np.array(positions[i])
+
+        if pos[0] < 0 or pos[0] >= image_size[0] or pos[1] < 0 or pos[1] >= image_size[1]:
             continue
 
         # draw peak intensity as the center pixel
@@ -113,9 +114,6 @@ def save_velocity(mode, velocity, size, path):
         center_end_idx = (velocity.shape[0] + size[0])//2
         velocity = velocity[center_start_idx:center_end_idx, center_start_idx:center_end_idx, :]
 
-    print(velocity.shape)
-    exit()
-
     if mode == 'npy':
         np.save(path, velocity)
     elif mode == 'flo':
@@ -149,9 +147,9 @@ def main():
     input_dir = args.input_dir[0]
     data_name = args.data_name[0]
     if args.image_size != None:
-        image_size = (int(args.image_size[0].split('x')[0]), int(args.image_size[0].split('x')[1]))
+        image_size = np.array([int(args.image_size[0].split('x')[0]), int(args.image_size[0].split('x')[1])])
     else:
-        image_size = (256, 256)
+        image_size = np.array([256, 256])
     # output graph directory
     output_dir = args.output_dir[0]
     output_type = args.output_type[0]
@@ -176,13 +174,13 @@ def main():
     if mode == 'train' or mode == 'val':
         rotation_angles = [0]
     elif mode == 'test':
-        rotation_angles = list(range(0, 360, 45))
+        rotation_angles = list(range(0, 50, 30))
 
     # when doing rotation, simulation/image field of view needs to be larger in the first place
     if len(rotation_angles) == 1:
         simulation_size = image_size
     else:
-        simulation_size = np.ceil(image_size / np.sqrt(2) * 2).astype(int)
+        simulation_size = np.ceil(image_size * np.sqrt(2)).astype(int)
 
     # training takes all the z slices, while testing only takes one slice
     if mode == 'train':
@@ -212,7 +210,7 @@ def main():
         cur_velocity = cur_velocity / (2*np.pi) * 1024
 
         # for each z
-        for z in enumerate(z_range):
+        for z in z_range:
             # only velocities in x and y
             cur_velocity_2d = cur_velocity[:, :, z, :2]
 
@@ -268,11 +266,11 @@ def main():
                 # rotate the 0-rotation particle positions for other rotation angles
                 else:
                     # first frame
-                    frame1_rotated_particle_pos[:, 1] = -(frame1_particle_pos[:, 0]-128) * np.sin(math.radians(rot)) + (frame1_particle_pos[:, 1]-128) * np.cos(math.radians(rot)) + 128
-                    frame1_rotated_particle_pos[:, 0] = (frame1_particle_pos[:, 0]-128) * np.cos(math.radians(rot)) + (frame1_particle_pos[:, 1]-128) * np.sin(math.radians(rot)) + 128
+                    frame1_rotated_particle_pos[:, 1] = (frame1_particle_pos[:, 0]-128) * np.sin(math.radians(rot)) + (frame1_particle_pos[:, 1]-128) * np.cos(math.radians(rot)) + 128
+                    frame1_rotated_particle_pos[:, 0] = (frame1_particle_pos[:, 0]-128) * np.cos(math.radians(rot)) - (frame1_particle_pos[:, 1]-128) * np.sin(math.radians(rot)) + 128
                     # second frame
-                    frame1_rotated_particle_pos[:, 1] = -(frame2_particle_pos[:, 0]-128) * np.sin(math.radians(rot)) + (frame2_particle_pos[:, 1]-128) * np.cos(math.radians(rot)) + 128
-                    frame1_rotated_particle_pos[:, 0] = (frame2_particle_pos[:, 0]-128) * np.cos(math.radians(rot)) + (frame2_particle_pos[:, 1]-128) * np.sin(math.radians(rot)) + 128
+                    frame1_rotated_particle_pos[:, 1] = (frame2_particle_pos[:, 0]-128) * np.sin(math.radians(rot)) + (frame2_particle_pos[:, 1]-128) * np.cos(math.radians(rot)) + 128
+                    frame1_rotated_particle_pos[:, 0] = (frame2_particle_pos[:, 0]-128) * np.cos(math.radians(rot)) - (frame2_particle_pos[:, 1]-128) * np.sin(math.radians(rot)) + 128
 
                     # form image for frame 1 and 2
                     image_1 = form_image(frame1_rotated_particle_pos, all_particle_diameters, all_peak_intensities, image_size)
