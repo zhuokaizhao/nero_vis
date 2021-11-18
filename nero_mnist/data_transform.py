@@ -37,15 +37,15 @@ class RandomScale(object):
 
         # random.seed(0)
         # np.random.seed(0)
-
+        self.scale_factors = scale_factors
         self.img_size = img_size
         self.target_img_size = target_img_size
-        # randomly pick a scale factor
-        self.scale = random.choice(scale_factors)
 
 
     def __call__(self, image):
 
+        # randomly pick a scale factor
+        self.scale = random.choice(self.scale_factors)
         # resize and pad the image equally to image_size
         resize_size = int(np.floor(self.img_size * self.scale))
         image = torchvision.transforms.Resize(resize_size)(image)
