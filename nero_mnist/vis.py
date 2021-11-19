@@ -67,7 +67,7 @@ def plot_interactive_line_polar(digits, all_labels, all_colors, all_results, plo
     print(f'\nInteractive polar plot has been saved to {result_path}')
 
 
-def plot_interactive_heatmap(name, digits, results, plot_title, result_path):
+def plot_interactive_heatmap(digits, all_labels, all_results, plot_title, result_path):
 
     # plot for all digits
     # fig = go.Figure()
@@ -75,31 +75,32 @@ def plot_interactive_heatmap(name, digits, results, plot_title, result_path):
     for digit in digits:
         subplot_names.append(f'Digit {digit}')
 
-    fig = make_subplots(rows=2, cols=5,
+    # rows are different results, columns are different digits
+    fig = make_subplots(rows=len(all_results), cols=len(digits),
                         subplot_titles=subplot_names,)
 
     for i, digit in enumerate(digits):
 
-        # subplot position (start with 1)
-        row = i // 5 + 1
-        col = i % 5 + 1
+        for j, cur_result in enumerate(all_results):
+            accuracy = cur_result['categorical_accuracy_heatmap'][:, :, int(digit)]
 
-        accuracy = results['categorical_accuracy_heatmap'][:, :, int(digit)]
+            vertical_translation = len(accuracy)
+            horizontal_translation = len(accuracy[0])
 
-        vertical_translation = len(accuracy)
-        horizontal_translation = len(accuracy[0])
+            # plot accuracy
+            fig.add_trace(go.Heatmap(z = accuracy,
+                                        x = np.array(list(range(horizontal_translation)))-20,
+                                        y = np.array(list(range(vertical_translation)))-20,
+                                        customdata=accuracy,
+                                        type='heatmap',
+                                        coloraxis='coloraxis1'),
+                row = j+1, # the starting cell is (1, 1)
+                col = i+1
+            )
 
-        # plot accuracy
-        fig.add_trace(go.Heatmap(z = accuracy,
-                                    x = np.array(list(range(horizontal_translation)))-20,
-                                    y = np.array(list(range(vertical_translation)))-20,
-                                    customdata=accuracy,
-                                    name = name,
-                                    type='heatmap',
-                                    coloraxis='coloraxis1'),
-            row = row,
-            col = col
-        )
+            # use y axis as row names when first column
+            if i == 0:
+                fig.update_layout(yaxis=dict(title=f'{all_labels[j]}'))
 
         # set x axes on top
         # fig.update_xaxes(side='top')
@@ -122,10 +123,6 @@ def plot_interactive_heatmap(name, digits, results, plot_title, result_path):
 
         fig.update_annotations(yshift=20)
 
-    # only show one legend
-    for i, trace in enumerate(fig['data']):
-        if i > 1:
-            trace['showlegend'] = False
 
     fig.update_layout(
         title = plot_title,

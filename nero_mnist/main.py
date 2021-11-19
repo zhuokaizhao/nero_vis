@@ -745,8 +745,7 @@ def main():
             result_path = os.path.join(figs_dir, f'mnist_{mode}_{type}.html')
             # plot_title = f'Non-equivariant vs Equivariant model on {data_name} Digit {i}'
             plot_title = None
-            # plotting_digits = list(range(10))
-            plotting_digits = [2, 3, 5]
+            plotting_digits = list(range(10))
             vis.plot_interactive_line_polar(plotting_digits,
                                             ['CNN', 'E2CNN', 'CNN+Augmentation'],
                                             all_colors,
@@ -766,7 +765,7 @@ def main():
                 print(f'Digit {i} avg accuracy for Aug-Eqv model: {cur_aug_eqv_avg}')
 
             # make and save the plot
-            plotting_digits = list(range(10))
+            plotting_digits = [2, 3, 5]
             plot_title = None
             result_path = os.path.join(figs_dir, f'mnist_{mode}_{type}.html')
             vis.plot_interactive_heatmap(plotting_digits,
