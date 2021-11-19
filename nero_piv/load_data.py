@@ -20,9 +20,9 @@ def read_all(data_path):
         img1_name_list = []
         img2_name_list = []
 
-        gt_name_list.extend(glob.glob(data_path + '/isotropic_1024_velocity_z_362_*_0.flo'))
-        img1_name_list.extend(glob.glob(data_path + '/isotropic_1024_image_z_362_*_0.tif'))
-        img2_name_list.extend(glob.glob(data_path + '/isotropic_1024_image_z_362_*_1.tif'))
+        gt_name_list.extend(glob.glob(data_path + '/*_0.flo'))
+        img1_name_list.extend(glob.glob(data_path + '*_0.tif'))
+        img2_name_list.extend(glob.glob(data_path + '*_1.tif'))
         gt_name_list.sort()
         img1_name_list.sort()
         img2_name_list.sort()
