@@ -332,16 +332,16 @@ def main():
                 plt.xlabel('Epoch')
                 plt.ylabel('Loss')
                 plt.legend(loc='upper right')
-                loss_path = os.path.join(figs_dir, f'piv_lfn_en_batch{batch_size}_epoch{starting_epoch+num_epoch}.png')
+                loss_path = os.path.join(figs_dir, f'piv_lfn_en_batch{batch_size}_epoch{i+1}.png')
                 plt.savefig(loss_path)
                 print(f'\nLoss graph has been saved to {loss_path}')
 
                 # save model as a checkpoint so further training could be resumed
-                model_path = os.path.join(model_dir, f'piv_lfn_en_batch{batch_size}_epoch{starting_epoch+num_epoch}.pt')
+                model_path = os.path.join(model_dir, f'piv_lfn_en_batch{batch_size}_epoch{i+1}.pt')
                 # if trained on multiple GPU's, store model.module.state_dict()
                 if torch.cuda.device_count() > 1:
                     model_checkpoint = {
-                                            'epoch': starting_epoch+num_epoch,
+                                            'epoch': i+1,
                                             'state_dict': piv_lfn_en.module.state_dict(),
                                             'optimizer': optimizer.state_dict(),
                                             'train_loss': all_epoch_train_losses,
@@ -349,7 +349,7 @@ def main():
                                         }
                 else:
                     model_checkpoint = {
-                                            'epoch': starting_epoch+num_epoch,
+                                            'epoch': i+1,
                                             'state_dict': piv_lfn_en.state_dict(),
                                             'optimizer': optimizer.state_dict(),
                                             'train_loss': all_epoch_train_losses,
