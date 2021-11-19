@@ -209,7 +209,7 @@ def main():
 
     # training takes all the z slices, while testing only takes one slice
     if mode == 'train':
-        z_range = list(range(0, 101))
+        z_range = list(range(40, 61))
     else:
         # for test, only the center z slice is used
         z_range = [51]
