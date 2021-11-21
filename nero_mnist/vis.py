@@ -27,7 +27,7 @@ def plot_interactive_line_polar(digits, all_labels, all_colors, all_results, plo
         col = i % 5 + 1
 
         for j, cur_result in enumerate(all_results):
-            cur_accuracy = cur_result['categorical_accuracy_heatmap'][:, int(digit)]
+            cur_accuracy = cur_result[:, int(digit)]
             angles = list(range(len(cur_accuracy)))
 
             # non eqv accuracy
@@ -79,9 +79,9 @@ def plot_interactive_heatmap(digits, all_labels, all_results, plot_title, result
     fig = make_subplots(rows=len(all_results), cols=len(digits),
                         subplot_titles=subplot_names,)
 
-    for i, digit in enumerate(digits):
+    for j, cur_result in enumerate(all_results):
+        for i, digit in enumerate(digits):
 
-        for j, cur_result in enumerate(all_results):
             accuracy = cur_result['categorical_accuracy_heatmap'][:, :, int(digit)]
 
             vertical_translation = len(accuracy)
@@ -98,36 +98,26 @@ def plot_interactive_heatmap(digits, all_labels, all_results, plot_title, result
                 col = i+1
             )
 
-            # use y axis as row names when first column
-            if i == 0:
-                fig.update_layout(yaxis=dict(title=f'{all_labels[j]}'))
-
-        # set x axes on top
-        # fig.update_xaxes(side='top')
-        # fig.update_xaxes(side='top')
-        # reverse both y axes
-        fig.update_yaxes(autorange='reversed')
-        fig.update_yaxes(autorange='reversed')
-
-        fig.update_layout(
-            title = plot_title,
-            showlegend = False,
-            hovermode='x',
-            # title_x=0.5,
-            # xaxis=dict(title='x translation'),
-            # yaxis=dict(title='y translation'),
-            coloraxis=dict(colorscale = 'Viridis')
-        )
-
-        fig.update_coloraxes(colorbar=dict(title='Accuracy'))
-
-        fig.update_annotations(yshift=20)
-
+    # reverse both y axes
+    fig.update_yaxes(autorange='reversed')
+    fig.update_yaxes(autorange='reversed')
 
     fig.update_layout(
         title = plot_title,
+        showlegend = False,
         hovermode='x',
+        # title_x=0.5,
+        # xaxis=dict(title='x translation'),
+        yaxis1=dict(title=f'{all_labels[0]}'),
+        yaxis4=dict(title=f'{all_labels[1]}'),
+        yaxis7=dict(title=f'{all_labels[2]}'),
+        coloraxis=dict(colorscale = 'Viridis')
     )
+
+    # colorbar title
+    fig.update_coloraxes(colorbar=dict(title='Accuracy'))
+
+    fig.update_annotations(yshift=20)
 
     fig.update_yaxes(
         scaleanchor = "x",
@@ -259,7 +249,7 @@ def plot_interactive_line(digits, scales, all_labels, all_colors, all_results, p
         col = i % 5 + 1
 
         for k, cur_result in enumerate(all_results):
-            cur_accuracy = cur_result['categorical_accuracy_heatmap'][:, int(digit)]
+            cur_accuracy = cur_result[:, int(digit)]
             # non eqv accuracy
             fig.add_trace(go.Scatter(x = scales,
                                      y = cur_accuracy,

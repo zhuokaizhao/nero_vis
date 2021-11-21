@@ -739,9 +739,9 @@ def main():
                 cur_non_eqv_avg = np.mean(non_eqv_result[:, i])
                 cur_eqv_avg = np.mean(eqv_result[:, i])
                 cur_aug_eqv_avg = np.mean(aug_eqv_result[:, i])
-                print(f'\nDigit {i} avg accuracy for Non-eqv model: {cur_non_eqv_avg}')
-                print(f'Digit {i} avg accuracy for Eqv model: {cur_eqv_avg}')
-                print(f'Digit {i} avg accuracy for Aug-Eqv model: {cur_aug_eqv_avg}')
+                print(f'\nDigit {i} avg loss for Non-eqv model: {cur_non_eqv_avg}')
+                print(f'Digit {i} avg loss for Eqv model: {cur_eqv_avg}')
+                print(f'Digit {i} avg loss for Aug-Eqv model: {cur_aug_eqv_avg}')
 
             # make and save the plot
             # plot interactive polar line plots
@@ -758,14 +758,14 @@ def main():
 
         elif type == 'shift':
             # print out average error per digit for both models
-            print(non_eqv_result['categorical_accuracy'].shape)
-            for i in range(non_eqv_result['categorical_accuracy'].shape[2]):
-                cur_non_eqv_avg = np.mean(non_eqv_result['categorical_accuracy'][:, :, i])
-                cur_eqv_avg = np.mean(eqv_result['categorical_accuracy'][:, :, i])
-                cur_aug_eqv_avg = np.mean(aug_eqv_result['categorical_accuracy'][:, i])
-                print(f'\nDigit {i} avg accuracy for Non-eqv model: {cur_non_eqv_avg}')
-                print(f'Digit {i} avg accuracy for Eqv model: {cur_eqv_avg}')
-                print(f'Digit {i} avg accuracy for Aug-Eqv model: {cur_aug_eqv_avg}')
+            print(non_eqv_result.shape)
+            for i in range(non_eqv_result.shape[2]):
+                cur_non_eqv_avg = np.mean(non_eqv_result[:, :, i])
+                cur_eqv_avg = np.mean(eqv_result[:, :, i])
+                cur_aug_eqv_avg = np.mean(aug_eqv_result[:, i])
+                print(f'\nDigit {i} avg loss for Non-eqv model: {cur_non_eqv_avg}')
+                print(f'Digit {i} avg loss for Eqv model: {cur_eqv_avg}')
+                print(f'Digit {i} avg loss for Aug-Eqv model: {cur_aug_eqv_avg}')
 
             # make and save the plot
             plotting_digits = [2, 3, 5]
@@ -779,21 +779,23 @@ def main():
 
         elif type == 'scale':
             # print out average error per digit for both models
-            print(non_eqv_result['categorical_accuracy'].shape)
-            for i in range(non_eqv_result['categorical_accuracy'].shape[1]):
-                cur_non_eqv_avg = np.mean(non_eqv_result['categorical_accuracy'][:, i])
-                cur_eqv_avg = np.mean(eqv_result['categorical_accuracy'][:, i])
-                print(f'\nDigit {i} avg accuracy for Non-eqv model: {cur_non_eqv_avg}')
-                print(f'Digit {i} avg accuracy for Eqv model: {cur_eqv_avg}')
+            print(non_eqv_result.shape)
+            for i in range(non_eqv_result.shape[1]):
+                cur_non_eqv_avg = np.mean(non_eqv_result[:, i])
+                cur_eqv_avg = np.mean(eqv_result[:, i])
+                cur_aug_eqv_avg = np.mean(aug_eqv_result[:, i])
+                print(f'\nDigit {i} avg loss for Non-eqv model: {cur_non_eqv_avg}')
+                print(f'Digit {i} avg loss for SESN model: {cur_eqv_avg}')
+                print(f'Digit {i} avg loss for Aug-Eqv model: {cur_aug_eqv_avg}')
 
             # make and save the plot
-            all_scales = [0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
+            all_scales = [0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7]
             # plot interactive polar line plots
             result_path = os.path.join(figs_dir, f'mnist_{mode}_{type}.html')
             # plot_title = f'Non-equivariant vs Equivariant model on {data_name} Digit {i}'
             plot_title = None
             plotting_digits = list(range(10))
-            # vis.plot_interactive_line(plotting_digits, all_scales, ['Non-Eqv', 'SESN', 'DSS'], [non_eqv_result, sesn_eqv_result, dss_eqv_result], plot_title, result_path)
+            vis.plot_interactive_line(plotting_digits, all_scales, ['Non-Eqv', 'SESN', 'Aug-Eqv'], all_colors, [non_eqv_result, eqv_result, aug_eqv_result], plot_title, result_path)
 
 
 if __name__ == '__main__':
