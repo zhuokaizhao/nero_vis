@@ -178,7 +178,7 @@ class Non_Eqv_Net_MNIST(torch.nn.Module):
         elif self.type == 'scale':
             self.fully_net = torch.nn.Sequential(
                 # torch.nn.Linear(6400, 64),
-                torch.nn.Linear(576, 64),
+                torch.nn.Linear(4096, 64),
                 torch.nn.BatchNorm1d(64),
                 torch.nn.ELU(inplace=True),
                 torch.nn.Linear(64, n_classes),
@@ -655,7 +655,7 @@ class Scale_Eqv_Net_MNIST(torch.nn.Module):
         # fully connected
         if method == 'SESN':
             self.fully_net = torch.nn.Sequential(
-                torch.nn.Linear(576, 64),
+                torch.nn.Linear(4096, 64),
                 # torch.nn.Linear(6400, 64),
                 torch.nn.BatchNorm1d(64),
                 torch.nn.ELU(inplace=True),

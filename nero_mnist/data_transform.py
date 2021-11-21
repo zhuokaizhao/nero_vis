@@ -16,7 +16,7 @@ class RandomRotate(object):
         self.target_img_size = target_img_size
         self.max_padding = int(target_img_size - img_size)
 
-        self.sigma = 180
+        self.sigma = 90
         self.a = (-180 - 0) / self.sigma
         self.b = (180 - 0) / self.sigma
 
@@ -47,11 +47,18 @@ class RandomShift(object):
         self.target_img_size = target_img_size
         self.max_padding = int(target_img_size - img_size)
 
+        d = 2
+        self.mu = np.zeros(d)
+        # sigma being 10
+        self.cov = np.array([[100, 0], [0, 100]])
+        self.lb = np.zeros_like(self.mu) - 20
+        self.ub = np.zeros_like(self.mu) + 20
+
 
     def __call__(self, image):
 
         # random number on the left and top padding amount
-        tmvn = truncated_mvn_sampler.TruncatedMVN(self.mu, self.cov, self.lower_bound, self.upper_bound)
+        tmvn = truncated_mvn_sampler.TruncatedMVN(self.mu, self.cov, self.lb, self.up)
         x, y = tmvn.sample(1)
         self.left_padding = np.rint(x).astype(int)
         self.top_padding = np.rint(y).astype(int)
@@ -81,7 +88,7 @@ class RandomScale(object):
 
         # randomly pick a scale factor
         self.scale = 0
-        while self.scale <= 0.3 or self.scale > 1:
+        while self.scale < 0.3 or self.scale > 1.7:
             self.scale = np.random.normal(1.0, 0.35)
         # resize and pad the image equally to image_size
         resize_size = int(np.floor(self.img_size * self.scale))

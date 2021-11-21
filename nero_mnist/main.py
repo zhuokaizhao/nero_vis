@@ -255,10 +255,10 @@ def main():
 
     # when training/testing for scale equivariance tests
     elif type == 'scale':
-        all_scales = [0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
+        all_scales = [0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7]
         if image_size == None:
-            # image_size = (59, 59)
-            image_size = (29, 29)
+            image_size = (49, 49)
+            # image_size = (29, 29)
 
     # training mode
     if mode == 'train':
@@ -266,9 +266,11 @@ def main():
         # default train_batch_size and val_batch_size if not assigned
         if args.train_batch_size == None:
             train_batch_size = 64
-            val_batch_size = 1000
         else:
             train_batch_size = args.train_batch_size
+        if args.val_batch_size == None:
+            val_batch_size = 1000
+        else:
             val_batch_size = args.val_batch_size
 
         # number of training epoch
@@ -724,19 +726,19 @@ def main():
             print(f'output figures dir: {figs_dir}')
 
         # load the non-eqv and eqv result
-        non_eqv_result = np.load(non_eqv_path)
-        eqv_result = np.load(eqv_path)
-        aug_eqv_result = np.load(aug_eqv_path)
+        non_eqv_result = np.load(non_eqv_path)['categorical_loss']
+        eqv_result = np.load(eqv_path)['categorical_loss']
+        aug_eqv_result = np.load(aug_eqv_path)['categorical_loss']
 
         all_colors = ['peru', 'darkviolet', 'green']
 
         if type == 'rotation':
             # print out average error per digit for both models
-            print(non_eqv_result['categorical_accuracy'].shape)
-            for i in range(non_eqv_result['categorical_accuracy'].shape[1]):
-                cur_non_eqv_avg = np.mean(non_eqv_result['categorical_accuracy'][:, i])
-                cur_eqv_avg = np.mean(eqv_result['categorical_accuracy'][:, i])
-                cur_aug_eqv_avg = np.mean(aug_eqv_result['categorical_accuracy'][:, i])
+            print(non_eqv_result.shape)
+            for i in range(non_eqv_result.shape[1]):
+                cur_non_eqv_avg = np.mean(non_eqv_result[:, i])
+                cur_eqv_avg = np.mean(eqv_result[:, i])
+                cur_aug_eqv_avg = np.mean(aug_eqv_result[:, i])
                 print(f'\nDigit {i} avg accuracy for Non-eqv model: {cur_non_eqv_avg}')
                 print(f'Digit {i} avg accuracy for Eqv model: {cur_eqv_avg}')
                 print(f'Digit {i} avg accuracy for Aug-Eqv model: {cur_aug_eqv_avg}')
