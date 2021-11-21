@@ -123,6 +123,7 @@ def test(model, device, test_loader):
     model.eval()
     loss_function = torch.nn.CrossEntropyLoss(reduction='none')
     general_batch_losses = []
+    general_batch_new_q = []
     general_num_correct = 0
     # categorical number of correct
     categorical_num_digits = np.zeros(10, dtype=int)
@@ -139,6 +140,10 @@ def test(model, device, test_loader):
 
             # inference
             output = model(data)
+            # # one hot encoding of ground truth
+            # one_hot_target = torch.nn.functional.one_hot(target, num_classes=10).cpu().detach().numpy()
+            # new_q = np.sum(one_hot_target*output.cpu().detach().numpy(), axis=1)
+            # general_batch_new_q.append(np.mean(new_q))
             loss = loss_function(output, target)
             general_batch_losses.append(torch.mean(loss).item())
 
@@ -184,7 +189,7 @@ def main():
     parser.add_argument('--mode', required=True, action='store', nargs=1, dest='mode')
     # type of equivariance (rotation, shift, or scale)
     parser.add_argument('--type', required=True, action='store', nargs=1, dest='type')
-    # network method (non-eqv, eqv, etc)
+    # network method (non-eqv, eqv, aug-eqv, etc)
     parser.add_argument('-n', '--network_model', action='store', nargs=1, dest='network_model')
     # image dimension after padding
     parser.add_argument('-s', '--image_size', action='store', nargs=1, dest='image_size')
@@ -339,11 +344,7 @@ def main():
                 model = models.Non_Eqv_Net_MNIST(type).to(device)
                 # data transform
                 transform = torchvision.transforms.Compose([
-                    # transform includes upsample, rotate, downsample and padding (right and bottom) to image_size
-                    torchvision.transforms.Resize(28*3),
-                    torchvision.transforms.RandomRotation(degrees=(-180, 180), resample=Image.BILINEAR, expand=False),
-                    torchvision.transforms.Resize(28),
-                    torchvision.transforms.Pad(((image_size[1]-28)//2, (image_size[0]-28)//2, (image_size[1]-28)//2+1, (image_size[0]-28)//2+1), fill=0, padding_mode='constant'),
+                    data_transform.RandomRotate(28, image_size[0])
                 ])
             else:
                 raise Exception(f'Wrong network model type {network_model}')
@@ -396,7 +397,7 @@ def main():
             raise Exception(f'Wrong type {type}')
 
         # visualize the model structure
-        if network_model == 'non-eqv':
+        if network_model == 'non-eqv' or network_model == 'aug-eqv':
             print(summary(model, torch.zeros((1, 1, image_size[1], image_size[0])).to(device)))
 
         # split into train and validation dataset
@@ -421,7 +422,7 @@ def main():
         all_epoch_train_losses = []
         all_epoch_val_losses = []
         for epoch in range(starting_epoch, starting_epoch+num_epoch):
-            print(f'\n Starting epoch {epoch+1}/{starting_epoch+num_epoch}')
+            print(f'\nStarting epoch {epoch+1}/{starting_epoch+num_epoch}')
             epoch_start_time = time.time()
             cur_epoch_train_loss = train(model, device, train_loader, optimizer)
             all_epoch_train_losses.append(cur_epoch_train_loss)
@@ -433,6 +434,7 @@ def main():
             print('\nValidation set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n'.format(
                     cur_epoch_val_loss, num_correct, len(val_loader.dataset),
                     100. * num_correct / len(val_loader.dataset)))
+            print(f'Epoch time cost: {epoch_time_cost}')
 
             if (epoch+1) % args.checkpoint_interval == 0:
 
@@ -556,10 +558,10 @@ def main():
         if type == 'rotation':
             max_rot = 360
             increment = 1
-            general_loss_heatmap = np.zeros(max_rot//increment)
-            general_accuracy_heatmap = np.zeros(max_rot//increment)
-            categorical_loss_heatmap = np.zeros((max_rot//increment, 10))
-            categorical_accuracy_heatmap = np.zeros((max_rot//increment, 10))
+            general_loss = np.zeros(max_rot//increment)
+            general_accuracy = np.zeros(max_rot//increment)
+            categorical_loss = np.zeros((max_rot//increment, 10))
+            categorical_accuracy = np.zeros((max_rot//increment, 10))
 
             for k in range(0, max_rot, increment):
                 print(f'\n Testing rotation angle {k}/{max_rot-increment}')
@@ -569,7 +571,6 @@ def main():
                     torchvision.transforms.Resize(28*3),
                     torchvision.transforms.RandomRotation((k, k), resample=Image.BILINEAR, expand=False),
                     torchvision.transforms.Resize(28),
-                    # torchvision.transforms.Pad((i, i, image_size[1]-28-i, image_size[0]-28-i), fill=0, padding_mode='constant'),
                     torchvision.transforms.Pad((0, 0, 1, 1), fill=0, padding_mode='constant'),
                 ])
 
@@ -578,13 +579,13 @@ def main():
                 test_loader = torch.utils.data.DataLoader(dataset, **test_kwargs)
 
                 # test the model
-                general_loss, general_accuracy, categorical_loss, categorical_accuracy = test(model, device, test_loader)
-                general_loss_heatmap[k//increment] = general_loss
-                general_accuracy_heatmap[k//increment] = general_accuracy
-                categorical_loss_heatmap[k//increment, :] = categorical_loss
-                categorical_accuracy_heatmap[k//increment, :] = categorical_accuracy
+                cur_general_loss, cur_general_accuracy, cur_categorical_loss, cur_categorical_accuracy = test(model, device, test_loader)
+                general_loss[k//increment] = cur_general_loss
+                general_accuracy[k//increment] = cur_general_accuracy
+                categorical_loss[k//increment, :] = cur_categorical_loss
+                categorical_accuracy[k//increment, :] = cur_categorical_accuracy
 
-                print(f'Rotation {k} accuracy: {general_accuracy}')
+                print(f'Rotation {k} accuracy: {cur_general_accuracy}, loss: {cur_general_loss}')
 
             # save the accuracy as npz file
             if network_model == 'non-eqv' or network_model == 'aug-eqv':
@@ -593,10 +594,10 @@ def main():
                 loss_path = os.path.join(figs_dir, f'{network_model}_rot-group{num_rotation}_mnist_{image_size[0]}x{image_size[1]}_angle-increment{increment}_epoch{trained_epoch}_result.npz')
 
             np.savez(loss_path,
-                    general_loss_heatmap=general_loss_heatmap,
-                    general_accuracy_heatmap=general_accuracy_heatmap,
-                    categorical_loss_heatmap=categorical_loss_heatmap,
-                    categorical_accuracy_heatmap=categorical_accuracy_heatmap)
+                    general_loss=general_loss,
+                    general_accuracy=general_accuracy,
+                    categorical_loss=categorical_loss,
+                    categorical_accuracy=categorical_accuracy)
 
             print(f'\nTesting result has been saved to {loss_path}')
 
@@ -608,10 +609,10 @@ def main():
             # |
             # v y
             shift_amount = (image_size[0] - 29)//2
-            general_loss_heatmap = np.zeros((shift_amount*2+1, shift_amount*2+1))
-            general_accuracy_heatmap = np.zeros((shift_amount*2+1, shift_amount*2+1))
-            categorical_loss_heatmap = np.zeros((shift_amount*2+1, shift_amount*2+1, 10))
-            categorical_accuracy_heatmap = np.zeros((shift_amount*2+1, shift_amount*2+1, 10))
+            general_loss = np.zeros((shift_amount*2+1, shift_amount*2+1))
+            general_accuracy = np.zeros((shift_amount*2+1, shift_amount*2+1))
+            categorical_loss = np.zeros((shift_amount*2+1, shift_amount*2+1, 10))
+            categorical_accuracy = np.zeros((shift_amount*2+1, shift_amount*2+1, 10))
             for y_shift in range(-shift_amount, shift_amount+1):
                 for x_shift in range(-shift_amount, shift_amount+1):
                     # pad the MNIST image
@@ -648,30 +649,30 @@ def main():
                     test_loader = torch.utils.data.DataLoader(dataset, **test_kwargs)
 
                     # test the model
-                    general_loss, general_accuracy, categorical_loss, categorical_accuracy = test(model, device, test_loader)
-                    general_loss_heatmap[y_shift+shift_amount, x_shift+shift_amount] = general_loss
-                    general_accuracy_heatmap[y_shift+shift_amount, x_shift+shift_amount] = general_accuracy
-                    categorical_loss_heatmap[y_shift+shift_amount, x_shift+shift_amount, :] = categorical_loss
-                    categorical_accuracy_heatmap[y_shift+shift_amount, x_shift+shift_amount, :] = categorical_accuracy
+                    cur_general_loss, cur_general_accuracy, cur_categorical_loss, cur_categorical_accuracy = test(model, device, test_loader)
+                    general_loss[y_shift+shift_amount, x_shift+shift_amount] = cur_general_loss
+                    general_accuracy[y_shift+shift_amount, x_shift+shift_amount] = cur_general_accuracy
+                    categorical_loss[y_shift+shift_amount, x_shift+shift_amount, :] = cur_categorical_loss
+                    categorical_accuracy[y_shift+shift_amount, x_shift+shift_amount, :] = cur_categorical_accuracy
 
-                    print(f'shift amount x = {x_shift}, y = {y_shift} accuracy: {general_accuracy}')
+                    print(f'shift amount x = {x_shift}, y = {y_shift} accuracy: {cur_general_accuracy}, loss: {cur_general_loss}')
 
             # save the accuracy as npz file
             loss_path = os.path.join(figs_dir, f'{network_model}_mnist_{image_size[0]}x{image_size[1]}_epoch{trained_epoch}_result.npz')
             np.savez(loss_path,
-                    general_loss_heatmap=general_loss_heatmap,
-                    general_accuracy_heatmap=general_accuracy_heatmap,
-                    categorical_loss_heatmap=categorical_loss_heatmap,
-                    categorical_accuracy_heatmap=categorical_accuracy_heatmap)
+                    general_loss=general_loss,
+                    general_accuracy=general_accuracy,
+                    categorical_loss=categorical_loss,
+                    categorical_accuracy=categorical_accuracy)
 
             print(f'\nTesting result has been saved to {loss_path}')
 
         # test on each scale from 0.5 to 2
         elif type == 'scale':
-            general_loss_heatmap = np.zeros(len(all_scales))
-            general_accuracy_heatmap = np.zeros(len(all_scales))
-            categorical_loss_heatmap = np.zeros((len(all_scales), 10))
-            categorical_accuracy_heatmap = np.zeros((len(all_scales), 10))
+            general_loss = np.zeros(len(all_scales))
+            general_accuracy = np.zeros(len(all_scales))
+            categorical_loss = np.zeros((len(all_scales), 10))
+            categorical_accuracy = np.zeros((len(all_scales), 10))
 
             for k, scale in enumerate(all_scales):
                 print(f'\n Testing scale {scale}')
@@ -693,21 +694,21 @@ def main():
                 test_loader = torch.utils.data.DataLoader(dataset, **test_kwargs)
 
                 # test the model
-                general_loss, general_accuracy, categorical_loss, categorical_accuracy = test(model, device, test_loader)
-                general_loss_heatmap[k] = general_loss
-                general_accuracy_heatmap[k] = general_accuracy
-                categorical_loss_heatmap[k, :] = categorical_loss
-                categorical_accuracy_heatmap[k, :] = categorical_accuracy
+                cur_general_loss, cur_general_accuracy, cur_categorical_loss, cur_categorical_accuracy = test(model, device, test_loader)
+                general_loss[k] = cur_general_loss
+                general_accuracy[k] = cur_general_accuracy
+                categorical_loss[k, :] = cur_categorical_loss
+                categorical_accuracy[k, :] = cur_categorical_accuracy
 
-                print(f'Scale {scale} accuracy: {general_accuracy}')
+                print(f'Scale {scale} accuracy: {cur_general_accuracy}, loss: {cur_general_loss}')
 
             # save the accuracy as npz file
             loss_path = os.path.join(figs_dir, f'{network_model}_mnist_{image_size[0]}x{image_size[1]}_epoch{trained_epoch}_result.npz')
             np.savez(loss_path,
-                    general_loss_heatmap=general_loss_heatmap,
-                    general_accuracy_heatmap=general_accuracy_heatmap,
-                    categorical_loss_heatmap=categorical_loss_heatmap,
-                    categorical_accuracy_heatmap=categorical_accuracy_heatmap)
+                    general_loss=general_loss,
+                    general_accuracy=general_accuracy,
+                    categorical_loss=categorical_loss,
+                    categorical_accuracy=categorical_accuracy)
 
             print(f'\nTesting result has been saved to {loss_path}')
 
@@ -731,11 +732,11 @@ def main():
 
         if type == 'rotation':
             # print out average error per digit for both models
-            print(non_eqv_result['categorical_accuracy_heatmap'].shape)
-            for i in range(non_eqv_result['categorical_accuracy_heatmap'].shape[1]):
-                cur_non_eqv_avg = np.mean(non_eqv_result['categorical_accuracy_heatmap'][:, i])
-                cur_eqv_avg = np.mean(eqv_result['categorical_accuracy_heatmap'][:, i])
-                cur_aug_eqv_avg = np.mean(aug_eqv_result['categorical_accuracy_heatmap'][:, i])
+            print(non_eqv_result['categorical_accuracy'].shape)
+            for i in range(non_eqv_result['categorical_accuracy'].shape[1]):
+                cur_non_eqv_avg = np.mean(non_eqv_result['categorical_accuracy'][:, i])
+                cur_eqv_avg = np.mean(eqv_result['categorical_accuracy'][:, i])
+                cur_aug_eqv_avg = np.mean(aug_eqv_result['categorical_accuracy'][:, i])
                 print(f'\nDigit {i} avg accuracy for Non-eqv model: {cur_non_eqv_avg}')
                 print(f'Digit {i} avg accuracy for Eqv model: {cur_eqv_avg}')
                 print(f'Digit {i} avg accuracy for Aug-Eqv model: {cur_aug_eqv_avg}')
@@ -755,11 +756,11 @@ def main():
 
         elif type == 'shift':
             # print out average error per digit for both models
-            print(non_eqv_result['categorical_accuracy_heatmap'].shape)
-            for i in range(non_eqv_result['categorical_accuracy_heatmap'].shape[2]):
-                cur_non_eqv_avg = np.mean(non_eqv_result['categorical_accuracy_heatmap'][:, :, i])
-                cur_eqv_avg = np.mean(eqv_result['categorical_accuracy_heatmap'][:, :, i])
-                cur_aug_eqv_avg = np.mean(aug_eqv_result['categorical_accuracy_heatmap'][:, i])
+            print(non_eqv_result['categorical_accuracy'].shape)
+            for i in range(non_eqv_result['categorical_accuracy'].shape[2]):
+                cur_non_eqv_avg = np.mean(non_eqv_result['categorical_accuracy'][:, :, i])
+                cur_eqv_avg = np.mean(eqv_result['categorical_accuracy'][:, :, i])
+                cur_aug_eqv_avg = np.mean(aug_eqv_result['categorical_accuracy'][:, i])
                 print(f'\nDigit {i} avg accuracy for Non-eqv model: {cur_non_eqv_avg}')
                 print(f'Digit {i} avg accuracy for Eqv model: {cur_eqv_avg}')
                 print(f'Digit {i} avg accuracy for Aug-Eqv model: {cur_aug_eqv_avg}')
@@ -776,12 +777,12 @@ def main():
 
         elif type == 'scale':
             # print out average error per digit for both models
-            # print(non_eqv_result['categorical_accuracy_heatmap'].shape)
-            # for i in range(non_eqv_result['categorical_accuracy_heatmap'].shape[1]):
-            #     cur_non_eqv_avg = np.mean(non_eqv_result['categorical_accuracy_heatmap'][:, i])
-            #     cur_eqv_avg = np.mean(eqv_result['categorical_accuracy_heatmap'][:, i])
-            #     print(f'\nDigit {i} avg accuracy for Non-eqv model: {cur_non_eqv_avg}')
-            #     print(f'Digit {i} avg accuracy for Eqv model: {cur_eqv_avg}')
+            print(non_eqv_result['categorical_accuracy'].shape)
+            for i in range(non_eqv_result['categorical_accuracy'].shape[1]):
+                cur_non_eqv_avg = np.mean(non_eqv_result['categorical_accuracy'][:, i])
+                cur_eqv_avg = np.mean(eqv_result['categorical_accuracy'][:, i])
+                print(f'\nDigit {i} avg accuracy for Non-eqv model: {cur_non_eqv_avg}')
+                print(f'Digit {i} avg accuracy for Eqv model: {cur_eqv_avg}')
 
             # make and save the plot
             all_scales = [0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
