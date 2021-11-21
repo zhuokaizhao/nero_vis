@@ -7,38 +7,47 @@ from matplotlib import pyplot as plt
 import truncated_mvn_sampler
 
 
-# multivariate gaussian (correctly truncated)
-# for mnist rotate
-# sigma_x = 180
-# sigma_y = 180
-
-# # distribution that has the support as the image boundary
-# a = (-180 - 0) / sigma_x
-# b = (180 - 0) / sigma_y
-# r = np.array(truncnorm.rvs(a, b, scale=sigma_x, size = 10000))
+# # multivariate gaussian (correctly truncated)
+# # for mnist rotate
+# sigma = 180
+# a = (-180 - 0) / sigma
+# b = (180 - 0) / sigma
+# r = np.array(truncnorm.rvs(a, b, scale=sigma, size = 10000))
 # r = np.rint(r).astype(int)
 # print(max(r), min(r))
 # plt.hist(r, bins=range(-180, 181))
 # plt.show()
-# exit()
 
-# for mnist shift
-d = 2
-mu = np.zeros(d)
-cov = np.array([[100, 0], [0, 100]])
-lb = np.zeros_like(mu) - 20
-ub = np.zeros_like(mu) + 20
-n_samples = 10000
-tmvn = truncated_mvn_sampler.TruncatedMVN(mu, cov, lb, ub)
-x, y = tmvn.sample(n_samples)
-x = np.rint(x).astype(int)
-y = np.rint(y).astype(int)
-print(max(x), min(x))
-print(max(y), min(y))
-plt.hist2d(x, y, bins=range(-20, 21))
+# # for mnist shift
+# d = 2
+# mu = np.zeros(d)
+# cov = np.array([[100, 0], [0, 100]])
+# lb = np.zeros_like(mu) - 20
+# ub = np.zeros_like(mu) + 20
+# n_samples = 10000
+# tmvn = truncated_mvn_sampler.TruncatedMVN(mu, cov, lb, ub)
+# x, y = tmvn.sample(n_samples)
+# x = np.rint(x).astype(int)
+# y = np.rint(y).astype(int)
+# print(max(x), min(x))
+# print(max(y), min(y))
+# plt.hist2d(x, y, bins=range(-20, 21))
+# plt.show()
+
+# for mnist scale
+sigma = 0.35
+all_s = []
+for i in range(10000):
+    s = 0
+    while s <= 0.3 or s > 1:
+        s = np.random.normal(1.0, sigma, size=1)
+    all_s.append(s[0])
+plt.hist(all_s)
 plt.show()
 exit()
 
+
+# comparison between different truncated multivariate Gaussian sampling
 # multivariate gaussian (no truncation)
 mean = [0, 0]
 cov = [[100, 0], [0, 100]]
