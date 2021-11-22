@@ -27,11 +27,11 @@ def plot_interactive_line_polar(digits, all_labels, all_colors, all_results, plo
         col = i % 5 + 1
 
         for j, cur_result in enumerate(all_results):
-            cur_accuracy = cur_result[:, int(digit)]
-            angles = list(range(len(cur_accuracy)))
+            cur_value = cur_result[:, int(digit)]
+            angles = list(range(len(cur_value)))
 
             # non eqv accuracy
-            fig.add_trace(go.Scatterpolar(r = cur_accuracy,
+            fig.add_trace(go.Scatterpolar(r = cur_value,
                                             theta = angles,
                                             mode = 'lines',
                                             name = all_labels[j],
@@ -43,7 +43,8 @@ def plot_interactive_line_polar(digits, all_labels, all_colors, all_results, plo
         fig.update_traces(
             hovertemplate=
             "Rotated angle: %{theta:.0f}<br>" +
-            "Accuracy: %{r:.1%}<br>"
+            # "Accuracy: %{r:.1%}<br>"
+            "Loss: %{r:.2}<br>"
         )
 
         fig.update_annotations(yshift=20)
@@ -55,7 +56,47 @@ def plot_interactive_line_polar(digits, all_labels, all_colors, all_results, plo
 
     fig.update_layout(
         title = plot_title,
-        hovermode='x'
+        hovermode='x',
+        polar1 = dict(
+            radialaxis = dict(range=[0, 1.1], showticklabels=True, dtick=0.2),
+            angularaxis = dict(showticklabels=False, ticks='')
+        ),
+        polar2 = dict(
+            radialaxis = dict(range=[0, 1.1], showticklabels=True, dtick=0.2),
+            angularaxis = dict(showticklabels=False, ticks='')
+        ),
+        polar3 = dict(
+            radialaxis = dict(range=[0, 1.1], showticklabels=True, dtick=0.2),
+            angularaxis = dict(showticklabels=False, ticks='')
+        ),
+        polar4 = dict(
+            radialaxis = dict(range=[0, 1.1], showticklabels=True, dtick=0.2),
+            angularaxis = dict(showticklabels=False, ticks='')
+        ),
+        polar5 = dict(
+            radialaxis = dict(range=[0, 1.1], showticklabels=True, dtick=0.2),
+            angularaxis = dict(showticklabels=False, ticks='')
+        ),
+        polar6 = dict(
+            radialaxis = dict(range=[0, 1.1], showticklabels=True, dtick=0.2),
+            angularaxis = dict(showticklabels=False, ticks='')
+        ),
+        polar7 = dict(
+            radialaxis = dict(range=[0, 1.1], showticklabels=True, dtick=0.2),
+            angularaxis = dict(showticklabels=False, ticks='')
+        ),
+        polar8 = dict(
+            radialaxis = dict(range=[0, 1.1], showticklabels=True, dtick=0.2),
+            angularaxis = dict(showticklabels=False, ticks='')
+        ),
+        polar9 = dict(
+            radialaxis = dict(range=[0, 1.1], showticklabels=True, dtick=0.2),
+            angularaxis = dict(showticklabels=False, ticks='')
+        ),
+        polar10 = dict(
+            radialaxis = dict(range=[0, 1.1], showticklabels=True, dtick=0.2),
+            angularaxis = dict(showticklabels=False, ticks='')
+        ),
     )
 
     # fig.for_each_annotation(lambda a: a.update(text = subplot_names[a.text]))
@@ -249,10 +290,10 @@ def plot_interactive_line(digits, scales, all_labels, all_colors, all_results, p
         col = i % 5 + 1
 
         for k, cur_result in enumerate(all_results):
-            cur_accuracy = cur_result[:, int(digit)]
+            cur_value = cur_result[:, int(digit)]
             # non eqv accuracy
             fig.add_trace(go.Scatter(x = scales,
-                                     y = cur_accuracy,
+                                     y = cur_value,
                                     mode = 'lines',
                                     name = all_labels[k],
                                     line_color = all_colors[k]),
@@ -263,7 +304,8 @@ def plot_interactive_line(digits, scales, all_labels, all_colors, all_results, p
         fig.update_traces(
             hovertemplate=
             "Scaled factor: %{theta:.0f}<br>" +
-            "Accuracy: %{r:.1%}<br>"
+            # "Accuracy: %{r:.1%}<br>"
+            "Loss: %{r:.2}<br>"
         )
 
         fig.update_annotations(yshift=20)

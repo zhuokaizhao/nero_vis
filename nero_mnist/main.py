@@ -669,7 +669,7 @@ def main():
 
             print(f'\nTesting result has been saved to {loss_path}')
 
-        # test on each scale from 0.5 to 2
+        # test on each scale from 0.3 to 1.7
         elif type == 'scale':
             general_loss = np.zeros(len(all_scales))
             general_accuracy = np.zeros(len(all_scales))
@@ -730,6 +730,13 @@ def main():
         eqv_result = np.load(eqv_path)['categorical_loss']
         aug_eqv_result = np.load(aug_eqv_path)['categorical_loss']
 
+        # normalize all loss in 0/1 scale and have it one-minused
+        min_loss = np.min([np.min(non_eqv_result), np.min(eqv_result), np.min(aug_eqv_result)])
+        max_loss = np.max([np.max(non_eqv_result), np.max(eqv_result), np.max(aug_eqv_result)])
+        non_eqv_result = 1 - (non_eqv_result - min_loss) / (max_loss - min_loss)
+        eqv_result = 1 - (eqv_result - min_loss) / (max_loss - min_loss)
+        aug_eqv_result = 1 - (aug_eqv_result - min_loss) / (max_loss - min_loss)
+
         all_colors = ['peru', 'darkviolet', 'green']
 
         if type == 'rotation':
@@ -750,7 +757,7 @@ def main():
             plot_title = None
             plotting_digits = list(range(10))
             vis.plot_interactive_line_polar(plotting_digits,
-                                            ['CNN', 'E2CNN', 'CNN+Augmentation'],
+                                            ['CNN', 'Steerable CNN', 'CNN+Augmentation'],
                                             all_colors,
                                             [non_eqv_result, eqv_result, aug_eqv_result],
                                             plot_title,
