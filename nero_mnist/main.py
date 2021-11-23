@@ -648,6 +648,9 @@ def main():
             general_accuracy = np.zeros((shift_amount*2+1, shift_amount*2+1))
             categorical_loss = np.zeros((shift_amount*2+1, shift_amount*2+1, 10))
             categorical_accuracy = np.zeros((shift_amount*2+1, shift_amount*2+1, 10))
+            individual_categorical_loss = []
+            for d in range(10):
+                individual_categorical_loss.append([])
             for y_shift in range(-shift_amount, shift_amount+1):
                 for x_shift in range(-shift_amount, shift_amount+1):
                     # pad the MNIST image
@@ -684,21 +687,50 @@ def main():
                     test_loader = torch.utils.data.DataLoader(dataset, **test_kwargs)
 
                     # test the model
-                    cur_general_loss, cur_general_accuracy, cur_categorical_loss, cur_categorical_accuracy = test(model, device, test_loader)
+                    cur_general_loss, \
+                    cur_general_accuracy, \
+                    cur_categorical_loss, \
+                    cur_categorical_accuracy, \
+                    cur_individual_losses_per_digit = test(model, device, test_loader)
                     general_loss[y_shift+shift_amount, x_shift+shift_amount] = cur_general_loss
                     general_accuracy[y_shift+shift_amount, x_shift+shift_amount] = cur_general_accuracy
                     categorical_loss[y_shift+shift_amount, x_shift+shift_amount, :] = cur_categorical_loss
                     categorical_accuracy[y_shift+shift_amount, x_shift+shift_amount, :] = cur_categorical_accuracy
 
+                    for d in range(10):
+                        individual_categorical_loss[d].append(cur_individual_losses_per_digit[d])
+
                     print(f'shift amount x = {x_shift}, y = {y_shift} accuracy: {cur_general_accuracy}, loss: {cur_general_loss}')
 
             # save the accuracy as npz file
             loss_path = os.path.join(figs_dir, f'{network_model}_mnist_{image_size[0]}x{image_size[1]}_epoch{trained_epoch}_result.npz')
+
+            individual_categorical_loss_0 = np.array(individual_categorical_loss[0])
+            individual_categorical_loss_1 = np.array(individual_categorical_loss[1])
+            individual_categorical_loss_2 = np.array(individual_categorical_loss[2])
+            individual_categorical_loss_3 = np.array(individual_categorical_loss[3])
+            individual_categorical_loss_4 = np.array(individual_categorical_loss[4])
+            individual_categorical_loss_5 = np.array(individual_categorical_loss[5])
+            individual_categorical_loss_6 = np.array(individual_categorical_loss[6])
+            individual_categorical_loss_7 = np.array(individual_categorical_loss[7])
+            individual_categorical_loss_8 = np.array(individual_categorical_loss[8])
+            individual_categorical_loss_9 = np.array(individual_categorical_loss[9])
+
             np.savez(loss_path,
                     general_loss=general_loss,
                     general_accuracy=general_accuracy,
                     categorical_loss=categorical_loss,
-                    categorical_accuracy=categorical_accuracy)
+                    categorical_accuracy=categorical_accuracy,
+                    individual_categorical_loss_digit_0=individual_categorical_loss_0,
+                    individual_categorical_loss_digit_1=individual_categorical_loss_1,
+                    individual_categorical_loss_digit_2=individual_categorical_loss_2,
+                    individual_categorical_loss_digit_3=individual_categorical_loss_3,
+                    individual_categorical_loss_digit_4=individual_categorical_loss_4,
+                    individual_categorical_loss_digit_5=individual_categorical_loss_5,
+                    individual_categorical_loss_digit_6=individual_categorical_loss_6,
+                    individual_categorical_loss_digit_7=individual_categorical_loss_7,
+                    individual_categorical_loss_digit_8=individual_categorical_loss_8,
+                    individual_categorical_loss_digit_9=individual_categorical_loss_9)
 
             print(f'\nTesting result has been saved to {loss_path}')
 
