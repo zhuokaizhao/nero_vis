@@ -90,6 +90,7 @@ class RandomScale(object):
         self.scale = 0
         while self.scale < 0.3 or self.scale > 1.7:
             self.scale = np.random.normal(1.0, 0.35)
+
         # resize and pad the image equally to image_size
         resize_size = int(np.floor(self.img_size * self.scale))
         # size difference must be odd

@@ -122,14 +122,15 @@ def val(model, device, val_loader):
 def test(model, device, test_loader):
     model.eval()
     loss_function = torch.nn.CrossEntropyLoss(reduction='none')
-    general_batch_losses = []
-    general_batch_new_q = []
-    general_num_correct = 0
-    # categorical number of correct
-    categorical_num_digits = np.zeros(10, dtype=int)
-    categorical_num_correct = np.zeros(10, dtype=int)
-    # categorical loss
-    categorical_losses = np.zeros(10)
+    all_batch_avg_losses = []
+    total_num_correct = 0
+    # number of correct for each digit
+    num_digits_per_digit = np.zeros(10, dtype=int)
+    num_correct_per_digit = np.zeros(10, dtype=int)
+    # all individua loss saved per digit
+    individual_losses_per_digit = []
+    for i in range(10):
+        individual_losses_per_digit.append([])
 
     with torch.no_grad():
         for batch_idx, (data, target) in enumerate(test_loader):
@@ -140,29 +141,25 @@ def test(model, device, test_loader):
 
             # inference
             output = model(data)
-            # # one hot encoding of ground truth
-            # one_hot_target = torch.nn.functional.one_hot(target, num_classes=10).cpu().detach().numpy()
-            # new_q = np.sum(one_hot_target*output.cpu().detach().numpy(), axis=1)
-            # general_batch_new_q.append(np.mean(new_q))
             loss = loss_function(output, target)
-            general_batch_losses.append(torch.mean(loss).item())
+            all_batch_avg_losses.append(torch.mean(loss).item())
 
             # get the index of the max log-probability
             pred = output.argmax(dim=1, keepdim=True)
-            general_num_correct += pred.eq(target.view_as(pred)).sum().item()
+            total_num_correct += pred.eq(target.view_as(pred)).sum().item()
 
             # calculate per-class performance
             # total number of cases for each class (digit)
             for i in range(10):
-                categorical_num_digits[i] += int(target.cpu().tolist().count(i))
+                num_digits_per_digit[i] += int(target.cpu().tolist().count(i))
 
             # number of correct for each case
             for i in range(len(pred)):
-                # losses
-                categorical_losses[target.cpu().tolist()[i]] += loss[i]
+                # individual losses formed by digits
+                individual_losses_per_digit[target.cpu().tolist()[i]].append(loss[i].cpu().item())
                 # correctness
                 if pred.eq(target.view_as(pred))[i].item() == True:
-                    categorical_num_correct[target.cpu().tolist()[i]] += 1
+                    num_correct_per_digit[target.cpu().tolist()[i]] += 1
 
             batch_time_end = time.time()
             batch_time_cost = batch_time_end - batch_time_start
@@ -170,16 +167,21 @@ def test(model, device, test_loader):
             print_progress_bar(iteration=batch_idx+1,
                                 total=len(test_loader),
                                 prefix=f'Test batch {batch_idx+1}/{len(test_loader)},',
-                                suffix='%s: %.3f, time: %.2f' % ('CE loss', general_batch_losses[-1], batch_time_cost),
+                                suffix='%s: %.3f, time: %.2f' % ('CE loss', all_batch_avg_losses[-1], batch_time_cost),
                                 length=50)
 
-    general_loss = np.mean(general_batch_losses)
-    general_accuracy = general_num_correct / len(test_loader.dataset)
-    categorical_loss = categorical_losses / categorical_num_digits
-    categorical_accuracy = categorical_num_correct / categorical_num_digits
+    # average (over digits) loss and accuracy
+    avg_loss = np.mean(all_batch_avg_losses)
+    avg_accuracy = total_num_correct / len(test_loader.dataset)
+    # each digits loss and accuracy
+    sum_individual_losses_per_digit = np.zeros(10)
+    for i in range(10):
+        sum_individual_losses_per_digit[i] = sum(individual_losses_per_digit[i])
+    avg_loss_per_digit = sum_individual_losses_per_digit / num_digits_per_digit
+    avg_accuracy_per_digit = num_correct_per_digit / num_digits_per_digit
 
     # return the averaged batch loss
-    return general_loss, general_accuracy, categorical_loss, categorical_accuracy
+    return avg_loss, avg_accuracy, avg_loss_per_digit, avg_accuracy_per_digit, individual_losses_per_digit
 
 
 def main():
@@ -564,6 +566,9 @@ def main():
             general_accuracy = np.zeros(max_rot//increment)
             categorical_loss = np.zeros((max_rot//increment, 10))
             categorical_accuracy = np.zeros((max_rot//increment, 10))
+            individual_categorical_loss = []
+            for d in range(10):
+                individual_categorical_loss.append([])
 
             for k in range(0, max_rot, increment):
                 print(f'\n Testing rotation angle {k}/{max_rot-increment}')
@@ -581,11 +586,18 @@ def main():
                 test_loader = torch.utils.data.DataLoader(dataset, **test_kwargs)
 
                 # test the model
-                cur_general_loss, cur_general_accuracy, cur_categorical_loss, cur_categorical_accuracy = test(model, device, test_loader)
+                cur_general_loss, \
+                cur_general_accuracy, \
+                cur_categorical_loss, \
+                cur_categorical_accuracy, \
+                cur_individual_losses_per_digit = test(model, device, test_loader)
                 general_loss[k//increment] = cur_general_loss
                 general_accuracy[k//increment] = cur_general_accuracy
                 categorical_loss[k//increment, :] = cur_categorical_loss
                 categorical_accuracy[k//increment, :] = cur_categorical_accuracy
+
+                for d in range(10):
+                    individual_categorical_loss[d].append(cur_individual_losses_per_digit[d])
 
                 print(f'Rotation {k} accuracy: {cur_general_accuracy}, loss: {cur_general_loss}')
 
@@ -595,11 +607,32 @@ def main():
             elif network_model == 'rot-eqv':
                 loss_path = os.path.join(figs_dir, f'{network_model}_rot-group{num_rotation}_mnist_{image_size[0]}x{image_size[1]}_angle-increment{increment}_epoch{trained_epoch}_result.npz')
 
+            individual_categorical_loss_0 = np.array(individual_categorical_loss[0])
+            individual_categorical_loss_1 = np.array(individual_categorical_loss[1])
+            individual_categorical_loss_2 = np.array(individual_categorical_loss[2])
+            individual_categorical_loss_3 = np.array(individual_categorical_loss[3])
+            individual_categorical_loss_4 = np.array(individual_categorical_loss[4])
+            individual_categorical_loss_5 = np.array(individual_categorical_loss[5])
+            individual_categorical_loss_6 = np.array(individual_categorical_loss[6])
+            individual_categorical_loss_7 = np.array(individual_categorical_loss[7])
+            individual_categorical_loss_8 = np.array(individual_categorical_loss[8])
+            individual_categorical_loss_9 = np.array(individual_categorical_loss[9])
+
             np.savez(loss_path,
                     general_loss=general_loss,
                     general_accuracy=general_accuracy,
                     categorical_loss=categorical_loss,
-                    categorical_accuracy=categorical_accuracy)
+                    categorical_accuracy=categorical_accuracy,
+                    individual_categorical_loss_digit_0=individual_categorical_loss_0,
+                    individual_categorical_loss_digit_1=individual_categorical_loss_1,
+                    individual_categorical_loss_digit_2=individual_categorical_loss_2,
+                    individual_categorical_loss_digit_3=individual_categorical_loss_3,
+                    individual_categorical_loss_digit_4=individual_categorical_loss_4,
+                    individual_categorical_loss_digit_5=individual_categorical_loss_5,
+                    individual_categorical_loss_digit_6=individual_categorical_loss_6,
+                    individual_categorical_loss_digit_7=individual_categorical_loss_7,
+                    individual_categorical_loss_digit_8=individual_categorical_loss_8,
+                    individual_categorical_loss_digit_9=individual_categorical_loss_9)
 
             print(f'\nTesting result has been saved to {loss_path}')
 
@@ -738,6 +771,7 @@ def main():
         aug_eqv_result = 1 - (aug_eqv_result - min_loss) / (max_loss - min_loss)
 
         all_colors = ['peru', 'darkviolet', 'green']
+        all_styles = ['solid', 'dot', 'dash']
 
         if type == 'rotation':
             # print out average error per digit for both models
@@ -759,6 +793,7 @@ def main():
             vis.plot_interactive_line_polar(plotting_digits,
                                             ['CNN', 'Steerable CNN', 'CNN+Augmentation'],
                                             all_colors,
+                                            all_styles,
                                             [non_eqv_result, eqv_result, aug_eqv_result],
                                             plot_title,
                                             result_path)
