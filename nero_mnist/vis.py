@@ -7,18 +7,25 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
 
-def plot_interactive_line_polar(digits, all_labels, all_colors, all_styles, all_results, plot_title, result_path):
+def plot_interactive_line_polar(digits, all_labels, all_colors, all_styles, all_results, plot_title, subplot_names, result_path):
 
-    # plot for all digits
-    subplot_names = []
-    for digit in digits:
-        subplot_names.append(f'Digit {digit}')
+    # plot for all digits/indices
+    num_row = len(digits) // 5
+    num_col = len(digits) // 2
+    if num_row == 0:
+        num_row += 1
+    if num_col == 0:
+        num_col += 1
+    subplot_specs = []
+    for i in range(num_row):
+        subplot_specs.append([])
+        for j in range(num_col):
+            subplot_specs[i].append({'type': 'polar'})
 
     # 10 digits, divided into 2*5 subplots
-    fig = make_subplots(rows=2, cols=5,
+    fig = make_subplots(rows=num_row, cols=num_col,
                         subplot_titles=subplot_names,
-                        specs=[[{'type': 'polar'}, {'type': 'polar'}, {'type': 'polar'}, {'type': 'polar'}, {'type': 'polar'}],
-                               [{'type': 'polar'}, {'type': 'polar'}, {'type': 'polar'}, {'type': 'polar'}, {'type': 'polar'}]]
+                        specs=subplot_specs
                         )
     for i, digit in enumerate(digits):
 

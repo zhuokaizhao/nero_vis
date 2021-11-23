@@ -185,6 +185,18 @@ def test(model, device, test_loader):
     return avg_loss, avg_accuracy, avg_loss_per_digit, avg_accuracy_per_digit, individual_losses_per_digit
 
 
+# normalize input array input [0, 1]
+def normalize_0_1(in_array, in_min=None, in_max=None):
+    if in_min == None:
+        in_min = np.min(in_array)
+    if in_max == None:
+        in_max = np.max(in_array)
+
+    out_array = 1 - (in_array - in_min) / (in_max - in_min)
+
+    return out_array
+
+
 def main():
     # Training settings
     parser = argparse.ArgumentParser(description='NERO plots with MNIST')
@@ -599,6 +611,8 @@ def main():
 
                 for d in range(10):
                     individual_categorical_loss[d].append(cur_individual_losses_per_digit[d])
+                    # print(np.array(individual_categorical_loss[d]).shape)
+                    # exit()
 
                 print(f'Rotation {k} accuracy: {cur_general_accuracy}, loss: {cur_general_loss}')
 
@@ -803,9 +817,9 @@ def main():
         # normalize all loss in 0/1 scale and have it one-minused
         min_loss = np.min([np.min(non_eqv_result), np.min(eqv_result), np.min(aug_eqv_result)])
         max_loss = np.max([np.max(non_eqv_result), np.max(eqv_result), np.max(aug_eqv_result)])
-        non_eqv_result = 1 - (non_eqv_result - min_loss) / (max_loss - min_loss)
-        eqv_result = 1 - (eqv_result - min_loss) / (max_loss - min_loss)
-        aug_eqv_result = 1 - (aug_eqv_result - min_loss) / (max_loss - min_loss)
+        non_eqv_result = normalize_0_1(non_eqv_result, min_loss, max_loss)
+        eqv_result = normalize_0_1(eqv_result, min_loss, max_loss)
+        aug_eqv_result = normalize_0_1(aug_eqv_result, min_loss, max_loss)
 
         all_colors = ['peru', 'darkviolet', 'green']
         all_styles = ['solid', 'dot', 'dash']
@@ -821,23 +835,65 @@ def main():
                 print(f'Digit {i} avg loss for Aug-Eqv model: {cur_aug_eqv_avg}')
 
             # make and save the plot
+            method_labels = ['CNN', 'Steerable CNN', 'CNN+Augmentation']
             # plot interactive polar line plots
             result_path = os.path.join(figs_dir, f'mnist_{mode}_{type}.html')
             # plot_title = f'Non-equivariant vs Equivariant model on {data_name} Digit {i}'
             plot_title = None
             plotting_digits = list(range(10))
+            subplot_names = []
+            for digit in plotting_digits:
+                subplot_names.append(f'Digit {digit}')
             vis.plot_interactive_line_polar(plotting_digits,
-                                            ['CNN', 'Steerable CNN', 'CNN+Augmentation'],
+                                            method_labels,
                                             all_colors,
                                             all_styles,
                                             [non_eqv_result, eqv_result, aug_eqv_result],
                                             plot_title,
+                                            subplot_names,
                                             result_path)
+
+            # load and reformat all individual results (all 10 digits)
+            individual_non_eqv_results = []
+            individual_eqv_results = []
+            individual_aug_eqv_results = []
+            for i in range(10):
+                # each non_eqv_result_file[f'individual_categorical_loss_digit_{i}'] is num_degrees * num_digit_samples
+                individual_non_eqv_results.append(normalize_0_1(non_eqv_result_file[f'individual_categorical_loss_digit_{i}'], min_loss, max_loss))
+                individual_eqv_results.append(normalize_0_1(eqv_result_file[f'individual_categorical_loss_digit_{i}'], min_loss, max_loss))
+                individual_aug_eqv_results.append(normalize_0_1(aug_eqv_result_file[f'individual_categorical_loss_digit_{i}'], min_loss, max_loss))
+
+            # plot individual polar line plot
+            plot_title = None
+            plotting_individual_digit = [6]
+            plotting_sample_indices = list(range(10))
+            # plot index
+            for i in plotting_individual_digit:
+                subplot_names = []
+                for index in plotting_sample_indices:
+                    subplot_names.append(f'Sample {index}')
+
+                cur_individual_non_eqv = individual_non_eqv_results[i]
+                cur_individual_eqv = individual_eqv_results[i]
+                cur_individual_aug_eqv = individual_aug_eqv_results[i]
+                cur_result_path = os.path.join(figs_dir, f'mnist_{mode}_{type}_digit{i}_samples.html')
+
+                vis.plot_interactive_line_polar(plotting_sample_indices,
+                                                method_labels,
+                                                all_colors,
+                                                all_styles,
+                                                [cur_individual_non_eqv, cur_individual_eqv, cur_individual_aug_eqv],
+                                                plot_title,
+                                                subplot_names,
+                                                cur_result_path)
+
+            exit()
 
             # dimension reduction on aggregated nero
             individual_categorical_losses = [non_eqv_result_file,
                                             eqv_result_file,
                                             aug_eqv_result_file]
+
             individual_categorical_losses_low_dimensions = [[], [], []]
 
             # PCA
