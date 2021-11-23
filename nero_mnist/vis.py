@@ -7,7 +7,7 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
 
-def plot_interactive_line_polar(digits, all_labels, all_colors, all_results, plot_title, result_path):
+def plot_interactive_line_polar(digits, all_labels, all_colors, all_styles, all_results, plot_title, result_path):
 
     # plot for all digits
     subplot_names = []
@@ -35,6 +35,7 @@ def plot_interactive_line_polar(digits, all_labels, all_colors, all_results, plo
                                             theta = angles,
                                             mode = 'lines',
                                             name = all_labels[j],
+                                            line = {'dash': f'{all_styles[j]}'},
                                             line_color = all_colors[j]),
                 row = row,
                 col = col
@@ -174,18 +175,28 @@ def plot_interactive_heatmap(digits, all_labels, all_results, plot_title, result
     print(f'\nInteractive heatmap has been saved to {result_path}')
 
 
-def plot_interactive_3D_scatter(digits, all_labels, all_colors, all_results, plot_title, result_path):
+def plot_interactive_scatter(mode, digits, all_labels, all_colors, all_styles, all_results, plot_title, result_path):
 
     # plot for all digits
     subplot_names = []
     for digit in digits:
         subplot_names.append(f'Digit {digit}')
 
-    fig = make_subplots(rows=2, cols=5,
-                        subplot_titles=subplot_names,
-                        specs=[[{'is_3d': True}, {'is_3d': True}, {'is_3d': True}, {'is_3d': True}, {'is_3d': True}],
-                               [{'is_3d': True}, {'is_3d': True}, {'is_3d': True}, {'is_3d': True}, {'is_3d': True}]]
-                        )
+    num_row = len(digits) // 5
+    num_col = len(digits) // 2
+    if num_row == 0:
+        num_row += 1
+    if num_col == 0:
+        num_col += 1
+
+    if mode == '2d' or mode == '2D':
+        fig = make_subplots(rows=num_row, cols=num_col, subplot_titles=subplot_names)
+    elif mode == '3d' or mode == '3D':
+        fig = make_subplots(rows=num_row, cols=num_col,
+                            subplot_titles=subplot_names,
+                            specs=[[{'is_3d': True}, {'is_3d': True}, {'is_3d': True}, {'is_3d': True}, {'is_3d': True}],
+                                    [{'is_3d': True}, {'is_3d': True}, {'is_3d': True}, {'is_3d': True}, {'is_3d': True}]]
+                            )
 
     for i, digit in enumerate(digits):
 
@@ -194,43 +205,42 @@ def plot_interactive_3D_scatter(digits, all_labels, all_colors, all_results, plo
         col = i % 5 + 1
 
         for j, cur_result in enumerate(all_results):
-            cur_accuracy = cur_result['categorical_accuracy_heatmap'][:, :, int(digit)]
 
-            vertical_translations = np.array(list(range(len(cur_accuracy))))-20
-            horizontal_translations = np.array(list(range(len(cur_accuracy[0]))))-20
+            cur_value = cur_result[i]
 
-            # since scatter3d takes 1d matrix
-            all_x = []
-            all_y = []
-            all_accuracy = []
-            for y in vertical_translations:
-                for x in horizontal_translations:
-                    all_x.append(x)
-                    all_y.append(y)
-                    all_accuracy.append(cur_accuracy[y, x])
-
-            # plot accuracy
-            fig.add_trace(go.Scatter3d(x = all_x,
-                                        y = all_y,
-                                        z = all_accuracy,
+            # plot result
+            if mode == '2d' or mode == '2D':
+                fig.add_trace(go.Scatter(x = cur_value[:, 0],
+                                        y = cur_value[:, 1],
                                         name = all_labels[j],
                                         mode='markers',
                                         marker=dict(
-                                            size=2,
+                                            size=12,
                                             color=all_colors[j],
-                                            opacity=0.3
-                                        )
-                                        ),
-                row = row,
-                col = col
-            )
+                                            opacity=0.5,
+                                            symbol=all_styles[j]
+                                        )),
+                    row = row,
+                    col = col
+                )
+            elif mode == '3d' or mode == '3D':
+                fig.add_trace(go.Scatter3d(x = cur_value[:, 0],
+                                            y = cur_value[:, 1],
+                                            z = cur_value[:, 2],
+                                            name = all_labels[j],
+                                            mode='markers',
+                                            marker=dict(
+                                                size=12,
+                                                color=all_colors[j],
+                                                opacity=0.5
+                                            )),
+                    row = row,
+                    col = col
+                )
 
-        # set x axes on top
-        # fig.update_xaxes(side='top')
-        # fig.update_xaxes(side='top')
         # reverse both y axes
-        fig.update_yaxes(autorange='reversed')
-        fig.update_yaxes(autorange='reversed')
+        # fig.update_yaxes(autorange='reversed')
+        # fig.update_yaxes(autorange='reversed')
 
         # only show one legend
         for i, trace in enumerate(fig['data']):
@@ -243,10 +253,9 @@ def plot_interactive_3D_scatter(digits, all_labels, all_colors, all_results, plo
             # title_x=0.5,
             # xaxis=dict(title='x translation'),
             # yaxis=dict(title='y translation'),
-            coloraxis=dict(colorscale = 'Viridis')
         )
 
-        fig.update_coloraxes(colorbar=dict(title='Accuracy'))
+        # fig.update_coloraxes(colorbar=dict(title='Accuracy'))
 
         fig.update_annotations(yshift=20)
 
@@ -269,7 +278,7 @@ def plot_interactive_3D_scatter(digits, all_labels, all_colors, all_results, plo
     else:
         fig.write_image(result_path)
 
-    print(f'\nInteractive heatmap has been saved to {result_path}')
+    print(f'\nInteractive {mode} scatter plot has been saved to {result_path}')
 
 
 def plot_interactive_line(digits, scales, all_labels, all_colors, all_results, plot_title, result_path):

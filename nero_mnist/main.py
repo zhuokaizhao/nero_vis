@@ -12,6 +12,7 @@ from subprocess import call
 import torch.nn.functional as F
 import matplotlib.pyplot as plt
 import plotly.graph_objects as go
+from sklearn.decomposition import PCA
 from pytorch_model_summary import summary
 from torch.optim.lr_scheduler import StepLR
 
@@ -791,9 +792,13 @@ def main():
             print(f'output figures dir: {figs_dir}')
 
         # load the non-eqv and eqv result
-        non_eqv_result = np.load(non_eqv_path)['categorical_loss']
-        eqv_result = np.load(eqv_path)['categorical_loss']
-        aug_eqv_result = np.load(aug_eqv_path)['categorical_loss']
+        non_eqv_result_file = np.load(non_eqv_path)
+        eqv_result_file = np.load(eqv_path)
+        aug_eqv_result_file = np.load(aug_eqv_path)
+
+        non_eqv_result = non_eqv_result_file['categorical_loss']
+        eqv_result = eqv_result_file['categorical_loss']
+        aug_eqv_result = aug_eqv_result_file['categorical_loss']
 
         # normalize all loss in 0/1 scale and have it one-minused
         min_loss = np.min([np.min(non_eqv_result), np.min(eqv_result), np.min(aug_eqv_result)])
@@ -807,7 +812,6 @@ def main():
 
         if type == 'rotation':
             # print out average error per digit for both models
-            print(non_eqv_result.shape)
             for i in range(non_eqv_result.shape[1]):
                 cur_non_eqv_avg = np.mean(non_eqv_result[:, i])
                 cur_eqv_avg = np.mean(eqv_result[:, i])
@@ -829,6 +833,34 @@ def main():
                                             [non_eqv_result, eqv_result, aug_eqv_result],
                                             plot_title,
                                             result_path)
+
+            # dimension reduction on aggregated nero
+            individual_categorical_losses = [non_eqv_result_file,
+                                            eqv_result_file,
+                                            aug_eqv_result_file]
+            individual_categorical_losses_low_dimensions = [[], [], []]
+
+            # PCA
+            pca_dim = 2
+            plotting_digits_pca = list(range(10))
+            plotting_digits_pca = [6]
+            pca = PCA(n_components=pca_dim, svd_solver='full')
+            for i in range(len(individual_categorical_losses)):
+                for j in plotting_digits_pca:
+                    individual_categorical_losses_low_dimensions[i].append(pca.fit_transform(individual_categorical_losses[i][f'individual_categorical_loss_digit_{j}']))
+
+            # plot scatter plot
+            all_marker_styles = ['circle', 'square', 'diamond']
+            pca_result_path = os.path.join(figs_dir, f'mnist_{mode}_{type}_pca_scatter.html')
+            # marker type
+            vis.plot_interactive_scatter('2D',
+                                        plotting_digits_pca,
+                                        ['CNN', 'Steerable CNN', 'CNN+Augmentation'],
+                                        all_colors,
+                                        all_marker_styles,
+                                        individual_categorical_losses_low_dimensions,
+                                        plot_title,
+                                        pca_result_path)
 
         elif type == 'shift':
             # print out average error per digit for both models
