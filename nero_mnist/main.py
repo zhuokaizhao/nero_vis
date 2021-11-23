@@ -841,9 +841,9 @@ def main():
             individual_categorical_losses_low_dimensions = [[], [], []]
 
             # PCA
-            pca_dim = 2
+            pca_dim = 3
             plotting_digits_pca = list(range(10))
-            plotting_digits_pca = [6]
+            # plotting_digits_pca = [6]
             pca = PCA(n_components=pca_dim, svd_solver='full')
             for i in range(len(individual_categorical_losses)):
                 for j in plotting_digits_pca:
@@ -853,7 +853,7 @@ def main():
             all_marker_styles = ['circle', 'square', 'diamond']
             pca_result_path = os.path.join(figs_dir, f'mnist_{mode}_{type}_pca_scatter.html')
             # marker type
-            vis.plot_interactive_scatter('2D',
+            vis.plot_interactive_scatter(pca_dim,
                                         plotting_digits_pca,
                                         ['CNN', 'Steerable CNN', 'CNN+Augmentation'],
                                         all_colors,

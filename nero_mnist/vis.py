@@ -175,7 +175,7 @@ def plot_interactive_heatmap(digits, all_labels, all_results, plot_title, result
     print(f'\nInteractive heatmap has been saved to {result_path}')
 
 
-def plot_interactive_scatter(mode, digits, all_labels, all_colors, all_styles, all_results, plot_title, result_path):
+def plot_interactive_scatter(dim, digits, all_labels, all_colors, all_styles, all_results, plot_title, result_path):
 
     # plot for all digits
     subplot_names = []
@@ -189,9 +189,9 @@ def plot_interactive_scatter(mode, digits, all_labels, all_colors, all_styles, a
     if num_col == 0:
         num_col += 1
 
-    if mode == '2d' or mode == '2D':
+    if dim == 2:
         fig = make_subplots(rows=num_row, cols=num_col, subplot_titles=subplot_names)
-    elif mode == '3d' or mode == '3D':
+    elif dim == 3:
         fig = make_subplots(rows=num_row, cols=num_col,
                             subplot_titles=subplot_names,
                             specs=[[{'is_3d': True}, {'is_3d': True}, {'is_3d': True}, {'is_3d': True}, {'is_3d': True}],
@@ -209,13 +209,13 @@ def plot_interactive_scatter(mode, digits, all_labels, all_colors, all_styles, a
             cur_value = cur_result[i]
 
             # plot result
-            if mode == '2d' or mode == '2D':
+            if dim == 2:
                 fig.add_trace(go.Scatter(x = cur_value[:, 0],
                                         y = cur_value[:, 1],
                                         name = all_labels[j],
                                         mode='markers',
                                         marker=dict(
-                                            size=12,
+                                            size=6,
                                             color=all_colors[j],
                                             opacity=0.5,
                                             symbol=all_styles[j]
@@ -223,14 +223,14 @@ def plot_interactive_scatter(mode, digits, all_labels, all_colors, all_styles, a
                     row = row,
                     col = col
                 )
-            elif mode == '3d' or mode == '3D':
+            elif dim == 3:
                 fig.add_trace(go.Scatter3d(x = cur_value[:, 0],
                                             y = cur_value[:, 1],
                                             z = cur_value[:, 2],
                                             name = all_labels[j],
                                             mode='markers',
                                             marker=dict(
-                                                size=12,
+                                                size=6,
                                                 color=all_colors[j],
                                                 opacity=0.5
                                             )),
@@ -278,7 +278,7 @@ def plot_interactive_scatter(mode, digits, all_labels, all_colors, all_styles, a
     else:
         fig.write_image(result_path)
 
-    print(f'\nInteractive {mode} scatter plot has been saved to {result_path}')
+    print(f'\nInteractive {dim}D scatter plot has been saved to {result_path}')
 
 
 def plot_interactive_line(digits, scales, all_labels, all_colors, all_results, plot_title, result_path):
