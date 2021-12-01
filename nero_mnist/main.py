@@ -865,10 +865,11 @@ def main():
 
             # plot individual polar line plot
             plot_title = None
-            plotting_individual_digit = [6]
-            plotting_sample_indices = list(range(10))
+            plotting_individual_digits = [6]
+            # randomly pick 10 digits
+            plotting_sample_indices = np.random.randint(0, 360, size=10)
             # plot index
-            for i in plotting_individual_digit:
+            for i in plotting_individual_digits:
                 subplot_names = []
                 for index in plotting_sample_indices:
                     subplot_names.append(f'Sample {index}')
@@ -887,34 +888,31 @@ def main():
                                                 subplot_names,
                                                 cur_result_path)
 
-            exit()
-
             # dimension reduction on aggregated nero
-            individual_categorical_losses = [non_eqv_result_file,
-                                            eqv_result_file,
-                                            aug_eqv_result_file]
+            individual_losses = [individual_non_eqv_results,
+                                    individual_eqv_results,
+                                    individual_aug_eqv_results]
 
-            individual_categorical_losses_low_dimensions = [[], [], []]
+            individual_losses_low_dimensions = [[], [], []]
 
             # PCA
             pca_dim = 3
-            plotting_digits_pca = list(range(10))
-            # plotting_digits_pca = [6]
             pca = PCA(n_components=pca_dim, svd_solver='full')
-            for i in range(len(individual_categorical_losses)):
-                for j in plotting_digits_pca:
-                    individual_categorical_losses_low_dimensions[i].append(pca.fit_transform(individual_categorical_losses[i][f'individual_categorical_loss_digit_{j}']))
+            for i in range(len(individual_losses)):
+                for j in plotting_individual_digits:
+                    # individual_losses[i][j] has shape num_degrees * num_digit_samples, thus transpose before feeding into pca
+                    individual_losses_low_dimensions[i].append(pca.fit_transform(individual_losses[i][j].transpose()))
 
             # plot scatter plot
             all_marker_styles = ['circle', 'square', 'diamond']
-            pca_result_path = os.path.join(figs_dir, f'mnist_{mode}_{type}_pca_scatter.html')
+            pca_result_path = os.path.join(figs_dir, f'mnist_{mode}_{type}_pca_{pca_dim}d_scatter.html')
             # marker type
             vis.plot_interactive_scatter(pca_dim,
-                                        plotting_digits_pca,
-                                        ['CNN', 'Steerable CNN', 'CNN+Augmentation'],
+                                        plotting_individual_digits,
+                                        method_labels,
                                         all_colors,
                                         all_marker_styles,
-                                        individual_categorical_losses_low_dimensions,
+                                        individual_losses_low_dimensions,
                                         plot_title,
                                         pca_result_path)
 
