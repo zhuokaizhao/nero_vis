@@ -12,7 +12,7 @@ class UI_MainWindow(QWidget):
         super().__init__()
         # general layout
         self.layout = QtWidgets.QVBoxLayout(self)
-        self.layout.setAlignment(QtCore.Qt.AlignTop)
+        self.layout.setAlignment(QtCore.Qt.AlignCenter)
         # left, top, right, and bottom margins
         self.layout.setContentsMargins(100, 100, 100, 100)
 
@@ -25,9 +25,9 @@ class UI_MainWindow(QWidget):
         self.mode_layout.setContentsMargins(0, 0, 0, 50)
         # image and model loading push buttons
         self.load_button_layout = QtWidgets.QGridLayout()
-        # future loaded images layout
-        self.image_layout = QtWidgets.QVBoxLayout()
-        self.image_layout.setContentsMargins(0, 50, 0, 50)
+        # future loaded images and model layout
+        self.loaded_layout = QtWidgets.QGridLayout()
+        self.loaded_layout.setContentsMargins(30, 50, 30, 50)
 
         # title of the application
         self.title = QLabel('Non-Equivariance Revealed on Orbits',
@@ -67,7 +67,7 @@ class UI_MainWindow(QWidget):
         self.layout.addLayout(self.title_layout)
         self.layout.addLayout(self.mode_layout)
         self.layout.addLayout(self.load_button_layout)
-        self.layout.addLayout(self.image_layout)
+        self.layout.addLayout(self.loaded_layout)
 
         # flag to check if an image has been displayed
         self.image_existed = False
@@ -93,22 +93,28 @@ class UI_MainWindow(QWidget):
     @QtCore.Slot()
     def load_image_clicked(self):
         self.image_path, _ = QFileDialog.getOpenFileName(self, QObject.tr('Load Test Image'))
+        # in case user did not load any image
+        if self.image_path == '':
+            return
         print(f'Loaded image {self.image_path}')
         # display the image
         self.display_image(self.image_existed)
         # change the button text
         image_name = self.image_path.split('/')[-1]
-        self.data_button.setText(f'Loaded image {image_name}. Click to reload new model')
+        self.data_button.setText(f'Loaded image {image_name}. Click to load new image')
 
     @QtCore.Slot()
     def load_model_clicked(self):
         self.model_path, _ = QFileDialog.getOpenFileName(self, QObject.tr('Load Model'))
+        # in case user did not load any image
+        if self.model_path == '':
+            return
         print(f'Loaded model {self.model_path}')
         # display the model
         self.display_model(self.model_existed)
         # change the button text
         model_name = self.model_path.split('/')[-1]
-        self.model_button.setText(f'Loaded model {model_name}. Click to reload new model')
+        self.model_button.setText(f'Loaded model {model_name}. Click to load new model')
 
     def display_image(self, image_existed):
 
@@ -123,12 +129,33 @@ class UI_MainWindow(QWidget):
         self.image_label.setPixmap(image_pixmap)
 
         # add this image to the layout
-        self.image_layout.addWidget(self.image_label)
+        self.loaded_layout.addWidget(self.image_label, 0, 0)
         self.image_existed = True
 
-    # def display_model(self, model_existed):
+    def display_model(self, model_existed):
+        # add a new label for loaded image if no image has existed
+        if not model_existed:
+            self.model_label = QLabel(self)
 
+        model_pixmap = QPixmap(200, 200)
+        self.model_label.setPixmap(model_pixmap)
 
+        # draw model diagram (simple rectangle for now)
+        painter = QtGui.QPainter(model_pixmap)
+        # set pen (used to draw outlines of shapes) and brush (draw the background of a shape)
+        color = QtGui.QColor(0, 0, 0)
+        # color.setNamedColor('#d4d4d4')
+        painter.setPen(color)
+        painter.setBrush(QtGui.QColor(255, 80, 0, 160))
+
+        # design rectangle
+        rectangle = QtCore.QRect(200, 20, 20, 20)
+        painter.drawRect(rectangle)
+        painter.end()
+
+        # add this rectangle to the layout
+        self.loaded_layout.addWidget(self.model_label, 0, 2)
+        self.model_existed = True
 
 
 
