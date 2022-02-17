@@ -12,12 +12,16 @@ class UI_MainWindow(QWidget):
         super().__init__()
 
         self.layout = QtWidgets.QVBoxLayout(self)
+        self.title_layout = QtWidgets.QVBoxLayout()
+        self.mode_layout = QtWidgets.QGridLayout()
+        self.load_button_layout = QtWidgets.QGridLayout()
 
         # title of the application
         self.title = QLabel('Non-Equivariance Revealed on Orbits',
                             alignment=QtCore.Qt.AlignCenter)
         self.title.setFont(QFont('Helvetica', 20))
-        self.layout.addWidget(self.title)
+        self.title_layout.addWidget(self.title)
+        self.title_layout.addStretch(1)
 
         # default app mode is classification
         self.mode = 'classification'
@@ -26,29 +30,32 @@ class UI_MainWindow(QWidget):
         # radio_buttons_layout = QtWidgets.QGridLayout(self)
         self.radio_button_1 = QRadioButton('Classification')
         self.radio_button_1.setChecked(True)
-        self.radio_button_1.move(130, 20)
-        self.radio_button_1.toggled.connect(self.radio_button_1_clicked)
-        self.layout.addWidget(self.radio_button_1)
+        self.radio_button_1.pressed.connect(self.radio_button_1_clicked)
+        self.mode_layout.addWidget(self.radio_button_1, 0, 0)
 
         self.radio_button_2 = QRadioButton('Object Detection')
         self.radio_button_2.setChecked(False)
-        self.radio_button_2.toggled.connect(self.radio_button_2_clicked)
-        self.layout.addWidget(self.radio_button_2)
+        self.radio_button_2.pressed.connect(self.radio_button_2_clicked)
+        self.mode_layout.addWidget(self.radio_button_2, 0, 1)
 
         self.radio_button_3 = QRadioButton('Particle Image Velocimetry (PIV)')
         self.radio_button_3.setChecked(False)
-        self.radio_button_3.toggled.connect(self.radio_button_3_clicked)
-        self.layout.addWidget(self.radio_button_3)
+        self.radio_button_3.pressed.connect(self.radio_button_3_clicked)
+        self.mode_layout.addWidget(self.radio_button_3, 0, 2)
 
         # load data button
         self.data_button = QtWidgets.QPushButton('Load Test Image')
         # self.data_button.setFixedSize(QtCore.QSize(300, 100))
-        self.layout.addWidget(self.data_button)
+        self.load_button_layout.addWidget(self.data_button)
         self.data_button.clicked.connect(self.select_images)
         # load model button
         self.model_button = QtWidgets.QPushButton('Load Model')
-        self.layout.addWidget(self.model_button)
+        self.load_button_layout.addWidget(self.model_button)
         self.model_button.clicked.connect(self.select_model)
+
+        self.layout.addLayout(self.title_layout)
+        self.layout.addLayout(self.mode_layout)
+        self.layout.addLayout(self.load_button_layout)
 
         # flag to check if an image has been displayed
         self.image_existed = False
