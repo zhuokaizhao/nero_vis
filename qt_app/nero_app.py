@@ -2,9 +2,9 @@ import sys
 import requests
 # import random
 from PySide6 import QtCore, QtWidgets, QtGui
-from PySide6.QtGui  import QPixmap
+from PySide6.QtGui  import QPixmap, QFont
 from PySide6.QtCore import QObject
-from PySide6.QtWidgets import QFileDialog, QWidget, QLabel
+from PySide6.QtWidgets import QFileDialog, QWidget, QLabel, QRadioButton
 
 
 class UI_MainWindow(QWidget):
@@ -13,43 +13,92 @@ class UI_MainWindow(QWidget):
 
         self.layout = QtWidgets.QVBoxLayout(self)
 
-        # welcome text
-        self.text = QtWidgets.QLabel('Non-Equivariance Revealed on Orbits',
-                                     alignment=QtCore.Qt.AlignCenter)
-        self.layout.addWidget(self.text)
+        # title of the application
+        self.title = QLabel('Non-Equivariance Revealed on Orbits',
+                            alignment=QtCore.Qt.AlignCenter)
+        self.title.setFont(QFont('Helvetica', 20))
+        self.layout.addWidget(self.title)
 
-        # select dataset button
-        self.data_button = QtWidgets.QPushButton('Select data path(s)')
+        # default app mode is classification
+        self.mode = 'classification'
+
+        # radio buttons on mode selection (classification, object detection, PIV)
+        # radio_buttons_layout = QtWidgets.QGridLayout(self)
+        self.radio_button_1 = QRadioButton('Classification')
+        self.radio_button_1.setChecked(True)
+        self.radio_button_1.move(130, 20)
+        self.radio_button_1.toggled.connect(self.radio_button_1_clicked)
+        self.layout.addWidget(self.radio_button_1)
+
+        self.radio_button_2 = QRadioButton('Object Detection')
+        self.radio_button_2.setChecked(False)
+        self.radio_button_2.toggled.connect(self.radio_button_2_clicked)
+        self.layout.addWidget(self.radio_button_2)
+
+        self.radio_button_3 = QRadioButton('Particle Image Velocimetry (PIV)')
+        self.radio_button_3.setChecked(False)
+        self.radio_button_3.toggled.connect(self.radio_button_3_clicked)
+        self.layout.addWidget(self.radio_button_3)
+
+        # load data button
+        self.data_button = QtWidgets.QPushButton('Load Test Image')
+        # self.data_button.setFixedSize(QtCore.QSize(300, 100))
         self.layout.addWidget(self.data_button)
         self.data_button.clicked.connect(self.select_images)
-        # model path
-        self.model_button = QtWidgets.QPushButton('Select model path')
+        # load model button
+        self.model_button = QtWidgets.QPushButton('Load Model')
         self.layout.addWidget(self.model_button)
         self.model_button.clicked.connect(self.select_model)
 
+        # flag to check if an image has been displayed
+        self.image_existed = False
+
+    @QtCore.Slot()
+    def radio_button_1_clicked(self):
+        print('Classification button clicked')
+        self.mode = 'classification'
+
+    @QtCore.Slot()
+    def radio_button_2_clicked(self):
+        print('Object detection button clicked')
+        self.mode = 'object_detection'
+
+    @QtCore.Slot()
+    def radio_button_3_clicked(self):
+        print('PIV button clicked')
+        self.mode = 'PIV'
+
     @QtCore.Slot()
     def select_images(self):
-        self.image_path, _ = QFileDialog.getOpenFileName(self, QObject.tr('Load Image'))
-        self.display_image()
+        self.image_path, _ = QFileDialog.getOpenFileName(self, QObject.tr('Load Test Image'))
+        print(f'Loaded image {self.image_path}')
+        # display the image
+        self.display_image(self.image_existed)
+        # change the button text
+        image_name = self.image_path.split('/')[-1]
+        self.data_button.setText(f'Loaded Image {image_name}. Click to reload New Image')
 
     @QtCore.Slot()
     def select_model(self):
         self.model_path, _ = QFileDialog.getOpenFileName(self, QObject.tr('Load Model'))
 
-    def display_image(self):
-        # change current window's title to reflect change
-        self.setWindowTitle(f'Loaded Image {self.image_path}')
+    def display_image(self, image_existed):
 
-        # add a new label for loaded image
-        image_label  = QLabel(self)
         loaded_image = QtGui.QImage(self.image_path)
+
+        # add a new label for loaded image if no image has existed
+        if not image_existed:
+            self.image_label  = QLabel(self)
 
         # resize the image to a fixed size
         image_pixmap = QPixmap(loaded_image.scaledToWidth(100))
-        image_label.setPixmap(image_pixmap)
+        self.image_label.setPixmap(image_pixmap)
 
         # add this image to the display window
-        self.layout.addWidget(image_label)
+        if not image_existed:
+            self.layout.addWidget(self.image_label)
+
+        self.image_existed = True
 
 
 
