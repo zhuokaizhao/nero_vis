@@ -10,21 +10,31 @@ from PySide6.QtWidgets import QFileDialog, QWidget, QLabel, QRadioButton
 class UI_MainWindow(QWidget):
     def __init__(self):
         super().__init__()
-
+        # general layout
         self.layout = QtWidgets.QVBoxLayout(self)
+        self.layout.setAlignment(QtCore.Qt.AlignTop)
+        # left, top, right, and bottom margins
+        self.layout.setContentsMargins(100, 100, 100, 100)
+
+        # individual laytout for different widgets
+        # title
         self.title_layout = QtWidgets.QVBoxLayout()
+        self.title_layout.setContentsMargins(0, 0, 0, 20)
+        # mode selection radio buttons
         self.mode_layout = QtWidgets.QGridLayout()
+        self.mode_layout.setContentsMargins(0, 0, 0, 50)
+        # image and model loading push buttons
         self.load_button_layout = QtWidgets.QGridLayout()
+        # future loaded images layout
+        self.image_layout = QtWidgets.QVBoxLayout()
+        self.image_layout.setContentsMargins(0, 50, 0, 50)
 
         # title of the application
         self.title = QLabel('Non-Equivariance Revealed on Orbits',
                             alignment=QtCore.Qt.AlignCenter)
         self.title.setFont(QFont('Helvetica', 20))
         self.title_layout.addWidget(self.title)
-        self.title_layout.addStretch(1)
-
-        # default app mode is classification
-        self.mode = 'classification'
+        self.title_layout.setContentsMargins(0, 0, 0, 50)
 
         # radio buttons on mode selection (classification, object detection, PIV)
         # radio_buttons_layout = QtWidgets.QGridLayout(self)
@@ -47,18 +57,23 @@ class UI_MainWindow(QWidget):
         self.data_button = QtWidgets.QPushButton('Load Test Image')
         # self.data_button.setFixedSize(QtCore.QSize(300, 100))
         self.load_button_layout.addWidget(self.data_button)
-        self.data_button.clicked.connect(self.select_images)
+        self.data_button.clicked.connect(self.load_image_clicked)
         # load model button
         self.model_button = QtWidgets.QPushButton('Load Model')
         self.load_button_layout.addWidget(self.model_button)
-        self.model_button.clicked.connect(self.select_model)
+        self.model_button.clicked.connect(self.load_model_clicked)
 
+        # add individual layouts to the display general layout
         self.layout.addLayout(self.title_layout)
         self.layout.addLayout(self.mode_layout)
         self.layout.addLayout(self.load_button_layout)
+        self.layout.addLayout(self.image_layout)
 
         # flag to check if an image has been displayed
         self.image_existed = False
+        self.model_existed = False
+        # default app mode is classification
+        self.mode = 'classification'
 
     @QtCore.Slot()
     def radio_button_1_clicked(self):
@@ -76,18 +91,24 @@ class UI_MainWindow(QWidget):
         self.mode = 'PIV'
 
     @QtCore.Slot()
-    def select_images(self):
+    def load_image_clicked(self):
         self.image_path, _ = QFileDialog.getOpenFileName(self, QObject.tr('Load Test Image'))
         print(f'Loaded image {self.image_path}')
         # display the image
         self.display_image(self.image_existed)
         # change the button text
         image_name = self.image_path.split('/')[-1]
-        self.data_button.setText(f'Loaded Image {image_name}. Click to reload New Image')
+        self.data_button.setText(f'Loaded image {image_name}. Click to reload new model')
 
     @QtCore.Slot()
-    def select_model(self):
+    def load_model_clicked(self):
         self.model_path, _ = QFileDialog.getOpenFileName(self, QObject.tr('Load Model'))
+        print(f'Loaded model {self.model_path}')
+        # display the model
+        self.display_model(self.model_existed)
+        # change the button text
+        model_name = self.model_path.split('/')[-1]
+        self.model_button.setText(f'Loaded model {model_name}. Click to reload new model')
 
     def display_image(self, image_existed):
 
@@ -95,17 +116,17 @@ class UI_MainWindow(QWidget):
 
         # add a new label for loaded image if no image has existed
         if not image_existed:
-            self.image_label  = QLabel(self)
+            self.image_label = QLabel(self)
 
         # resize the image to a fixed size
         image_pixmap = QPixmap(loaded_image.scaledToWidth(100))
         self.image_label.setPixmap(image_pixmap)
 
-        # add this image to the display window
-        if not image_existed:
-            self.layout.addWidget(self.image_label)
-
+        # add this image to the layout
+        self.image_layout.addWidget(self.image_label)
         self.image_existed = True
+
+    # def display_model(self, model_existed):
 
 
 
