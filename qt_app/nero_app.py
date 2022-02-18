@@ -132,26 +132,34 @@ class UI_MainWindow(QWidget):
         self.loaded_layout.addWidget(self.image_label, 0, 0)
         self.image_existed = True
 
+    # draw model diagram, return model pixmap
+    def draw_model_diagram(self, width, height, boundary_width):
+        model_pixmap = QPixmap(width+2*boundary_width, height+2*boundary_width)
+        model_pixmap.fill(QtCore.Qt.white)
+
+        # draw model diagram (simple rectangle for now)
+        painter = QtGui.QPainter(model_pixmap)
+        # set pen (used to draw outlines of shapes) and brush (draw the background of a shape)
+        pen = QtGui.QPen()
+        pen.setWidth(boundary_width)
+        pen.setColor(QtGui.QColor('#EB5160'))
+        painter.setPen(pen)
+        # painter.setBrush(QtGui.QColor('orange'))
+
+        # design rectangle
+        rectangle = QtCore.QRect(boundary_width, boundary_width, width, height)
+        painter.drawRect(rectangle)
+        painter.end()
+
+        return model_pixmap
+
     def display_model(self, model_existed):
         # add a new label for loaded image if no image has existed
         if not model_existed:
             self.model_label = QLabel(self)
 
-        model_pixmap = QPixmap(200, 200)
+        model_pixmap = self.draw_model_diagram(100, 100, 3)
         self.model_label.setPixmap(model_pixmap)
-
-        # draw model diagram (simple rectangle for now)
-        painter = QtGui.QPainter(model_pixmap)
-        # set pen (used to draw outlines of shapes) and brush (draw the background of a shape)
-        color = QtGui.QColor(0, 0, 0)
-        # color.setNamedColor('#d4d4d4')
-        painter.setPen(color)
-        painter.setBrush(QtGui.QColor(255, 80, 0, 160))
-
-        # design rectangle
-        rectangle = QtCore.QRect(200, 20, 20, 20)
-        painter.drawRect(rectangle)
-        painter.end()
 
         # add this rectangle to the layout
         self.loaded_layout.addWidget(self.model_label, 0, 2)
