@@ -1,13 +1,70 @@
 import sys
+import copy
 import math
+import torch
 import requests
-# import random
+import torchvision
 import numpy as np
+from PIL import Image
 from PySide6 import QtCore, QtWidgets, QtGui
 from PySide6.QtGui  import QPixmap, QFont
 from PySide6.QtCore import QObject
 from PySide6.QtWidgets import QFileDialog, QWidget, QLabel, QRadioButton
 
+
+# some helper functions
+def qt_image_to_tensor(img, share_memory=False):
+    """
+    Creates a PyTorch Tensor from a QImage via converting to Numpy array first.
+
+    If share_memory is True, the numpy array and the QImage is shared.
+    Be careful: make sure the numpy array is destroyed before the image,
+                otherwise the array will point to unreserved memory!!
+    """
+    assert isinstance(img, QtGui.QImage), "img must be a QtGui.QImage object"
+    assert img.format() == QtGui.QImage.Format.Format_RGB32, "img format must be QImage.Format.Format_RGB32, got: {}".format(img.format())
+
+    img_size = img.size()
+    buffer = img.constBits()
+
+    # Sanity check
+    n_bits_buffer = len(buffer) * 8
+    n_bits_image  = img_size.width() * img_size.height() * img.depth()
+    assert n_bits_buffer == n_bits_image, \
+        "size mismatch: {} != {}".format(n_bits_buffer, n_bits_image)
+
+    assert img.depth() == 32, "unexpected image depth: {}".format(img.depth())
+
+    # Note the different width height parameter order!
+    arr = np.ndarray(shape  = (img_size.height(), img_size.width(), img.depth()//8),
+                     buffer = buffer,
+                     dtype  = np.uint8)
+
+    if share_memory:
+        return torch.from_numpy(arr)
+    else:
+        return torch.from_numpy(copy.deepcopy(arr))
+
+
+def tensor_to_qt_image(img_pt):
+    img_np = img_pt.numpy()
+    img_qt = QtGui.QImage(img_np.data, img_np.shape[1], img_np.shape[0], QtGui.QImage.Format_BGR888)
+
+    return img_qt
+
+
+# rotate mnist image
+def rotate_mnist_image(image, angle, target_img_size):
+    if target_img_size != 29:
+        raise Exception('Warning: MNIST model takes image size 29')
+    img_size = len(image)
+    # transform includes upsample, rotate, downsample and padding (right and bottom) to image_size
+    image = torchvision.transforms.Resize(img_size*3)(image)
+    image = torchvision.transforms.RandomRotation(degrees=(angle, angle), resample=Image.BILINEAR, expand=False)(image)
+    image = torchvision.transforms.Resize(img_size)(image)
+    image = torchvision.transforms.Pad(((target_img_size-img_size)//2, (target_img_size-img_size)//2, (target_img_size-img_size)//2+1, (self.target_img_size-self.img_size)//2+1), fill=0, padding_mode='constant')(image)
+
+    return image
 
 class UI_MainWindow(QWidget):
     def __init__(self):
@@ -81,6 +138,9 @@ class UI_MainWindow(QWidget):
         self.translation = False
         self.rotation = False
 
+        # total rotate angle
+        self.total_rotate_angle = 0
+
     @QtCore.Slot()
     def radio_button_1_clicked(self):
         print('Classification button clicked')
@@ -126,15 +186,25 @@ class UI_MainWindow(QWidget):
 
     def display_image(self, image_existed, image_size):
 
-        loaded_image = QtGui.QImage(self.image_path)
+        # load the image and scale the size
+        self.loaded_image = QtGui.QImage(self.image_path)
+        # save a numpy copy of the loaded image
+        self.loaded_image_pt = qt_image_to_tensor(self.loaded_image, share_memory=False)
+        # resize the display QImage
+        self.loaded_image = self.loaded_image.scaledToWidth(image_size)
+
+        # prepare a pixmap for the image
+        self.image_pixmap = QPixmap(self.loaded_image)
 
         # add a new label for loaded image if no image has existed
         if not image_existed:
+            # set minimum size to prepare for later rotation
+            diag = (self.image_pixmap.width()**2 + self.image_pixmap.height()**2)**0.5
             self.image_label = QLabel(self)
-            # set minimum size to be
+            self.image_label.setMinimumSize(diag, diag)
+            self.image_label.setAlignment(QtCore.Qt.AlignCenter)
 
-        # resize the image to a fixed size
-        self.image_pixmap = QPixmap(loaded_image.scaledToWidth(image_size))
+        # put pixmap in the label
         self.image_label.setPixmap(self.image_pixmap)
 
         # add this image to the layout
@@ -186,8 +256,23 @@ class UI_MainWindow(QWidget):
         elif self.rotation:
             self.all_mouse_x.append(event.x())
             self.all_mouse_y.append(event.y())
-            angle = math.atan2(event.y() - self.all_mouse_y[-2], event.x() - self.all_mouse_x[-2]) / math.pi * 180
-            self.image_pixmap = self.image_pixmap.transformed(QtGui.QTransform().rotate(angle), QtCore.Qt.SmoothTransformation)
+            if len(self.all_mouse_x) > 2:
+                self.all_mouse_x.pop(0)
+                self.all_mouse_y.pop(0)
+            # angle = math.atan2(event.y() - self.all_mouse_y[-2], event.x() - self.all_mouse_x[-2]) / math.pi * 180
+            # naive way to determine rotate angle
+            if self.all_mouse_x[-1] > self.all_mouse_x[0] or self.all_mouse_y[-1] > self.all_mouse_y[0]:
+                self.total_rotate_angle += 1
+            else:
+                self.total_rotate_angle -= 1
+
+            # rotate the image
+            cur_image_pt = rotate_mnist_image(self.loaded_image_pt, self.total_rotate_angle, 29)
+            # self.image_pixmap = self.image_pixmap.transformed(QtGui.QTransform().rotate(angle), QtCore.Qt.SmoothTransformation)
+            # convert image tensor to qt
+            cur_image = tensor_to_qt_image(cur_image_pt)
+            # update the pixmap and label
+            self.image_pixmap = QPixmap(cur_image)
             self.image_label.setPixmap(self.image_pixmap)
 
     def mousePressEvent(self, event):
