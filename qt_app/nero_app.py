@@ -1,6 +1,8 @@
 import sys
+import math
 import requests
 # import random
+import numpy as np
 from PySide6 import QtCore, QtWidgets, QtGui
 from PySide6.QtGui  import QPixmap, QFont
 from PySide6.QtCore import QObject
@@ -75,6 +77,10 @@ class UI_MainWindow(QWidget):
         # default app mode is classification
         self.mode = 'classification'
 
+        # image (input data) modification mode
+        self.translation = False
+        self.rotation = False
+
     @QtCore.Slot()
     def radio_button_1_clicked(self):
         print('Classification button clicked')
@@ -98,7 +104,8 @@ class UI_MainWindow(QWidget):
             return
         print(f'Loaded image {self.image_path}')
         # display the image
-        self.display_image(self.image_existed)
+        self.image_size = 100
+        self.display_image(self.image_existed, self.image_size)
         # change the button text
         image_name = self.image_path.split('/')[-1]
         self.data_button.setText(f'Loaded image {image_name}. Click to load new image')
@@ -110,31 +117,33 @@ class UI_MainWindow(QWidget):
         if self.model_path == '':
             return
         print(f'Loaded model {self.model_path}')
-        # display the model
-        self.display_model(self.model_existed)
-        # change the button text
+
         model_name = self.model_path.split('/')[-1]
+        # display the model
+        self.display_model(self.model_existed, model_name)
+        # change the button text
         self.model_button.setText(f'Loaded model {model_name}. Click to load new model')
 
-    def display_image(self, image_existed):
+    def display_image(self, image_existed, image_size):
 
         loaded_image = QtGui.QImage(self.image_path)
 
         # add a new label for loaded image if no image has existed
         if not image_existed:
             self.image_label = QLabel(self)
+            # set minimum size to be
 
         # resize the image to a fixed size
-        image_pixmap = QPixmap(loaded_image.scaledToWidth(100))
-        self.image_label.setPixmap(image_pixmap)
+        self.image_pixmap = QPixmap(loaded_image.scaledToWidth(image_size))
+        self.image_label.setPixmap(self.image_pixmap)
 
         # add this image to the layout
         self.loaded_layout.addWidget(self.image_label, 0, 0)
         self.image_existed = True
 
     # draw model diagram, return model pixmap
-    def draw_model_diagram(self, width, height, boundary_width):
-        model_pixmap = QPixmap(width+2*boundary_width, height+2*boundary_width)
+    def draw_model_diagram(self, name, width, height, boundary_width):
+        model_pixmap = QPixmap(width, height)
         model_pixmap.fill(QtCore.Qt.white)
 
         # draw model diagram (simple rectangle for now)
@@ -146,26 +155,71 @@ class UI_MainWindow(QWidget):
         painter.setPen(pen)
         # painter.setBrush(QtGui.QColor('orange'))
 
-        # design rectangle
-        rectangle = QtCore.QRect(boundary_width, boundary_width, width, height)
+        # draw rectangle
+        rectangle = QtCore.QRect(boundary_width, boundary_width, width-2*boundary_width, height-2*boundary_width)
         painter.drawRect(rectangle)
+
+        # draw model name
+        painter.drawText(0, height//2-2*boundary_width, width, height, QtGui.Qt.AlignHCenter, name)
         painter.end()
 
         return model_pixmap
 
-    def display_model(self, model_existed):
+    def display_model(self, model_existed, model_name):
         # add a new label for loaded image if no image has existed
         if not model_existed:
             self.model_label = QLabel(self)
 
-        model_pixmap = self.draw_model_diagram(100, 100, 3)
+        model_pixmap = self.draw_model_diagram(model_name, 200, 150, 3)
         self.model_label.setPixmap(model_pixmap)
 
         # add this rectangle to the layout
         self.loaded_layout.addWidget(self.model_label, 0, 2)
         self.model_existed = True
 
+    def mouseMoveEvent(self, event):
+        # print("mouseMoveEvent")
+        # when in translation mode
+        if self.translation:
+            print('translating')
+        # when in rotation mode
+        elif self.rotation:
+            self.all_mouse_x.append(event.x())
+            self.all_mouse_y.append(event.y())
+            angle = math.atan2(event.y() - self.all_mouse_y[-2], event.x() - self.all_mouse_x[-2]) / math.pi * 180
+            self.image_pixmap = self.image_pixmap.transformed(QtGui.QTransform().rotate(angle), QtCore.Qt.SmoothTransformation)
+            self.image_label.setPixmap(self.image_pixmap)
 
+    def mousePressEvent(self, event):
+        print("mousePressEvent")
+        self.all_mouse_x = [event.x()]
+        self.all_mouse_y = [event.y()]
+
+    def mouseReleaseEvent(self, event):
+        print("mouseReleaseEvent")
+
+    # called when a key is pressed
+    def keyPressEvent(self, event):
+        key_pressed = event.text()
+
+        # different key pressed
+        if 'h' == key_pressed or '?' == key_pressed:
+            self.print_help()
+        if 'r' == key_pressed:
+            print('Rotation mode ON')
+            self.rotation = True
+            self.translation = False
+        if 't' == key_pressed:
+            print('Translation mode ON')
+            self.translation = True
+            self.rotation = False
+        if 'q' == key_pressed:
+            app.quit()
+
+
+    # print help message
+    def print_help(self):
+        print('Ah Oh, help not available')
 
 if __name__ == "__main__":
     app = QtWidgets.QApplication([])
