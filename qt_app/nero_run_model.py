@@ -50,3 +50,7 @@ def run_mnist_once():
         trained_model = torch.load(model_dir)
         model.load_state_dict(trained_model['state_dict'])
         trained_epoch = trained_model['epoch']
+
+
+def run_mnist_all():
+    exit()

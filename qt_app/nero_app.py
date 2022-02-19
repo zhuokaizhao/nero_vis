@@ -86,6 +86,7 @@ class UI_MainWindow(QWidget):
         # flag to check if an image has been displayed
         self.image_existed = False
         self.model_existed = False
+        self.warning_existed = False
         # default app mode is classification
         self.mode = 'classification'
 
@@ -122,7 +123,7 @@ class UI_MainWindow(QWidget):
         print(f'Loaded image {self.image_path}')
         # display the image
         self.image_size = 100
-        self.display_image(self.image_existed, self.image_size)
+        self.display_image(self.image_size)
         # change the button text
         image_name = self.image_path.split('/')[-1]
         self.data_button.setText(f'Loaded image {image_name}. Click to load new image')
@@ -137,7 +138,7 @@ class UI_MainWindow(QWidget):
 
         model_name = self.model_path.split('/')[-1]
         # display the model
-        self.display_model(self.model_existed, model_name)
+        self.display_model(model_name)
         # change the button text
         self.model_button.setText(f'Loaded model {model_name}. Click to load new model')
 
@@ -148,12 +149,35 @@ class UI_MainWindow(QWidget):
             nero_run_model.run_mnist_once()
         else:
             # display a warning text
+            # prepare a pixmap for the image
+            warning_pixmap = QPixmap(200, 100)
+            warning_pixmap.fill(QtCore.Qt.white)
+
+            if not self.warning_existed:
+                self.warning_label = QLabel(self)
+                self.warning_label.setAlignment(QtCore.Qt.AlignCenter)
+                self.warning_existed = True
+
+            # display warning text
+            painter = QtGui.QPainter(warning_pixmap)
+            if not self.image_existed:
+                warn_text = 'Please load data image(s) first'
+            elif not self.model_existed:
+                warn_text = 'Please load model first'
+            elif not self.image_existed and not self.model_existed:
+                warn_text = 'Please load data image(s) and model first'
+
+            painter.drawText(0, 0, 200, 100, QtGui.Qt.AlignHCenter, warn_text)
+            painter.end()
 
 
     @QtCore.Slot()
-    def run_all_button_clicked()
+    def run_all_button_clicked(self):
+        if self.mode == 'classification':
+            # run all rotation test with 5 degree increment
+            nero_run_model.run_mnist_all()
 
-    def display_image(self, image_existed, image_size):
+    def display_image(self, image_size):
 
         # load the image and scale the size
         # self.loaded_image = QtGui.QImage(self.image_path)
@@ -164,22 +188,23 @@ class UI_MainWindow(QWidget):
         self.loaded_image = self.loaded_image.scaledToWidth(image_size)
 
         # prepare a pixmap for the image
-        self.image_pixmap = QPixmap(self.loaded_image)
+        image_pixmap = QPixmap(self.loaded_image)
 
         # add a new label for loaded image if no image has existed
-        if not image_existed:
+        if not self.image_existed:
             # set minimum size to prepare for later rotation
             # diag = (self.image_pixmap.width()**2 + self.image_pixmap.height()**2)**0.5
             self.image_label = QLabel(self)
             # self.image_label.setMinimumSize(diag, diag)
             self.image_label.setAlignment(QtCore.Qt.AlignCenter)
+            self.image_existed = True
 
         # put pixmap in the label
-        self.image_label.setPixmap(self.image_pixmap)
+        self.image_label.setPixmap(image_pixmap)
 
         # add this image to the layout
         self.loaded_layout.addWidget(self.image_label, 0, 0)
-        self.image_existed = True
+
 
     # draw model diagram, return model pixmap
     def draw_model_diagram(self, name, width, height, boundary_width):
@@ -205,17 +230,18 @@ class UI_MainWindow(QWidget):
 
         return model_pixmap
 
-    def display_model(self, model_existed, model_name):
+    def display_model(self, model_name):
         # add a new label for loaded image if no image has existed
-        if not model_existed:
+        if not self.model_existed:
             self.model_label = QLabel(self)
+            self.model_existed = True
 
         model_pixmap = self.draw_model_diagram(model_name, 200, 150, 3)
         self.model_label.setPixmap(model_pixmap)
 
         # add this rectangle to the layout
         self.loaded_layout.addWidget(self.model_label, 0, 2)
-        self.model_existed = True
+
 
     def mouseMoveEvent(self, event):
         # print("mouseMoveEvent")
