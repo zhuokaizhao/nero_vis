@@ -72,16 +72,13 @@ class UI_MainWindow(QWidget):
         self.load_button_layout.addWidget(self.model_button)
         self.model_button.clicked.connect(self.load_model_clicked)
 
-        # load data button
-        self.run_once_button = QtWidgets.QPushButton('Run once')
-        self.run_button_layout.addWidget(self.run_once_button)
-        self.run_once_button.clicked.connect(self.run_once_button_clicked)
-
         # add individual layouts to the display general layout
         self.layout.addLayout(self.title_layout)
         self.layout.addLayout(self.mode_layout)
         self.layout.addLayout(self.load_button_layout)
         self.layout.addLayout(self.loaded_layout)
+        self.layout.addLayout(self.run_button_layout)
+        self.layout.addLayout(self.warning_layout)
 
         # flag to check if an image has been displayed
         self.image_existed = False
@@ -128,6 +125,17 @@ class UI_MainWindow(QWidget):
         image_name = self.image_path.split('/')[-1]
         self.data_button.setText(f'Loaded image {image_name}. Click to load new image')
 
+        # show the run button when both ready
+        if self.model_existed and self.image_existed:
+            # run once button
+            self.run_once_button = QtWidgets.QPushButton('Run model once')
+            self.run_button_layout.addWidget(self.run_once_button)
+            self.run_once_button.clicked.connect(self.run_once_button_clicked)
+            # load model button
+            self.run_all_button = QtWidgets.QPushButton('Run model on all transformations')
+            self.run_button_layout.addWidget(self.run_all_button)
+            self.run_all_button.clicked.connect(self.run_all_button_clicked)
+
     @QtCore.Slot()
     def load_model_clicked(self):
         self.model_path, _ = QFileDialog.getOpenFileName(self, QObject.tr('Load Model'))
@@ -141,6 +149,17 @@ class UI_MainWindow(QWidget):
         self.display_model(model_name)
         # change the button text
         self.model_button.setText(f'Loaded model {model_name}. Click to load new model')
+
+        # show the run button when both ready
+        if self.model_existed and self.image_existed:
+            # run once button
+            self.run_once_button = QtWidgets.QPushButton('Run model once')
+            self.run_button_layout.addWidget(self.run_once_button)
+            self.run_once_button.clicked.connect(self.run_once_button_clicked)
+            # load model button
+            self.run_all_button = QtWidgets.QPushButton('Run model on all transformations')
+            self.run_button_layout.addWidget(self.run_all_button)
+            self.run_all_button.clicked.connect(self.run_all_button_clicked)
 
     @QtCore.Slot()
     def run_once_button_clicked(self):
