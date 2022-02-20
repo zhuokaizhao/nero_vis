@@ -16,6 +16,8 @@ import nero_run_model
 class UI_MainWindow(QWidget):
     def __init__(self):
         super().__init__()
+        # white background color
+        self.setStyleSheet("background-color: white;")
         # general layout
         self.layout = QtWidgets.QVBoxLayout(self)
         self.layout.setAlignment(QtCore.Qt.AlignCenter)
@@ -234,17 +236,27 @@ class UI_MainWindow(QWidget):
         painter = QtGui.QPainter(model_pixmap)
         # set pen (used to draw outlines of shapes) and brush (draw the background of a shape)
         pen = QtGui.QPen()
-        pen.setWidth(boundary_width)
-        pen.setColor(QtGui.QColor('#EB5160'))
-        painter.setPen(pen)
-        # painter.setBrush(QtGui.QColor('orange'))
 
-        # draw rectangle
-        rectangle = QtCore.QRect(boundary_width, boundary_width, width-2*boundary_width, height-2*boundary_width)
+        # draw arrow to indicate feeding
+        pen.setWidth(boundary_width)
+        pen.setColor(QtGui.QColor('black'))
+        painter.setPen(pen)
+        # horizontal line
+        painter.drawLine(0, height//2, width//4, height//2)
+        # upper arrow
+        painter.drawLine(int(0.15*width), int(0.4*height), int(width//4), height//2)
+        # bottom arrow
+        painter.drawLine(int(0.15*width), int(0.6*height), int(width//4), height//2)
+
+        # draw rectangle to represent model
+        pen.setWidth(boundary_width)
+        pen.setColor(QtGui.QColor('red'))
+        painter.setPen(pen)
+        rectangle = QtCore.QRect(int(width//3)+boundary_width, boundary_width, width//3*2-2*boundary_width, height-2*boundary_width)
         painter.drawRect(rectangle)
 
         # draw model name
-        painter.drawText(0, height//2-2*boundary_width, width, height, QtGui.Qt.AlignHCenter, name)
+        painter.drawText(int(width//3)+boundary_width, height//2-2*boundary_width, width//3*2, height, QtGui.Qt.AlignHCenter, name)
         painter.end()
 
         return model_pixmap
@@ -252,13 +264,14 @@ class UI_MainWindow(QWidget):
     def display_model(self, model_name):
         # add a new label for loaded image if no image has existed
         if not self.model_existed:
+            self.arrow_label = QLabel(self)
             self.model_label = QLabel(self)
             self.model_existed = True
 
-        model_pixmap = self.draw_model_diagram(model_name, 200, 150, 3)
+        # draw the model diagram
+        model_pixmap = self.draw_model_diagram(model_name, 300, 150, 3)
         self.model_label.setPixmap(model_pixmap)
-
-        # add this rectangle to the layout
+        # add to the layout
         self.loaded_layout.addWidget(self.model_label, 0, 2)
 
 
