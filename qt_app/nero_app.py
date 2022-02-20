@@ -256,7 +256,11 @@ class UI_MainWindow(QWidget):
         painter.drawRect(rectangle)
 
         # draw model name
-        painter.drawText(int(width//3)+boundary_width, height//2-2*boundary_width, width//3*2, height, QtGui.Qt.AlignHCenter, name)
+        if len(name) > 20:
+            name = name[:20] + '\n' + name[20:]
+            painter.drawText(int(width//3)+boundary_width, height//2-6*boundary_width, width//3*2, height, QtGui.Qt.AlignHCenter, name)
+        else:
+            painter.drawText(int(width//3)+boundary_width, height//2-2*boundary_width, width//3*2, height, QtGui.Qt.AlignHCenter, name)
         painter.end()
 
         return model_pixmap
@@ -266,6 +270,8 @@ class UI_MainWindow(QWidget):
         if not self.model_existed:
             self.arrow_label = QLabel(self)
             self.model_label = QLabel(self)
+            self.model_label.setWordWrap(True)
+            self.model_label.setTextFormat(QtGui.Qt.AutoText)
             self.model_existed = True
 
         # draw the model diagram
