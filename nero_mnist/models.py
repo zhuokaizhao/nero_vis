@@ -7,11 +7,11 @@ from e2cnn import gspaces
 import torch.utils.model_zoo as model_zoo
 
 # For SESN
-from impl.ses_conv import SESMaxProjection
-from impl.ses_conv import SESConv_Z2_H, SESConv_H_H
+# from impl.ses_conv import SESMaxProjection
+# from impl.ses_conv import SESConv_Z2_H, SESConv_H_H
 
 # For DSS
-from impl.deep_scale_space import Dconv2d, BesselConv2d, ScaleMaxProjection
+# from impl.deep_scale_space import Dconv2d, BesselConv2d, ScaleMaxProjection
 
 def get_pad_layer(pad_type):
     if(pad_type in ['refl','reflect']):

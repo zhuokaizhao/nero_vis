@@ -167,7 +167,7 @@ class UI_MainWindow(QWidget):
     def run_once_button_clicked(self):
         # check if both input image and model are ready
         if self.image_existed and self.model_existed:
-            nero_run_model.run_mnist_once()
+            nero_run_model.run_mnist_once('non-eqv', self.model_path)
         else:
             # display a warning text
             # prepare a pixmap for the image
