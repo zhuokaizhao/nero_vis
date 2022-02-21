@@ -1,6 +1,7 @@
 # the script gets called by nero_app when running the model
 import os
 import sys
+import time
 import torch
 import numpy as np
 
@@ -13,21 +14,15 @@ sys.path.append(parent)
 
 from nero_mnist import models as mnist_models
 
-def run_mnist_once(network_model, model_dir, test_image, num_workers=8, shuffle=True, batch_size=1000):
+def run_mnist_once(network_model, model_dir, test_image):
+    print('Running inference on the single image')
+    # reformat input image from (height, width, channel) to (batch size, channel, height, width)
+    test_image = test_image.permute((2, 0, 1))[None, :, :, :].float()
+
     # basic settings for pytorch
     if torch.cuda.is_available():
-
-        cuda_kwargs = {'num_workers': num_workers,
-                        'pin_memory': True,
-                        'shuffle': shuffle,
-                        'batch_size': batch_size}
-
         # device set up
-        if torch.cuda.device_count() > 1:
-            print('\n', torch.cuda.device_count(), 'GPUs available')
-            device = torch.device('cuda')
-        else:
-            device = torch.device('cuda:0')
+        device = torch.device('cuda:0')
     else:
         device = torch.device('cpu')
 
@@ -53,8 +48,23 @@ def run_mnist_once(network_model, model_dir, test_image, num_workers=8, shuffle=
     # load previously trained model
     trained_model = torch.load(model_dir)
     model.load_state_dict(trained_model['state_dict'])
-    trained_epoch = trained_model['epoch']
-    print(trained_epoch)
+    # set model in evaluation mode
+    model.eval()
+
+    with torch.no_grad():
+        batch_time_start = time.time()
+        # prepare current batch's testing data
+        test_image = test_image.to(device)
+
+        # inference
+        output = model(test_image).cpu().detach().numpy()[0]
+        pred = output.argmax()
+
+        batch_time_end = time.time()
+        batch_time_cost = batch_time_end - batch_time_start
+        print(f'Inference time: {batch_time_cost} seconds')
+
+    return output, pred
 
 
 def run_mnist_all():

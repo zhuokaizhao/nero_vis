@@ -184,6 +184,8 @@ class Non_Eqv_Net_MNIST(torch.nn.Module):
                 torch.nn.Linear(64, n_classes),
             )
 
+        self.softmax = torch.nn.Softmax(dim=1)
+
 
     def forward(self, x):
         x = self.block1(x)
@@ -202,6 +204,9 @@ class Non_Eqv_Net_MNIST(torch.nn.Module):
         # classify with the final fully connected layers)
         # print(x.reshape(x.shape[0], -1).shape)
         x = self.fully_net(x.reshape(x.shape[0], -1))
+
+        # softmax to produce probability
+        x = self.softmax(x)
 
         return x
 

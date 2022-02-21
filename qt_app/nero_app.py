@@ -85,6 +85,7 @@ class UI_MainWindow(QWidget):
         # flag to check if an image has been displayed
         self.image_existed = False
         self.model_existed = False
+        self.result_existed = False
         self.warning_existed = False
         # default app mode is classification
         self.mode = 'classification'
@@ -167,7 +168,21 @@ class UI_MainWindow(QWidget):
     def run_once_button_clicked(self):
         # check if both input image and model are ready
         if self.image_existed and self.model_existed:
-            nero_run_model.run_mnist_once('non-eqv', self.model_path)
+            output, pred = nero_run_model.run_mnist_once('non-eqv', self.model_path, self.loaded_image_pt)
+            # display the result
+            # add a new label for loaded image if no image has existed
+            if not self.result_existed:
+                self.mnist_label = QLabel(self)
+                self.mnist_label.setAlignment(QtCore.Qt.AlignCenter)
+                self.mnist_label.setWordWrap(True)
+                self.mnist_label.setTextFormat(QtGui.Qt.AutoText)
+                self.result_existed = True
+
+            mnist_pixmap = self.display_mnist_result(output, pred, width=300, height=200, boundary_width=3)
+            self.mnist_label.setPixmap(mnist_pixmap)
+            # add to the layout
+            self.loaded_layout.addWidget(self.mnist_label, 0, 4)
+
         else:
             # display a warning text
             # prepare a pixmap for the image
@@ -198,6 +213,27 @@ class UI_MainWindow(QWidget):
             # run all rotation test with 5 degree increment
             nero_run_model.run_mnist_all()
 
+    def display_mnist_result(self, output, pred, width, height, boundary_width):
+        # use the loaded_layout
+        mnist_pixmap = QPixmap(width, height)
+        mnist_pixmap.fill(QtCore.Qt.white)
+        # draw arrow
+        painter = QtGui.QPainter(mnist_pixmap)
+        # set pen (used to draw outlines of shapes) and brush (draw the background of a shape)
+        pen = QtGui.QPen()
+        # draw arrow to indicate feeding
+        self.draw_arrow(painter, pen, 80, 150, boundary_width)
+
+        # draw result
+        result_text = ''
+        for i in range(len(output)):
+            result_text += f'Class {i}: {output[i]}\n'
+        print(result_text)
+        painter.drawText(int(width//3)+boundary_width, 0, width//3*2, height, QtGui.Qt.AlignHCenter, result_text)
+        painter.end()
+
+        return mnist_pixmap
+
     def display_image(self, image_size):
 
         # load the image and scale the size
@@ -226,9 +262,21 @@ class UI_MainWindow(QWidget):
         # add this image to the layout
         self.loaded_layout.addWidget(self.image_label, 0, 0)
 
+    # draw arrow
+    def draw_arrow(self, painter, pen, width, height, boundary_width):
+        # draw arrow to indicate feeding
+        pen.setWidth(boundary_width)
+        pen.setColor(QtGui.QColor('black'))
+        painter.setPen(pen)
+        # horizontal line
+        painter.drawLine(0, height//2, width, height//2)
+        # upper arrow
+        painter.drawLine(int(0.6*width), int(0.4*height), width, height//2)
+        # bottom arrow
+        painter.drawLine(int(0.6*width), int(0.6*height), width, height//2)
 
     # draw model diagram, return model pixmap
-    def draw_model_diagram(self, name, width, height, boundary_width):
+    def display_model_diagram(self, name, width, height, boundary_width):
         model_pixmap = QPixmap(width, height)
         model_pixmap.fill(QtCore.Qt.white)
 
@@ -237,16 +285,8 @@ class UI_MainWindow(QWidget):
         # set pen (used to draw outlines of shapes) and brush (draw the background of a shape)
         pen = QtGui.QPen()
 
-        # draw arrow to indicate feeding
-        pen.setWidth(boundary_width)
-        pen.setColor(QtGui.QColor('black'))
-        painter.setPen(pen)
-        # horizontal line
-        painter.drawLine(0, height//2, width//4, height//2)
-        # upper arrow
-        painter.drawLine(int(0.15*width), int(0.4*height), int(width//4), height//2)
-        # bottom arrow
-        painter.drawLine(int(0.15*width), int(0.6*height), int(width//4), height//2)
+        # draw standard arrow
+        self.draw_arrow(painter, pen, 80, 150, boundary_width)
 
         # draw rectangle to represent model
         pen.setWidth(boundary_width)
@@ -261,6 +301,7 @@ class UI_MainWindow(QWidget):
             painter.drawText(int(width//3)+boundary_width, height//2-6*boundary_width, width//3*2, height, QtGui.Qt.AlignHCenter, name)
         else:
             painter.drawText(int(width//3)+boundary_width, height//2-2*boundary_width, width//3*2, height, QtGui.Qt.AlignHCenter, name)
+
         painter.end()
 
         return model_pixmap
@@ -268,14 +309,13 @@ class UI_MainWindow(QWidget):
     def display_model(self, model_name):
         # add a new label for loaded image if no image has existed
         if not self.model_existed:
-            self.arrow_label = QLabel(self)
             self.model_label = QLabel(self)
             self.model_label.setWordWrap(True)
             self.model_label.setTextFormat(QtGui.Qt.AutoText)
             self.model_existed = True
 
         # draw the model diagram
-        model_pixmap = self.draw_model_diagram(model_name, 300, 150, 3)
+        model_pixmap = self.display_model_diagram(model_name, 300, 150, boundary_width=3)
         self.model_label.setPixmap(model_pixmap)
         # add to the layout
         self.loaded_layout.addWidget(self.model_label, 0, 2)
