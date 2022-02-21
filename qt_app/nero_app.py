@@ -85,6 +85,7 @@ class UI_MainWindow(QWidget):
         # flag to check if an image has been displayed
         self.image_existed = False
         self.model_existed = False
+        self.run_buttons_existed = False
         self.result_existed = False
         self.warning_existed = False
         # default app mode is classification
@@ -121,15 +122,25 @@ class UI_MainWindow(QWidget):
         if self.image_path == '':
             return
         print(f'Loaded image {self.image_path}')
+
+        # load the image and scale the size
+        # self.loaded_image = QtGui.QImage(self.image_path)
+        self.loaded_image_pt = torch.from_numpy(np.asarray(Image.open(self.image_path)))[:, :, None]
+        self.cur_image_pt = self.loaded_image_pt.clone()
+        # QImage for display purpose
+        self.cur_image = nero_utilities.tensor_to_qt_image(self.cur_image_pt)
+        # resize the display QImage
+        self.image_size = 150
+        self.cur_image = self.cur_image.scaledToWidth(self.image_size)
+
         # display the image
-        self.image_size = 100
-        self.display_image(self.image_size)
+        self.display_image()
         # change the button text
         image_name = self.image_path.split('/')[-1]
         self.data_button.setText(f'Loaded image {image_name}. Click to load new image')
 
         # show the run button when both ready
-        if self.model_existed and self.image_existed:
+        if self.model_existed and self.image_existed and not self.run_buttons_existed:
             # run once button
             self.run_once_button = QtWidgets.QPushButton('Run model once')
             self.run_button_layout.addWidget(self.run_once_button)
@@ -138,6 +149,8 @@ class UI_MainWindow(QWidget):
             self.run_all_button = QtWidgets.QPushButton('Run model on all transformations')
             self.run_button_layout.addWidget(self.run_all_button)
             self.run_all_button.clicked.connect(self.run_all_button_clicked)
+
+            self.run_buttons_existed = True
 
     @QtCore.Slot()
     def load_model_clicked(self):
@@ -148,13 +161,15 @@ class UI_MainWindow(QWidget):
         print(f'Loaded model {self.model_path}')
 
         model_name = self.model_path.split('/')[-1]
+        width = 300
+        height = 200
         # display the model
-        self.display_model(model_name)
+        self.display_model(model_name, width, height, boundary_width=3)
         # change the button text
         self.model_button.setText(f'Loaded model {model_name}. Click to load new model')
 
         # show the run button when both ready
-        if self.model_existed and self.image_existed:
+        if self.model_existed and self.image_existed and not self.run_buttons_existed:
             # run once button
             self.run_once_button = QtWidgets.QPushButton('Run model once')
             self.run_button_layout.addWidget(self.run_once_button)
@@ -164,11 +179,13 @@ class UI_MainWindow(QWidget):
             self.run_button_layout.addWidget(self.run_all_button)
             self.run_all_button.clicked.connect(self.run_all_button_clicked)
 
+            self.run_buttons_existed = True
+
     @QtCore.Slot()
     def run_once_button_clicked(self):
         # check if both input image and model are ready
         if self.image_existed and self.model_existed:
-            output, pred = nero_run_model.run_mnist_once('non-eqv', self.model_path, self.loaded_image_pt)
+            output, pred = nero_run_model.run_mnist_once('non-eqv', self.model_path, self.cur_image_pt)
             # display the result
             # add a new label for loaded image if no image has existed
             if not self.result_existed:
@@ -178,10 +195,7 @@ class UI_MainWindow(QWidget):
                 self.mnist_label.setTextFormat(QtGui.Qt.AutoText)
                 self.result_existed = True
 
-            mnist_pixmap = self.display_mnist_result(output, pred, width=300, height=200, boundary_width=3)
-            self.mnist_label.setPixmap(mnist_pixmap)
-            # add to the layout
-            self.loaded_layout.addWidget(self.mnist_label, 0, 4)
+            self.display_mnist_result(output, pred, width=300, height=200, boundary_width=3)
 
         else:
             # display a warning text
@@ -213,47 +227,16 @@ class UI_MainWindow(QWidget):
             # run all rotation test with 5 degree increment
             nero_run_model.run_mnist_all()
 
-    def display_mnist_result(self, output, pred, width, height, boundary_width):
-        # use the loaded_layout
-        mnist_pixmap = QPixmap(width, height)
-        mnist_pixmap.fill(QtCore.Qt.white)
-        # draw arrow
-        painter = QtGui.QPainter(mnist_pixmap)
-        # set pen (used to draw outlines of shapes) and brush (draw the background of a shape)
-        pen = QtGui.QPen()
-        # draw arrow to indicate feeding
-        self.draw_arrow(painter, pen, 80, 150, boundary_width)
 
-        # draw result
-        result_text = ''
-        for i in range(len(output)):
-            result_text += f'Class {i}: {output[i]}\n'
-        print(result_text)
-        painter.drawText(int(width//3)+boundary_width, 0, width//3*2, height, QtGui.Qt.AlignHCenter, result_text)
-        painter.end()
-
-        return mnist_pixmap
-
-    def display_image(self, image_size):
-
-        # load the image and scale the size
-        # self.loaded_image = QtGui.QImage(self.image_path)
-        self.loaded_image_pt = torch.from_numpy(np.asarray(Image.open(self.image_path)))[:, :, None]
-        # save a numpy copy of the loaded image
-        self.loaded_image = nero_utilities.tensor_to_qt_image(self.loaded_image_pt)
-        # resize the display QImage
-        self.loaded_image = self.loaded_image.scaledToWidth(image_size)
+    def display_image(self):
 
         # prepare a pixmap for the image
-        image_pixmap = QPixmap(self.loaded_image)
+        image_pixmap = QPixmap(self.cur_image)
 
         # add a new label for loaded image if no image has existed
         if not self.image_existed:
-            # set minimum size to prepare for later rotation
-            # diag = (self.image_pixmap.width()**2 + self.image_pixmap.height()**2)**0.5
             self.image_label = QLabel(self)
-            # self.image_label.setMinimumSize(diag, diag)
-            self.image_label.setAlignment(QtCore.Qt.AlignCenter)
+            self.image_label.setAlignment(QtCore.Qt.AlignLeft)
             self.image_existed = True
 
         # put pixmap in the label
@@ -276,17 +259,7 @@ class UI_MainWindow(QWidget):
         painter.drawLine(int(0.6*width), int(0.6*height), width, height//2)
 
     # draw model diagram, return model pixmap
-    def display_model_diagram(self, name, width, height, boundary_width):
-        model_pixmap = QPixmap(width, height)
-        model_pixmap.fill(QtCore.Qt.white)
-
-        # draw model diagram (simple rectangle for now)
-        painter = QtGui.QPainter(model_pixmap)
-        # set pen (used to draw outlines of shapes) and brush (draw the background of a shape)
-        pen = QtGui.QPen()
-
-        # draw standard arrow
-        self.draw_arrow(painter, pen, 80, 150, boundary_width)
+    def draw_model_diagram(self, painter, pen, name, width, height, boundary_width):
 
         # draw rectangle to represent model
         pen.setWidth(boundary_width)
@@ -302,23 +275,59 @@ class UI_MainWindow(QWidget):
         else:
             painter.drawText(int(width//3)+boundary_width, height//2-2*boundary_width, width//3*2, height, QtGui.Qt.AlignHCenter, name)
 
-        painter.end()
-
-        return model_pixmap
-
-    def display_model(self, model_name):
+    def display_model(self, model_name, width, height, boundary_width):
         # add a new label for loaded image if no image has existed
         if not self.model_existed:
             self.model_label = QLabel(self)
             self.model_label.setWordWrap(True)
             self.model_label.setTextFormat(QtGui.Qt.AutoText)
+            self.image_label.setAlignment(QtCore.Qt.AlignLeft)
             self.model_existed = True
 
+        # total model pixmap size
+        model_pixmap = QPixmap(width, height)
+        model_pixmap.fill(QtCore.Qt.white)
+
+        # define painter that is working on the pixmap
+        painter = QtGui.QPainter(model_pixmap)
+        # set pen (used to draw outlines of shapes) and brush (draw the background of a shape)
+        pen = QtGui.QPen()
+
+        # draw standard arrow
+        self.draw_arrow(painter, pen, 80, 150, boundary_width)
         # draw the model diagram
-        model_pixmap = self.display_model_diagram(model_name, 300, 150, boundary_width=3)
+        self.draw_model_diagram(painter, pen, model_name, width, 150, boundary_width)
+        painter.end()
+
+        # add to the label and layout
         self.model_label.setPixmap(model_pixmap)
-        # add to the layout
         self.loaded_layout.addWidget(self.model_label, 0, 2)
+
+
+    def display_mnist_result(self, output, pred, width, height, boundary_width):
+        # use the loaded_layout
+        mnist_pixmap = QPixmap(width, height)
+        mnist_pixmap.fill(QtCore.Qt.white)
+        # draw arrow
+        painter = QtGui.QPainter(mnist_pixmap)
+        # set pen (used to draw outlines of shapes) and brush (draw the background of a shape)
+        pen = QtGui.QPen()
+        # draw arrow to indicate feeding
+        self.draw_arrow(painter, pen, 80, 150, boundary_width)
+        # draw result
+        result_text = ''
+        for i in range(len(output)):
+            prob = '{:,.2}'.format(output[i]) if output[i] >= 0.01 else '{:,.2e}'.format(output[i])
+            result_text += f'Class {i}: {prob}\n'
+
+        painter.drawText(int(width//3)+boundary_width, 0, width//3*2, height, QtGui.Qt.AlignLeft, result_text)
+        painter.end()
+
+        self.mnist_label.setPixmap(mnist_pixmap)
+        # add to the layout
+        self.loaded_layout.addWidget(self.mnist_label, 0, 4)
+
+        return mnist_pixmap
 
 
     def mouseMoveEvent(self, event):
@@ -341,10 +350,10 @@ class UI_MainWindow(QWidget):
                 self.total_rotate_angle -= 1
 
             # rotate the image tensor
-            cur_image_pt = nero_transform.rotate_mnist_image(self.loaded_image_pt, self.total_rotate_angle)
+            self.cur_image_pt = nero_transform.rotate_mnist_image(self.loaded_image_pt, self.total_rotate_angle)
             # self.image_pixmap = self.image_pixmap.transformed(QtGui.QTransform().rotate(angle), QtCore.Qt.SmoothTransformation)
             # convert image tensor to qt image
-            self.cur_image = nero_utilities.tensor_to_qt_image(cur_image_pt)
+            self.cur_image = nero_utilities.tensor_to_qt_image(self.cur_image_pt)
             # resize the at image
             self.cur_image = self.cur_image.scaledToWidth(self.image_size)
             # update the pixmap and label
