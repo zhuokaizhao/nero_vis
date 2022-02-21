@@ -162,7 +162,7 @@ class UI_MainWindow(QWidget):
 
         model_name = self.model_path.split('/')[-1]
         width = 300
-        height = 200
+        height = 300
         # display the model
         self.display_model(model_name, width, height, boundary_width=3)
         # change the button text
@@ -195,7 +195,7 @@ class UI_MainWindow(QWidget):
                 self.mnist_label.setTextFormat(QtGui.Qt.AutoText)
                 self.result_existed = True
 
-            self.display_mnist_result(output, pred, width=300, height=200, boundary_width=3)
+            self.display_mnist_result(output, pred, font_size=14, width=300, height=300, boundary_width=3)
 
         else:
             # display a warning text
@@ -259,7 +259,7 @@ class UI_MainWindow(QWidget):
         painter.drawLine(int(0.6*width), int(0.6*height), width, height//2)
 
     # draw model diagram, return model pixmap
-    def draw_model_diagram(self, painter, pen, name, width, height, boundary_width):
+    def draw_model_diagram(self, painter, pen, name, font_size, width, height, boundary_width):
 
         # draw rectangle to represent model
         pen.setWidth(boundary_width)
@@ -269,6 +269,7 @@ class UI_MainWindow(QWidget):
         painter.drawRect(rectangle)
 
         # draw model name
+        painter.setFont(QFont('Helvetica', font_size))
         if len(name) > 20:
             name = name[:20] + '\n' + name[20:]
             painter.drawText(int(width//3)+boundary_width, height//2-6*boundary_width, width//3*2, height, QtGui.Qt.AlignHCenter, name)
@@ -281,7 +282,7 @@ class UI_MainWindow(QWidget):
             self.model_label = QLabel(self)
             self.model_label.setWordWrap(True)
             self.model_label.setTextFormat(QtGui.Qt.AutoText)
-            self.image_label.setAlignment(QtCore.Qt.AlignLeft)
+            self.model_label.setAlignment(QtCore.Qt.AlignLeft)
             self.model_existed = True
 
         # total model pixmap size
@@ -296,15 +297,14 @@ class UI_MainWindow(QWidget):
         # draw standard arrow
         self.draw_arrow(painter, pen, 80, 150, boundary_width)
         # draw the model diagram
-        self.draw_model_diagram(painter, pen, model_name, width, 150, boundary_width)
+        self.draw_model_diagram(painter, pen, model_name, 12, width, 150, boundary_width)
         painter.end()
 
         # add to the label and layout
         self.model_label.setPixmap(model_pixmap)
         self.loaded_layout.addWidget(self.model_label, 0, 2)
 
-
-    def display_mnist_result(self, output, pred, width, height, boundary_width):
+    def display_mnist_result(self, output, pred, font_size, width, height, boundary_width):
         # use the loaded_layout
         mnist_pixmap = QPixmap(width, height)
         mnist_pixmap.fill(QtCore.Qt.white)
@@ -317,10 +317,19 @@ class UI_MainWindow(QWidget):
         # draw result
         result_text = ''
         for i in range(len(output)):
-            prob = '{:,.2}'.format(output[i]) if output[i] >= 0.01 else '{:,.2e}'.format(output[i])
+            prob = '{:.2f}'.format(output[i]) if output[i] >= 0.01 else '{:.2e}'.format(output[i])
             result_text += f'Class {i}: {prob}\n'
 
+        painter.setFont(QFont('Helvetica', font_size))
         painter.drawText(int(width//3)+boundary_width, 0, width//3*2, height, QtGui.Qt.AlignLeft, result_text)
+
+        # draw rectangle surrounding highest value
+        pen.setWidth(boundary_width)
+        pen.setColor(QtGui.QColor('red'))
+        painter.setPen(pen)
+        # x, y, width, height
+        rectangle = QtCore.QRect(90, pred*26, 180, 27)
+        painter.drawRect(rectangle)
         painter.end()
 
         self.mnist_label.setPixmap(mnist_pixmap)
@@ -328,7 +337,6 @@ class UI_MainWindow(QWidget):
         self.loaded_layout.addWidget(self.mnist_label, 0, 4)
 
         return mnist_pixmap
-
 
     def mouseMoveEvent(self, event):
         # print("mouseMoveEvent")
@@ -400,22 +408,3 @@ if __name__ == "__main__":
 
     sys.exit(app.exec())
 
-
-
-#
-
-
-
-
-
-
-
-
-
-
-# if __name__ == "__main__":
-#     app = QtWidgets.QApplication([])
-#     main_window = MainWindow()
-#     main_window.resize(1024, 768)
-#     main_window.show()
-#     sys.exit(app.exec())
