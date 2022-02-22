@@ -379,18 +379,12 @@ class UI_MainWindow(QWidget):
             print('translating')
         # when in rotation mode
         elif self.rotation:
-            self.all_mouse_x.append(event.position().x())
-            self.all_mouse_y.append(event.position().y())
-            if len(self.all_mouse_x) > 2:
-                self.all_mouse_x.pop(0)
-                self.all_mouse_y.pop(0)
-            # angle = math.atan2(event.y() - self.all_mouse_y[-2], event.x() - self.all_mouse_x[-2]) / math.pi * 180
-            # naive way to determine rotate angle
-            if self.all_mouse_x[-1] < self.all_mouse_x[0] or self.all_mouse_y[-1] < self.all_mouse_y[0]:
-                self.cur_rotation_angle += 1
-            else:
-                self.cur_rotation_angle -= 1
+            cur_mouse_pos = [event.position().x(), event.position().y()]
 
+            angle_change = -((self.prev_mouse_pos[0]*cur_mouse_pos[1] - self.prev_mouse_pos[1]*cur_mouse_pos[0])
+                            / (self.prev_mouse_pos[0]*self.prev_mouse_pos[0] + self.prev_mouse_pos[1]*self.prev_mouse_pos[1]))*180
+
+            self.cur_rotation_angle += angle_change
             # rotate the image tensor
             self.cur_image_pt = nero_transform.rotate_mnist_image(self.loaded_image_pt, self.cur_rotation_angle)
             # self.image_pixmap = self.image_pixmap.transformed(QtGui.QTransform().rotate(angle), QtCore.Qt.SmoothTransformation)
@@ -406,10 +400,11 @@ class UI_MainWindow(QWidget):
             if self.result_existed:
                 self.run_model_once()
 
+            self.prev_mouse_pos = cur_mouse_pos
+
     def mousePressEvent(self, event):
         print("mousePressEvent")
-        self.all_mouse_x = [event.position().x()]
-        self.all_mouse_y = [event.position().y()]
+        self.prev_mouse_pos = [event.position().x(), event.position().y()]
 
     def mouseReleaseEvent(self, event):
         print("mouseReleaseEvent")
