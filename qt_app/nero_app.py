@@ -127,7 +127,9 @@ class UI_MainWindow(QWidget):
         self.layout.addLayout(self.warning_layout)
 
         # set the model selection to be the simple model
+        self.model_1_name = 'Simple model'
         self.model_1_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'non_eqv', '*.pt'))[0]
+        self.model_2_name = 'E2CNN model'
         self.model_2_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'rot_eqv', '*.pt'))[0]
         # preload model
         self.model_1 = nero_run_model.load_model('non-eqv', self.model_1_path)
@@ -143,7 +145,8 @@ class UI_MainWindow(QWidget):
         self.rotation = False
 
         # total rotate angle
-        self.total_rotate_angle = 0
+        self.cur_rotation_angle = 0
+        self.prev_rotation_angle = 0
 
     # three radio buttons that define the mode
     @QtCore.Slot()
@@ -199,6 +202,7 @@ class UI_MainWindow(QWidget):
     @QtCore.Slot()
     def model_1_text_changed(self, text):
         print('Model 1:', text)
+        self.model_1_name = text
         # load the mode
         if text == 'Simple model':
             self.model_1_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'non_eqv', '*.pt'))[0]
@@ -219,7 +223,7 @@ class UI_MainWindow(QWidget):
     @QtCore.Slot()
     def model_2_text_changed(self, text):
         print('Model 2:', text)
-
+        self.model_2_name = text
         # load the mode
         if text == 'Simple model':
             self.model_2_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'non_eqv', '*.pt'))[0]
@@ -239,18 +243,7 @@ class UI_MainWindow(QWidget):
 
     @QtCore.Slot()
     def run_once_button_clicked(self):
-        output_1, pred_1 = nero_run_model.run_mnist_once(self.model_1, self.cur_image_pt)
-        output_2, pred_2 = nero_run_model.run_mnist_once(self.model_2, self.cur_image_pt)
-        # display the result
-        # add a new label for result if no result has existed
-        if not self.result_existed:
-            self.mnist_label = QLabel(self)
-            self.mnist_label.setAlignment(QtCore.Qt.AlignCenter)
-            self.mnist_label.setWordWrap(True)
-            self.mnist_label.setTextFormat(QtGui.Qt.AutoText)
-            self.result_existed = True
-
-        self.display_mnist_result(output_1, pred_1, output_2, pred_2, boundary_width=3)
+        self.run_model_once()
 
 
     @QtCore.Slot()
@@ -258,6 +251,23 @@ class UI_MainWindow(QWidget):
         if self.mode == 'digit_recognition':
             # run all rotation test with 5 degree increment
             nero_run_model.run_mnist_all()
+
+
+    def run_model_once(self):
+        if self.mode == 'digit_recognition':
+            output_1, pred_1 = nero_run_model.run_mnist_once(self.model_1, self.cur_image_pt)
+            output_2, pred_2 = nero_run_model.run_mnist_once(self.model_2, self.cur_image_pt)
+            # display the result
+            # add a new label for result if no result has existed
+            if not self.result_existed:
+                self.mnist_label = QLabel(self)
+                self.mnist_label.setAlignment(QtCore.Qt.AlignCenter)
+                self.mnist_label.setWordWrap(True)
+                self.mnist_label.setTextFormat(QtGui.Qt.AutoText)
+                self.result_existed = True
+
+            self.display_mnist_result(self.model_1_name, output_1, pred_1,
+                                        self.model_2_name, output_2, pred_2, boundary_width=3)
 
 
     def display_image(self, image_name):
@@ -296,7 +306,8 @@ class UI_MainWindow(QWidget):
         painter.drawLine(int(0.6*width), int(0.6*height), width, height//2)
 
 
-    def display_mnist_result(self, output_1, pred_1, output_2, pred_2, boundary_width):
+    def display_mnist_result(self, name_1, output_1, pred_1, name_2, output_2, pred_2, boundary_width):
+
         # use the loaded_layout
         mnist_pixmap = QPixmap(80, 150)
         mnist_pixmap.fill(QtCore.Qt.white)
@@ -312,13 +323,21 @@ class UI_MainWindow(QWidget):
         self.loaded_layout.addWidget(self.mnist_label, 0, 1)
 
         # draw result using bar plot
-        bar_series = QBarSeries()
+        # all the different classes
         categories = []
         for i in range(len(output_1)):
-            cur_set = QBarSet(str(i))
-            cur_set.append([output_1[i], output_2[i]])
-            bar_series.append(cur_set)
             categories.append(str(i))
+
+        # all results
+        model_1_set = QBarSet(name_1)
+        model_1_set.append(list(output_1))
+        model_2_set = QBarSet(name_2)
+        model_2_set.append(list(output_2))
+
+        # bar series
+        bar_series = QBarSeries()
+        bar_series.append(model_1_set)
+        bar_series.append(model_2_set)
 
         chart = QChart()
         chart.addSeries(bar_series)
@@ -327,7 +346,6 @@ class UI_MainWindow(QWidget):
         axis_x = QBarCategoryAxis()
         axis_x.append(categories)
         chart.setAxisX(axis_x, bar_series)
-
         axis_y = QValueAxis()
         chart.setAxisY(axis_y, bar_series)
         axis_y.setRange(0, 1)
@@ -377,12 +395,12 @@ class UI_MainWindow(QWidget):
             # angle = math.atan2(event.y() - self.all_mouse_y[-2], event.x() - self.all_mouse_x[-2]) / math.pi * 180
             # naive way to determine rotate angle
             if self.all_mouse_x[-1] < self.all_mouse_x[0] or self.all_mouse_y[-1] < self.all_mouse_y[0]:
-                self.total_rotate_angle += 1
+                self.cur_rotation_angle += 1
             else:
-                self.total_rotate_angle -= 1
+                self.cur_rotation_angle -= 1
 
             # rotate the image tensor
-            self.cur_image_pt = nero_transform.rotate_mnist_image(self.loaded_image_pt, self.total_rotate_angle)
+            self.cur_image_pt = nero_transform.rotate_mnist_image(self.loaded_image_pt, self.cur_rotation_angle)
             # self.image_pixmap = self.image_pixmap.transformed(QtGui.QTransform().rotate(angle), QtCore.Qt.SmoothTransformation)
             # convert image tensor to qt image
             self.cur_image = nero_utilities.tensor_to_qt_image(self.cur_image_pt)
@@ -392,6 +410,10 @@ class UI_MainWindow(QWidget):
             self.image_pixmap = QPixmap(self.cur_image)
             self.image_label.setPixmap(self.image_pixmap)
 
+            # update the model output
+            if self.result_existed:
+                self.run_model_once()
+
     def mousePressEvent(self, event):
         print("mousePressEvent")
         self.all_mouse_x = [event.position().x()]
@@ -399,6 +421,10 @@ class UI_MainWindow(QWidget):
 
     def mouseReleaseEvent(self, event):
         print("mouseReleaseEvent")
+        # if self.prev_rotation_angle != self.cur_rotation_angle:
+        #     self.run_model_once()
+
+        # self.prev_rotation_angle = self.cur_rotation_angle
 
     # called when a key is pressed
     def keyPressEvent(self, event):
