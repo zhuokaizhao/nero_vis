@@ -9,6 +9,7 @@ from PySide6 import QtCore, QtWidgets, QtGui
 from PySide6.QtGui  import QPixmap, QFont
 from PySide6.QtCore import QObject
 from PySide6.QtWidgets import QFileDialog, QWidget, QLabel, QRadioButton
+from PySide6.QtCharts import QBarSeries
 
 import nero_transform
 import nero_utilities
@@ -105,9 +106,11 @@ class UI_MainWindow(QWidget):
             model_1_menu.addItem('Simple model')
             model_1_menu.addItem('E2CNN model')
             model_1_menu.addItem('Data augmentation model')
+            model_1_menu.setCurrentText('Simple model')
             model_2_menu.addItem('Simple model')
             model_2_menu.addItem('E2CNN model')
             model_2_menu.addItem('Data augmentation model')
+            model_2_menu.setCurrentText('E2CNN model')
 
         # connect the drop down menu with actions
         model_1_menu.currentTextChanged.connect(self.model_1_text_changed)
@@ -125,12 +128,13 @@ class UI_MainWindow(QWidget):
 
         # set the model selection to be the simple model
         self.model_1_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'non_eqv', '*.pt'))[0]
-        self.model_2_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'non_eqv', '*.pt'))[0]
+        self.model_2_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'rot_eqv', '*.pt'))[0]
+        # preload model
+        self.model_1 = nero_run_model.load_model('non-eqv', self.model_1_path)
+        self.model_2 = nero_run_model.load_model('rot-eqv', self.model_2_path)
 
         # flag to check if an image has been displayed
         self.image_existed = False
-        self.model_existed = False
-        self.run_buttons_existed = False
         self.result_existed = False
         self.warning_existed = False
 
@@ -174,29 +178,27 @@ class UI_MainWindow(QWidget):
         self.image_size = 150
         self.cur_image = self.cur_image.scaledToWidth(self.image_size)
 
-        # display the image
-        self.display_image()
         # change the button text
         image_name = self.image_path.split('/')[-1]
-        self.data_button.setText(f'Loaded image {image_name}. Click to load new image')
+        # display the image
+        self.display_image(image_name)
+        self.data_button.setText(f'Click to load new image')
+        self.image_existed = True
 
-        # show the run button when both ready
-        if self.model_existed and self.image_existed and not self.run_buttons_existed:
-            # run once button
-            self.run_once_button = QtWidgets.QPushButton('Run model once')
-            self.run_button_layout.addWidget(self.run_once_button)
-            self.run_once_button.clicked.connect(self.run_once_button_clicked)
-            # load model button
-            self.run_all_button = QtWidgets.QPushButton('Run model on all transformations')
-            self.run_button_layout.addWidget(self.run_all_button)
-            self.run_all_button.clicked.connect(self.run_all_button_clicked)
-
-            self.run_buttons_existed = True
+        # show the load model button when data is loaded
+        # run once button
+        self.run_once_button = QtWidgets.QPushButton('Run model once')
+        self.run_button_layout.addWidget(self.run_once_button_clicked)
+        self.run_once_button.clicked.connect(self.run_once_button_clicked)
+        # load model button
+        self.run_all_button = QtWidgets.QPushButton('Run model on all transformations')
+        self.run_button_layout.addWidget(self.run_all_button)
+        self.run_all_button.clicked.connect(self.run_all_button_clicked)
 
     # two drop down menus that let user choose models
     @QtCore.Slot()
     def model_1_text_changed(self, text):
-        print('Model 2:', text)
+        print('Model 1:', text)
         # load the mode
         if text == 'Simple model':
             self.model_1_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'non_eqv', '*.pt'))[0]
@@ -205,7 +207,10 @@ class UI_MainWindow(QWidget):
         elif text == 'Data augmentation model':
             self.model_1_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'aug_rot_eqv', '*.pt'))[0]
 
-        print(self.model_1_path)
+        print('Model 1 path:', self.model_1_path)
+
+        # reload model
+        self.model_1 = nero_run_model.load_model('non-eqv', self.model_1_path)
 
     @QtCore.Slot()
     def model_2_text_changed(self, text):
@@ -219,76 +224,25 @@ class UI_MainWindow(QWidget):
         elif text == 'Data augmentation model':
             self.model_2_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'aug_rot_eqv', '*.pt'))[0]
 
-        print(self.model_2_path)
+        print('Model 2 path:', self.model_2_path)
 
-    # might be useful for future, when loading custom model
-    @QtCore.Slot()
-    def load_model_clicked(self):
-        self.model_path, _ = QFileDialog.getOpenFileName(self, QObject.tr('Load Model'))
-        # in case user did not load any image
-        if self.model_path == '':
-            return
-        print(f'Loaded model {self.model_path}')
-
-        model_name = self.model_path.split('/')[-1]
-        width = 300
-        height = 300
-        # display the model
-        self.display_model(model_name, width, height, boundary_width=3)
-        # change the button text
-        self.model_button.setText(f'Loaded model {model_name}. Click to load new model')
-
-        # show the run button when both ready
-        if self.model_existed and self.image_existed and not self.run_buttons_existed:
-            # run once button
-            self.run_once_button = QtWidgets.QPushButton('Run model once')
-            self.run_button_layout.addWidget(self.run_once_button)
-            self.run_once_button.clicked.connect(self.run_once_button_clicked)
-            # load model button
-            self.run_all_button = QtWidgets.QPushButton('Run model on all transformations')
-            self.run_button_layout.addWidget(self.run_all_button)
-            self.run_all_button.clicked.connect(self.run_all_button_clicked)
-
-            self.run_buttons_existed = True
+        # reload model
+        self.model_2 = nero_run_model.load_model('rot-eqv', self.model_2_path)
 
     @QtCore.Slot()
     def run_once_button_clicked(self):
-        # check if both input image and model are ready
-        if self.image_existed and self.model_existed:
-            output, pred = nero_run_model.run_mnist_once('non-eqv', self.model_path, self.cur_image_pt)
-            # display the result
-            # add a new label for loaded image if no image has existed
-            if not self.result_existed:
-                self.mnist_label = QLabel(self)
-                self.mnist_label.setAlignment(QtCore.Qt.AlignCenter)
-                self.mnist_label.setWordWrap(True)
-                self.mnist_label.setTextFormat(QtGui.Qt.AutoText)
-                self.result_existed = True
+        output_1, pred_1 = nero_run_model.run_mnist_once(self.model_1, self.cur_image_pt)
+        output_2, pred_2 = nero_run_model.run_mnist_once(self.model_2, self.cur_image_pt)
+        # display the result
+        # add a new label for result if no result has existed
+        if not self.result_existed:
+            self.mnist_label = QLabel(self)
+            self.mnist_label.setAlignment(QtCore.Qt.AlignCenter)
+            self.mnist_label.setWordWrap(True)
+            self.mnist_label.setTextFormat(QtGui.Qt.AutoText)
+            self.result_existed = True
 
-            self.display_mnist_result(output, pred, font_size=14, width=300, height=300, boundary_width=3)
-
-        else:
-            # display a warning text
-            # prepare a pixmap for the image
-            warning_pixmap = QPixmap(200, 100)
-            warning_pixmap.fill(QtCore.Qt.white)
-
-            if not self.warning_existed:
-                self.warning_label = QLabel(self)
-                self.warning_label.setAlignment(QtCore.Qt.AlignCenter)
-                self.warning_existed = True
-
-            # display warning text
-            painter = QtGui.QPainter(warning_pixmap)
-            if not self.image_existed:
-                warn_text = 'Please load data image(s) first'
-            elif not self.model_existed:
-                warn_text = 'Please load model first'
-            elif not self.image_existed and not self.model_existed:
-                warn_text = 'Please load data image(s) and model first'
-
-            painter.drawText(0, 0, 200, 100, QtGui.Qt.AlignHCenter, warn_text)
-            painter.end()
+        self.display_mnist_result(output_1, pred_1, output_2, pred_2, font_size=14, width=300, height=300, boundary_width=3)
 
 
     @QtCore.Slot()
@@ -298,7 +252,7 @@ class UI_MainWindow(QWidget):
             nero_run_model.run_mnist_all()
 
 
-    def display_image(self):
+    def display_image(self, image_name):
 
         # prepare a pixmap for the image
         image_pixmap = QPixmap(self.cur_image)
@@ -312,8 +266,13 @@ class UI_MainWindow(QWidget):
         # put pixmap in the label
         self.image_label.setPixmap(image_pixmap)
 
+        # name of the image
+        name_label = QLabel(image_name)
+        name_label.setAlignment(QtCore.Qt.AlignLeft)
+
         # add this image to the layout
         self.loaded_layout.addWidget(self.image_label, 0, 0)
+        self.loaded_layout.addWidget(name_label, 1, 0)
 
     # draw arrow
     def draw_arrow(self, painter, pen, width, height, boundary_width):
@@ -328,53 +287,8 @@ class UI_MainWindow(QWidget):
         # bottom arrow
         painter.drawLine(int(0.6*width), int(0.6*height), width, height//2)
 
-    # draw model diagram, return model pixmap
-    def draw_model_diagram(self, painter, pen, name, font_size, width, height, boundary_width):
 
-        # draw rectangle to represent model
-        pen.setWidth(boundary_width)
-        pen.setColor(QtGui.QColor('red'))
-        painter.setPen(pen)
-        rectangle = QtCore.QRect(int(width//3)+boundary_width, boundary_width, width//3*2-2*boundary_width, height-2*boundary_width)
-        painter.drawRect(rectangle)
-
-        # draw model name
-        painter.setFont(QFont('Helvetica', font_size))
-        if len(name) > 20:
-            name = name[:20] + '\n' + name[20:]
-            painter.drawText(int(width//3)+boundary_width, height//2-6*boundary_width, width//3*2, height, QtGui.Qt.AlignHCenter, name)
-        else:
-            painter.drawText(int(width//3)+boundary_width, height//2-2*boundary_width, width//3*2, height, QtGui.Qt.AlignHCenter, name)
-
-    def display_model(self, model_name, width, height, boundary_width):
-        # add a new label for loaded image if no image has existed
-        if not self.model_existed:
-            self.model_label = QLabel(self)
-            self.model_label.setWordWrap(True)
-            self.model_label.setTextFormat(QtGui.Qt.AutoText)
-            self.model_label.setAlignment(QtCore.Qt.AlignLeft)
-            self.model_existed = True
-
-        # total model pixmap size
-        model_pixmap = QPixmap(width, height)
-        model_pixmap.fill(QtCore.Qt.white)
-
-        # define painter that is working on the pixmap
-        painter = QtGui.QPainter(model_pixmap)
-        # set pen (used to draw outlines of shapes) and brush (draw the background of a shape)
-        pen = QtGui.QPen()
-
-        # draw standard arrow
-        self.draw_arrow(painter, pen, 80, 150, boundary_width)
-        # draw the model diagram
-        self.draw_model_diagram(painter, pen, model_name, 12, width, 150, boundary_width)
-        painter.end()
-
-        # add to the label and layout
-        self.model_label.setPixmap(model_pixmap)
-        self.loaded_layout.addWidget(self.model_label, 0, 2)
-
-    def display_mnist_result(self, output, pred, font_size, width, height, boundary_width):
+    def display_mnist_result(self, output_1, pred_1, output_2, pred_2, font_size, width, height, boundary_width):
         # use the loaded_layout
         mnist_pixmap = QPixmap(width, height)
         mnist_pixmap.fill(QtCore.Qt.white)
@@ -384,7 +298,8 @@ class UI_MainWindow(QWidget):
         pen = QtGui.QPen()
         # draw arrow to indicate feeding
         self.draw_arrow(painter, pen, 80, 150, boundary_width)
-        # draw result
+
+        # draw result using bar plot
         result_text = ''
         for i in range(len(output)):
             prob = '{:.2f}'.format(output[i]) if output[i] >= 0.01 else '{:.2e}'.format(output[i])
@@ -404,7 +319,7 @@ class UI_MainWindow(QWidget):
 
         self.mnist_label.setPixmap(mnist_pixmap)
         # add to the layout
-        self.loaded_layout.addWidget(self.mnist_label, 0, 4)
+        self.loaded_layout.addWidget(self.mnist_label, 0, 2)
 
         return mnist_pixmap
 
@@ -478,3 +393,90 @@ if __name__ == "__main__":
 
     sys.exit(app.exec())
 
+
+
+
+
+
+
+
+
+
+
+
+
+# @QtCore.Slot()
+# def load_model_clicked(self):
+#     self.model_path, _ = QFileDialog.getOpenFileName(self, QObject.tr('Load Model'))
+#     # in case user did not load any image
+#     if self.model_path == '':
+#         return
+#     print(f'Loaded model {self.model_path}')
+
+#     model_name = self.model_path.split('/')[-1]
+#     width = 300
+#     height = 300
+#     # display the model
+#     self.display_model(model_name, width, height, boundary_width=3)
+#     # change the button text
+#     self.model_button.setText(f'Loaded model {model_name}. Click to load new model')
+
+#     # show the run button when both ready
+#     if self.model_existed and self.image_existed and not self.run_buttons_existed:
+#         # run once button
+#         self.run_once_button = QtWidgets.QPushButton('Run model once')
+#         self.run_button_layout.addWidget(self.run_once_button)
+#         self.run_once_button.clicked.connect(self.run_once_button_clicked)
+#         # load model button
+#         self.run_all_button = QtWidgets.QPushButton('Run model on all transformations')
+#         self.run_button_layout.addWidget(self.run_all_button)
+#         self.run_all_button.clicked.connect(self.run_all_button_clicked)
+
+#         self.run_buttons_existed = True
+
+# draw model diagram, return model pixmap
+# def draw_model_diagram(self, painter, pen, name, font_size, width, height, boundary_width):
+
+#     # draw rectangle to represent model
+#     pen.setWidth(boundary_width)
+#     pen.setColor(QtGui.QColor('red'))
+#     painter.setPen(pen)
+#     rectangle = QtCore.QRect(int(width//3)+boundary_width, boundary_width, width//3*2-2*boundary_width, height-2*boundary_width)
+#     painter.drawRect(rectangle)
+
+#     # draw model name
+#     painter.setFont(QFont('Helvetica', font_size))
+#     if len(name) > 20:
+#         name = name[:20] + '\n' + name[20:]
+#         painter.drawText(int(width//3)+boundary_width, height//2-6*boundary_width, width//3*2, height, QtGui.Qt.AlignHCenter, name)
+#     else:
+#         painter.drawText(int(width//3)+boundary_width, height//2-2*boundary_width, width//3*2, height, QtGui.Qt.AlignHCenter, name)
+
+# might be useful later
+# def display_model(self, model_name, width, height, boundary_width):
+#     # add a new label for loaded image if no image has existed
+#     if not self.model_existed:
+#         self.model_label = QLabel(self)
+#         self.model_label.setWordWrap(True)
+#         self.model_label.setTextFormat(QtGui.Qt.AutoText)
+#         self.model_label.setAlignment(QtCore.Qt.AlignLeft)
+#         self.model_existed = True
+
+#     # total model pixmap size
+#     model_pixmap = QPixmap(width, height)
+#     model_pixmap.fill(QtCore.Qt.white)
+
+#     # define painter that is working on the pixmap
+#     painter = QtGui.QPainter(model_pixmap)
+#     # set pen (used to draw outlines of shapes) and brush (draw the background of a shape)
+#     pen = QtGui.QPen()
+
+#     # draw standard arrow
+#     self.draw_arrow(painter, pen, 80, 150, boundary_width)
+#     # draw the model diagram
+#     self.draw_model_diagram(painter, pen, model_name, 12, width, 150, boundary_width)
+#     painter.end()
+
+#     # add to the label and layout
+#     self.model_label.setPixmap(model_pixmap)
+#     self.loaded_layout.addWidget(self.model_label, 0, 2)

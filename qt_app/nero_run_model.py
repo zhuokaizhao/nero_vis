@@ -14,11 +14,8 @@ sys.path.append(parent)
 
 from nero_mnist import models as mnist_models
 
-def run_mnist_once(network_model, model_dir, test_image):
-    print('Running inference on the single image')
-    # reformat input image from (height, width, channel) to (batch size, channel, height, width)
-    test_image = test_image.permute((2, 0, 1))[None, :, :, :].float()
-
+# preload model
+def load_model(network_model, model_dir):
     # basic settings for pytorch
     if torch.cuda.is_available():
         # device set up
@@ -45,11 +42,26 @@ def run_mnist_once(network_model, model_dir, test_image):
         # method = 'DSS'
         model = mnist_models.Scale_Eqv_Net_MNIST(method=method).to(device)
 
-    # load previously trained model
-    trained_model = torch.load(model_dir)
-    model.load_state_dict(trained_model['state_dict'])
+    loaded_model = torch.load(model_dir)
+    model.load_state_dict(loaded_model['state_dict'])
     # set model in evaluation mode
     model.eval()
+
+    print(f'{network_model} loaded')
+
+    return model
+
+def run_mnist_once(model, test_image):
+    print('Running inference on the single image')
+    # reformat input image from (height, width, channel) to (batch size, channel, height, width)
+    test_image = test_image.permute((2, 0, 1))[None, :, :, :].float()
+
+    # basic settings for pytorch
+    if torch.cuda.is_available():
+        # device set up
+        device = torch.device('cuda:0')
+    else:
+        device = torch.device('cpu')
 
     with torch.no_grad():
         batch_time_start = time.time()
