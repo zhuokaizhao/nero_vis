@@ -70,13 +70,12 @@ def run_mnist_once(model, test_image):
 
         # inference
         output = model(test_image).cpu().detach().numpy()[0]
-        pred = output.argmax()
 
         batch_time_end = time.time()
         batch_time_cost = batch_time_end - batch_time_start
         print(f'Inference time: {batch_time_cost} seconds')
 
-    return output, pred
+    return output
 
 
 # run mnist model on all rotations and return all the results

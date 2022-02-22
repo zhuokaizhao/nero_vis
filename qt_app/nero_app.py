@@ -255,8 +255,8 @@ class UI_MainWindow(QWidget):
 
     def run_model_once(self):
         if self.mode == 'digit_recognition':
-            output_1, pred_1 = nero_run_model.run_mnist_once(self.model_1, self.cur_image_pt)
-            output_2, pred_2 = nero_run_model.run_mnist_once(self.model_2, self.cur_image_pt)
+            output_1 = nero_run_model.run_mnist_once(self.model_1, self.cur_image_pt)
+            output_2 = nero_run_model.run_mnist_once(self.model_2, self.cur_image_pt)
             # display the result
             # add a new label for result if no result has existed
             if not self.result_existed:
@@ -265,9 +265,12 @@ class UI_MainWindow(QWidget):
                 self.mnist_label.setWordWrap(True)
                 self.mnist_label.setTextFormat(QtGui.Qt.AutoText)
                 self.result_existed = True
+                self.repaint = False
+            else:
+                self.repaint = True
 
-            self.display_mnist_result(self.model_1_name, output_1, pred_1,
-                                        self.model_2_name, output_2, pred_2, boundary_width=3)
+            self.display_mnist_result(self.model_1_name, output_1,
+                                        self.model_2_name, output_2, boundary_width=3, repaint=self.repaint)
 
 
     def display_image(self, image_name):
@@ -301,22 +304,22 @@ class UI_MainWindow(QWidget):
         # horizontal line
         painter.drawLine(0, height//2, width, height//2)
         # upper arrow
-        painter.drawLine(int(0.6*width), int(0.4*height), width, height//2)
+        painter.drawLine(int(0.6*width), int(0.45*height), width, height//2)
         # bottom arrow
-        painter.drawLine(int(0.6*width), int(0.6*height), width, height//2)
+        painter.drawLine(int(0.6*width), int(0.55*height), width, height//2)
 
 
-    def display_mnist_result(self, name_1, output_1, pred_1, name_2, output_2, pred_2, boundary_width):
+    def display_mnist_result(self, name_1, output_1, name_2, output_2, boundary_width, repaint=False):
 
         # use the loaded_layout
-        mnist_pixmap = QPixmap(80, 150)
+        mnist_pixmap = QPixmap(80, 300)
         mnist_pixmap.fill(QtCore.Qt.white)
         # draw arrow
         painter = QtGui.QPainter(mnist_pixmap)
         # set pen (used to draw outlines of shapes) and brush (draw the background of a shape)
         pen = QtGui.QPen()
         # draw arrow to indicate feeding
-        self.draw_arrow(painter, pen, 80, 150, boundary_width)
+        self.draw_arrow(painter, pen, 80, 300, boundary_width)
 
         self.mnist_label.setPixmap(mnist_pixmap)
         # add to the layout
@@ -341,6 +344,11 @@ class UI_MainWindow(QWidget):
 
         chart = QChart()
         chart.addSeries(bar_series)
+        # animation when plotting
+        if repaint:
+            chart.setAnimationOptions(QChart.NoAnimation)
+        else:
+            chart.setAnimationOptions(QChart.SeriesAnimations)
 
         # x and y axis
         axis_x = QBarCategoryAxis()
@@ -358,22 +366,6 @@ class UI_MainWindow(QWidget):
         chart_view.setRenderHint(QtGui.QPainter.Antialiasing)
         # add to the layout
         self.loaded_layout.addWidget(chart_view, 0, 2)
-
-        # result_text = ''
-        # for i in range(len(output)):
-        #     prob = '{:.2f}'.format(output[i]) if output[i] >= 0.01 else '{:.2e}'.format(output[i])
-        #     result_text += f'Class {i}: {prob}\n'
-
-        # painter.setFont(QFont('Helvetica', font_size))
-        # painter.drawText(int(width//3)+boundary_width, 0, width//3*2, height, QtGui.Qt.AlignLeft, result_text)
-
-        # # draw rectangle surrounding highest value
-        # pen.setWidth(boundary_width)
-        # pen.setColor(QtGui.QColor('red'))
-        # painter.setPen(pen)
-        # # x, y, width, height
-        # rectangle = QtCore.QRect(90, pred*26, 180, 27)
-        # painter.drawRect(rectangle)
 
         painter.end()
 
