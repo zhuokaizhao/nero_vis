@@ -1,4 +1,6 @@
+import os
 import sys
+import glob
 import torch
 import torchvision
 import numpy as np
@@ -16,6 +18,8 @@ import nero_run_model
 class UI_MainWindow(QWidget):
     def __init__(self):
         super().__init__()
+        # set window title
+        self.setWindowTitle('Non-Equivariance Revealed on Orbits')
         # white background color
         self.setStyleSheet("background-color: white;")
         # general layout
@@ -30,8 +34,8 @@ class UI_MainWindow(QWidget):
         self.title_layout.setContentsMargins(0, 0, 0, 20)
         # mode selection radio buttons
         self.mode_layout = QtWidgets.QGridLayout()
-        self.mode_layout.setContentsMargins(0, 0, 0, 50)
-        # image and model loading push buttons
+        self.mode_layout.setContentsMargins(50, 0, 0, 50)
+        # image and model loading buttons and drop down menus
         self.load_button_layout = QtWidgets.QGridLayout()
         # future loaded images and model layout
         self.loaded_layout = QtWidgets.QGridLayout()
@@ -48,31 +52,68 @@ class UI_MainWindow(QWidget):
         self.title_layout.addWidget(self.title)
         self.title_layout.setContentsMargins(0, 0, 0, 50)
 
-        # radio buttons on mode selection (classification, object detection, PIV)
+        # radio buttons on mode selection (digit_recognition, object detection, PIV)
+        # pixmap on text telling what this is
+        # use the loaded_layout
+        mode_pixmap = QPixmap(100, 30)
+        mode_pixmap.fill(QtCore.Qt.white)
+        # draw text
+        painter = QtGui.QPainter(mode_pixmap)
+        # set pen (used to draw outlines of shapes) and brush (draw the background of a shape)
+        pen = QtGui.QPen()
+        painter.setFont(QFont('Helvetica', 14))
+        painter.drawText(0, 0, 100, 30, QtGui.Qt.AlignLeft, 'Model type: ')
+        painter.end()
+        # create label to contain the texts
+        self.mode_label = QLabel(self)
+        self.mode_label.setAlignment(QtCore.Qt.AlignLeft)
+        self.mode_label.setWordWrap(True)
+        self.mode_label.setTextFormat(QtGui.Qt.AutoText)
+        self.mode_label.setPixmap(mode_pixmap)
+        # add to the layout
+        self.mode_layout.addWidget(self.mode_label, 0, 0)
         # radio_buttons_layout = QtWidgets.QGridLayout(self)
-        self.radio_button_1 = QRadioButton('Classification')
+        self.radio_button_1 = QRadioButton('Digit recognition')
         self.radio_button_1.setChecked(True)
-        self.radio_button_1.pressed.connect(self.radio_button_1_clicked)
-        self.mode_layout.addWidget(self.radio_button_1, 0, 0)
+        self.radio_button_1.setStyleSheet('QRadioButton{font: 14pt Helvetica;} QRadioButton::indicator { width: 15px; height: 15px;};')
+        self.radio_button_1.pressed.connect(self.digit_reconition_button_clicked)
+        self.mode_layout.addWidget(self.radio_button_1, 0, 2)
 
-        self.radio_button_2 = QRadioButton('Object Detection')
+        self.radio_button_2 = QRadioButton('Object detection')
         self.radio_button_2.setChecked(False)
-        self.radio_button_2.pressed.connect(self.radio_button_2_clicked)
-        self.mode_layout.addWidget(self.radio_button_2, 0, 1)
+        self.radio_button_2.setStyleSheet('QRadioButton{font: 14pt Helvetica;} QRadioButton::indicator { width: 15px; height: 15px;};')
+        self.radio_button_2.pressed.connect(self.object_detection_button_clicked)
+        self.mode_layout.addWidget(self.radio_button_2, 0, 3)
 
         self.radio_button_3 = QRadioButton('Particle Image Velocimetry (PIV)')
         self.radio_button_3.setChecked(False)
-        self.radio_button_3.pressed.connect(self.radio_button_3_clicked)
-        self.mode_layout.addWidget(self.radio_button_3, 0, 2)
+        self.radio_button_3.setStyleSheet('QRadioButton{font: 14pt Helvetica;} QRadioButton::indicator { width: 15px; height: 15px;};')
+        self.radio_button_3.pressed.connect(self.piv_button_clicked)
+        self.mode_layout.addWidget(self.radio_button_3, 0, 4)
+
+        # default app mode is digit_recognition
+        self.mode = 'digit_recognition'
 
         # load data button
         self.data_button = QtWidgets.QPushButton('Load Test Image')
-        self.load_button_layout.addWidget(self.data_button)
+        self.load_button_layout.addWidget(self.data_button, 0, 0)
         self.data_button.clicked.connect(self.load_image_clicked)
-        # load model button
-        self.model_button = QtWidgets.QPushButton('Load Model')
-        self.load_button_layout.addWidget(self.model_button)
-        self.model_button.clicked.connect(self.load_model_clicked)
+        # load models choices
+        model_1_menu = QtWidgets.QComboBox()
+        model_2_menu = QtWidgets.QComboBox()
+        if self.mode == 'digit_recognition':
+            model_1_menu.addItem('Simple model')
+            model_1_menu.addItem('E2CNN model')
+            model_1_menu.addItem('Data augmentation model')
+            model_2_menu.addItem('Simple model')
+            model_2_menu.addItem('E2CNN model')
+            model_2_menu.addItem('Data augmentation model')
+
+        # connect the drop down menu with actions
+        model_1_menu.currentTextChanged.connect(self.model_1_text_changed)
+        model_2_menu.currentTextChanged.connect(self.model_2_text_changed)
+        self.load_button_layout.addWidget(model_1_menu, 0, 1)
+        self.load_button_layout.addWidget(model_2_menu, 0, 2)
 
         # add individual layouts to the display general layout
         self.layout.addLayout(self.title_layout)
@@ -82,14 +123,16 @@ class UI_MainWindow(QWidget):
         self.layout.addLayout(self.run_button_layout)
         self.layout.addLayout(self.warning_layout)
 
+        # set the model selection to be the simple model
+        self.model_1_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'non_eqv', '*.pt'))[0]
+        self.model_2_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'non_eqv', '*.pt'))[0]
+
         # flag to check if an image has been displayed
         self.image_existed = False
         self.model_existed = False
         self.run_buttons_existed = False
         self.result_existed = False
         self.warning_existed = False
-        # default app mode is classification
-        self.mode = 'classification'
 
         # image (input data) modification mode
         self.translation = False
@@ -98,23 +141,21 @@ class UI_MainWindow(QWidget):
         # total rotate angle
         self.total_rotate_angle = 0
 
-
-
+    # three radio buttons that define the mode
     @QtCore.Slot()
-    def radio_button_1_clicked(self):
-        print('Classification button clicked')
-        self.mode = 'classification'
-
+    def digit_reconition_button_clicked(self):
+        print('Digit recognition button clicked')
+        self.mode = 'digit_recognition'
     @QtCore.Slot()
-    def radio_button_2_clicked(self):
+    def object_detection_button_clicked(self):
         print('Object detection button clicked')
         self.mode = 'object_detection'
-
     @QtCore.Slot()
-    def radio_button_3_clicked(self):
+    def piv_button_clicked(self):
         print('PIV button clicked')
         self.mode = 'PIV'
 
+    # push button that loads data
     @QtCore.Slot()
     def load_image_clicked(self):
         self.image_path, _ = QFileDialog.getOpenFileName(self, QObject.tr('Load Test Image'))
@@ -152,6 +193,35 @@ class UI_MainWindow(QWidget):
 
             self.run_buttons_existed = True
 
+    # two drop down menus that let user choose models
+    @QtCore.Slot()
+    def model_1_text_changed(self, text):
+        print('Model 2:', text)
+        # load the mode
+        if text == 'Simple model':
+            self.model_1_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'non_eqv', '*.pt'))[0]
+        elif text == 'E2CNN model':
+            self.model_1_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'rot_eqv', '*.pt'))[0]
+        elif text == 'Data augmentation model':
+            self.model_1_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'aug_rot_eqv', '*.pt'))[0]
+
+        print(self.model_1_path)
+
+    @QtCore.Slot()
+    def model_2_text_changed(self, text):
+        print('Model 2:', text)
+
+        # load the mode
+        if text == 'Simple model':
+            self.model_2_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'non_eqv', '*.pt'))[0]
+        elif text == 'E2CNN model':
+            self.model_2_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'rot_eqv', '*.pt'))[0]
+        elif text == 'Data augmentation model':
+            self.model_2_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'aug_rot_eqv', '*.pt'))[0]
+
+        print(self.model_2_path)
+
+    # might be useful for future, when loading custom model
     @QtCore.Slot()
     def load_model_clicked(self):
         self.model_path, _ = QFileDialog.getOpenFileName(self, QObject.tr('Load Model'))
@@ -223,7 +293,7 @@ class UI_MainWindow(QWidget):
 
     @QtCore.Slot()
     def run_all_button_clicked(self):
-        if self.mode == 'classification':
+        if self.mode == 'digit_recognition':
             # run all rotation test with 5 degree increment
             nero_run_model.run_mnist_all()
 

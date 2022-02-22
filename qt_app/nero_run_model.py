@@ -67,5 +67,6 @@ def run_mnist_once(network_model, model_dir, test_image):
     return output, pred
 
 
+# run mnist model on all rotations and return all the results
 def run_mnist_all():
     exit()
