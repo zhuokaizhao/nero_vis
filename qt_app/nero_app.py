@@ -9,7 +9,7 @@ from PySide6 import QtCore, QtWidgets, QtGui
 from PySide6.QtGui  import QPixmap, QFont
 from PySide6.QtCore import QObject
 from PySide6.QtWidgets import QFileDialog, QWidget, QLabel, QRadioButton
-from PySide6.QtCharts import QBarSeries
+from PySide6.QtCharts import QBarSet, QBarSeries, QChart, QBarCategoryAxis, QValueAxis, QChartView
 
 import nero_transform
 import nero_utilities
@@ -188,7 +188,7 @@ class UI_MainWindow(QWidget):
         # show the load model button when data is loaded
         # run once button
         self.run_once_button = QtWidgets.QPushButton('Run model once')
-        self.run_button_layout.addWidget(self.run_once_button_clicked)
+        self.run_button_layout.addWidget(self.run_once_button)
         self.run_once_button.clicked.connect(self.run_once_button_clicked)
         # load model button
         self.run_all_button = QtWidgets.QPushButton('Run model on all transformations')
@@ -202,15 +202,19 @@ class UI_MainWindow(QWidget):
         # load the mode
         if text == 'Simple model':
             self.model_1_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'non_eqv', '*.pt'))[0]
+            # reload model
+            self.model_1 = nero_run_model.load_model('non-eqv', self.model_1_path)
         elif text == 'E2CNN model':
             self.model_1_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'rot_eqv', '*.pt'))[0]
+            # reload model
+            self.model_1 = nero_run_model.load_model('rot-eqv', self.model_1_path)
         elif text == 'Data augmentation model':
             self.model_1_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'aug_rot_eqv', '*.pt'))[0]
+            # reload model
+            self.model_1 = nero_run_model.load_model('aug-eqv', self.model_1_path)
 
         print('Model 1 path:', self.model_1_path)
 
-        # reload model
-        self.model_1 = nero_run_model.load_model('non-eqv', self.model_1_path)
 
     @QtCore.Slot()
     def model_2_text_changed(self, text):
@@ -219,15 +223,19 @@ class UI_MainWindow(QWidget):
         # load the mode
         if text == 'Simple model':
             self.model_2_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'non_eqv', '*.pt'))[0]
+            # reload model
+            self.model_2 = nero_run_model.load_model('non-eqv', self.model_2_path)
         elif text == 'E2CNN model':
             self.model_2_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'rot_eqv', '*.pt'))[0]
+            # reload model
+            self.model_2 = nero_run_model.load_model('rot-eqv', self.model_2_path)
         elif text == 'Data augmentation model':
             self.model_2_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'aug_rot_eqv', '*.pt'))[0]
+            # reload model
+            self.model_2 = nero_run_model.load_model('aug-eqv', self.model_2_path)
 
         print('Model 2 path:', self.model_2_path)
 
-        # reload model
-        self.model_2 = nero_run_model.load_model('rot-eqv', self.model_2_path)
 
     @QtCore.Slot()
     def run_once_button_clicked(self):
@@ -242,7 +250,7 @@ class UI_MainWindow(QWidget):
             self.mnist_label.setTextFormat(QtGui.Qt.AutoText)
             self.result_existed = True
 
-        self.display_mnist_result(output_1, pred_1, output_2, pred_2, font_size=14, width=300, height=300, boundary_width=3)
+        self.display_mnist_result(output_1, pred_1, output_2, pred_2, boundary_width=3)
 
 
     @QtCore.Slot()
@@ -288,9 +296,9 @@ class UI_MainWindow(QWidget):
         painter.drawLine(int(0.6*width), int(0.6*height), width, height//2)
 
 
-    def display_mnist_result(self, output_1, pred_1, output_2, pred_2, font_size, width, height, boundary_width):
+    def display_mnist_result(self, output_1, pred_1, output_2, pred_2, boundary_width):
         # use the loaded_layout
-        mnist_pixmap = QPixmap(width, height)
+        mnist_pixmap = QPixmap(80, 150)
         mnist_pixmap.fill(QtCore.Qt.white)
         # draw arrow
         painter = QtGui.QPainter(mnist_pixmap)
@@ -299,27 +307,58 @@ class UI_MainWindow(QWidget):
         # draw arrow to indicate feeding
         self.draw_arrow(painter, pen, 80, 150, boundary_width)
 
-        # draw result using bar plot
-        result_text = ''
-        for i in range(len(output)):
-            prob = '{:.2f}'.format(output[i]) if output[i] >= 0.01 else '{:.2e}'.format(output[i])
-            result_text += f'Class {i}: {prob}\n'
-
-        painter.setFont(QFont('Helvetica', font_size))
-        painter.drawText(int(width//3)+boundary_width, 0, width//3*2, height, QtGui.Qt.AlignLeft, result_text)
-
-        # draw rectangle surrounding highest value
-        pen.setWidth(boundary_width)
-        pen.setColor(QtGui.QColor('red'))
-        painter.setPen(pen)
-        # x, y, width, height
-        rectangle = QtCore.QRect(90, pred*26, 180, 27)
-        painter.drawRect(rectangle)
-        painter.end()
-
         self.mnist_label.setPixmap(mnist_pixmap)
         # add to the layout
-        self.loaded_layout.addWidget(self.mnist_label, 0, 2)
+        self.loaded_layout.addWidget(self.mnist_label, 0, 1)
+
+        # draw result using bar plot
+        bar_series = QBarSeries()
+        categories = []
+        for i in range(len(output_1)):
+            cur_set = QBarSet(str(i))
+            cur_set.append([output_1[i], output_2[i]])
+            bar_series.append(cur_set)
+            categories.append(str(i))
+
+        chart = QChart()
+        chart.addSeries(bar_series)
+
+        # x and y axis
+        axis_x = QBarCategoryAxis()
+        axis_x.append(categories)
+        chart.setAxisX(axis_x, bar_series)
+
+        axis_y = QValueAxis()
+        chart.setAxisY(axis_y, bar_series)
+        axis_y.setRange(0, 1)
+
+        # legend
+        chart.legend().setVisible(True)
+        chart.legend().setAlignment(QtGui.Qt.AlignBottom)
+
+        chart_view = QChartView(chart)
+        chart_view.setRenderHint(QtGui.QPainter.Antialiasing)
+        # add to the layout
+        self.loaded_layout.addWidget(chart_view, 0, 2)
+
+        # result_text = ''
+        # for i in range(len(output)):
+        #     prob = '{:.2f}'.format(output[i]) if output[i] >= 0.01 else '{:.2e}'.format(output[i])
+        #     result_text += f'Class {i}: {prob}\n'
+
+        # painter.setFont(QFont('Helvetica', font_size))
+        # painter.drawText(int(width//3)+boundary_width, 0, width//3*2, height, QtGui.Qt.AlignLeft, result_text)
+
+        # # draw rectangle surrounding highest value
+        # pen.setWidth(boundary_width)
+        # pen.setColor(QtGui.QColor('red'))
+        # painter.setPen(pen)
+        # # x, y, width, height
+        # rectangle = QtCore.QRect(90, pred*26, 180, 27)
+        # painter.drawRect(rectangle)
+
+        painter.end()
+
 
         return mnist_pixmap
 
