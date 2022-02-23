@@ -139,6 +139,7 @@ class UI_MainWindow(QWidget):
 
         # flag to check if an image has been displayed
         self.image_existed = False
+        self.run_button_existed = False
         self.result_existed = False
         self.warning_existed = False
 
@@ -151,8 +152,8 @@ class UI_MainWindow(QWidget):
         self.prev_rotation_angle = 0
 
         # result of transformed data
-        self.all_preds_1 = []
-        self.all_preds_2 = []
+        self.all_quantities_1 = []
+        self.all_quantities_2 = []
 
     # three radio buttons that define the mode
     @QtCore.Slot()
@@ -202,14 +203,16 @@ class UI_MainWindow(QWidget):
         self.image_existed = True
 
         # show the run button when data is loaded
-        # run once button (single sample)
-        self.run_once_button = QtWidgets.QPushButton('Run model once')
-        self.run_button_layout.addWidget(self.run_once_button)
-        self.run_once_button.clicked.connect(self.run_once_button_clicked)
-        # run all button (all transformations on single sample)
-        self.run_all_button = QtWidgets.QPushButton('Run model on all transformations')
-        self.run_button_layout.addWidget(self.run_all_button)
-        self.run_all_button.clicked.connect(self.run_all_button_clicked)
+        if not self.run_button_existed:
+            # run once button (single sample)
+            self.run_once_button = QtWidgets.QPushButton('Manual mode')
+            self.run_button_layout.addWidget(self.run_once_button)
+            self.run_once_button.clicked.connect(self.run_once_button_clicked)
+            # run all button (all transformations on single sample)
+            self.run_all_button = QtWidgets.QPushButton('Auto mode with all transformations')
+            self.run_button_layout.addWidget(self.run_all_button)
+            self.run_all_button.clicked.connect(self.run_all_button_clicked)
+            self.run_button_existed = True
 
     # two drop down menus that let user choose models
     @QtCore.Slot()
@@ -256,15 +259,17 @@ class UI_MainWindow(QWidget):
 
     @QtCore.Slot()
     def run_once_button_clicked(self):
-        self.run_model_once(mode='bar')
+        # run model and display results
+        self.run_model_once()
 
 
     @QtCore.Slot()
     def run_all_button_clicked(self):
+        # run model and display results
         self.run_model_all()
 
     # run model on a single test sample
-    def run_model_once(self, mode):
+    def run_model_once(self):
         if self.mode == 'digit_recognition':
             self.output_1 = nero_run_model.run_mnist_once(self.model_1, self.cur_images_pt[0])
             self.output_2 = nero_run_model.run_mnist_once(self.model_2, self.cur_images_pt[0])
@@ -281,12 +286,15 @@ class UI_MainWindow(QWidget):
             else:
                 self.repaint = True
 
-            self.display_mnist_result(mode, boundary_width=3)
+            # display result
+            self.display_mnist_result(mode='bar', boundary_width=3)
 
     # run model on all the available transformations on a single sample
     def run_model_all(self):
         if self.mode == 'digit_recognition':
             self.all_angles = []
+            self.all_quantities_1 = []
+            self.all_quantities_2 = []
             # run all rotation test with 5 degree increment
             for degree in range(0, 365, 5):
                 self.cur_rotation_angle = -degree
@@ -302,11 +310,34 @@ class UI_MainWindow(QWidget):
                 self.image_label.setPixmap(image_pixmap)
                 # force repaint
                 self.image_label.repaint()
-                # sleep for 1 second
-                time.sleep(0.5)
+
+                # sleep for 0.1 second
+                # time.sleep(0.05)
 
                 # update the model output
-                # self.run_model_once(mode='polar')
+                self.output_1 = nero_run_model.run_mnist_once(self.model_1, self.cur_images_pt[0])
+                self.output_2 = nero_run_model.run_mnist_once(self.model_2, self.cur_images_pt[0])
+
+                # plotting the quantity regarding the correct label
+                quantity_1 = self.output_1[self.loaded_image_labels[0]]
+                quantity_2 = self.output_2[self.loaded_image_labels[0]]
+                self.all_quantities_1.append(quantity_1)
+                self.all_quantities_2.append(quantity_2)
+
+            # display the result
+            # add a new label for result if no result has existed
+            if not self.result_existed:
+                self.mnist_label = QLabel(self)
+                self.mnist_label.setAlignment(QtCore.Qt.AlignCenter)
+                self.mnist_label.setWordWrap(True)
+                self.mnist_label.setTextFormat(QtGui.Qt.AutoText)
+                self.result_existed = True
+                self.repaint = False
+            else:
+                self.repaint = True
+
+            # display result
+            self.display_mnist_result(mode='polar', boundary_width=3)
 
 
     def display_image(self):
@@ -348,7 +379,6 @@ class UI_MainWindow(QWidget):
         # bottom arrow
         painter.drawLine(int(0.6*width), int(0.55*height), width, height//2)
 
-
     def display_mnist_result(self, mode, boundary_width):
 
         # use the loaded_layout
@@ -364,6 +394,7 @@ class UI_MainWindow(QWidget):
         self.mnist_label.setPixmap(mnist_pixmap)
         # add to the layout
         self.loaded_layout.addWidget(self.mnist_label, 0, 1)
+        self.mnist_label.repaint()
 
         # draw result using bar plot
         if mode == 'bar':
@@ -400,44 +431,42 @@ class UI_MainWindow(QWidget):
             axis_y.setRange(0, 1)
 
         elif mode == 'polar':
-            # plotting the quantity regarding the correct label
-            pred_1 = self.output_1[self.loaded_image_labels[0]]
-            pred_2 = self.output_2[self.loaded_image_labels[0]]
-            self.all_preds_1.append(pred_1)
-            self.all_preds_2.append(pred_2)
+            marker_size = 10.0
 
             # scatter series
             scatter_series_1 = QScatterSeries()
             scatter_series_2 = QScatterSeries()
-            for i in range(len(self.all_preds_1)):
-                scatter_series_1.append(self.all_angles[i], self.all_preds_1[i])
-                scatter_series_2.append(self.all_angles[i], self.all_preds_2[i])
+            scatter_series_1.setMarkerSize(marker_size)
+            scatter_series_2.setMarkerSize(marker_size)
+            for i in range(len(self.all_quantities_1)):
+                scatter_series_1.append(self.all_angles[i], self.all_quantities_1[i])
+                scatter_series_2.append(self.all_angles[i], self.all_quantities_2[i])
 
             chart = QPolarChart()
+            chart.addSeries(scatter_series_1)
+            chart.addSeries(scatter_series_2)
 
             # create axis
             angular_axis = QValueAxis()
             # First and last ticks are co-located on 0/360 angle.
-            angular_axis.setTickCount(9)
-            angular_axis.setLabelFormat('%.1f')
-            angular_axis.setShadesVisible(True)
-            angular_axis.setShadesBrush(QtGui.QBrush(QtGui.QColor(249, 249, 255)))
-            chart.addAxis(angular_axis, QPolarChart.PolarOrientationAngular)
+            angular_axis.setTickCount(2)
+            angular_axis.setRange(0, 1)
+            # angular_axis.setLabelFormat('%.1f')
+            # angular_axis.setShadesVisible(True)
+            # angular_axis.setShadesBrush(QtGui.QBrush(QtGui.QColor(249, 249, 255)))
+            chart.setAxisY(angular_axis)
 
             radial_axis = QValueAxis()
             radial_axis.setTickCount(9)
-            radial_axis.setLabelFormat('%.1f')
-            chart.addAxis(radial_axis, QPolarChart.PolarOrientationRadial)
-            radial_axis.setRange(0, 1)
+            # radial_axis.setLabelFormat('%.1f')
+            radial_axis.setRange(0, 360)
+            chart.setAxisX(radial_axis)
 
             # animation when plotting
-            if self.repaint:
-                chart.setAnimationOptions(QChart.NoAnimation)
-            else:
-                chart.setAnimationOptions(QChart.SeriesAnimations)
-
-            chart.addSeries(scatter_series_1)
-            chart.addSeries(scatter_series_2)
+            # if self.repaint:
+            #     chart.setAnimationOptions(QChart.NoAnimation)
+            # else:
+            #     chart.setAnimationOptions(QChart.SeriesAnimations)
 
         else:
             raise Exception('Unsupported display mode')
@@ -447,11 +476,12 @@ class UI_MainWindow(QWidget):
         chart.legend().setAlignment(QtGui.Qt.AlignBottom)
 
         # create chart view
-        chart_view = QChartView(chart)
-        chart_view.setRenderHint(QtGui.QPainter.Antialiasing)
+        self.chart_view = QChartView(chart)
+        self.chart_view.setRenderHint(QtGui.QPainter.Antialiasing)
 
         # add to the layout
-        self.loaded_layout.addWidget(chart_view, 0, 2)
+        self.loaded_layout.addWidget(self.chart_view, 0, 2)
+        self.chart_view.repaint()
 
         painter.end()
 
@@ -481,7 +511,7 @@ class UI_MainWindow(QWidget):
 
             # update the model output
             if self.result_existed:
-                self.run_model_once(mode='bar')
+                self.run_model_once()
 
             self.prev_mouse_pos = cur_mouse_pos
 
