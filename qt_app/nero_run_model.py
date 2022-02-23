@@ -79,5 +79,5 @@ def run_mnist_once(model, test_image):
 
 
 # run mnist model on all rotations and return all the results
-def run_mnist_all_rotations(model, test_image):
-    exit()
+# def run_mnist_all_rotations(model, test_image):
+#     exit()

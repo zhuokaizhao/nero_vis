@@ -9,7 +9,7 @@ from PySide6 import QtCore, QtWidgets, QtGui
 from PySide6.QtGui  import QPixmap, QFont
 from PySide6.QtCore import QObject
 from PySide6.QtWidgets import QFileDialog, QWidget, QLabel, QRadioButton
-from PySide6.QtCharts import QBarSet, QBarSeries, QChart, QBarCategoryAxis, QValueAxis, QChartView
+from PySide6.QtCharts import QBarSet, QBarSeries, QChart, QBarCategoryAxis, QValueAxis, QChartView, QPolarChart, QScatterSeries
 
 import nero_transform
 import nero_utilities
@@ -145,9 +145,13 @@ class UI_MainWindow(QWidget):
         self.translation = False
         self.rotation = False
 
-        # total rotate angle
+        # rotation angles
         self.cur_rotation_angle = 0
         self.prev_rotation_angle = 0
+
+        # result of transformed data
+        self.all_preds_1 = []
+        self.all_preds_2 = []
 
     # three radio buttons that define the mode
     @QtCore.Slot()
@@ -259,10 +263,11 @@ class UI_MainWindow(QWidget):
         self.run_model_all()
 
     # run model on a single test sample
-    def run_model_once(self):
+    def run_model_once(self, mode):
         if self.mode == 'digit_recognition':
-            output_1 = nero_run_model.run_mnist_once(self.model_1, self.cur_images_pt[0])
-            output_2 = nero_run_model.run_mnist_once(self.model_2, self.cur_images_pt[0])
+            self.output_1 = nero_run_model.run_mnist_once(self.model_1, self.cur_images_pt[0])
+            self.output_2 = nero_run_model.run_mnist_once(self.model_2, self.cur_images_pt[0])
+
             # display the result
             # add a new label for result if no result has existed
             if not self.result_existed:
@@ -275,15 +280,27 @@ class UI_MainWindow(QWidget):
             else:
                 self.repaint = True
 
-            self.display_mnist_result(self.model_1_name, output_1,
-                                        self.model_2_name, output_2, boundary_width=3, repaint=self.repaint)
+            self.display_mnist_result(mode, boundary_width=3)
 
     # run model on all the available transformations on a single sample
     def run_model_all(self):
         if self.mode == 'digit_recognition':
+            self.all_angles = []
             # run all rotation test with 5 degree increment
-            output_1 = nero_run_model.run_mnist_all_rotations(self.model_1, self.cur_image_pt)
-            output_2 = nero_run_model.run_mnist_all_rotations(self.model_2, self.cur_image_pt)
+            for cur_rotation_angle in range(0, 360, 5):
+                self.all_angles.append(cur_rotation_angle)
+                # rotate the image tensor
+                self.cur_images_pt[0] = nero_transform.rotate_mnist_image(self.loaded_images_pt[0], cur_rotation_angle)
+                # convert image tensor to qt image and resize for display
+                self.display_images[0] = nero_utilities.tensor_to_qt_image(self.cur_images_pt[0]).scaledToWidth(self.display_image_size)
+                # update the pixmap and label
+                self.image_pixmap = QPixmap(self.display_images[0])
+                self.image_label.setPixmap(self.image_pixmap)
+
+                # update the model output
+                if self.result_existed:
+                    self.run_model_once()
+
 
     def display_image(self):
 
@@ -325,7 +342,7 @@ class UI_MainWindow(QWidget):
         painter.drawLine(int(0.6*width), int(0.55*height), width, height//2)
 
 
-    def display_mnist_result(self, name_1, output_1, name_2, output_2, boundary_width, repaint=False):
+    def display_mnist_result(self, mode, boundary_width):
 
         # use the loaded_layout
         mnist_pixmap = QPixmap(80, 300)
@@ -342,37 +359,78 @@ class UI_MainWindow(QWidget):
         self.loaded_layout.addWidget(self.mnist_label, 0, 1)
 
         # draw result using bar plot
-        # all the different classes
-        categories = []
-        for i in range(len(output_1)):
-            categories.append(str(i))
+        if mode == 'bar':
+            # all the different classes
+            categories = []
+            for i in range(len(self.output_1)):
+                categories.append(str(i))
 
-        # all results
-        model_1_set = QBarSet(name_1)
-        model_1_set.append(list(output_1))
-        model_2_set = QBarSet(name_2)
-        model_2_set.append(list(output_2))
+            # all results
+            model_1_set = QBarSet(self.name_1)
+            model_1_set.append(list(self.output_1))
+            model_2_set = QBarSet(self.name_2)
+            model_2_set.append(list(self.output_2))
 
-        # bar series
-        bar_series = QBarSeries()
-        bar_series.append(model_1_set)
-        bar_series.append(model_2_set)
+            # bar series
+            bar_series = QBarSeries()
+            bar_series.append(model_1_set)
+            bar_series.append(model_2_set)
 
-        chart = QChart()
-        chart.addSeries(bar_series)
-        # animation when plotting
-        if repaint:
-            chart.setAnimationOptions(QChart.NoAnimation)
-        else:
-            chart.setAnimationOptions(QChart.SeriesAnimations)
+            chart = QChart()
+            chart.addSeries(bar_series)
+            # animation when plotting
+            if self.repaint:
+                chart.setAnimationOptions(QChart.NoAnimation)
+            else:
+                chart.setAnimationOptions(QChart.SeriesAnimations)
 
-        # x and y axis
-        axis_x = QBarCategoryAxis()
-        axis_x.append(categories)
-        chart.setAxisX(axis_x, bar_series)
-        axis_y = QValueAxis()
-        chart.setAxisY(axis_y, bar_series)
-        axis_y.setRange(0, 1)
+            # x and y axis
+            axis_x = QBarCategoryAxis()
+            axis_x.append(categories)
+            chart.setAxisX(axis_x, bar_series)
+            axis_y = QValueAxis()
+            chart.setAxisY(axis_y, bar_series)
+            axis_y.setRange(0, 1)
+
+        elif mode == 'polar':
+            # plotting the quantity regarding the correct label
+            pred_1 = self.output_1[self.loaded_image_labels[0]]
+            pred_2 = self.output_2[self.loaded_image_labels[0]]
+            self.all_preds_1.append(pred_1)
+            self.all_preds_2.append(pred_2)
+
+            # scatter series
+            scatter_series_1 = QScatterSeries()
+            scatter_series_2 = QScatterSeries()
+            for i in range(len(self.all_preds_1)):
+                scatter_series_1.append(self.all_angles[i], self.all_preds_1[i])
+                scatter_series_2.append(self.all_angles[i], self.all_preds_2[i])
+
+            chart = QPolarChart()
+
+            # create axis
+            angular_axis = QValueAxis()
+            # First and last ticks are co-located on 0/360 angle.
+            angular_axis.setTickCount(9)
+            angular_axis.setLabelFormat('%.1f')
+            angular_axis.setShadesVisible(True)
+            angular_axis.setShadesBrush(QtGui.QBrush(QtGui.QColor(249, 249, 255)))
+            chart.addAxis(angular_axis, QPolarChart.PolarOrientationAngular)
+
+            radial_axis = QValueAxis()
+            radial_axis.setTickCount(9)
+            radial_axis.setLabelFormat('%.1f')
+            chart.addAxis(radial_axis, QPolarChart.PolarOrientationRadial)
+            radial_axis.setRange(0, 1)
+
+            # animation when plotting
+            if self.repaint:
+                chart.setAnimationOptions(QChart.NoAnimation)
+            else:
+                chart.setAnimationOptions(QChart.SeriesAnimations)
+
+            chart.addSeries(scatter_series_1)
+            chart.addSeries(scatter_series_2)
 
         # legend
         chart.legend().setVisible(True)
@@ -384,7 +442,6 @@ class UI_MainWindow(QWidget):
         self.loaded_layout.addWidget(chart_view, 0, 2)
 
         painter.end()
-
 
         return mnist_pixmap
 
