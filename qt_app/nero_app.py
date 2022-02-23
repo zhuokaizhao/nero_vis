@@ -1,6 +1,7 @@
 import os
 import sys
 import glob
+import time
 import torch
 import torchvision
 import numpy as np
@@ -111,7 +112,7 @@ class UI_MainWindow(QWidget):
             model_2_menu.addItem('Simple model')
             model_2_menu.addItem('E2CNN model')
             model_2_menu.addItem('Data augmentation model')
-            model_2_menu.setCurrentText('E2CNN model')
+            model_2_menu.setCurrentText('Data augmentation model')
 
         # connect the drop down menu with actions
         model_1_menu.currentTextChanged.connect(self.model_1_text_changed)
@@ -130,11 +131,11 @@ class UI_MainWindow(QWidget):
         # set the model selection to be the simple model
         self.model_1_name = 'Simple model'
         self.model_1_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'non_eqv', '*.pt'))[0]
-        self.model_2_name = 'E2CNN model'
-        self.model_2_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'rot_eqv', '*.pt'))[0]
+        self.model_2_name = 'Data augmentation model'
+        self.model_2_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'aug_rot_eqv', '*.pt'))[0]
         # preload model
         self.model_1 = nero_run_model.load_model('non-eqv', self.model_1_path)
-        self.model_2 = nero_run_model.load_model('rot-eqv', self.model_2_path)
+        self.model_2 = nero_run_model.load_model('aug-eqv', self.model_2_path)
 
         # flag to check if an image has been displayed
         self.image_existed = False
@@ -255,7 +256,7 @@ class UI_MainWindow(QWidget):
 
     @QtCore.Slot()
     def run_once_button_clicked(self):
-        self.run_model_once()
+        self.run_model_once(mode='bar')
 
 
     @QtCore.Slot()
@@ -287,19 +288,25 @@ class UI_MainWindow(QWidget):
         if self.mode == 'digit_recognition':
             self.all_angles = []
             # run all rotation test with 5 degree increment
-            for cur_rotation_angle in range(0, 360, 5):
-                self.all_angles.append(cur_rotation_angle)
+            for degree in range(0, 365, 5):
+                self.cur_rotation_angle = -degree
+                print(f'\nRotated {self.cur_rotation_angle} degrees')
+                self.all_angles.append(self.cur_rotation_angle)
                 # rotate the image tensor
-                self.cur_images_pt[0] = nero_transform.rotate_mnist_image(self.loaded_images_pt[0], cur_rotation_angle)
+                self.cur_images_pt[0] = nero_transform.rotate_mnist_image(self.loaded_images_pt[0], self.cur_rotation_angle)
+                # self.image_pixmap = self.image_pixmap.transformed(QtGui.QTransform().rotate(angle), QtCore.Qt.SmoothTransformation)
                 # convert image tensor to qt image and resize for display
                 self.display_images[0] = nero_utilities.tensor_to_qt_image(self.cur_images_pt[0]).scaledToWidth(self.display_image_size)
                 # update the pixmap and label
-                self.image_pixmap = QPixmap(self.display_images[0])
-                self.image_label.setPixmap(self.image_pixmap)
+                image_pixmap = QPixmap(self.display_images[0])
+                self.image_label.setPixmap(image_pixmap)
+                # force repaint
+                self.image_label.repaint()
+                # sleep for 1 second
+                time.sleep(0.5)
 
                 # update the model output
-                if self.result_existed:
-                    self.run_model_once()
+                # self.run_model_once(mode='polar')
 
 
     def display_image(self):
@@ -366,9 +373,9 @@ class UI_MainWindow(QWidget):
                 categories.append(str(i))
 
             # all results
-            model_1_set = QBarSet(self.name_1)
+            model_1_set = QBarSet(self.model_1_name)
             model_1_set.append(list(self.output_1))
-            model_2_set = QBarSet(self.name_2)
+            model_2_set = QBarSet(self.model_2_name)
             model_2_set.append(list(self.output_2))
 
             # bar series
@@ -432,18 +439,22 @@ class UI_MainWindow(QWidget):
             chart.addSeries(scatter_series_1)
             chart.addSeries(scatter_series_2)
 
+        else:
+            raise Exception('Unsupported display mode')
+
         # legend
         chart.legend().setVisible(True)
         chart.legend().setAlignment(QtGui.Qt.AlignBottom)
 
+        # create chart view
         chart_view = QChartView(chart)
         chart_view.setRenderHint(QtGui.QPainter.Antialiasing)
+
         # add to the layout
         self.loaded_layout.addWidget(chart_view, 0, 2)
 
         painter.end()
 
-        return mnist_pixmap
 
     def mouseMoveEvent(self, event):
         # print("mouseMoveEvent")
@@ -458,18 +469,19 @@ class UI_MainWindow(QWidget):
                             / (self.prev_mouse_pos[0]*self.prev_mouse_pos[0] + self.prev_mouse_pos[1]*self.prev_mouse_pos[1]))*180
 
             self.cur_rotation_angle += angle_change
+            print(f'\nRotated {self.cur_rotation_angle} degrees')
             # rotate the image tensor
             self.cur_images_pt[0] = nero_transform.rotate_mnist_image(self.loaded_images_pt[0], self.cur_rotation_angle)
             # self.image_pixmap = self.image_pixmap.transformed(QtGui.QTransform().rotate(angle), QtCore.Qt.SmoothTransformation)
             # convert image tensor to qt image and resize for display
             self.display_images[0] = nero_utilities.tensor_to_qt_image(self.cur_images_pt[0]).scaledToWidth(self.display_image_size)
             # update the pixmap and label
-            self.image_pixmap = QPixmap(self.display_images[0])
-            self.image_label.setPixmap(self.image_pixmap)
+            image_pixmap = QPixmap(self.display_images[0])
+            self.image_label.setPixmap(image_pixmap)
 
             # update the model output
             if self.result_existed:
-                self.run_model_once()
+                self.run_model_once(mode='bar')
 
             self.prev_mouse_pos = cur_mouse_pos
 
