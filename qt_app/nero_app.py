@@ -382,19 +382,18 @@ class UI_MainWindow(QWidget):
     def display_mnist_result(self, mode, boundary_width):
 
         # use the loaded_layout
-        mnist_pixmap = QPixmap(80, 300)
+        mnist_pixmap = QPixmap(80, 450)
         mnist_pixmap.fill(QtCore.Qt.white)
         # draw arrow
         painter = QtGui.QPainter(mnist_pixmap)
         # set pen (used to draw outlines of shapes) and brush (draw the background of a shape)
         pen = QtGui.QPen()
         # draw arrow to indicate feeding
-        self.draw_arrow(painter, pen, 80, 300, boundary_width)
+        self.draw_arrow(painter, pen, 80, 450, boundary_width)
 
+        # add to the label and layout
         self.mnist_label.setPixmap(mnist_pixmap)
-        # add to the layout
         self.loaded_layout.addWidget(self.mnist_label, 0, 1)
-        self.mnist_label.repaint()
 
         # draw result using bar plot
         if mode == 'bar':
@@ -431,7 +430,7 @@ class UI_MainWindow(QWidget):
             axis_y.setRange(0, 1)
 
         elif mode == 'polar':
-            marker_size = 10.0
+            marker_size = 8.0
 
             # scatter series
             scatter_series_1 = QScatterSeries()
@@ -451,22 +450,19 @@ class UI_MainWindow(QWidget):
             # First and last ticks are co-located on 0/360 angle.
             angular_axis.setTickCount(2)
             angular_axis.setRange(0, 1)
-            # angular_axis.setLabelFormat('%.1f')
+            angular_axis.setLabelFormat('%.1f')
             # angular_axis.setShadesVisible(True)
             # angular_axis.setShadesBrush(QtGui.QBrush(QtGui.QColor(249, 249, 255)))
             chart.setAxisY(angular_axis)
 
             radial_axis = QValueAxis()
             radial_axis.setTickCount(9)
-            # radial_axis.setLabelFormat('%.1f')
+            radial_axis.setLabelFormat('%d')
             radial_axis.setRange(0, 360)
             chart.setAxisX(radial_axis)
 
             # animation when plotting
-            # if self.repaint:
-            #     chart.setAnimationOptions(QChart.NoAnimation)
-            # else:
-            #     chart.setAnimationOptions(QChart.SeriesAnimations)
+            chart.setAnimationOptions(QChart.SeriesAnimations)
 
         else:
             raise Exception('Unsupported display mode')
@@ -481,7 +477,7 @@ class UI_MainWindow(QWidget):
 
         # add to the layout
         self.loaded_layout.addWidget(self.chart_view, 0, 2)
-        self.chart_view.repaint()
+        # self.chart_view.repaint()
 
         painter.end()
 
