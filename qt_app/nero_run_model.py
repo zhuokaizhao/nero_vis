@@ -5,7 +5,7 @@ import time
 import torch
 import numpy as np
 
-os.environ['CUDA_VISIBLE_DEVICES']='0'
+os.environ['CUDA_VISIBLE_DEVICES']='1'
 
 # add parent directories for importing model scripts
 current = os.path.dirname(os.path.realpath(__file__))
@@ -79,5 +79,5 @@ def run_mnist_once(model, test_image):
 
 
 # run mnist model on all rotations and return all the results
-def run_mnist_all():
+def run_mnist_all_rotations(model, test_image):
     exit()
