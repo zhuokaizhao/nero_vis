@@ -477,7 +477,7 @@ class UI_MainWindow(QWidget):
             bar_plot.addItem(graph_1)
             bar_plot.addItem(graph_2)
 
-            self.loaded_layout.addWidget(bar_plot, 0, 3)
+            self.loaded_layout.addWidget(bar_plot, 0, 2)
 
             # # bar series
             # bar_series = QBarSeries()
@@ -553,7 +553,7 @@ class UI_MainWindow(QWidget):
             scatter_items.sigClicked.connect(clicked)
 
             # add to the layout
-            self.loaded_layout.addWidget(polar_view, 0, 4)
+            self.loaded_layout.addWidget(polar_view, 0, 3)
 
             # marker_size = 8.0
 
