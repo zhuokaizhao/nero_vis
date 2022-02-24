@@ -433,9 +433,9 @@ class UI_MainWindow(QWidget):
         # horizontal line
         painter.drawLine(0, height//2, width, height//2)
         # upper arrow
-        painter.drawLine(int(0.6*width), int(0.45*height), width, height//2)
+        painter.drawLine(int(0.6*width), int(0.25*height), width, height//2)
         # bottom arrow
-        painter.drawLine(int(0.6*width), int(0.55*height), width, height//2)
+        painter.drawLine(int(0.6*width), int(0.75*height), width, height//2)
 
     # draw a polar plot
     def draw_polar(self, plot):
@@ -455,14 +455,14 @@ class UI_MainWindow(QWidget):
     def display_mnist_result(self, mode, boundary_width):
 
         # use the loaded_layout
-        mnist_pixmap = QPixmap(80, 450)
+        mnist_pixmap = QPixmap(100, 50)
         mnist_pixmap.fill(QtCore.Qt.white)
         # draw arrow
         painter = QtGui.QPainter(mnist_pixmap)
         # set pen (used to draw outlines of shapes) and brush (draw the background of a shape)
         pen = QtGui.QPen()
         # draw arrow to indicate feeding
-        self.draw_arrow(painter, pen, 80, 450, boundary_width)
+        self.draw_arrow(painter, pen, 100, 50, boundary_width)
 
         # add to the label and layout
         self.mnist_label.setPixmap(mnist_pixmap)
@@ -470,49 +470,46 @@ class UI_MainWindow(QWidget):
 
         # draw result using bar plot
         if mode == 'bar':
-            # all the different classes
-            categories = []
-            for i in range(len(self.output_1)):
-                categories.append(str(i))
+            bar_plot = pg.plot()
+            bar_plot.setBackground('w')
+            graph_1 = pg.BarGraphItem(x=range(len(self.output_1)), height = list(self.output_1), width = 0.5, brush ='blue')
+            graph_2 = pg.BarGraphItem(x=range(len(self.output_1)), height = list(self.output_2), width = 0.5, brush ='green')
+            bar_plot.addItem(graph_1)
+            bar_plot.addItem(graph_2)
 
-            # all results
-            model_1_set = QBarSet(self.model_1_name)
-            model_1_set.append(list(self.output_1))
-            model_2_set = QBarSet(self.model_2_name)
-            model_2_set.append(list(self.output_2))
+            self.loaded_layout.addWidget(bar_plot, 0, 3)
 
-            # bar series
-            bar_series = QBarSeries()
-            bar_series.append(model_1_set)
-            bar_series.append(model_2_set)
+            # # bar series
+            # bar_series = QBarSeries()
+            # bar_series.append(model_1_set)
+            # bar_series.append(model_2_set)
 
-            chart = QChart()
-            chart.addSeries(bar_series)
-            # animation when plotting
-            if self.repaint:
-                chart.setAnimationOptions(QChart.NoAnimation)
-            else:
-                chart.setAnimationOptions(QChart.SeriesAnimations)
+            # chart = QChart()
+            # chart.addSeries(bar_series)
+            # # animation when plotting
+            # if self.repaint:
+            #     chart.setAnimationOptions(QChart.NoAnimation)
+            # else:
+            #     chart.setAnimationOptions(QChart.SeriesAnimations)
 
-            # x and y axis
-            axis_x = QBarCategoryAxis()
-            axis_x.append(categories)
-            chart.setAxisX(axis_x, bar_series)
-            axis_y = QValueAxis()
-            chart.setAxisY(axis_y, bar_series)
-            axis_y.setRange(0, 1)
+            # # x and y axis
+            # axis_x = QBarCategoryAxis()
+            # axis_x.append(categories)
+            # chart.setAxisX(axis_x, bar_series)
+            # axis_y = QValueAxis()
+            # chart.setAxisY(axis_y, bar_series)
+            # axis_y.setRange(0, 1)
 
-            # legend
-            chart.legend().setVisible(True)
-            chart.legend().setAlignment(QtGui.Qt.AlignBottom)
+            # # legend
+            # chart.legend().setVisible(False)
+            # chart.legend().setAlignment(QtGui.Qt.AlignBottom)
 
-            # create chart view
-            self.chart_view = QChartView(chart)
-            self.chart_view.setRenderHint(QtGui.QPainter.Antialiasing)
+            # # create chart view
+            # self.chart_view = QChartView(chart)
+            # self.chart_view.setRenderHint(QtGui.QPainter.Antialiasing)
 
-            # add to the layout
-            self.loaded_layout.addWidget(self.chart_view, 0, 2)
-            # self.chart_view.repaint()
+            # # add to the layout
+            # self.loaded_layout.addWidget(self.chart_view, 0, 2)
 
         elif mode == 'polar':
             polar_view = pg.GraphicsLayoutWidget()
