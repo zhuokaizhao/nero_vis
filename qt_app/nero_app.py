@@ -1,11 +1,10 @@
 import os
 import sys
 import glob
-import time
 import torch
-import torchvision
 import numpy as np
 from PIL import Image
+import pyqtgraph as pg
 from PySide6 import QtCore, QtWidgets, QtGui
 from PySide6.QtGui  import QPixmap, QFont
 from PySide6.QtCore import QObject
@@ -204,14 +203,11 @@ class UI_MainWindow(QWidget):
 
         # show the run button when data is loaded
         if not self.run_button_existed:
-            # run once button (single sample)
-            self.run_once_button = QtWidgets.QPushButton('Manual mode')
-            self.run_button_layout.addWidget(self.run_once_button)
-            self.run_once_button.clicked.connect(self.run_once_button_clicked)
-            # run all button (all transformations on single sample)
-            self.run_all_button = QtWidgets.QPushButton('Auto mode with all transformations')
-            self.run_button_layout.addWidget(self.run_all_button)
-            self.run_all_button.clicked.connect(self.run_all_button_clicked)
+            # run button
+            self.run_button = QtWidgets.QPushButton('Analyze model')
+            self.run_button_layout.addWidget(self.run_button)
+            self.run_button.clicked.connect(self.run_button_clicked)
+
             self.run_button_existed = True
 
     # two drop down menus that let user choose models
@@ -256,16 +252,12 @@ class UI_MainWindow(QWidget):
 
         print('Model 2 path:', self.model_2_path)
 
-
     @QtCore.Slot()
-    def run_once_button_clicked(self):
-        # run model and display results
+    def run_button_clicked(self):
+        # run model once and display results
         self.run_model_once()
 
-
-    @QtCore.Slot()
-    def run_all_button_clicked(self):
-        # run model and display results
+        # run model all and display results
         self.run_model_all()
 
     # run model on a single test sample
@@ -379,6 +371,21 @@ class UI_MainWindow(QWidget):
         # bottom arrow
         painter.drawLine(int(0.6*width), int(0.55*height), width, height//2)
 
+    # draw a polar plot
+    def draw_polar(self, plot):
+        # plot = pg.plot()
+        plot.setAspectLocked()
+
+        # Add polar grid lines
+        plot.addLine(x=0, pen=2)
+        plot.addLine(y=0, pen=2)
+        for r in np.arange(0, 1, 0.2):
+            circle = pg.QtGui.QGraphicsEllipseItem(-r, -r, r * 2, r * 2)
+            circle.setPen(pg.mkPen(2))
+            plot.addItem(circle)
+
+        return plot
+
     def display_mnist_result(self, mode, boundary_width):
 
         # use the loaded_layout
@@ -429,58 +436,100 @@ class UI_MainWindow(QWidget):
             chart.setAxisY(axis_y, bar_series)
             axis_y.setRange(0, 1)
 
+            # legend
+            chart.legend().setVisible(True)
+            chart.legend().setAlignment(QtGui.Qt.AlignBottom)
+
+            # create chart view
+            self.chart_view = QChartView(chart)
+            self.chart_view.setRenderHint(QtGui.QPainter.Antialiasing)
+
+            # add to the layout
+            self.loaded_layout.addWidget(self.chart_view, 0, 2)
+            # self.chart_view.repaint()
+
         elif mode == 'polar':
-            marker_size = 8.0
+            polar_view = pg.GraphicsLayoutWidget()
+            polar_view.setBackground('w')
+            polar_plot = polar_view.addPlot()
+            polar_plot = self.draw_polar(polar_plot)
+
+            # helper function for clicking inside polar plot
+            self.lastClicked = []
+            def clicked(plot, points):
+                # global lastClicked
+                for p in self.lastClicked:
+                    p.resetPen()
+
+                print("clicked points", points)
+
+                for p in points:
+                    p.setPen('b', width=2)
+
+                self.lastClicked = points
+
+            # Set pxMode=False to allow spots to transform with the view
+            # all the points to be plotted
+            scatter_items = pg.ScatterPlotItem(pxMode=False)
+            all_points = []
+            for i in range(10):
+                for j in range(10):
+                    # Transform to cartesian and plot
+                    x = i * np.cos(j)
+                    y = i * np.sin(j)
+                    all_points.append({'pos': (1*x, 1*y),
+                                        'size': 1,
+                                        'pen': {'color': 'w', 'width': 2},
+                                        'brush':pg.intColor(i*10+j, 100)})
+
+            # add points to the item
+            scatter_items.addPoints(all_points)
+
+            # add points to the plot and connect click events
+            polar_plot.addItem(scatter_items)
+            scatter_items.sigClicked.connect(clicked)
+
+            # add to the layout
+            self.loaded_layout.addWidget(polar_view, 0, 4)
+
+            # marker_size = 8.0
 
             # scatter series
-            scatter_series_1 = QScatterSeries()
-            scatter_series_2 = QScatterSeries()
-            scatter_series_1.setMarkerSize(marker_size)
-            scatter_series_2.setMarkerSize(marker_size)
-            for i in range(len(self.all_quantities_1)):
-                scatter_series_1.append(self.all_angles[i], self.all_quantities_1[i])
-                scatter_series_2.append(self.all_angles[i], self.all_quantities_2[i])
+            # scatter_series_1 = QScatterSeries()
+            # scatter_series_2 = QScatterSeries()
+            # scatter_series_1.setMarkerSize(marker_size)
+            # scatter_series_2.setMarkerSize(marker_size)
+            # for i in range(len(self.all_quantities_1)):
+            #     scatter_series_1.append(self.all_angles[i], self.all_quantities_1[i])
+            #     scatter_series_2.append(self.all_angles[i], self.all_quantities_2[i])
 
-            chart = QPolarChart()
-            chart.addSeries(scatter_series_1)
-            chart.addSeries(scatter_series_2)
+            # chart = QPolarChart()
+            # chart.addSeries(scatter_series_1)
+            # chart.addSeries(scatter_series_2)
 
-            # create axis
-            angular_axis = QValueAxis()
-            # First and last ticks are co-located on 0/360 angle.
-            angular_axis.setTickCount(2)
-            angular_axis.setRange(0, 1)
-            angular_axis.setLabelFormat('%.1f')
-            # angular_axis.setShadesVisible(True)
-            # angular_axis.setShadesBrush(QtGui.QBrush(QtGui.QColor(249, 249, 255)))
-            chart.setAxisY(angular_axis)
+            # # create axis
+            # angular_axis = QValueAxis()
+            # # First and last ticks are co-located on 0/360 angle.
+            # angular_axis.setTickCount(2)
+            # angular_axis.setRange(0, 1)
+            # angular_axis.setLabelFormat('%.1f')
+            # # angular_axis.setShadesVisible(True)
+            # # angular_axis.setShadesBrush(QtGui.QBrush(QtGui.QColor(249, 249, 255)))
+            # chart.setAxisY(angular_axis)
 
-            radial_axis = QValueAxis()
-            radial_axis.setTickCount(9)
-            radial_axis.setLabelFormat('%d')
-            radial_axis.setRange(0, 360)
-            chart.setAxisX(radial_axis)
+            # radial_axis = QValueAxis()
+            # radial_axis.setTickCount(9)
+            # radial_axis.setLabelFormat('%d')
+            # radial_axis.setRange(0, 360)
+            # chart.setAxisX(radial_axis)
 
-            # animation when plotting
-            chart.setAnimationOptions(QChart.SeriesAnimations)
+            # # animation when plotting
+            # chart.setAnimationOptions(QChart.SeriesAnimations)
 
         else:
             raise Exception('Unsupported display mode')
 
-        # legend
-        chart.legend().setVisible(True)
-        chart.legend().setAlignment(QtGui.Qt.AlignBottom)
-
-        # create chart view
-        self.chart_view = QChartView(chart)
-        self.chart_view.setRenderHint(QtGui.QPainter.Antialiasing)
-
-        # add to the layout
-        self.loaded_layout.addWidget(self.chart_view, 0, 2)
-        # self.chart_view.repaint()
-
         painter.end()
-
 
     def mouseMoveEvent(self, event):
         # print("mouseMoveEvent")
@@ -545,7 +594,7 @@ if __name__ == "__main__":
     app = QtWidgets.QApplication([])
 
     widget = UI_MainWindow()
-    widget.resize(1024, 768)
+    widget.resize(1920, 1080)
     widget.show()
 
     sys.exit(app.exec())
