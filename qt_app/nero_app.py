@@ -27,17 +27,19 @@ class UI_MainWindow(QWidget):
         self.layout = QtWidgets.QVBoxLayout(self)
         self.layout.setAlignment(QtCore.Qt.AlignCenter)
         # left, top, right, and bottom margins
-        self.layout.setContentsMargins(100, 100, 100, 100)
+        self.layout.setContentsMargins(50, 50, 50, 50)
 
         # individual laytout for different widgets
         # title
         self.title_layout = QtWidgets.QVBoxLayout()
         self.title_layout.setContentsMargins(0, 0, 0, 20)
         # mode selection radio buttons
-        self.mode_layout = QtWidgets.QGridLayout()
+        self.mode_layout = QtWidgets.QHBoxLayout()
         self.mode_layout.setContentsMargins(50, 0, 0, 50)
         # image and model loading buttons and drop down menus
-        self.load_button_layout = QtWidgets.QGridLayout()
+        self.load_button_layout = QtWidgets.QHBoxLayout()
+        self.load_button_layout.setContentsMargins(0, 0, 0, 0)
+
         # future loaded images and model layout
         self.loaded_layout = QtWidgets.QGridLayout()
         self.loaded_layout.setContentsMargins(30, 50, 30, 50)
@@ -49,21 +51,19 @@ class UI_MainWindow(QWidget):
         # title of the application
         self.title = QLabel('Non-Equivariance Revealed on Orbits',
                             alignment=QtCore.Qt.AlignCenter)
-        self.title.setFont(QFont('Helvetica', 20))
+        self.title.setFont(QFont('Helvetica', 24))
         self.title_layout.addWidget(self.title)
         self.title_layout.setContentsMargins(0, 0, 0, 50)
 
         # radio buttons on mode selection (digit_recognition, object detection, PIV)
         # pixmap on text telling what this is
         # use the loaded_layout
-        mode_pixmap = QPixmap(100, 30)
+        mode_pixmap = QPixmap(150, 30)
         mode_pixmap.fill(QtCore.Qt.white)
         # draw text
         painter = QtGui.QPainter(mode_pixmap)
-        # set pen (used to draw outlines of shapes) and brush (draw the background of a shape)
-        pen = QtGui.QPen()
-        painter.setFont(QFont('Helvetica', 14))
-        painter.drawText(0, 0, 100, 30, QtGui.Qt.AlignLeft, 'Model type: ')
+        painter.setFont(QFont('Helvetica', 18))
+        painter.drawText(0, 0, 150, 30, QtGui.Qt.AlignLeft, 'Model type: ')
         painter.end()
         # create label to contain the texts
         self.mode_label = QLabel(self)
@@ -72,25 +72,30 @@ class UI_MainWindow(QWidget):
         self.mode_label.setTextFormat(QtGui.Qt.AutoText)
         self.mode_label.setPixmap(mode_pixmap)
         # add to the layout
-        self.mode_layout.addWidget(self.mode_label, 0, 0)
+        self.mode_layout.addWidget(self.mode_label)
+
         # radio_buttons_layout = QtWidgets.QGridLayout(self)
         self.radio_button_1 = QRadioButton('Digit recognition')
         self.radio_button_1.setChecked(True)
-        self.radio_button_1.setStyleSheet('QRadioButton{font: 14pt Helvetica;} QRadioButton::indicator { width: 15px; height: 15px;};')
+        self.radio_button_1.setStyleSheet('QRadioButton{font: 18pt Helvetica;} QRadioButton::indicator { width: 18px; height: 18px;};')
         self.radio_button_1.pressed.connect(self.digit_reconition_button_clicked)
-        self.mode_layout.addWidget(self.radio_button_1, 0, 2)
+        self.mode_layout.addWidget(self.radio_button_1)
+        # spacer item
+        self.mode_layout.addSpacing(30)
 
         self.radio_button_2 = QRadioButton('Object detection')
         self.radio_button_2.setChecked(False)
-        self.radio_button_2.setStyleSheet('QRadioButton{font: 14pt Helvetica;} QRadioButton::indicator { width: 15px; height: 15px;};')
+        self.radio_button_2.setStyleSheet('QRadioButton{font: 18pt Helvetica;} QRadioButton::indicator { width: 18px; height: 18px;};')
         self.radio_button_2.pressed.connect(self.object_detection_button_clicked)
-        self.mode_layout.addWidget(self.radio_button_2, 0, 3)
+        self.mode_layout.addWidget(self.radio_button_2)
+        # spacer item
+        self.mode_layout.addSpacing(30)
 
         self.radio_button_3 = QRadioButton('Particle Image Velocimetry (PIV)')
         self.radio_button_3.setChecked(False)
-        self.radio_button_3.setStyleSheet('QRadioButton{font: 14pt Helvetica;} QRadioButton::indicator { width: 15px; height: 15px;};')
+        self.radio_button_3.setStyleSheet('QRadioButton{font: 18pt Helvetica;} QRadioButton::indicator { width: 18px; height: 18px;};')
         self.radio_button_3.pressed.connect(self.piv_button_clicked)
-        self.mode_layout.addWidget(self.radio_button_3, 0, 4)
+        self.mode_layout.addWidget(self.radio_button_3)
 
         # default app mode is digit_recognition
         self.mode = 'digit_recognition'
@@ -98,26 +103,70 @@ class UI_MainWindow(QWidget):
 
         # load data button
         self.data_button = QtWidgets.QPushButton('Load Test Image')
-        self.load_button_layout.addWidget(self.data_button, 0, 0)
+        self.data_button.setStyleSheet('font-size: 18px')
+        data_button_size = QtCore.QSize(500, 50)
+        self.data_button.setMinimumSize(data_button_size)
+        self.load_button_layout.addWidget(self.data_button)
         self.data_button.clicked.connect(self.load_image_clicked)
+
         # load models choices
+        # model 1
+        # graphic representation
+        self.model_1_label = QLabel(self)
+        self.model_1_label.setAlignment(QtCore.Qt.AlignCenter)
+        model_1_icon = QPixmap(25, 25)
+        model_1_icon.fill(QtCore.Qt.white)
+        # draw model representation
+        painter = QtGui.QPainter(model_1_icon)
+        self.draw_circle(painter, 12, 12, 10, 'blue')
+
+        # spacer item
+        self.load_button_layout.addSpacing(30)
+
         model_1_menu = QtWidgets.QComboBox()
-        model_2_menu = QtWidgets.QComboBox()
+        model_1_menu.setMinimumSize(QtCore.QSize(250, 50))
+        model_1_menu.setStyleSheet('font-size: 18px')
         if self.mode == 'digit_recognition':
-            model_1_menu.addItem('Simple model')
-            model_1_menu.addItem('E2CNN model')
-            model_1_menu.addItem('Data augmentation model')
+            model_1_menu.addItem(model_1_icon, 'Simple model')
+            model_1_menu.addItem(model_1_icon, 'E2CNN model')
+            model_1_menu.addItem(model_1_icon, 'Data augmentation model')
             model_1_menu.setCurrentText('Simple model')
-            model_2_menu.addItem('Simple model')
-            model_2_menu.addItem('E2CNN model')
-            model_2_menu.addItem('Data augmentation model')
-            model_2_menu.setCurrentText('Data augmentation model')
 
         # connect the drop down menu with actions
         model_1_menu.currentTextChanged.connect(self.model_1_text_changed)
+        model_1_menu.setEditable(True)
+        model_1_menu.lineEdit().setReadOnly(True)
+        model_1_menu.lineEdit().setAlignment(QtCore.Qt.AlignCenter)
+        self.load_button_layout.addWidget(model_1_menu)
+
+        # model 2
+        # graphic representation
+        self.model_2_label = QLabel(self)
+        self.model_2_label.setAlignment(QtCore.Qt.AlignCenter)
+        model_2_icon = QPixmap(25, 25)
+        model_2_icon.fill(QtCore.Qt.white)
+        # draw model representation
+        painter = QtGui.QPainter(model_2_icon)
+        self.draw_circle(painter, 12, 12, 10, 'Green')
+
+        # spacer item
+        self.load_button_layout.addSpacing(30)
+
+        model_2_menu = QtWidgets.QComboBox()
+        model_2_menu.setMinimumSize(QtCore.QSize(250, 50))
+        model_2_menu.setStyleSheet('font-size: 18px')
+        model_2_menu.setEditable(True)
+        model_2_menu.lineEdit().setReadOnly(True)
+        model_2_menu.lineEdit().setAlignment(QtCore.Qt.AlignCenter)
+        if self.mode == 'digit_recognition':
+            model_2_menu.addItem(model_2_icon, 'Simple model')
+            model_2_menu.addItem(model_2_icon, 'E2CNN model')
+            model_2_menu.addItem(model_2_icon, 'Data augmentation model')
+            model_2_menu.setCurrentText('Data augmentation model')
+
+        # connect the drop down menu with actions
         model_2_menu.currentTextChanged.connect(self.model_2_text_changed)
-        self.load_button_layout.addWidget(model_1_menu, 0, 1)
-        self.load_button_layout.addWidget(model_2_menu, 0, 2)
+        self.load_button_layout.addWidget(model_2_menu)
 
         # add individual layouts to the display general layout
         self.layout.addLayout(self.title_layout)
@@ -357,6 +406,23 @@ class UI_MainWindow(QWidget):
             self.loaded_layout.addWidget(name_label, 1, 0)
 
         # when loaded multiple images
+
+    # function used when displaying model representation
+    def draw_circle(self, painter, center_x, center_y, radius, color):
+
+        # paint.begin(self)
+        # optional
+        painter.setRenderHint(QtGui.QPainter.Antialiasing)
+        # make a white drawing background
+        painter.setBrush(QtGui.QColor(color))
+        # draw red circles
+        painter.setPen(QtGui.QColor(color))
+        center = QtCore.QPoint(center_x, center_y)
+        # optionally fill each circle yellow
+        painter.setBrush(QtGui.QColor(color))
+        painter.drawEllipse(center, radius, radius)
+        painter.end()
+
 
     # draw arrow
     def draw_arrow(self, painter, pen, width, height, boundary_width):
