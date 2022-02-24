@@ -472,8 +472,8 @@ class UI_MainWindow(QWidget):
         if mode == 'bar':
             bar_plot = pg.plot()
             bar_plot.setBackground('w')
-            graph_1 = pg.BarGraphItem(x=range(len(self.output_1)), height = list(self.output_1), width = 0.5, brush ='blue')
-            graph_2 = pg.BarGraphItem(x=range(len(self.output_1)), height = list(self.output_2), width = 0.5, brush ='green')
+            graph_1 = pg.BarGraphItem(x=np.arange(len(self.output_1))-0.2, height = list(self.output_1), width = 0.4, brush ='blue')
+            graph_2 = pg.BarGraphItem(x=np.arange(len(self.output_1))+0.2, height = list(self.output_2), width = 0.4, brush ='green')
             bar_plot.addItem(graph_1)
             bar_plot.addItem(graph_2)
 
