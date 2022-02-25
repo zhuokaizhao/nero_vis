@@ -520,11 +520,19 @@ class UI_MainWindow(QWidget):
             # helper function for clicking inside polar plot
             self.lastClicked = []
             def clicked(plot, points):
+
                 # global lastClicked
                 for p in self.lastClicked:
                     p.resetPen()
 
-                print("clicked points", points)
+                # clicked point's position
+                x_pos = points[0].pos().x()
+                y_pos = points[0].pos().y()
+
+                # convert back to polar coordinate
+                radius = np.sqrt(x_pos**2+y_pos**2)
+                theta = np.arctan2(y_pos, x_pos)*np.pi
+                print(f'clicked point with r = {radius}, theta = {theta}')
 
                 for p in points:
                     p.setPen('b', width=2)
