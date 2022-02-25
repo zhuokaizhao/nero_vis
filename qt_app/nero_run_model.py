@@ -52,7 +52,7 @@ def load_model(network_model, model_dir):
     return model
 
 def run_mnist_once(model, test_image):
-    print('Running inference on the single image')
+    # print('Running inference on the single image')
     # reformat input image from (height, width, channel) to (batch size, channel, height, width)
     test_image = test_image.permute((2, 0, 1))[None, :, :, :].float()
 
@@ -73,7 +73,7 @@ def run_mnist_once(model, test_image):
 
         batch_time_end = time.time()
         batch_time_cost = batch_time_end - batch_time_start
-        print(f'Inference time: {batch_time_cost} seconds')
+        # print(f'Inference time: {batch_time_cost} seconds')
 
     return output
 

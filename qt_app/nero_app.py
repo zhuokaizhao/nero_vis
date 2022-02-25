@@ -337,13 +337,11 @@ class UI_MainWindow(QWidget):
             self.all_quantities_1 = []
             self.all_quantities_2 = []
             # run all rotation test with 5 degree increment
-            for degree in range(0, 365, 5):
-                self.cur_rotation_angle = -degree
-                print(f'\nRotated {self.cur_rotation_angle} degrees')
+            for self.cur_rotation_angle in range(0, 360, 5):
+                # print(f'\nRotated {self.cur_rotation_angle} degrees')
                 self.all_angles.append(self.cur_rotation_angle)
                 # rotate the image tensor
                 self.cur_images_pt[0] = nero_transform.rotate_mnist_image(self.loaded_images_pt[0], self.cur_rotation_angle)
-                # self.image_pixmap = self.image_pixmap.transformed(QtGui.QTransform().rotate(angle), QtCore.Qt.SmoothTransformation)
                 # convert image tensor to qt image and resize for display
                 self.display_images[0] = nero_utilities.tensor_to_qt_image(self.cur_images_pt[0]).scaledToWidth(self.display_image_size)
                 # update the pixmap and label
@@ -362,6 +360,7 @@ class UI_MainWindow(QWidget):
                 # plotting the quantity regarding the correct label
                 quantity_1 = self.output_1[self.loaded_image_labels[0]]
                 quantity_2 = self.output_2[self.loaded_image_labels[0]]
+
                 self.all_quantities_1.append(quantity_1)
                 self.all_quantities_2.append(quantity_2)
 
@@ -443,11 +442,11 @@ class UI_MainWindow(QWidget):
         plot.setAspectLocked()
 
         # Add polar grid lines
-        plot.addLine(x=0, pen=10)
-        plot.addLine(y=0, pen=10)
-        for r in np.arange(0, 1, 0.2):
+        plot.addLine(x=0, pen=pg.mkPen('black', width=2))
+        plot.addLine(y=0, pen=pg.mkPen('black', width=2))
+        for r in np.arange(0, 1.2, 0.2):
             circle = pg.QtGui.QGraphicsEllipseItem(-r, -r, 2*r, 2*r)
-            circle.setPen(pg.mkPen(2))
+            circle.setPen(pg.mkPen('black', width=2))
             plot.addItem(circle)
 
         return plot
@@ -479,92 +478,85 @@ class UI_MainWindow(QWidget):
 
             self.loaded_layout.addWidget(bar_plot, 0, 2)
 
-            # # bar series
-            # bar_series = QBarSeries()
-            # bar_series.append(model_1_set)
-            # bar_series.append(model_2_set)
-
-            # chart = QChart()
-            # chart.addSeries(bar_series)
-            # # animation when plotting
-            # if self.repaint:
-            #     chart.setAnimationOptions(QChart.NoAnimation)
-            # else:
-            #     chart.setAnimationOptions(QChart.SeriesAnimations)
-
-            # # x and y axis
-            # axis_x = QBarCategoryAxis()
-            # axis_x.append(categories)
-            # chart.setAxisX(axis_x, bar_series)
-            # axis_y = QValueAxis()
-            # chart.setAxisY(axis_y, bar_series)
-            # axis_y.setRange(0, 1)
-
-            # # legend
-            # chart.legend().setVisible(False)
-            # chart.legend().setAlignment(QtGui.Qt.AlignBottom)
-
-            # # create chart view
-            # self.chart_view = QChartView(chart)
-            # self.chart_view.setRenderHint(QtGui.QPainter.Antialiasing)
-
-            # # add to the layout
-            # self.loaded_layout.addWidget(self.chart_view, 0, 2)
-
         elif mode == 'polar':
             polar_view = pg.GraphicsLayoutWidget()
-            polar_view.setBackground('w')
+            polar_view.setBackground('white')
             polar_plot = polar_view.addPlot()
             polar_plot = self.draw_polar(polar_plot)
 
             # helper function for clicking inside polar plot
-            self.lastClicked = []
+            self.last_clicked = []
             def clicked(plot, points):
 
-                # global lastClicked
-                for p in self.lastClicked:
+                # clear previously selected point's visual cue
+                for p in self.last_clicked:
                     p.resetPen()
+                    p.setBrush(self.old_brush)
 
                 # clicked point's position
                 x_pos = points[0].pos().x()
                 y_pos = points[0].pos().y()
 
                 # convert back to polar coordinate
-                radius = np.sqrt(x_pos**2+y_pos**2)
-                theta = np.arctan2(y_pos, x_pos)*np.pi
-                print(f'clicked point with r = {radius}, theta = {theta}')
+                radius = np.sqrt(x_pos**2 + y_pos**2)
+                self.cur_rotation_angle = np.arctan2(y_pos, x_pos) / np.pi * 180
+                # print(f'arctan2 = {np.arctan2(y_pos, x_pos)}')
+                print(f'clicked point with r = {radius}, theta = {self.cur_rotation_angle}')
+
+                # update the current image's angle and rotate the display image
+                # rotate the image tensor
+                self.cur_images_pt[0] = nero_transform.rotate_mnist_image(self.loaded_images_pt[0], self.cur_rotation_angle)
+                # self.image_pixmap = self.image_pixmap.transformed(QtGui.QTransform().rotate(angle), QtCore.Qt.SmoothTransformation)
+                # convert image tensor to qt image and resize for display
+                self.display_images[0] = nero_utilities.tensor_to_qt_image(self.cur_images_pt[0]).scaledToWidth(self.display_image_size)
+                # update the pixmap and label
+                image_pixmap = QPixmap(self.display_images[0])
+                self.image_label.setPixmap(image_pixmap)
+
+                # update the model output
+                if self.result_existed:
+                    self.run_model_once()
 
                 for p in points:
-                    p.setPen('b', width=2)
+                    print(p.brush())
+                    if p.brush() == pg.mkBrush(0, 0, 255, 150):
+                        self.old_brush = pg.mkBrush(0, 0, 255, 150)
+                        new_brush = pg.mkBrush(0, 0, 255, 255)
+                    elif p.brush() == pg.mkBrush(0, 255, 0, 150):
+                        self.old_brush = pg.mkBrush(0, 255, 0, 150)
+                        new_brush = pg.mkBrush(0, 255, 0, 255)
 
-                self.lastClicked = points
+                    p.setBrush(new_brush)
+
+                self.last_clicked = points
 
             # Set pxMode=False to allow spots to transform with the view
             # all the points to be plotted
             scatter_items = pg.ScatterPlotItem(pxMode=False)
             all_points_1 = []
             all_points_2 = []
+            print(len(self.all_angles))
             for i in range(len(self.all_angles)):
-                degree = self.all_angles[i]
+                radian = self.all_angles[i] / 180 * np.pi
                 # model 1 quantity
                 cur_quantity_1 = self.all_quantities_1[i]
                 # Transform to cartesian and plot
-                x_1 = cur_quantity_1 * np.cos(degree)
-                y_1 = cur_quantity_1 * np.sin(degree)
+                x_1 = cur_quantity_1 * np.cos(radian)
+                y_1 = cur_quantity_1 * np.sin(radian)
                 all_points_1.append({'pos': (x_1, y_1),
                                     'size': 0.05,
                                     'pen': {'color': 'w', 'width': 0.1},
-                                    'brush': QtGui.QColor('blue')})
+                                    'brush': (0, 0, 255, 150)})
 
                 # model 2 quantity
                 cur_quantity_2 = self.all_quantities_2[i]
                 # Transform to cartesian and plot
-                x_2 = cur_quantity_2 * np.cos(degree)
-                y_2 = cur_quantity_2 * np.sin(degree)
+                x_2 = cur_quantity_2 * np.cos(radian)
+                y_2 = cur_quantity_2 * np.sin(radian)
                 all_points_2.append({'pos': (x_2, y_2),
                                     'size': 0.05,
                                     'pen': {'color': 'w', 'width': 0.1},
-                                    'brush': QtGui.QColor('green')})
+                                    'brush': (0, 255, 0, 150)})
 
             # add points to the item
             scatter_items.addPoints(all_points_1)
@@ -576,40 +568,6 @@ class UI_MainWindow(QWidget):
 
             # add to the layout
             self.loaded_layout.addWidget(polar_view, 0, 3)
-
-            # marker_size = 8.0
-
-            # scatter series
-            # scatter_series_1 = QScatterSeries()
-            # scatter_series_2 = QScatterSeries()
-            # scatter_series_1.setMarkerSize(marker_size)
-            # scatter_series_2.setMarkerSize(marker_size)
-            # for i in range(len(self.all_quantities_1)):
-            #     scatter_series_1.append(self.all_angles[i], self.all_quantities_1[i])
-            #     scatter_series_2.append(self.all_angles[i], self.all_quantities_2[i])
-
-            # chart = QPolarChart()
-            # chart.addSeries(scatter_series_1)
-            # chart.addSeries(scatter_series_2)
-
-            # # create axis
-            # angular_axis = QValueAxis()
-            # # First and last ticks are co-located on 0/360 angle.
-            # angular_axis.setTickCount(2)
-            # angular_axis.setRange(0, 1)
-            # angular_axis.setLabelFormat('%.1f')
-            # # angular_axis.setShadesVisible(True)
-            # # angular_axis.setShadesBrush(QtGui.QBrush(QtGui.QColor(249, 249, 255)))
-            # chart.setAxisY(angular_axis)
-
-            # radial_axis = QValueAxis()
-            # radial_axis.setTickCount(9)
-            # radial_axis.setLabelFormat('%d')
-            # radial_axis.setRange(0, 360)
-            # chart.setAxisX(radial_axis)
-
-            # # animation when plotting
-            # chart.setAnimationOptions(QChart.SeriesAnimations)
 
         else:
             raise Exception('Unsupported display mode')
@@ -646,7 +604,7 @@ class UI_MainWindow(QWidget):
             self.prev_mouse_pos = cur_mouse_pos
 
     def mousePressEvent(self, event):
-        print("mousePressEvent")
+        print('\nmousePressEvent')
         self.prev_mouse_pos = [event.position().x(), event.position().y()]
 
     def mouseReleaseEvent(self, event):
