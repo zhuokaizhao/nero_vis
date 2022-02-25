@@ -495,6 +495,9 @@ class UI_MainWindow(QWidget):
 
             # helper function for clicking inside polar plot
             def clicked(plot, points):
+                # clear manual mode line
+                if self.cur_line:
+                    self.cur_line.clear()
 
                 # clear previously selected point's visual cue
                 if self.last_clicked:
@@ -624,36 +627,14 @@ class UI_MainWindow(QWidget):
 
                 # remove old line
                 if self.cur_line:
-                    self.cur_line.clearMarkers()
+                    self.cur_line.clear()
 
                 # draw a line that represents current angle of rotation
-                self.cur_line = pg.InfiniteLine(angle=self.cur_rotation_angle, pen='red', movable=False)
-                self.polar_plot.addItem(self.cur_line)
-                # cur_x = 1 * np.cos(self.cur_rotation_angle/180*np.pi)
-                # cur_y = 1 * np.sin(self.cur_rotation_angle/180*np.pi)
-                # self.polar_plot.addLine(x=cur_x, y=cur_y, pen=pg.mkPen('red', width=5))
-
-                # # clear last clicked highlighting
-                # if self.last_clicked:
-                #     self.last_clicked.setBrush(self.old_brush)
-
-                # # locate the point by its location information
-                # cur_x_1 = self.output_1[self.loaded_image_labels[0]] * np.cos(self.cur_rotation_angle/180*np.pi)
-                # cur_y_1 = self.output_1[self.loaded_image_labels[0]] * np.sin(self.cur_rotation_angle/180*np.pi)
-                # cur_x_2 = self.output_2[self.loaded_image_labels[0]] * np.cos(self.cur_rotation_angle/180*np.pi)
-                # cur_y_2 = self.output_2[self.loaded_image_labels[0]] * np.sin(self.cur_rotation_angle/180*np.pi)
-
-                # # change the color in NERO to indicate movement
-                # tol = 0.1
-                # for point in self.scatter_items.points():
-                #     if (math.isclose(point.pos().x(), cur_x_1, rel_tol=tol) or math.isclose(point.pos().x(), cur_x_2, rel_tol=tol)) \
-                #         and (math.isclose(point.pos().y(), cur_y_1, rel_tol=tol) or math.isclose(point.pos().y(), cur_y_2, rel_tol=tol)):
-                #         print('found')
-                #         self.last_clicked = point
-                #         self.old_brush = point.brush()
-                #         new_brush = pg.mkBrush(255, 0, 0, 255)
-                #         point.setBrush(new_brush)
-                #         point.setPen(5)
+                cur_x = 1 * np.cos(self.cur_rotation_angle/180*np.pi)
+                cur_y = 1 * np.sin(self.cur_rotation_angle/180*np.pi)
+                line_x = [0, cur_x]
+                line_y = [0, cur_y]
+                self.cur_line = self.polar_plot.plot(line_x, line_y, pen = QtGui.QPen(QtGui.Qt.red, 0.01))
 
             self.prev_mouse_pos = cur_mouse_pos
 
