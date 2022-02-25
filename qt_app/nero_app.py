@@ -254,6 +254,9 @@ class UI_MainWindow(QWidget):
         if not self.run_button_existed:
             # run button
             self.run_button = QtWidgets.QPushButton('Analyze model')
+            self.run_button.setStyleSheet('font-size: 18px')
+            run_button_size = QtCore.QSize(500, 50)
+            self.run_button.setMinimumSize(run_button_size)
             self.run_button_layout.addWidget(self.run_button)
             self.run_button.clicked.connect(self.run_button_clicked)
 
@@ -485,13 +488,13 @@ class UI_MainWindow(QWidget):
             polar_plot = self.draw_polar(polar_plot)
 
             # helper function for clicking inside polar plot
-            self.last_clicked = []
+            self.last_clicked = None
             def clicked(plot, points):
 
                 # clear previously selected point's visual cue
-                for p in self.last_clicked:
-                    p.resetPen()
-                    p.setBrush(self.old_brush)
+                if self.last_clicked:
+                    self.last_clicked.resetPen()
+                    self.last_clicked.setBrush(self.old_brush)
 
                 # clicked point's position
                 x_pos = points[0].pos().x()
@@ -517,18 +520,19 @@ class UI_MainWindow(QWidget):
                 if self.result_existed:
                     self.run_model_once()
 
-                for p in points:
-                    print(p.brush())
-                    if p.brush() == pg.mkBrush(0, 0, 255, 150):
-                        self.old_brush = pg.mkBrush(0, 0, 255, 150)
-                        new_brush = pg.mkBrush(0, 0, 255, 255)
-                    elif p.brush() == pg.mkBrush(0, 255, 0, 150):
-                        self.old_brush = pg.mkBrush(0, 255, 0, 150)
-                        new_brush = pg.mkBrush(0, 255, 0, 255)
+                # only allow clicking one point at a time
+                print(points[0].brush())
+                if points[0].brush() == pg.mkBrush(0, 0, 255, 150):
+                    self.old_brush = pg.mkBrush(0, 0, 255, 150)
+                    new_brush = pg.mkBrush(0, 0, 255, 255)
+                elif points[0].brush() == pg.mkBrush(0, 255, 0, 150):
+                    self.old_brush = pg.mkBrush(0, 255, 0, 150)
+                    new_brush = pg.mkBrush(0, 255, 0, 255)
 
-                    p.setBrush(new_brush)
+                points[0].setBrush(new_brush)
+                points[0].setPen(5)
 
-                self.last_clicked = points
+                self.last_clicked = points[0]
 
             # Set pxMode=False to allow spots to transform with the view
             # all the points to be plotted
