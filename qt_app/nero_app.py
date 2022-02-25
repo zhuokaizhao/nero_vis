@@ -1,5 +1,6 @@
 import os
 import sys
+import math
 import glob
 import torch
 import numpy as np
@@ -202,6 +203,11 @@ class UI_MainWindow(QWidget):
         # result of transformed data
         self.all_quantities_1 = []
         self.all_quantities_2 = []
+
+        # when doing highlighting
+        # last_clicked is not None when it is either clicked or during manual rotation
+        self.last_clicked = None
+        self.cur_line = None
 
     # three radio buttons that define the mode
     @QtCore.Slot()
@@ -484,11 +490,10 @@ class UI_MainWindow(QWidget):
         elif mode == 'polar':
             polar_view = pg.GraphicsLayoutWidget()
             polar_view.setBackground('white')
-            polar_plot = polar_view.addPlot()
-            polar_plot = self.draw_polar(polar_plot)
+            self.polar_plot = polar_view.addPlot()
+            self.polar_plot = self.draw_polar(self.polar_plot)
 
             # helper function for clicking inside polar plot
-            self.last_clicked = None
             def clicked(plot, points):
 
                 # clear previously selected point's visual cue
@@ -521,14 +526,15 @@ class UI_MainWindow(QWidget):
                     self.run_model_once()
 
                 # only allow clicking one point at a time
-                print(points[0].brush())
+                # save the old brush
                 if points[0].brush() == pg.mkBrush(0, 0, 255, 150):
                     self.old_brush = pg.mkBrush(0, 0, 255, 150)
-                    new_brush = pg.mkBrush(0, 0, 255, 255)
+
                 elif points[0].brush() == pg.mkBrush(0, 255, 0, 150):
                     self.old_brush = pg.mkBrush(0, 255, 0, 150)
-                    new_brush = pg.mkBrush(0, 255, 0, 255)
 
+                # create new brush
+                new_brush = pg.mkBrush(255, 0, 0, 255)
                 points[0].setBrush(new_brush)
                 points[0].setPen(5)
 
@@ -536,10 +542,13 @@ class UI_MainWindow(QWidget):
 
             # Set pxMode=False to allow spots to transform with the view
             # all the points to be plotted
-            scatter_items = pg.ScatterPlotItem(pxMode=False)
+            self.scatter_items = pg.ScatterPlotItem(pxMode=False)
             all_points_1 = []
             all_points_2 = []
-            print(len(self.all_angles))
+            all_x_1 = []
+            all_y_1 = []
+            all_x_2 = []
+            all_y_2 = []
             for i in range(len(self.all_angles)):
                 radian = self.all_angles[i] / 180 * np.pi
                 # model 1 quantity
@@ -547,6 +556,8 @@ class UI_MainWindow(QWidget):
                 # Transform to cartesian and plot
                 x_1 = cur_quantity_1 * np.cos(radian)
                 y_1 = cur_quantity_1 * np.sin(radian)
+                all_x_1.append(x_1)
+                all_y_1.append(y_1)
                 all_points_1.append({'pos': (x_1, y_1),
                                     'size': 0.05,
                                     'pen': {'color': 'w', 'width': 0.1},
@@ -557,20 +568,26 @@ class UI_MainWindow(QWidget):
                 # Transform to cartesian and plot
                 x_2 = cur_quantity_2 * np.cos(radian)
                 y_2 = cur_quantity_2 * np.sin(radian)
+                all_x_2.append(x_2)
+                all_y_2.append(y_2)
                 all_points_2.append({'pos': (x_2, y_2),
                                     'size': 0.05,
                                     'pen': {'color': 'w', 'width': 0.1},
                                     'brush': (0, 255, 0, 150)})
 
+            # draw lines to better show shape
+            line_1 = self.polar_plot.plot(all_x_1, all_y_1, pen = QtGui.QPen(QtGui.Qt.blue, 0.03))
+            line_2 = self.polar_plot.plot(all_x_2, all_y_2, pen = QtGui.QPen(QtGui.Qt.green, 0.03))
+
             # add points to the item
-            scatter_items.addPoints(all_points_1)
-            scatter_items.addPoints(all_points_2)
+            self.scatter_items.addPoints(all_points_1)
+            self.scatter_items.addPoints(all_points_2)
 
             # add points to the plot and connect click events
-            polar_plot.addItem(scatter_items)
-            scatter_items.sigClicked.connect(clicked)
+            self.polar_plot.addItem(self.scatter_items)
+            self.scatter_items.sigClicked.connect(clicked)
 
-            # add to the layout
+            # add the plot view to the layout
             self.loaded_layout.addWidget(polar_view, 0, 3)
 
         else:
@@ -604,6 +621,39 @@ class UI_MainWindow(QWidget):
             # update the model output
             if self.result_existed:
                 self.run_model_once()
+
+                # remove old line
+                if self.cur_line:
+                    self.cur_line.clearMarkers()
+
+                # draw a line that represents current angle of rotation
+                self.cur_line = pg.InfiniteLine(angle=self.cur_rotation_angle, pen='red', movable=False)
+                self.polar_plot.addItem(self.cur_line)
+                # cur_x = 1 * np.cos(self.cur_rotation_angle/180*np.pi)
+                # cur_y = 1 * np.sin(self.cur_rotation_angle/180*np.pi)
+                # self.polar_plot.addLine(x=cur_x, y=cur_y, pen=pg.mkPen('red', width=5))
+
+                # # clear last clicked highlighting
+                # if self.last_clicked:
+                #     self.last_clicked.setBrush(self.old_brush)
+
+                # # locate the point by its location information
+                # cur_x_1 = self.output_1[self.loaded_image_labels[0]] * np.cos(self.cur_rotation_angle/180*np.pi)
+                # cur_y_1 = self.output_1[self.loaded_image_labels[0]] * np.sin(self.cur_rotation_angle/180*np.pi)
+                # cur_x_2 = self.output_2[self.loaded_image_labels[0]] * np.cos(self.cur_rotation_angle/180*np.pi)
+                # cur_y_2 = self.output_2[self.loaded_image_labels[0]] * np.sin(self.cur_rotation_angle/180*np.pi)
+
+                # # change the color in NERO to indicate movement
+                # tol = 0.1
+                # for point in self.scatter_items.points():
+                #     if (math.isclose(point.pos().x(), cur_x_1, rel_tol=tol) or math.isclose(point.pos().x(), cur_x_2, rel_tol=tol)) \
+                #         and (math.isclose(point.pos().y(), cur_y_1, rel_tol=tol) or math.isclose(point.pos().y(), cur_y_2, rel_tol=tol)):
+                #         print('found')
+                #         self.last_clicked = point
+                #         self.old_brush = point.brush()
+                #         new_brush = pg.mkBrush(255, 0, 0, 255)
+                #         point.setBrush(new_brush)
+                #         point.setPen(5)
 
             self.prev_mouse_pos = cur_mouse_pos
 
