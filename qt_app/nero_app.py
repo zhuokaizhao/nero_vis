@@ -443,10 +443,10 @@ class UI_MainWindow(QWidget):
         plot.setAspectLocked()
 
         # Add polar grid lines
-        plot.addLine(x=0, pen=2)
-        plot.addLine(y=0, pen=2)
+        plot.addLine(x=0, pen=10)
+        plot.addLine(y=0, pen=10)
         for r in np.arange(0, 1, 0.2):
-            circle = pg.QtGui.QGraphicsEllipseItem(-r, -r, r * 2, r * 2)
+            circle = pg.QtGui.QGraphicsEllipseItem(-r, -r, 2*r, 2*r)
             circle.setPen(pg.mkPen(2))
             plot.addItem(circle)
 
@@ -534,19 +534,33 @@ class UI_MainWindow(QWidget):
             # Set pxMode=False to allow spots to transform with the view
             # all the points to be plotted
             scatter_items = pg.ScatterPlotItem(pxMode=False)
-            all_points = []
-            for i in range(10):
-                for j in range(10):
-                    # Transform to cartesian and plot
-                    x = i * np.cos(j)
-                    y = i * np.sin(j)
-                    all_points.append({'pos': (1*x, 1*y),
-                                        'size': 1,
-                                        'pen': {'color': 'w', 'width': 2},
-                                        'brush':pg.intColor(i*10+j, 100)})
+            all_points_1 = []
+            all_points_2 = []
+            for i in range(len(self.all_angles)):
+                degree = self.all_angles[i]
+                # model 1 quantity
+                cur_quantity_1 = self.all_quantities_1[i]
+                # Transform to cartesian and plot
+                x_1 = cur_quantity_1 * np.cos(degree)
+                y_1 = cur_quantity_1 * np.sin(degree)
+                all_points_1.append({'pos': (x_1, y_1),
+                                    'size': 0.05,
+                                    'pen': {'color': 'w', 'width': 0.1},
+                                    'brush': QtGui.QColor('blue')})
+
+                # model 2 quantity
+                cur_quantity_2 = self.all_quantities_2[i]
+                # Transform to cartesian and plot
+                x_2 = cur_quantity_2 * np.cos(degree)
+                y_2 = cur_quantity_2 * np.sin(degree)
+                all_points_2.append({'pos': (x_2, y_2),
+                                    'size': 0.05,
+                                    'pen': {'color': 'w', 'width': 0.1},
+                                    'brush': QtGui.QColor('green')})
 
             # add points to the item
-            scatter_items.addPoints(all_points)
+            scatter_items.addPoints(all_points_1)
+            scatter_items.addPoints(all_points_2)
 
             # add points to the plot and connect click events
             polar_plot.addItem(scatter_items)
