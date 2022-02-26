@@ -10,7 +10,7 @@ from PySide6 import QtCore, QtWidgets, QtGui
 from PySide6.QtGui  import QPixmap, QFont
 from PySide6.QtCore import QObject
 from PySide6.QtWidgets import QFileDialog, QWidget, QLabel, QRadioButton
-from PySide6.QtCharts import QBarSet, QBarSeries, QChart, QBarCategoryAxis, QValueAxis, QChartView, QPolarChart, QScatterSeries
+# from PySide6.QtCharts import QBarSet, QBarSeries, QChart, QBarCategoryAxis, QValueAxis, QChartView, QPolarChart, QScatterSeries
 
 import nero_transform
 import nero_utilities
@@ -18,7 +18,7 @@ import nero_run_model
 
 
 class UI_MainWindow(QWidget):
-    def __init__(self):
+    def __init__(self, restart):
         super().__init__()
         # set window title
         self.setWindowTitle('Non-Equivariance Revealed on Orbits')
@@ -32,23 +32,62 @@ class UI_MainWindow(QWidget):
 
         # individual laytout for different widgets
         # title
-        self.title_layout = QtWidgets.QVBoxLayout()
-        self.title_layout.setContentsMargins(0, 0, 0, 20)
-        # mode selection radio buttons
-        self.mode_layout = QtWidgets.QHBoxLayout()
-        self.mode_layout.setContentsMargins(50, 0, 0, 50)
-        # image and model loading buttons and drop down menus
-        self.load_button_layout = QtWidgets.QHBoxLayout()
-        self.load_button_layout.setContentsMargins(0, 0, 0, 0)
+        self.init_title_layout()
+        # mode selections
+        self.init_mode_layout(restart)
 
-        # future loaded images and model layout
-        self.loaded_layout = QtWidgets.QGridLayout()
-        self.loaded_layout.setContentsMargins(30, 50, 30, 50)
+        # below layouts depend on mode selection
+        if self.mode == 'digit_recognition':
+            self.init_load_layout()
+            self.init_mnist_layout()
+
+            # display mnist image size
+            self.display_image_size = 150
+            # image (input data) modification mode
+            self.rotation = False
+            # rotation angles
+            self.cur_rotation_angle = 0
+
+            # predefined model paths
+            self.model_1_name = 'Simple model'
+            self.model_1_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'non_eqv', '*.pt'))[0]
+            self.model_2_name = 'Data augmentation model'
+            self.model_2_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'aug_rot_eqv', '*.pt'))[0]
+            # preload model
+            self.model_1 = nero_run_model.load_mnist_model('non-eqv', self.model_1_path)
+            self.model_2 = nero_run_model.load_mnist_model('aug-eqv', self.model_2_path)
+
+            # unique quantity of the result of current data
+            self.all_quantities_1 = []
+            self.all_quantities_2 = []
+
+            # when doing highlighting
+            # last_clicked is not None when it is either clicked or during manual rotation
+            self.last_clicked = None
+            self.cur_line = None
+
+        elif self.mode == 'object_detection':
+            print('Waiting')
+
+
+        # the rest of the layout is not depending on different mode
         # buttons layout for run model
         self.run_button_layout = QtWidgets.QGridLayout()
-        # warning text layout
-        self.warning_layout = QtWidgets.QVBoxLayout()
+        self.layout.addLayout(self.run_button_layout)
+        self.run_button_existed = False
 
+        # potential warning text layout
+        self.warning_layout = QtWidgets.QVBoxLayout()
+        self.layout.addLayout(self.warning_layout)
+        self.warning_existed = False
+
+        print(f'\nFinished rendering {self.mode} layout')
+
+
+    def init_title_layout(self):
+        # title
+        self.title_layout = QtWidgets.QVBoxLayout()
+        self.title_layout.setContentsMargins(0, 0, 0, 20)
         # title of the application
         self.title = QLabel('Non-Equivariance Revealed on Orbits',
                             alignment=QtCore.Qt.AlignCenter)
@@ -56,6 +95,28 @@ class UI_MainWindow(QWidget):
         self.title_layout.addWidget(self.title)
         self.title_layout.setContentsMargins(0, 0, 0, 50)
 
+        # add to general layout
+        self.layout.addLayout(self.title_layout)
+
+
+    def init_mode_layout(self, restart):
+        # three radio buttons that define the mode
+        @QtCore.Slot()
+        def digit_reconition_button_clicked():
+            print('Digit recognition button clicked')
+            self.mode = 'digit_recognition'
+        @QtCore.Slot()
+        def object_detection_button_clicked():
+            print('Object detection button clicked')
+            self.mode = 'object_detection'
+        @QtCore.Slot()
+        def piv_button_clicked():
+            print('PIV button clicked')
+            self.mode = 'PIV'
+
+        # mode selection radio buttons
+        self.mode_layout = QtWidgets.QHBoxLayout()
+        self.mode_layout.setContentsMargins(50, 0, 0, 50)
         # radio buttons on mode selection (digit_recognition, object detection, PIV)
         # pixmap on text telling what this is
         # use the loaded_layout
@@ -79,7 +140,7 @@ class UI_MainWindow(QWidget):
         self.radio_button_1 = QRadioButton('Digit recognition')
         self.radio_button_1.setChecked(True)
         self.radio_button_1.setStyleSheet('QRadioButton{font: 18pt Helvetica;} QRadioButton::indicator { width: 18px; height: 18px;};')
-        self.radio_button_1.pressed.connect(self.digit_reconition_button_clicked)
+        self.radio_button_1.pressed.connect(digit_reconition_button_clicked)
         self.mode_layout.addWidget(self.radio_button_1)
         # spacer item
         self.mode_layout.addSpacing(30)
@@ -87,7 +148,7 @@ class UI_MainWindow(QWidget):
         self.radio_button_2 = QRadioButton('Object detection')
         self.radio_button_2.setChecked(False)
         self.radio_button_2.setStyleSheet('QRadioButton{font: 18pt Helvetica;} QRadioButton::indicator { width: 18px; height: 18px;};')
-        self.radio_button_2.pressed.connect(self.object_detection_button_clicked)
+        self.radio_button_2.pressed.connect(object_detection_button_clicked)
         self.mode_layout.addWidget(self.radio_button_2)
         # spacer item
         self.mode_layout.addSpacing(30)
@@ -95,13 +156,21 @@ class UI_MainWindow(QWidget):
         self.radio_button_3 = QRadioButton('Particle Image Velocimetry (PIV)')
         self.radio_button_3.setChecked(False)
         self.radio_button_3.setStyleSheet('QRadioButton{font: 18pt Helvetica;} QRadioButton::indicator { width: 18px; height: 18px;};')
-        self.radio_button_3.pressed.connect(self.piv_button_clicked)
+        self.radio_button_3.pressed.connect(piv_button_clicked)
         self.mode_layout.addWidget(self.radio_button_3)
 
         # default app mode is digit_recognition
-        self.mode = 'digit_recognition'
-        self.display_image_size = 150
+        if not restart:
+            self.mode = 'digit_recognition'
 
+        # add to general layout
+        self.layout.addLayout(self.mode_layout)
+
+
+    def init_load_layout(self):
+        # image and model loading buttons and drop down menus
+        self.load_button_layout = QtWidgets.QHBoxLayout()
+        self.load_button_layout.setContentsMargins(0, 0, 0, 0)
         # load data button
         self.data_button = QtWidgets.QPushButton('Load Test Image')
         self.data_button.setStyleSheet('font-size: 18px')
@@ -109,6 +178,9 @@ class UI_MainWindow(QWidget):
         self.data_button.setMinimumSize(data_button_size)
         self.load_button_layout.addWidget(self.data_button)
         self.data_button.clicked.connect(self.load_image_clicked)
+
+        # init flag to inidicate if an image has ever been loaded
+        self.image_existed = False
 
         # load models choices
         # model 1
@@ -169,59 +241,23 @@ class UI_MainWindow(QWidget):
         model_2_menu.currentTextChanged.connect(self.model_2_text_changed)
         self.load_button_layout.addWidget(model_2_menu)
 
-        # add individual layouts to the display general layout
-        self.layout.addLayout(self.title_layout)
-        self.layout.addLayout(self.mode_layout)
+        # add to general layout
         self.layout.addLayout(self.load_button_layout)
+
+
+    def init_mnist_layout(self):
+        # loaded images and model layout
+        self.loaded_layout = QtWidgets.QGridLayout()
+        self.loaded_layout.setContentsMargins(30, 50, 30, 50)
+
+        # add to general layout
         self.layout.addLayout(self.loaded_layout)
-        self.layout.addLayout(self.run_button_layout)
-        self.layout.addLayout(self.warning_layout)
 
-        # set the model selection to be the simple model
-        self.model_1_name = 'Simple model'
-        self.model_1_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'non_eqv', '*.pt'))[0]
-        self.model_2_name = 'Data augmentation model'
-        self.model_2_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'aug_rot_eqv', '*.pt'))[0]
-        # preload model
-        self.model_1 = nero_run_model.load_model('non-eqv', self.model_1_path)
-        self.model_2 = nero_run_model.load_model('aug-eqv', self.model_2_path)
-
-        # flag to check if an image has been displayed
-        self.image_existed = False
-        self.run_button_existed = False
+        # if model result ever existed
         self.result_existed = False
-        self.warning_existed = False
 
-        # image (input data) modification mode
-        self.translation = False
-        self.rotation = False
 
-        # rotation angles
-        self.cur_rotation_angle = 0
-        self.prev_rotation_angle = 0
 
-        # result of transformed data
-        self.all_quantities_1 = []
-        self.all_quantities_2 = []
-
-        # when doing highlighting
-        # last_clicked is not None when it is either clicked or during manual rotation
-        self.last_clicked = None
-        self.cur_line = None
-
-    # three radio buttons that define the mode
-    @QtCore.Slot()
-    def digit_reconition_button_clicked(self):
-        print('Digit recognition button clicked')
-        self.mode = 'digit_recognition'
-    @QtCore.Slot()
-    def object_detection_button_clicked(self):
-        print('Object detection button clicked')
-        self.mode = 'object_detection'
-    @QtCore.Slot()
-    def piv_button_clicked(self):
-        print('PIV button clicked')
-        self.mode = 'PIV'
 
     # push button that loads data
     @QtCore.Slot()
@@ -671,7 +707,7 @@ class UI_MainWindow(QWidget):
 if __name__ == "__main__":
     app = QtWidgets.QApplication([])
 
-    widget = UI_MainWindow()
+    widget = UI_MainWindow(restart=False)
     widget.resize(1920, 1080)
     widget.show()
 

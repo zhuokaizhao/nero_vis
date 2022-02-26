@@ -15,7 +15,7 @@ sys.path.append(parent)
 from nero_mnist import models as mnist_models
 
 # preload model
-def load_model(network_model, model_dir):
+def load_mnist_model(network_model, model_dir):
     # basic settings for pytorch
     if torch.cuda.is_available():
         # device set up
