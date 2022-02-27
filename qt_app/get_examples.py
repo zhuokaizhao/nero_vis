@@ -64,8 +64,14 @@ def main():
         # to_tensor = torchvision.transforms.ToTensor()
         # normalize = torchvision.transforms.Normalize((0.1307,), (0.3081,))
 
-        # randomly pick sample indices
-        sample_indices = random.sample(range(0, data_size-1), num_samples)
+        # randomly pick 10 indices where each class has one
+        sample_indices = []
+        existed_classes = []
+        while len(sample_indices) < num_samples:
+            cur_sample_index = random.sample(range(0, data_size-1), 1)[0]
+            if labels[cur_sample_index] not in existed_classes:
+                existed_classes.append(labels[cur_sample_index])
+                sample_indices.append(cur_sample_index)
 
         for index in sample_indices:
             image, label = images[index], labels[index]
