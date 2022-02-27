@@ -769,7 +769,7 @@ class UI_MainWindow(QWidget):
             print('translating')
         # when in rotation mode
         elif self.rotation:
-            cur_mouse_pos = [event.position().x(), event.position().y()]
+            cur_mouse_pos = [event.position().x()-self.image_center_x, event.position().y()-self.image_center_y]
 
             angle_change = -((self.prev_mouse_pos[0]*cur_mouse_pos[1] - self.prev_mouse_pos[1]*cur_mouse_pos[0])
                             / (self.prev_mouse_pos[0]*self.prev_mouse_pos[0] + self.prev_mouse_pos[1]*self.prev_mouse_pos[1]))*180
@@ -805,7 +805,7 @@ class UI_MainWindow(QWidget):
 
     def mousePressEvent(self, event):
         print('\nmousePressEvent')
-        self.image_center_x = self.image_label.x() + 15 + self.image_label.width()/2
+        self.image_center_x = self.image_label.x() + self.image_label.width()/2
         self.image_center_y = self.image_label.y() + self.image_label.height()/2
         self.prev_mouse_pos = [event.position().x()-self.image_center_x, event.position().y()-self.image_center_y]
         print(self.prev_mouse_pos)
