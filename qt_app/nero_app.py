@@ -23,7 +23,7 @@ class UI_MainWindow(QWidget):
         # set window title
         self.setWindowTitle('Non-Equivariance Revealed on Orbits')
         # white background color
-        self.setStyleSheet("background-color: white;")
+        self.setStyleSheet('background-color: white;')
         # general layout
         self.layout = QtWidgets.QVBoxLayout(self)
         self.layout.setAlignment(QtCore.Qt.AlignCenter)
@@ -34,12 +34,64 @@ class UI_MainWindow(QWidget):
         # title
         self.init_title_layout()
         # mode selections
-        self.init_mode_layout(restart)
+        self.mode = 'digit_recognition'
+        # if any mode selection has been made
+        self.selection_existed = False
+        self.init_mode_layout()
 
-        # below layouts depend on mode selection
-        if self.mode == 'digit_recognition':
+        # buttons layout for run model
+        self.run_button_layout = QtWidgets.QGridLayout()
+        self.layout.addLayout(self.run_button_layout)
+        self.run_button_existed = False
+
+        print(f'\nFinished rendering main layout')
+
+
+    # helper function that recursively clears a layout
+    def clear_layout(self, layout):
+        if layout:
+            while layout.count():
+                print(layout.count())
+                # remove the item at index 0 from the layout, and return the item
+                item = layout.takeAt(0)
+                # delete if it is a widget
+                if item.widget():
+                    item.widget().deleteLater()
+                # delete if it is a layout
+                else:
+                    self.clear_layout(item.layout())
+
+
+    def init_title_layout(self):
+        # title
+        self.title_layout = QtWidgets.QVBoxLayout()
+        self.title_layout.setContentsMargins(0, 0, 0, 20)
+        # title of the application
+        self.title = QLabel('Non-Equivariance Revealed on Orbits',
+                            alignment=QtCore.Qt.AlignCenter)
+        self.title.setFont(QFont('Helvetica', 24))
+        self.title_layout.addWidget(self.title)
+        self.title_layout.setContentsMargins(0, 0, 0, 50)
+
+        # add to general layout
+        self.layout.addLayout(self.title_layout)
+
+
+    def init_mode_layout(self):
+        # three radio buttons that define the mode
+        @QtCore.Slot()
+        def digit_reconition_button_clicked():
+            print('Digit recognition button clicked')
+            self.mode = 'digit_recognition'
+            self.radio_button_1.setChecked(True)
+
+            # below layouts depend on mode selection
+            if self.selection_existed:
+                self.clear_layout(self.load_button_layout)
+                # self.clear_layout(self.result_layout)
+
             self.init_load_layout()
-            self.init_mnist_layout()
+            self.init_result_layout()
 
             # display mnist image size
             self.display_image_size = 150
@@ -66,60 +118,90 @@ class UI_MainWindow(QWidget):
             self.last_clicked = None
             self.cur_line = None
 
-        elif self.mode == 'object_detection':
-            print('Waiting')
-
-
-        # the rest of the layout is not depending on different mode
-        # buttons layout for run model
-        self.run_button_layout = QtWidgets.QGridLayout()
-        self.layout.addLayout(self.run_button_layout)
-        self.run_button_existed = False
-
-        # potential warning text layout
-        self.warning_layout = QtWidgets.QVBoxLayout()
-        self.layout.addLayout(self.warning_layout)
-        self.warning_existed = False
-
-        print(f'\nFinished rendering {self.mode} layout')
-
-
-    def init_title_layout(self):
-        # title
-        self.title_layout = QtWidgets.QVBoxLayout()
-        self.title_layout.setContentsMargins(0, 0, 0, 20)
-        # title of the application
-        self.title = QLabel('Non-Equivariance Revealed on Orbits',
-                            alignment=QtCore.Qt.AlignCenter)
-        self.title.setFont(QFont('Helvetica', 24))
-        self.title_layout.addWidget(self.title)
-        self.title_layout.setContentsMargins(0, 0, 0, 50)
-
-        # add to general layout
-        self.layout.addLayout(self.title_layout)
-
-
-    def init_mode_layout(self, restart):
-        # three radio buttons that define the mode
-        @QtCore.Slot()
-        def digit_reconition_button_clicked():
-            print('Digit recognition button clicked')
-            self.mode = 'digit_recognition'
         @QtCore.Slot()
         def object_detection_button_clicked():
             print('Object detection button clicked')
             self.mode = 'object_detection'
+            self.radio_button_2.setChecked(True)
+
+            # below layouts depend on mode selection
+            if self.selection_existed:
+                self.clear_layout(self.load_button_layout)
+                self.clear_layout(self.result_layout)
+
+            self.init_load_layout()
+            self.init_result_layout()
+
+            # display mnist image size
+            self.display_image_size = 150
+            # image (input data) modification mode
+            self.rotation = False
+            # rotation angles
+            self.cur_rotation_angle = 0
+
+            # predefined model paths
+            self.model_1_name = 'Simple model'
+            self.model_1_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'non_eqv', '*.pt'))[0]
+            self.model_2_name = 'Data augmentation model'
+            self.model_2_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'aug_rot_eqv', '*.pt'))[0]
+            # preload model
+            self.model_1 = nero_run_model.load_mnist_model('non-eqv', self.model_1_path)
+            self.model_2 = nero_run_model.load_mnist_model('aug-eqv', self.model_2_path)
+
+            # unique quantity of the result of current data
+            self.all_quantities_1 = []
+            self.all_quantities_2 = []
+
+            # when doing highlighting
+            # last_clicked is not None when it is either clicked or during manual rotation
+            self.last_clicked = None
+            self.cur_line = None
+
         @QtCore.Slot()
         def piv_button_clicked():
             print('PIV button clicked')
             self.mode = 'PIV'
+            self.radio_button_3.setChecked(True)
+
+            # below layouts depend on mode selection
+            if self.selection_existed:
+                self.clear_layout(self.load_button_layout)
+                self.clear_layout(self.result_layout)
+
+            self.init_load_layout()
+            self.init_result_layout()
+
+            # display mnist image size
+            self.display_image_size = 150
+            # image (input data) modification mode
+            self.rotation = False
+            # rotation angles
+            self.cur_rotation_angle = 0
+
+            # predefined model paths
+            self.model_1_name = 'Simple model'
+            self.model_1_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'non_eqv', '*.pt'))[0]
+            self.model_2_name = 'Data augmentation model'
+            self.model_2_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'aug_rot_eqv', '*.pt'))[0]
+            # preload model
+            self.model_1 = nero_run_model.load_mnist_model('non-eqv', self.model_1_path)
+            self.model_2 = nero_run_model.load_mnist_model('aug-eqv', self.model_2_path)
+
+            # unique quantity of the result of current data
+            self.all_quantities_1 = []
+            self.all_quantities_2 = []
+
+            # when doing highlighting
+            # last_clicked is not None when it is either clicked or during manual rotation
+            self.last_clicked = None
+            self.cur_line = None
+
 
         # mode selection radio buttons
         self.mode_layout = QtWidgets.QHBoxLayout()
         self.mode_layout.setContentsMargins(50, 0, 0, 50)
         # radio buttons on mode selection (digit_recognition, object detection, PIV)
-        # pixmap on text telling what this is
-        # use the loaded_layout
+        # title
         mode_pixmap = QPixmap(150, 30)
         mode_pixmap.fill(QtCore.Qt.white)
         # draw text
@@ -127,6 +209,7 @@ class UI_MainWindow(QWidget):
         painter.setFont(QFont('Helvetica', 18))
         painter.drawText(0, 0, 150, 30, QtGui.Qt.AlignLeft, 'Model type: ')
         painter.end()
+
         # create label to contain the texts
         self.mode_label = QLabel(self)
         self.mode_label.setAlignment(QtCore.Qt.AlignLeft)
@@ -138,7 +221,6 @@ class UI_MainWindow(QWidget):
 
         # radio_buttons_layout = QtWidgets.QGridLayout(self)
         self.radio_button_1 = QRadioButton('Digit recognition')
-        self.radio_button_1.setChecked(True)
         self.radio_button_1.setStyleSheet('QRadioButton{font: 18pt Helvetica;} QRadioButton::indicator { width: 18px; height: 18px;};')
         self.radio_button_1.pressed.connect(digit_reconition_button_clicked)
         self.mode_layout.addWidget(self.radio_button_1)
@@ -146,7 +228,6 @@ class UI_MainWindow(QWidget):
         self.mode_layout.addSpacing(30)
 
         self.radio_button_2 = QRadioButton('Object detection')
-        self.radio_button_2.setChecked(False)
         self.radio_button_2.setStyleSheet('QRadioButton{font: 18pt Helvetica;} QRadioButton::indicator { width: 18px; height: 18px;};')
         self.radio_button_2.pressed.connect(object_detection_button_clicked)
         self.mode_layout.addWidget(self.radio_button_2)
@@ -154,30 +235,159 @@ class UI_MainWindow(QWidget):
         self.mode_layout.addSpacing(30)
 
         self.radio_button_3 = QRadioButton('Particle Image Velocimetry (PIV)')
-        self.radio_button_3.setChecked(False)
         self.radio_button_3.setStyleSheet('QRadioButton{font: 18pt Helvetica;} QRadioButton::indicator { width: 18px; height: 18px;};')
         self.radio_button_3.pressed.connect(piv_button_clicked)
         self.mode_layout.addWidget(self.radio_button_3)
 
-        # default app mode is digit_recognition
-        if not restart:
-            self.mode = 'digit_recognition'
-
         # add to general layout
         self.layout.addLayout(self.mode_layout)
 
+        # used for default state
+        if self.mode == 'digit_recognition':
+            self.radio_button_1.setChecked(True)
+            digit_reconition_button_clicked()
+        elif self.mode == 'object_detection':
+            self.radio_button_2.setChecked(True)
+            object_detection_button_clicked()
+        elif self.mode == 'piv':
+            self.radio_button_3.setChecked(True)
+            piv_button_clicked()
+
+        self.selection_existed = True
+
 
     def init_load_layout(self):
-        # image and model loading buttons and drop down menus
-        self.load_button_layout = QtWidgets.QHBoxLayout()
-        self.load_button_layout.setContentsMargins(0, 0, 0, 0)
-        # load data button
-        self.data_button = QtWidgets.QPushButton('Load Test Image')
-        self.data_button.setStyleSheet('font-size: 18px')
-        data_button_size = QtCore.QSize(500, 50)
-        self.data_button.setMinimumSize(data_button_size)
-        self.load_button_layout.addWidget(self.data_button)
-        self.data_button.clicked.connect(self.load_image_clicked)
+
+        # push button that loads data
+        @QtCore.Slot()
+        def load_image_clicked():
+            self.image_paths, _ = QFileDialog.getOpenFileNames(self, QObject.tr('Load Test Image'))
+            # in case user did not load any image
+            if self.image_paths == []:
+                return
+            print(f'Loaded image(s) {self.image_paths}')
+
+            # load the image and scale the size
+            self.loaded_images_pt = []
+            self.cur_images_pt = []
+            self.display_images = []
+            self.loaded_image_names = []
+            # get the label of the image(s)
+            self.loaded_image_labels = []
+            for i in range(len(self.image_paths)):
+                self.loaded_images_pt.append(torch.from_numpy(np.asarray(Image.open(self.image_paths[i])))[:, :, None])
+                self.loaded_image_names.append(self.image_paths[i].split('/')[-1])
+                self.loaded_image_labels.append(int(self.image_paths[i].split('/')[-1].split('_')[1]))
+
+                # keep a copy to represent the current (rotated) version of the original images
+                self.cur_images_pt.append(self.loaded_images_pt[-1].clone())
+                # convert to QImage for display purpose
+                self.cur_display_image = nero_utilities.tensor_to_qt_image(self.cur_images_pt[-1])
+                # resize the display QImage
+                self.display_images.append(self.cur_display_image.scaledToWidth(self.display_image_size))
+
+            # display the image
+            self.display_image()
+            self.data_button.setText(f'Click to load new image')
+            self.image_existed = True
+
+            # show the run button when data is loaded
+            if not self.run_button_existed:
+                # run button
+                self.run_button = QtWidgets.QPushButton('Analyze model')
+                self.run_button.setStyleSheet('font-size: 18px')
+                run_button_size = QtCore.QSize(500, 50)
+                self.run_button.setMinimumSize(run_button_size)
+                self.run_button_layout.addWidget(self.run_button)
+                self.run_button.clicked.connect(self.run_button_clicked)
+
+                self.run_button_existed = True
+
+        # two drop down menus that let user choose models
+        @QtCore.Slot()
+        def model_1_text_changed(text):
+            print('Model 1:', text)
+            self.model_1_name = text
+            # load the mode
+            if text == 'Simple model':
+                self.model_1_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'non_eqv', '*.pt'))[0]
+                # reload model
+                self.model_1 = nero_run_model.load_model('non-eqv', self.model_1_path)
+            elif text == 'E2CNN model':
+                self.model_1_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'rot_eqv', '*.pt'))[0]
+                # reload model
+                self.model_1 = nero_run_model.load_model('rot-eqv', self.model_1_path)
+            elif text == 'Data augmentation model':
+                self.model_1_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'aug_rot_eqv', '*.pt'))[0]
+                # reload model
+                self.model_1 = nero_run_model.load_model('aug-eqv', self.model_1_path)
+
+            print('Model 1 path:', self.model_1_path)
+
+        @QtCore.Slot()
+        def model_2_text_changed(text):
+            print('Model 2:', text)
+            self.model_2_name = text
+            # load the mode
+            if text == 'Simple model':
+                self.model_2_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'non_eqv', '*.pt'))[0]
+                # reload model
+                self.model_2 = nero_run_model.load_model('non-eqv', self.model_2_path)
+            elif text == 'E2CNN model':
+                self.model_2_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'rot_eqv', '*.pt'))[0]
+                # reload model
+                self.model_2 = nero_run_model.load_model('rot-eqv', self.model_2_path)
+            elif text == 'Data augmentation model':
+                self.model_2_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'aug_rot_eqv', '*.pt'))[0]
+                # reload model
+                self.model_2 = nero_run_model.load_model('aug-eqv', self.model_2_path)
+
+            print('Model 2 path:', self.model_2_path)
+
+        # function used as model icon
+        def draw_circle(painter, center_x, center_y, radius, color):
+            # optional
+            painter.setRenderHint(QtGui.QPainter.Antialiasing)
+            # make a white drawing background
+            painter.setBrush(QtGui.QColor(color))
+            # draw red circles
+            painter.setPen(QtGui.QColor(color))
+            center = QtCore.QPoint(center_x, center_y)
+            # optionally fill each circle yellow
+            painter.setBrush(QtGui.QColor(color))
+            painter.drawEllipse(center, radius, radius)
+            painter.end()
+
+        # images and models drop down menus
+        # self.load_button_layout = QtWidgets.QHBoxLayout()
+        # self.load_button_layout.setContentsMargins(0, 0, 0, 0)
+        # # load data button
+        # self.data_button = QtWidgets.QPushButton('Load Test Image')
+        # self.data_button.setStyleSheet('font-size: 18px')
+        # data_button_size = QtCore.QSize(500, 50)
+        # self.data_button.setMinimumSize(data_button_size)
+        # self.load_button_layout.addWidget(self.data_button)
+        # self.data_button.clicked.connect(load_image_clicked)
+        image_menu = QtWidgets.QComboBox()
+        image_menu.setMinimumSize(QtCore.QSize(250, 50))
+        image_menu.setStyleSheet('font-size: 18px')
+        if self.mode == 'digit_recognition':
+            # add a image of each class
+            model_1_menu.addItem(model_1_icon, 'Simple model')
+            model_1_menu.addItem(model_1_icon, 'E2CNN model')
+            model_1_menu.addItem(model_1_icon, 'Data augmentation model')
+            model_1_menu.setCurrentText('Simple model')
+        elif self.mode == 'object_detection':
+            model_1_menu.addItem(model_1_icon, 'Simple model')
+            model_1_menu.addItem(model_1_icon, 'Shift-Invariant model')
+            model_1_menu.setCurrentText('Simple model')
+
+        # connect the drop down menu with actions
+        model_1_menu.currentTextChanged.connect(model_1_text_changed)
+        model_1_menu.setEditable(True)
+        model_1_menu.lineEdit().setReadOnly(True)
+        model_1_menu.lineEdit().setAlignment(QtCore.Qt.AlignCenter)
+        self.load_button_layout.addWidget(model_1_menu)
 
         # init flag to inidicate if an image has ever been loaded
         self.image_existed = False
@@ -191,10 +401,10 @@ class UI_MainWindow(QWidget):
         model_1_icon.fill(QtCore.Qt.white)
         # draw model representation
         painter = QtGui.QPainter(model_1_icon)
-        self.draw_circle(painter, 12, 12, 10, 'blue')
+        draw_circle(painter, 12, 12, 10, 'blue')
 
         # spacer item
-        self.load_button_layout.addSpacing(30)
+        # self.load_button_layout.addSpacing(30)
 
         model_1_menu = QtWidgets.QComboBox()
         model_1_menu.setMinimumSize(QtCore.QSize(250, 50))
@@ -204,9 +414,13 @@ class UI_MainWindow(QWidget):
             model_1_menu.addItem(model_1_icon, 'E2CNN model')
             model_1_menu.addItem(model_1_icon, 'Data augmentation model')
             model_1_menu.setCurrentText('Simple model')
+        elif self.mode == 'object_detection':
+            model_1_menu.addItem(model_1_icon, 'Simple model')
+            model_1_menu.addItem(model_1_icon, 'Shift-Invariant model')
+            model_1_menu.setCurrentText('Simple model')
 
         # connect the drop down menu with actions
-        model_1_menu.currentTextChanged.connect(self.model_1_text_changed)
+        model_1_menu.currentTextChanged.connect(model_1_text_changed)
         model_1_menu.setEditable(True)
         model_1_menu.lineEdit().setReadOnly(True)
         model_1_menu.lineEdit().setAlignment(QtCore.Qt.AlignCenter)
@@ -220,10 +434,10 @@ class UI_MainWindow(QWidget):
         model_2_icon.fill(QtCore.Qt.white)
         # draw model representation
         painter = QtGui.QPainter(model_2_icon)
-        self.draw_circle(painter, 12, 12, 10, 'Green')
+        draw_circle(painter, 12, 12, 10, 'Green')
 
         # spacer item
-        self.load_button_layout.addSpacing(30)
+        # self.load_button_layout.addSpacing(30)
 
         model_2_menu = QtWidgets.QComboBox()
         model_2_menu.setMinimumSize(QtCore.QSize(250, 50))
@@ -236,116 +450,32 @@ class UI_MainWindow(QWidget):
             model_2_menu.addItem(model_2_icon, 'E2CNN model')
             model_2_menu.addItem(model_2_icon, 'Data augmentation model')
             model_2_menu.setCurrentText('Data augmentation model')
+        elif self.mode == 'object_detection':
+            model_2_menu.addItem(model_1_icon, 'Simple model')
+            model_2_menu.addItem(model_1_icon, 'Shift-Invariant model')
+            model_2_menu.setCurrentText('Simple model')
 
         # connect the drop down menu with actions
-        model_2_menu.currentTextChanged.connect(self.model_2_text_changed)
+        model_2_menu.currentTextChanged.connect(model_2_text_changed)
         self.load_button_layout.addWidget(model_2_menu)
 
         # add to general layout
         self.layout.addLayout(self.load_button_layout)
 
 
-    def init_mnist_layout(self):
+    def init_result_layout(self):
         # loaded images and model layout
-        self.loaded_layout = QtWidgets.QGridLayout()
-        self.loaded_layout.setContentsMargins(30, 50, 30, 50)
+        self.result_layout = QtWidgets.QGridLayout()
+        self.result_layout.setContentsMargins(30, 50, 30, 50)
 
         # add to general layout
-        self.layout.addLayout(self.loaded_layout)
+        self.layout.addLayout(self.result_layout)
 
         # if model result ever existed
         self.result_existed = False
 
 
-
-
-    # push button that loads data
-    @QtCore.Slot()
-    def load_image_clicked(self):
-        self.image_paths, _ = QFileDialog.getOpenFileNames(self, QObject.tr('Load Test Image'))
-        # in case user did not load any image
-        if self.image_paths == []:
-            return
-        print(f'Loaded image(s) {self.image_paths}')
-
-        # load the image and scale the size
-        self.loaded_images_pt = []
-        self.cur_images_pt = []
-        self.display_images = []
-        self.loaded_image_names = []
-        # get the label of the image(s)
-        self.loaded_image_labels = []
-        for i in range(len(self.image_paths)):
-            self.loaded_images_pt.append(torch.from_numpy(np.asarray(Image.open(self.image_paths[i])))[:, :, None])
-            self.loaded_image_names.append(self.image_paths[i].split('/')[-1])
-            self.loaded_image_labels.append(int(self.image_paths[i].split('/')[-1].split('_')[1]))
-
-            # keep a copy to represent the current (rotated) version of the original images
-            self.cur_images_pt.append(self.loaded_images_pt[-1].clone())
-            # convert to QImage for display purpose
-            self.cur_display_image = nero_utilities.tensor_to_qt_image(self.cur_images_pt[-1])
-            # resize the display QImage
-            self.display_images.append(self.cur_display_image.scaledToWidth(self.display_image_size))
-
-        # display the image
-        self.display_image()
-        self.data_button.setText(f'Click to load new image')
-        self.image_existed = True
-
-        # show the run button when data is loaded
-        if not self.run_button_existed:
-            # run button
-            self.run_button = QtWidgets.QPushButton('Analyze model')
-            self.run_button.setStyleSheet('font-size: 18px')
-            run_button_size = QtCore.QSize(500, 50)
-            self.run_button.setMinimumSize(run_button_size)
-            self.run_button_layout.addWidget(self.run_button)
-            self.run_button.clicked.connect(self.run_button_clicked)
-
-            self.run_button_existed = True
-
-    # two drop down menus that let user choose models
-    @QtCore.Slot()
-    def model_1_text_changed(self, text):
-        print('Model 1:', text)
-        self.model_1_name = text
-        # load the mode
-        if text == 'Simple model':
-            self.model_1_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'non_eqv', '*.pt'))[0]
-            # reload model
-            self.model_1 = nero_run_model.load_model('non-eqv', self.model_1_path)
-        elif text == 'E2CNN model':
-            self.model_1_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'rot_eqv', '*.pt'))[0]
-            # reload model
-            self.model_1 = nero_run_model.load_model('rot-eqv', self.model_1_path)
-        elif text == 'Data augmentation model':
-            self.model_1_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'aug_rot_eqv', '*.pt'))[0]
-            # reload model
-            self.model_1 = nero_run_model.load_model('aug-eqv', self.model_1_path)
-
-        print('Model 1 path:', self.model_1_path)
-
-
-    @QtCore.Slot()
-    def model_2_text_changed(self, text):
-        print('Model 2:', text)
-        self.model_2_name = text
-        # load the mode
-        if text == 'Simple model':
-            self.model_2_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'non_eqv', '*.pt'))[0]
-            # reload model
-            self.model_2 = nero_run_model.load_model('non-eqv', self.model_2_path)
-        elif text == 'E2CNN model':
-            self.model_2_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'rot_eqv', '*.pt'))[0]
-            # reload model
-            self.model_2 = nero_run_model.load_model('rot-eqv', self.model_2_path)
-        elif text == 'Data augmentation model':
-            self.model_2_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'aug_rot_eqv', '*.pt'))[0]
-            # reload model
-            self.model_2 = nero_run_model.load_model('aug-eqv', self.model_2_path)
-
-        print('Model 2 path:', self.model_2_path)
-
+    # run button execution that could be used by all modes
     @QtCore.Slot()
     def run_button_clicked(self):
         # run model once and display results
@@ -353,6 +483,7 @@ class UI_MainWindow(QWidget):
 
         # run model all and display results
         self.run_model_all()
+
 
     # run model on a single test sample
     def run_model_once(self):
@@ -374,6 +505,9 @@ class UI_MainWindow(QWidget):
 
             # display result
             self.display_mnist_result(mode='bar', boundary_width=3)
+        elif self.mode == 'object_detection':
+            print('Not yet implemented')
+
 
     # run model on all the available transformations on a single sample
     def run_model_all(self):
@@ -424,6 +558,8 @@ class UI_MainWindow(QWidget):
             # display result
             self.display_mnist_result(mode='polar', boundary_width=3)
 
+        elif self.mode == 'object_detection':
+            print('Not yet implemented')
 
     def display_image(self):
 
@@ -446,29 +582,13 @@ class UI_MainWindow(QWidget):
             name_label.setAlignment(QtCore.Qt.AlignCenter)
 
             # add this image to the layout
-            self.loaded_layout.addWidget(self.image_label, 0, 0)
-            self.loaded_layout.addWidget(name_label, 1, 0)
+            self.result_layout.addWidget(self.image_label, 0, 0)
+            self.result_layout.addWidget(name_label, 1, 0)
 
         # when loaded multiple images
 
-    # function used when displaying model representation
-    def draw_circle(self, painter, center_x, center_y, radius, color):
 
-        # paint.begin(self)
-        # optional
-        painter.setRenderHint(QtGui.QPainter.Antialiasing)
-        # make a white drawing background
-        painter.setBrush(QtGui.QColor(color))
-        # draw red circles
-        painter.setPen(QtGui.QColor(color))
-        center = QtCore.QPoint(center_x, center_y)
-        # optionally fill each circle yellow
-        painter.setBrush(QtGui.QColor(color))
-        painter.drawEllipse(center, radius, radius)
-        painter.end()
-
-
-    # draw arrow
+    # draw an arrow, used between input image(s) and model outputs
     def draw_arrow(self, painter, pen, width, height, boundary_width):
         # draw arrow to indicate feeding
         pen.setWidth(boundary_width)
@@ -481,24 +601,11 @@ class UI_MainWindow(QWidget):
         # bottom arrow
         painter.drawLine(int(0.6*width), int(0.75*height), width, height//2)
 
-    # draw a polar plot
-    def draw_polar(self, plot):
-        # plot = pg.plot()
-        plot.setAspectLocked()
 
-        # Add polar grid lines
-        plot.addLine(x=0, pen=pg.mkPen('black', width=2))
-        plot.addLine(y=0, pen=pg.mkPen('black', width=2))
-        for r in np.arange(0, 1.2, 0.2):
-            circle = pg.QtGui.QGraphicsEllipseItem(-r, -r, 2*r, 2*r)
-            circle.setPen(pg.mkPen('black', width=2))
-            plot.addItem(circle)
-
-        return plot
 
     def display_mnist_result(self, mode, boundary_width):
 
-        # use the loaded_layout
+        # use the result_layout
         mnist_pixmap = QPixmap(100, 50)
         mnist_pixmap.fill(QtCore.Qt.white)
         # draw arrow
@@ -510,7 +617,7 @@ class UI_MainWindow(QWidget):
 
         # add to the label and layout
         self.mnist_label.setPixmap(mnist_pixmap)
-        self.loaded_layout.addWidget(self.mnist_label, 0, 1)
+        self.result_layout.addWidget(self.mnist_label, 0, 1)
 
         # draw result using bar plot
         if mode == 'bar':
@@ -521,13 +628,23 @@ class UI_MainWindow(QWidget):
             bar_plot.addItem(graph_1)
             bar_plot.addItem(graph_2)
 
-            self.loaded_layout.addWidget(bar_plot, 0, 2)
+            self.result_layout.addWidget(bar_plot, 0, 2)
 
         elif mode == 'polar':
-            polar_view = pg.GraphicsLayoutWidget()
-            polar_view.setBackground('white')
-            self.polar_plot = polar_view.addPlot()
-            self.polar_plot = self.draw_polar(self.polar_plot)
+            # draw a polar plot
+            def draw_polar(plot):
+                # plot = pg.plot()
+                plot.setAspectLocked()
+
+                # Add polar grid lines
+                plot.addLine(x=0, pen=pg.mkPen('black', width=2))
+                plot.addLine(y=0, pen=pg.mkPen('black', width=2))
+                for r in np.arange(0, 1.2, 0.2):
+                    circle = pg.QtGui.QGraphicsEllipseItem(-r, -r, 2*r, 2*r)
+                    circle.setPen(pg.mkPen('black', width=2))
+                    plot.addItem(circle)
+
+                return plot
 
             # helper function for clicking inside polar plot
             def clicked(plot, points):
@@ -579,6 +696,12 @@ class UI_MainWindow(QWidget):
 
                 self.last_clicked = points[0]
 
+            # initialize view and plot
+            polar_view = pg.GraphicsLayoutWidget()
+            polar_view.setBackground('white')
+            self.polar_plot = polar_view.addPlot()
+            self.polar_plot = draw_polar(self.polar_plot)
+
             # Set pxMode=False to allow spots to transform with the view
             # all the points to be plotted
             self.scatter_items = pg.ScatterPlotItem(pxMode=False)
@@ -627,12 +750,13 @@ class UI_MainWindow(QWidget):
             self.scatter_items.sigClicked.connect(clicked)
 
             # add the plot view to the layout
-            self.loaded_layout.addWidget(polar_view, 0, 3)
+            self.result_layout.addWidget(polar_view, 0, 3)
 
         else:
             raise Exception('Unsupported display mode')
 
         painter.end()
+
 
     def mouseMoveEvent(self, event):
         # print("mouseMoveEvent")
@@ -674,12 +798,15 @@ class UI_MainWindow(QWidget):
 
             self.prev_mouse_pos = cur_mouse_pos
 
+
     def mousePressEvent(self, event):
         print('\nmousePressEvent')
         self.prev_mouse_pos = [event.position().x(), event.position().y()]
 
+
     def mouseReleaseEvent(self, event):
         print("mouseReleaseEvent")
+
 
     # called when a key is pressed
     def keyPressEvent(self, event):
@@ -704,9 +831,10 @@ class UI_MainWindow(QWidget):
     def print_help(self):
         print('Ah Oh, help not available')
 
-if __name__ == "__main__":
-    app = QtWidgets.QApplication([])
 
+if __name__ == "__main__":
+
+    app = QtWidgets.QApplication([])
     widget = UI_MainWindow(restart=False)
     widget.resize(1920, 1080)
     widget.show()
@@ -799,4 +927,4 @@ if __name__ == "__main__":
 
 #     # add to the label and layout
 #     self.model_label.setPixmap(model_pixmap)
-#     self.loaded_layout.addWidget(self.model_label, 0, 2)
+#     self.result_layout.addWidget(self.model_label, 0, 2)
