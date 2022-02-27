@@ -260,7 +260,7 @@ class UI_MainWindow(QWidget):
 
         # push button that loads data
         @QtCore.Slot()
-        def load_image_clicked():
+        def image_text_clicked():
             self.image_paths, _ = QFileDialog.getOpenFileNames(self, QObject.tr('Load Test Image'))
             # in case user did not load any image
             if self.image_paths == []:
@@ -308,19 +308,29 @@ class UI_MainWindow(QWidget):
         def model_1_text_changed(text):
             print('Model 1:', text)
             self.model_1_name = text
-            # load the mode
-            if text == 'Simple model':
-                self.model_1_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'non_eqv', '*.pt'))[0]
-                # reload model
-                self.model_1 = nero_run_model.load_model('non-eqv', self.model_1_path)
-            elif text == 'E2CNN model':
-                self.model_1_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'rot_eqv', '*.pt'))[0]
-                # reload model
-                self.model_1 = nero_run_model.load_model('rot-eqv', self.model_1_path)
-            elif text == 'Data augmentation model':
-                self.model_1_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'aug_rot_eqv', '*.pt'))[0]
-                # reload model
-                self.model_1 = nero_run_model.load_model('aug-eqv', self.model_1_path)
+            if self.mode == 'digit_recognition':
+                # load the mode
+                if text == 'Simple model':
+                    self.model_1_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'non_eqv', '*.pt'))[0]
+                    # reload model
+                    self.model_1 = nero_run_model.load_mnist_model('non-eqv', self.model_1_path)
+                elif text == 'E2CNN model':
+                    self.model_1_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'rot_eqv', '*.pt'))[0]
+                    # reload model
+                    self.model_1 = nero_run_model.load_mnist_model('rot-eqv', self.model_1_path)
+                elif text == 'Data augmentation model':
+                    self.model_1_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'aug_rot_eqv', '*.pt'))[0]
+                    # reload model
+                    self.model_1 = nero_run_model.load_mnist_model('aug-eqv', self.model_1_path)
+            elif self.mode == 'object_detection':
+                if text == 'Simple model':
+                    self.model_1_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'non_eqv', '*.pt'))[0]
+                    # reload model
+                    self.model_1 = nero_run_model.load_coco_model('non-eqv', self.model_1_path)
+                elif text == 'Shift-Invariant model':
+                    self.model_1_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'rot_eqv', '*.pt'))[0]
+                    # reload model
+                    self.model_1 = nero_run_model.load_coco_model('rot-eqv', self.model_1_path)
 
             print('Model 1 path:', self.model_1_path)
 
@@ -328,19 +338,29 @@ class UI_MainWindow(QWidget):
         def model_2_text_changed(text):
             print('Model 2:', text)
             self.model_2_name = text
-            # load the mode
-            if text == 'Simple model':
-                self.model_2_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'non_eqv', '*.pt'))[0]
-                # reload model
-                self.model_2 = nero_run_model.load_model('non-eqv', self.model_2_path)
-            elif text == 'E2CNN model':
-                self.model_2_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'rot_eqv', '*.pt'))[0]
-                # reload model
-                self.model_2 = nero_run_model.load_model('rot-eqv', self.model_2_path)
-            elif text == 'Data augmentation model':
-                self.model_2_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'aug_rot_eqv', '*.pt'))[0]
-                # reload model
-                self.model_2 = nero_run_model.load_model('aug-eqv', self.model_2_path)
+            if self.mode == 'digit_recognition':
+                # load the mode
+                if text == 'Simple model':
+                    self.model_2_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'non_eqv', '*.pt'))[0]
+                    # reload model
+                    self.model_2 = nero_run_model.load_model('non-eqv', self.model_2_path)
+                elif text == 'E2CNN model':
+                    self.model_2_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'rot_eqv', '*.pt'))[0]
+                    # reload model
+                    self.model_2 = nero_run_model.load_model('rot-eqv', self.model_2_path)
+                elif text == 'Data augmentation model':
+                    self.model_2_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'aug_rot_eqv', '*.pt'))[0]
+                    # reload model
+                    self.model_2 = nero_run_model.load_model('aug-eqv', self.model_2_path)
+            elif self.mode == 'object_detection':
+                if text == 'Simple model':
+                    self.model_2_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'non_eqv', '*.pt'))[0]
+                    # reload model
+                    self.model_2 = nero_run_model.load_coco_model('non-eqv', self.model_2_path)
+                elif text == 'Shift-Invariant model':
+                    self.model_2_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'rot_eqv', '*.pt'))[0]
+                    # reload model
+                    self.model_2 = nero_run_model.load_coco_model('rot-eqv', self.model_2_path)
 
             print('Model 2 path:', self.model_2_path)
 
@@ -358,36 +378,35 @@ class UI_MainWindow(QWidget):
             painter.drawEllipse(center, radius, radius)
             painter.end()
 
-        # images and models drop down menus
-        # self.load_button_layout = QtWidgets.QHBoxLayout()
-        # self.load_button_layout.setContentsMargins(0, 0, 0, 0)
-        # # load data button
-        # self.data_button = QtWidgets.QPushButton('Load Test Image')
-        # self.data_button.setStyleSheet('font-size: 18px')
-        # data_button_size = QtCore.QSize(500, 50)
-        # self.data_button.setMinimumSize(data_button_size)
-        # self.load_button_layout.addWidget(self.data_button)
-        # self.data_button.clicked.connect(load_image_clicked)
+        # init layout for this section
+        self.load_button_layout = QtWidgets.QHBoxLayout()
+        self.load_button_layout.setContentsMargins(0, 0, 0, 0)
+
+        # images loading drop down menus
         image_menu = QtWidgets.QComboBox()
         image_menu.setMinimumSize(QtCore.QSize(250, 50))
         image_menu.setStyleSheet('font-size: 18px')
         if self.mode == 'digit_recognition':
+            self.mnist_images_paths = []
             # add a image of each class
-            model_1_menu.addItem(model_1_icon, 'Simple model')
-            model_1_menu.addItem(model_1_icon, 'E2CNN model')
-            model_1_menu.addItem(model_1_icon, 'Data augmentation model')
-            model_1_menu.setCurrentText('Simple model')
+            for i in range(10):
+                cur_image_path = glob.glob(os.path.join(os.getcwd(), 'example_data', self.mode, f'label_{i}*.png'))[0]
+                self.mnist_images_paths.append(cur_image_path)
+                image_menu.addItem(QtGui.QIcon(cur_image_path), f'Image {i}')
+
+            image_menu.setCurrentText('Image 0')
+
         elif self.mode == 'object_detection':
-            model_1_menu.addItem(model_1_icon, 'Simple model')
-            model_1_menu.addItem(model_1_icon, 'Shift-Invariant model')
-            model_1_menu.setCurrentText('Simple model')
+            image_menu.addItem(model_1_icon, 'Simple model')
+            image_menu.addItem(model_1_icon, 'Shift-Invariant model')
+            image_menu.setCurrentText('Simple model')
 
         # connect the drop down menu with actions
-        model_1_menu.currentTextChanged.connect(model_1_text_changed)
-        model_1_menu.setEditable(True)
-        model_1_menu.lineEdit().setReadOnly(True)
-        model_1_menu.lineEdit().setAlignment(QtCore.Qt.AlignCenter)
-        self.load_button_layout.addWidget(model_1_menu)
+        image_menu.currentTextChanged.connect(model_1_text_changed)
+        image_menu.setEditable(True)
+        image_menu.lineEdit().setReadOnly(True)
+        image_menu.lineEdit().setAlignment(QtCore.Qt.AlignCenter)
+        self.load_button_layout.addWidget(image_menu)
 
         # init flag to inidicate if an image has ever been loaded
         self.image_existed = False
@@ -850,7 +869,13 @@ if __name__ == "__main__":
 
 
 
-
+# # load data button
+# self.data_button = QtWidgets.QPushButton('Load Test Image')
+# self.data_button.setStyleSheet('font-size: 18px')
+# data_button_size = QtCore.QSize(500, 50)
+# self.data_button.setMinimumSize(data_button_size)
+# self.load_button_layout.addWidget(self.data_button)
+# self.data_button.clicked.connect(load_image_clicked)
 
 
 # @QtCore.Slot()

@@ -14,7 +14,7 @@ sys.path.append(parent)
 
 from nero_mnist import models as mnist_models
 
-# preload model
+# digit recognition (mnist)
 def load_mnist_model(network_model, model_dir):
     # basic settings for pytorch
     if torch.cuda.is_available():
@@ -77,7 +77,9 @@ def run_mnist_once(model, test_image):
 
     return output
 
-
+# object detection (coco)
+def load_coco_model(network_model, model_dir):
+    print(network_model)
 # run mnist model on all rotations and return all the results
 # def run_mnist_all_rotations(model, test_image):
 #     exit()
