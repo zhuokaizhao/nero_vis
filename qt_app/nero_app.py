@@ -80,7 +80,7 @@ class UI_MainWindow(QWidget):
     def init_mode_layout(self):
         # three radio buttons that define the mode
         @QtCore.Slot()
-        def digit_reconition_button_clicked():
+        def digit_recognition_button_clicked():
             print('Digit recognition button clicked')
             self.mode = 'digit_recognition'
             self.radio_button_1.setChecked(True)
@@ -101,9 +101,9 @@ class UI_MainWindow(QWidget):
             self.cur_rotation_angle = 0
 
             # predefined model paths
-            self.model_1_name = 'Simple model'
+            # model_1_name = 'Simple model'
             self.model_1_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'non_eqv', '*.pt'))[0]
-            self.model_2_name = 'Data augmentation model'
+            # model_2_name = 'Data augmentation model'
             self.model_2_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'aug_rot_eqv', '*.pt'))[0]
             # preload model
             self.model_1 = nero_run_model.load_mnist_model('non-eqv', self.model_1_path)
@@ -140,9 +140,9 @@ class UI_MainWindow(QWidget):
             self.cur_rotation_angle = 0
 
             # predefined model paths
-            self.model_1_name = 'Simple model'
+            # model_1_name = 'Simple model'
             self.model_1_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'non_eqv', '*.pt'))[0]
-            self.model_2_name = 'Data augmentation model'
+            # model_2_name = 'Data augmentation model'
             self.model_2_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'aug_rot_eqv', '*.pt'))[0]
             # preload model
             self.model_1 = nero_run_model.load_mnist_model('non-eqv', self.model_1_path)
@@ -222,7 +222,7 @@ class UI_MainWindow(QWidget):
         # radio_buttons_layout = QtWidgets.QGridLayout(self)
         self.radio_button_1 = QRadioButton('Digit recognition')
         self.radio_button_1.setStyleSheet('QRadioButton{font: 18pt Helvetica;} QRadioButton::indicator { width: 18px; height: 18px;};')
-        self.radio_button_1.pressed.connect(digit_reconition_button_clicked)
+        self.radio_button_1.pressed.connect(digit_recognition_button_clicked)
         self.mode_layout.addWidget(self.radio_button_1)
         # spacer item
         self.mode_layout.addSpacing(30)
@@ -245,7 +245,7 @@ class UI_MainWindow(QWidget):
         # used for default state
         if self.mode == 'digit_recognition':
             self.radio_button_1.setChecked(True)
-            digit_reconition_button_clicked()
+            digit_recognition_button_clicked()
         elif self.mode == 'object_detection':
             self.radio_button_2.setChecked(True)
             object_detection_button_clicked()
@@ -260,35 +260,24 @@ class UI_MainWindow(QWidget):
 
         # push button that loads data
         @QtCore.Slot()
-        def image_text_clicked():
-            self.image_paths, _ = QFileDialog.getOpenFileNames(self, QObject.tr('Load Test Image'))
-            # in case user did not load any image
-            if self.image_paths == []:
-                return
-            print(f'Loaded image(s) {self.image_paths}')
-
+        def image_selection_changed(text):
+            print('Loaded image:', text)
+            self.image_index = int(text.split(' ')[-1])
+            self.image_path = self.mnist_images_paths[self.image_index]
             # load the image and scale the size
-            self.loaded_images_pt = []
-            self.cur_images_pt = []
-            self.display_images = []
-            self.loaded_image_names = []
-            # get the label of the image(s)
-            self.loaded_image_labels = []
-            for i in range(len(self.image_paths)):
-                self.loaded_images_pt.append(torch.from_numpy(np.asarray(Image.open(self.image_paths[i])))[:, :, None])
-                self.loaded_image_names.append(self.image_paths[i].split('/')[-1])
-                self.loaded_image_labels.append(int(self.image_paths[i].split('/')[-1].split('_')[1]))
+            self.loaded_image_pt = torch.from_numpy(np.asarray(Image.open(self.image_path)))[:, :, None]
+            self.loaded_image_name = self.image_path.split('/')[-1]
+            self.loaded_image_label = int(self.image_path.split('/')[-1].split('_')[1])
 
-                # keep a copy to represent the current (rotated) version of the original images
-                self.cur_images_pt.append(self.loaded_images_pt[-1].clone())
-                # convert to QImage for display purpose
-                self.cur_display_image = nero_utilities.tensor_to_qt_image(self.cur_images_pt[-1])
-                # resize the display QImage
-                self.display_images.append(self.cur_display_image.scaledToWidth(self.display_image_size))
+            # keep a copy to represent the current (rotated) version of the original images
+            self.cur_image_pt = self.loaded_image_pt.clone()
+            # convert to QImage for display purpose
+            self.cur_display_image = nero_utilities.tensor_to_qt_image(self.cur_image_pt)
+            # resize the display QImage
+            self.cur_display_image = self.cur_display_image.scaledToWidth(self.display_image_size)
 
             # display the image
             self.display_image()
-            self.data_button.setText(f'Click to load new image')
             self.image_existed = True
 
             # show the run button when data is loaded
@@ -305,7 +294,7 @@ class UI_MainWindow(QWidget):
 
         # two drop down menus that let user choose models
         @QtCore.Slot()
-        def model_1_text_changed(text):
+        def model_1_selection_changed(text):
             print('Model 1:', text)
             self.model_1_name = text
             if self.mode == 'digit_recognition':
@@ -335,7 +324,7 @@ class UI_MainWindow(QWidget):
             print('Model 1 path:', self.model_1_path)
 
         @QtCore.Slot()
-        def model_2_text_changed(text):
+        def model_2_selection_changed(text):
             print('Model 2:', text)
             self.model_2_name = text
             if self.mode == 'digit_recognition':
@@ -386,6 +375,7 @@ class UI_MainWindow(QWidget):
         image_menu = QtWidgets.QComboBox()
         image_menu.setMinimumSize(QtCore.QSize(250, 50))
         image_menu.setStyleSheet('font-size: 18px')
+        image_menu.addItem('Please select input image')
         if self.mode == 'digit_recognition':
             self.mnist_images_paths = []
             # add a image of each class
@@ -394,15 +384,13 @@ class UI_MainWindow(QWidget):
                 self.mnist_images_paths.append(cur_image_path)
                 image_menu.addItem(QtGui.QIcon(cur_image_path), f'Image {i}')
 
-            image_menu.setCurrentText('Image 0')
+            image_menu.setCurrentIndex(0)
 
         elif self.mode == 'object_detection':
-            image_menu.addItem(model_1_icon, 'Simple model')
-            image_menu.addItem(model_1_icon, 'Shift-Invariant model')
-            image_menu.setCurrentText('Simple model')
+            raise NotImplemented()
 
         # connect the drop down menu with actions
-        image_menu.currentTextChanged.connect(model_1_text_changed)
+        image_menu.currentTextChanged.connect(image_selection_changed)
         image_menu.setEditable(True)
         image_menu.lineEdit().setReadOnly(True)
         image_menu.lineEdit().setAlignment(QtCore.Qt.AlignCenter)
@@ -439,7 +427,7 @@ class UI_MainWindow(QWidget):
             model_1_menu.setCurrentText('Simple model')
 
         # connect the drop down menu with actions
-        model_1_menu.currentTextChanged.connect(model_1_text_changed)
+        model_1_menu.currentTextChanged.connect(model_1_selection_changed)
         model_1_menu.setEditable(True)
         model_1_menu.lineEdit().setReadOnly(True)
         model_1_menu.lineEdit().setAlignment(QtCore.Qt.AlignCenter)
@@ -475,7 +463,7 @@ class UI_MainWindow(QWidget):
             model_2_menu.setCurrentText('Simple model')
 
         # connect the drop down menu with actions
-        model_2_menu.currentTextChanged.connect(model_2_text_changed)
+        model_2_menu.currentTextChanged.connect(model_2_selection_changed)
         self.load_button_layout.addWidget(model_2_menu)
 
         # add to general layout
@@ -507,8 +495,8 @@ class UI_MainWindow(QWidget):
     # run model on a single test sample
     def run_model_once(self):
         if self.mode == 'digit_recognition':
-            self.output_1 = nero_run_model.run_mnist_once(self.model_1, self.cur_images_pt[0])
-            self.output_2 = nero_run_model.run_mnist_once(self.model_2, self.cur_images_pt[0])
+            self.output_1 = nero_run_model.run_mnist_once(self.model_1, self.cur_image_pt)
+            self.output_2 = nero_run_model.run_mnist_once(self.model_2, self.cur_image_pt)
 
             # display the result
             # add a new label for result if no result has existed
@@ -539,25 +527,22 @@ class UI_MainWindow(QWidget):
                 # print(f'\nRotated {self.cur_rotation_angle} degrees')
                 self.all_angles.append(self.cur_rotation_angle)
                 # rotate the image tensor
-                self.cur_images_pt[0] = nero_transform.rotate_mnist_image(self.loaded_images_pt[0], self.cur_rotation_angle)
+                self.cur_image_pt = nero_transform.rotate_mnist_image(self.loaded_image_pt, self.cur_rotation_angle)
                 # convert image tensor to qt image and resize for display
-                self.display_images[0] = nero_utilities.tensor_to_qt_image(self.cur_images_pt[0]).scaledToWidth(self.display_image_size)
+                self.cur_display_image = nero_utilities.tensor_to_qt_image(self.cur_image_pt).scaledToWidth(self.display_image_size)
                 # update the pixmap and label
-                image_pixmap = QPixmap(self.display_images[0])
+                image_pixmap = QPixmap(self.cur_display_image)
                 self.image_label.setPixmap(image_pixmap)
                 # force repaint
                 self.image_label.repaint()
 
-                # sleep for 0.1 second
-                # time.sleep(0.05)
-
                 # update the model output
-                self.output_1 = nero_run_model.run_mnist_once(self.model_1, self.cur_images_pt[0])
-                self.output_2 = nero_run_model.run_mnist_once(self.model_2, self.cur_images_pt[0])
+                self.output_1 = nero_run_model.run_mnist_once(self.model_1, self.cur_image_pt)
+                self.output_2 = nero_run_model.run_mnist_once(self.model_2, self.cur_image_pt)
 
                 # plotting the quantity regarding the correct label
-                quantity_1 = self.output_1[self.loaded_image_labels[0]]
-                quantity_2 = self.output_2[self.loaded_image_labels[0]]
+                quantity_1 = self.output_1[self.loaded_image_label]
+                quantity_2 = self.output_2[self.loaded_image_label]
 
                 self.all_quantities_1.append(quantity_1)
                 self.all_quantities_2.append(quantity_2)
@@ -583,26 +568,25 @@ class UI_MainWindow(QWidget):
     def display_image(self):
 
         # single image case
-        if len(self.display_images) == 1:
-            # prepare a pixmap for the image
-            image_pixmap = QPixmap(self.display_images[0])
+        # prepare a pixmap for the image
+        image_pixmap = QPixmap(self.cur_display_image)
 
-            # add a new label for loaded image if no imager has existed
-            if not self.image_existed:
-                self.image_label = QLabel(self)
-                self.image_label.setAlignment(QtCore.Qt.AlignCenter)
-                self.image_existed = True
+        # add a new label for loaded image if no imager has existed
+        if not self.image_existed:
+            self.image_label = QLabel(self)
+            self.image_label.setAlignment(QtCore.Qt.AlignCenter)
+            self.image_existed = True
 
-            # put pixmap in the label
-            self.image_label.setPixmap(image_pixmap)
+        # put pixmap in the label
+        self.image_label.setPixmap(image_pixmap)
 
-            # name of the image
-            name_label = QLabel(self.loaded_image_names[0])
-            name_label.setAlignment(QtCore.Qt.AlignCenter)
+        # name of the image
+        name_label = QLabel(self.loaded_image_name)
+        name_label.setAlignment(QtCore.Qt.AlignCenter)
 
-            # add this image to the layout
-            self.result_layout.addWidget(self.image_label, 0, 0)
-            self.result_layout.addWidget(name_label, 1, 0)
+        # add this image to the layout
+        self.result_layout.addWidget(self.image_label, 0, 0)
+        self.result_layout.addWidget(name_label, 1, 0)
 
         # when loaded multiple images
 
@@ -688,12 +672,12 @@ class UI_MainWindow(QWidget):
 
                 # update the current image's angle and rotate the display image
                 # rotate the image tensor
-                self.cur_images_pt[0] = nero_transform.rotate_mnist_image(self.loaded_images_pt[0], self.cur_rotation_angle)
+                self.cur_image_pt = nero_transform.rotate_mnist_image(self.loaded_image_pt, self.cur_rotation_angle)
                 # self.image_pixmap = self.image_pixmap.transformed(QtGui.QTransform().rotate(angle), QtCore.Qt.SmoothTransformation)
                 # convert image tensor to qt image and resize for display
-                self.display_images[0] = nero_utilities.tensor_to_qt_image(self.cur_images_pt[0]).scaledToWidth(self.display_image_size)
+                self.cur_display_image = nero_utilities.tensor_to_qt_image(self.cur_image_pt).scaledToWidth(self.display_image_size)
                 # update the pixmap and label
-                image_pixmap = QPixmap(self.display_images[0])
+                image_pixmap = QPixmap(self.cur_display_image)
                 self.image_label.setPixmap(image_pixmap)
 
                 # update the model output
@@ -792,12 +776,12 @@ class UI_MainWindow(QWidget):
             self.cur_rotation_angle += angle_change
             print(f'\nRotated {self.cur_rotation_angle} degrees')
             # rotate the image tensor
-            self.cur_images_pt[0] = nero_transform.rotate_mnist_image(self.loaded_images_pt[0], self.cur_rotation_angle)
+            self.cur_image_pt = nero_transform.rotate_mnist_image(self.loaded_image_pt, self.cur_rotation_angle)
             # self.image_pixmap = self.image_pixmap.transformed(QtGui.QTransform().rotate(angle), QtCore.Qt.SmoothTransformation)
             # convert image tensor to qt image and resize for display
-            self.display_images[0] = nero_utilities.tensor_to_qt_image(self.cur_images_pt[0]).scaledToWidth(self.display_image_size)
+            self.cur_display_image = nero_utilities.tensor_to_qt_image(self.cur_image_pt).scaledToWidth(self.display_image_size)
             # update the pixmap and label
-            image_pixmap = QPixmap(self.display_images[0])
+            image_pixmap = QPixmap(self.cur_display_image)
             self.image_label.setPixmap(image_pixmap)
 
             # update the model output
@@ -876,6 +860,50 @@ if __name__ == "__main__":
 # self.data_button.setMinimumSize(data_button_size)
 # self.load_button_layout.addWidget(self.data_button)
 # self.data_button.clicked.connect(load_image_clicked)
+
+# @QtCore.Slot()
+# def image_text_clicked():
+#     self.image_paths, _ = QFileDialog.getOpenFileNames(self, QObject.tr('Load Test Image'))
+#     # in case user did not load any image
+#     if self.image_paths == []:
+#         return
+#     print(f'Loaded image(s) {self.image_paths}')
+
+#     # load the image and scale the size
+#     self.loaded_images_pt = []
+#     self.cur_images_pt = []
+#     self.display_images = []
+#     self.loaded_image_names = []
+#     # get the label of the image(s)
+#     self.loaded_image_labels = []
+#     for i in range(len(self.image_paths)):
+#         self.loaded_images_pt.append(torch.from_numpy(np.asarray(Image.open(self.image_paths[i])))[:, :, None])
+#         self.loaded_image_names.append(self.image_paths[i].split('/')[-1])
+#         self.loaded_image_labels.append(int(self.image_paths[i].split('/')[-1].split('_')[1]))
+
+#         # keep a copy to represent the current (rotated) version of the original images
+#         self.cur_images_pt.append(self.loaded_images_pt[-1].clone())
+#         # convert to QImage for display purpose
+#         self.cur_display_image = nero_utilities.tensor_to_qt_image(self.cur_images_pt[-1])
+#         # resize the display QImage
+#         self.display_images.append(self.cur_display_image.scaledToWidth(self.display_image_size))
+
+#     # display the image
+#     self.display_image()
+#     self.data_button.setText(f'Click to load new image')
+#     self.image_existed = True
+
+#     # show the run button when data is loaded
+#     if not self.run_button_existed:
+#         # run button
+#         self.run_button = QtWidgets.QPushButton('Analyze model')
+#         self.run_button.setStyleSheet('font-size: 18px')
+#         run_button_size = QtCore.QSize(500, 50)
+#         self.run_button.setMinimumSize(run_button_size)
+#         self.run_button_layout.addWidget(self.run_button)
+#         self.run_button.clicked.connect(self.run_button_clicked)
+
+#         self.run_button_existed = True
 
 
 # @QtCore.Slot()
