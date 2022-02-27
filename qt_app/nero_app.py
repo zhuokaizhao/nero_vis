@@ -569,7 +569,7 @@ class UI_MainWindow(QWidget):
 
         # single image case
         # prepare a pixmap for the image
-        image_pixmap = QPixmap(self.cur_display_image)
+        self.image_pixmap = QPixmap(self.cur_display_image)
 
         # add a new label for loaded image if no imager has existed
         if not self.image_existed:
@@ -578,7 +578,8 @@ class UI_MainWindow(QWidget):
             self.image_existed = True
 
         # put pixmap in the label
-        self.image_label.setPixmap(image_pixmap)
+        self.image_label.setPixmap(self.image_pixmap)
+        self.image_label.setContentsMargins(0, 0, 0, 0)
 
         # name of the image
         name_label = QLabel(self.loaded_image_name)
@@ -677,8 +678,8 @@ class UI_MainWindow(QWidget):
                 # convert image tensor to qt image and resize for display
                 self.cur_display_image = nero_utilities.tensor_to_qt_image(self.cur_image_pt).scaledToWidth(self.display_image_size)
                 # update the pixmap and label
-                image_pixmap = QPixmap(self.cur_display_image)
-                self.image_label.setPixmap(image_pixmap)
+                self.image_pixmap = QPixmap(self.cur_display_image)
+                self.image_label.setPixmap(self.image_pixmap)
 
                 # update the model output
                 if self.result_existed:
@@ -781,8 +782,8 @@ class UI_MainWindow(QWidget):
             # convert image tensor to qt image and resize for display
             self.cur_display_image = nero_utilities.tensor_to_qt_image(self.cur_image_pt).scaledToWidth(self.display_image_size)
             # update the pixmap and label
-            image_pixmap = QPixmap(self.cur_display_image)
-            self.image_label.setPixmap(image_pixmap)
+            self.image_pixmap = QPixmap(self.cur_display_image)
+            self.image_label.setPixmap(self.image_pixmap)
 
             # update the model output
             if self.result_existed:
@@ -804,7 +805,10 @@ class UI_MainWindow(QWidget):
 
     def mousePressEvent(self, event):
         print('\nmousePressEvent')
-        self.prev_mouse_pos = [event.position().x(), event.position().y()]
+        self.image_center_x = self.image_label.x() + 15 + self.image_label.width()/2
+        self.image_center_y = self.image_label.y() + self.image_label.height()/2
+        self.prev_mouse_pos = [event.position().x()-self.image_center_x, event.position().y()-self.image_center_y]
+        print(self.prev_mouse_pos)
 
 
     def mouseReleaseEvent(self, event):
