@@ -1,74 +1,42 @@
+import numpy
 import pyqtgraph as pg
-import numpy as np
-from pyqtgraph import QtCore, QtGui
+from pyqtgraph.Qt import QtGui, QtCore
+
+def gaussian(A, B, x):
+  return A * numpy.exp(-(x/(2. * B))**2.)
+
+def mouseMoved(evt):
+  mousePoint = p.vb.mapSceneToView(evt[0])
+  label.setText("<span style='font-size: 14pt; color: white'> x = %0.2f, <span style='color: white'> y = %0.2f</span>" % (mousePoint.x(), mousePoint.y()))
 
 
-def plot_polar(plot):
-    # plot = pg.plot()
-    plot.setAspectLocked()
-
-    # Add polar grid lines
-    plot.addLine(x=0, pen=0.2)
-    plot.addLine(y=0, pen=0.2)
-    for r in range(2, 20, 2):
-        circle = pg.QtGui.QGraphicsEllipseItem(-r, -r, r * 2, r * 2)
-        circle.setPen(pg.mkPen(0.2))
-        plot.addItem(circle)
-
-    # make polar data
-    # theta = np.linspace(0, 2 * np.pi, 10)
-    # radius = np.random.normal(loc=10, size=10)
-
-    # # Transform to cartesian and plot
-    # x = radius * np.cos(theta)
-    # y = radius * np.sin(theta)
-    # plot.plot(x, y)
-
-    return plot
+# Initial data frame
+x = numpy.linspace(-5., 5., 10000)
+y = gaussian(5., 0.2, x)
 
 
-# from pyqtgraph.Qt import QtGui, QtCore
+# Generate layout
+win = pg.GraphicsWindow()
+label = pg.LabelItem(justify = "right")
+win.addItem(label)
 
-app = QtGui.QApplication([])
-mw = QtGui.QMainWindow()
-mw.resize(800, 800)
-view = pg.GraphicsLayoutWidget()  ## GraphicsView with GraphicsLayout inserted by default
-mw.setCentralWidget(view)
-mw.show()
-mw.setWindowTitle('pyqtgraph example: ScatterPlot')
+p = win.addPlot()
 
+plot = p.plot(x, y, pen = "y")
 
-## create four areas to add plots
-w3 = view.addPlot()
-w3 = plot_polar(w3)
+proxy = pg.SignalProxy(p.scene().sigMouseMoved, rateLimit=60, slot=mouseMoved)
 
-## Make all plots clickable
-lastClicked = []
-def clicked(plot, points):
-    global lastClicked
-    for p in lastClicked:
-        p.resetPen()
-    print("clicked points", points)
-    for p in points:
-        p.setPen('b', width=2)
-    lastClicked = points
+# Update layout with new data
+i = 0
+while True:
+  noise = numpy.random.normal(0, .2, len(y))
+  y_new = y + noise
 
+  plot.setData(x, y_new, pen = "y", clear = True)
+  p.enableAutoRange("xy", False)
 
-s3 = pg.ScatterPlotItem(pxMode=False)   ## Set pxMode=False to allow spots to transform with the view
-spots3 = []
-for i in range(10):
-    for j in range(10):
-        # Transform to cartesian and plot
-        x = i * np.cos(j)
-        y = i * np.sin(j)
-        spots3.append({'pos': (1*x, 1*y), 'size': 1, 'pen': {'color': 'w', 'width': 2}, 'brush':pg.intColor(i*10+j, 100)})
-s3.addPoints(spots3)
-w3.addItem(s3)
-s3.sigClicked.connect(clicked)
+  pg.QtGui.QApplication.processEvents()
 
+  i += 1
 
-## Start Qt event loop unless running in interactive mode.
-if __name__ == '__main__':
-    import sys
-    if (sys.flags.interactive != 1) or not hasattr(QtCore, 'PYQT_VERSION'):
-        QtGui.QApplication.instance().exec_()
+win.close()
