@@ -772,15 +772,35 @@ class UI_MainWindow(QWidget):
             # add points to the plot
             self.polar_plot.addItem(self.scatter_items)
             # connect click events on scatter items
-            # self.scatter_items.sigClicked.connect(clicked)
-            # connect click events on blank area
-            def mouseMoved(event):
-                print('cccc')
-                mouse_pos = self.polar_plot.vb.mapSceneToView(event[0])
-                print(mouse_pos.x(), mouse_pos.y())
+            self.scatter_items.sigClicked.connect(clicked)
+            # used for clicking on the polar plot
+            def polar_mouse_clicked(event):
+                self.polar_plot.scene().items(event.scenePos())
+                # check if the click is within the polar plot
+                if self.polar_plot.sceneBoundingRect().contains(event._scenePos):
+                    self.mouse_pos_on_polar = self.polar_plot.vb.mapSceneToView(event._scenePos)
+                    x_pos = self.mouse_pos_on_polar.x()
+                    y_pos = self.mouse_pos_on_polar.y()
 
-            proxy = pg.SignalProxy(self.polar_plot.scene().sigMouseMoved, rateLimit=60, slot=mouseMoved)
+                    # convert mouse click position to polar coordinate (we care about angle only)
+                    self.cur_rotation_angle = np.arctan2(y_pos, x_pos) / np.pi * 180
+                    print(f'clicked point theta = {self.cur_rotation_angle}')
 
+                    # update the current image's angle and rotate the display image
+                    # rotate the image tensor
+                    self.cur_image_pt = nero_transform.rotate_mnist_image(self.loaded_image_pt, self.cur_rotation_angle)
+                    # self.image_pixmap = self.image_pixmap.transformed(QtGui.QTransform().rotate(angle), QtCore.Qt.SmoothTransformation)
+                    # convert image tensor to qt image and resize for display
+                    self.cur_display_image = nero_utilities.tensor_to_qt_image(self.cur_image_pt).scaledToWidth(self.display_image_size)
+                    # update the pixmap and label
+                    self.image_pixmap = QPixmap(self.cur_display_image)
+                    self.image_label.setPixmap(self.image_pixmap)
+
+                    # update the model output
+                    if self.result_existed:
+                        self.run_model_once()
+
+            self.polar_plot.scene().sigMouseClicked.connect(polar_mouse_clicked)
             # add the plot view to the layout
             self.result_layout.addWidget(polar_view, 0, 3)
 
@@ -796,7 +816,7 @@ class UI_MainWindow(QWidget):
         if self.translation:
             print('translating')
         # when in rotation mode
-        elif self.rotation:
+        elif self.rotation and self.image_existed:
             cur_mouse_pos = [event.position().x()-self.image_center_x, event.position().y()-self.image_center_y]
 
             angle_change = -((self.prev_mouse_pos[0]*cur_mouse_pos[1] - self.prev_mouse_pos[1]*cur_mouse_pos[0])
@@ -833,15 +853,11 @@ class UI_MainWindow(QWidget):
 
     def mousePressEvent(self, event):
         print('\nmousePressEvent')
+        # used for rotating the input image
         if self.image_existed:
             self.image_center_x = self.image_label.x() + self.image_label.width()/2
             self.image_center_y = self.image_label.y() + self.image_label.height()/2
             self.prev_mouse_pos = [event.position().x()-self.image_center_x, event.position().y()-self.image_center_y]
-
-        if self.result_existed:
-            # get position regarding to polar plot
-            print('aaa')
-
 
     # def mouseReleaseEvent(self, event):
     #     print("mouseReleaseEvent")
