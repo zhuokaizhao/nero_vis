@@ -35,13 +35,11 @@ class UI_MainWindow(QWidget):
         self.init_title_layout()
         # mode selections
         self.mode = 'digit_recognition'
+        # save the previous mode selection for layout swap
+        self.previous_mode = None
         # if any mode selection has been made
         self.selection_existed = False
         self.init_mode_layout()
-
-        # buttons layout for run model
-        self.run_button_layout = QtWidgets.QGridLayout()
-        self.layout.addLayout(self.run_button_layout)
         self.run_button_existed = False
 
         print(f'\nFinished rendering main layout')
@@ -51,7 +49,6 @@ class UI_MainWindow(QWidget):
     def clear_layout(self, layout):
         if layout:
             while layout.count():
-                print(layout.count())
                 # remove the item at index 0 from the layout, and return the item
                 item = layout.takeAt(0)
                 # delete if it is a widget
@@ -60,6 +57,8 @@ class UI_MainWindow(QWidget):
                 # delete if it is a layout
                 else:
                     self.clear_layout(item.layout())
+
+            layout.deleteLater()
 
 
     def init_title_layout(self):
@@ -85,38 +84,42 @@ class UI_MainWindow(QWidget):
             self.mode = 'digit_recognition'
             self.radio_button_1.setChecked(True)
 
-            # below layouts depend on mode selection
-            if self.selection_existed:
-                self.clear_layout(self.load_button_layout)
-                # self.clear_layout(self.result_layout)
+            if self.previous_mode != self.mode:
+                # clear the previous method's layout
+                if self.selection_existed:
+                    self.clear_layout(self.load_button_layout)
+                    self.clear_layout(self.result_layout)
 
-            self.init_load_layout()
-            self.init_result_layout()
+                self.init_load_layout()
+                self.init_result_layout()
 
-            # display mnist image size
-            self.display_image_size = 150
-            # image (input data) modification mode
-            self.rotation = False
-            # rotation angles
-            self.cur_rotation_angle = 0
+                # display mnist image size
+                self.display_image_size = 150
+                # image (input data) modification mode
+                self.rotation = False
+                # rotation angles
+                self.cur_rotation_angle = 0
 
-            # predefined model paths
-            # model_1_name = 'Simple model'
-            self.model_1_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'non_eqv', '*.pt'))[0]
-            # model_2_name = 'Data augmentation model'
-            self.model_2_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'aug_rot_eqv', '*.pt'))[0]
-            # preload model
-            self.model_1 = nero_run_model.load_mnist_model('non-eqv', self.model_1_path)
-            self.model_2 = nero_run_model.load_mnist_model('aug-eqv', self.model_2_path)
+                # predefined model paths
+                # model_1_name = 'Simple model'
+                self.model_1_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'non_eqv', '*.pt'))[0]
+                # model_2_name = 'Data augmentation model'
+                self.model_2_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'aug_rot_eqv', '*.pt'))[0]
+                # preload model
+                self.model_1 = nero_run_model.load_mnist_model('non-eqv', self.model_1_path)
+                self.model_2 = nero_run_model.load_mnist_model('aug-eqv', self.model_2_path)
 
-            # unique quantity of the result of current data
-            self.all_quantities_1 = []
-            self.all_quantities_2 = []
+                # unique quantity of the result of current data
+                self.all_quantities_1 = []
+                self.all_quantities_2 = []
 
-            # when doing highlighting
-            # last_clicked is not None when it is either clicked or during manual rotation
-            self.last_clicked = None
-            self.cur_line = None
+                # when doing highlighting
+                # last_clicked is not None when it is either clicked or during manual rotation
+                self.last_clicked = None
+                self.cur_line = None
+
+                self.previous_mode = self.mode
+
 
         @QtCore.Slot()
         def object_detection_button_clicked():
@@ -125,37 +128,40 @@ class UI_MainWindow(QWidget):
             self.radio_button_2.setChecked(True)
 
             # below layouts depend on mode selection
-            if self.selection_existed:
-                self.clear_layout(self.load_button_layout)
-                self.clear_layout(self.result_layout)
+            if self.previous_mode != self.mode:
+                if self.selection_existed:
+                    self.clear_layout(self.load_button_layout)
+                    self.clear_layout(self.result_layout)
 
-            self.init_load_layout()
-            self.init_result_layout()
+                self.init_load_layout()
+                self.init_result_layout()
 
-            # display mnist image size
-            self.display_image_size = 150
-            # image (input data) modification mode
-            self.rotation = False
-            # rotation angles
-            self.cur_rotation_angle = 0
+                # display mnist image size
+                self.display_image_size = 150
+                # image (input data) modification mode
+                self.rotation = False
+                # rotation angles
+                self.cur_rotation_angle = 0
 
-            # predefined model paths
-            # model_1_name = 'Simple model'
-            self.model_1_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'non_eqv', '*.pt'))[0]
-            # model_2_name = 'Data augmentation model'
-            self.model_2_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'aug_rot_eqv', '*.pt'))[0]
-            # preload model
-            self.model_1 = nero_run_model.load_mnist_model('non-eqv', self.model_1_path)
-            self.model_2 = nero_run_model.load_mnist_model('aug-eqv', self.model_2_path)
+                # predefined model paths
+                # model_1_name = 'Simple model'
+                self.model_1_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'non_eqv', '*.pt'))[0]
+                # model_2_name = 'Data augmentation model'
+                self.model_2_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'aug_rot_eqv', '*.pt'))[0]
+                # preload model
+                self.model_1 = nero_run_model.load_mnist_model('non-eqv', self.model_1_path)
+                self.model_2 = nero_run_model.load_mnist_model('aug-eqv', self.model_2_path)
 
-            # unique quantity of the result of current data
-            self.all_quantities_1 = []
-            self.all_quantities_2 = []
+                # unique quantity of the result of current data
+                self.all_quantities_1 = []
+                self.all_quantities_2 = []
 
-            # when doing highlighting
-            # last_clicked is not None when it is either clicked or during manual rotation
-            self.last_clicked = None
-            self.cur_line = None
+                # when doing highlighting
+                # last_clicked is not None when it is either clicked or during manual rotation
+                self.last_clicked = None
+                self.cur_line = None
+
+                self.previous_mode = self.mode
 
         @QtCore.Slot()
         def piv_button_clicked():
@@ -225,14 +231,14 @@ class UI_MainWindow(QWidget):
         self.radio_button_1.pressed.connect(digit_recognition_button_clicked)
         self.mode_layout.addWidget(self.radio_button_1)
         # spacer item
-        self.mode_layout.addSpacing(30)
+        # self.mode_layout.addSpacing(30)
 
         self.radio_button_2 = QRadioButton('Object detection')
         self.radio_button_2.setStyleSheet('QRadioButton{font: 18pt Helvetica;} QRadioButton::indicator { width: 18px; height: 18px;};')
         self.radio_button_2.pressed.connect(object_detection_button_clicked)
         self.mode_layout.addWidget(self.radio_button_2)
         # spacer item
-        self.mode_layout.addSpacing(30)
+        # self.mode_layout.addSpacing(30)
 
         self.radio_button_3 = QRadioButton('Particle Image Velocimetry (PIV)')
         self.radio_button_3.setStyleSheet('QRadioButton{font: 18pt Helvetica;} QRadioButton::indicator { width: 18px; height: 18px;};')
@@ -283,6 +289,10 @@ class UI_MainWindow(QWidget):
             # show the run button when data is loaded
             if not self.run_button_existed:
                 # run button
+                # buttons layout for run model
+                self.run_button_layout = QtWidgets.QGridLayout()
+                self.layout.addLayout(self.run_button_layout)
+
                 self.run_button = QtWidgets.QPushButton('Analyze model')
                 self.run_button.setStyleSheet('font-size: 18px')
                 run_button_size = QtCore.QSize(500, 50)
@@ -372,29 +382,36 @@ class UI_MainWindow(QWidget):
         self.load_button_layout.setContentsMargins(0, 0, 0, 0)
 
         # images loading drop down menus
-        image_menu = QtWidgets.QComboBox()
-        image_menu.setMinimumSize(QtCore.QSize(250, 50))
-        image_menu.setStyleSheet('font-size: 18px')
-        image_menu.addItem('Please select input image')
+        self.image_menu = QtWidgets.QComboBox()
+        self.image_menu.setMinimumSize(QtCore.QSize(250, 50))
+        self.image_menu.setStyleSheet('font-size: 18px')
+        self.image_menu.addItem('Please select input image')
         if self.mode == 'digit_recognition':
             self.mnist_images_paths = []
             # add a image of each class
             for i in range(10):
                 cur_image_path = glob.glob(os.path.join(os.getcwd(), 'example_data', self.mode, f'label_{i}*.png'))[0]
                 self.mnist_images_paths.append(cur_image_path)
-                image_menu.addItem(QtGui.QIcon(cur_image_path), f'Image {i}')
+                self.image_menu.addItem(QtGui.QIcon(cur_image_path), f'Image {i}')
 
-            image_menu.setCurrentIndex(0)
+            self.image_menu.setCurrentIndex(0)
 
         elif self.mode == 'object_detection':
-            raise NotImplemented()
+            self.coco_images_paths = []
+            # add a image of each class
+            for i in range(10):
+                cur_image_path = glob.glob(os.path.join(os.getcwd(), 'example_data', self.mode, f'label_{i}*.png'))[0]
+                self.coco_images_paths.append(cur_image_path)
+                self.image_menu.addItem(QtGui.QIcon(cur_image_path), f'Image {i}')
+
+            self.image_menu.setCurrentIndex(0)
 
         # connect the drop down menu with actions
-        image_menu.currentTextChanged.connect(image_selection_changed)
-        image_menu.setEditable(True)
-        image_menu.lineEdit().setReadOnly(True)
-        image_menu.lineEdit().setAlignment(QtCore.Qt.AlignCenter)
-        self.load_button_layout.addWidget(image_menu)
+        self.image_menu.currentTextChanged.connect(image_selection_changed)
+        self.image_menu.setEditable(True)
+        self.image_menu.lineEdit().setReadOnly(True)
+        self.image_menu.lineEdit().setAlignment(QtCore.Qt.AlignCenter)
+        self.load_button_layout.addWidget(self.image_menu)
 
         # init flag to inidicate if an image has ever been loaded
         self.image_existed = False
@@ -808,7 +825,6 @@ class UI_MainWindow(QWidget):
         self.image_center_x = self.image_label.x() + self.image_label.width()/2
         self.image_center_y = self.image_label.y() + self.image_label.height()/2
         self.prev_mouse_pos = [event.position().x()-self.image_center_x, event.position().y()-self.image_center_y]
-        print(self.prev_mouse_pos)
 
 
     def mouseReleaseEvent(self, event):
