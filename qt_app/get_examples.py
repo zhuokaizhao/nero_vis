@@ -69,7 +69,7 @@ def main():
         existed_classes = []
         while len(sample_indices) < num_samples:
             cur_sample_index = random.sample(range(0, data_size-1), 1)[0]
-            if labels[cur_sample_index] not in existed_classes:
+            if existed_classes.count(labels[cur_sample_index]) != num_samples//10:
                 existed_classes.append(labels[cur_sample_index])
                 sample_indices.append(cur_sample_index)
 
