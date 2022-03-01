@@ -593,6 +593,7 @@ class UI_MainWindow(QWidget):
         elif self.mode == 'object_detection':
             print('Not yet implemented')
 
+
     def display_image(self):
 
         # single image case
@@ -688,8 +689,7 @@ class UI_MainWindow(QWidget):
             def clicked(plot, points):
                 # clear manual mode line
                 if self.cur_line:
-                    self.cur_line.clear()
-                    self.polar_plot.vb.scaleBy((1, 1))
+                    self.polar_plot.removeItem(self.cur_line)
 
                 # clear previously selected point's visual cue
                 if self.last_clicked:
@@ -703,8 +703,6 @@ class UI_MainWindow(QWidget):
                 # convert back to polar coordinate
                 radius = np.sqrt(x_pos**2 + y_pos**2)
                 self.cur_rotation_angle = np.arctan2(y_pos, x_pos) / np.pi * 180
-                # print(f'arctan2 = {np.arctan2(y_pos, x_pos)}')
-                print(f'clicked point with r = {radius}, theta = {self.cur_rotation_angle}')
 
                 # update the current image's angle and rotate the display image
                 # rotate the image tensor
@@ -789,8 +787,10 @@ class UI_MainWindow(QWidget):
             self.polar_plot.addItem(self.scatter_items)
             # connect click events on scatter items
             self.scatter_items.sigClicked.connect(clicked)
+
             # used for clicking on the polar plot
             def polar_mouse_clicked(event):
+                self.polar_clicked = not self.polar_clicked
                 self.polar_plot.scene().items(event.scenePos())
                 # check if the click is within the polar plot
                 if self.polar_plot.sceneBoundingRect().contains(event._scenePos):
@@ -800,7 +800,6 @@ class UI_MainWindow(QWidget):
 
                     # convert mouse click position to polar coordinate (we care about angle only)
                     self.cur_rotation_angle = np.arctan2(y_pos, x_pos) / np.pi * 180
-                    print(f'clicked point theta = {self.cur_rotation_angle}')
 
                     # update the current image's angle and rotate the display image
                     # rotate the image tensor
@@ -818,9 +817,7 @@ class UI_MainWindow(QWidget):
 
                     # remove old line
                     if self.cur_line:
-                        self.cur_line.clear()
-                        # update zoom level to trigger repaint
-                        self.polar_plot.vb.scaleBy((1, 1))
+                        self.polar_plot.removeItem(self.cur_line)
 
                     # draw a line that represents current angle of rotation
                     cur_x = 1 * np.cos(self.cur_rotation_angle/180*np.pi)
@@ -829,7 +826,44 @@ class UI_MainWindow(QWidget):
                     line_y = [0, cur_y]
                     self.cur_line = self.polar_plot.plot(line_x, line_y, pen = QtGui.QPen(QtGui.Qt.red, 0.03))
 
+            def polar_mouse_moved(event):
+                # check if the click is within the polar plot
+                if self.polar_clicked and self.polar_plot.sceneBoundingRect().contains(event):
+                    self.mouse_pos_on_polar = self.polar_plot.vb.mapSceneToView(event)
+                    x_pos = self.mouse_pos_on_polar.x()
+                    y_pos = self.mouse_pos_on_polar.y()
+
+                    # convert mouse click position to polar coordinate (we care about angle only)
+                    self.cur_rotation_angle = np.arctan2(y_pos, x_pos) / np.pi * 180
+
+                    # update the current image's angle and rotate the display image
+                    # rotate the image tensor
+                    self.cur_image_pt = nero_transform.rotate_mnist_image(self.loaded_image_pt, self.cur_rotation_angle)
+                    # self.image_pixmap = self.image_pixmap.transformed(QtGui.QTransform().rotate(angle), QtCore.Qt.SmoothTransformation)
+                    # convert image tensor to qt image and resize for display
+                    self.cur_display_image = nero_utilities.tensor_to_qt_image(self.cur_image_pt).scaledToWidth(self.display_image_size)
+                    # update the pixmap and label
+                    self.image_pixmap = QPixmap(self.cur_display_image)
+                    self.image_label.setPixmap(self.image_pixmap)
+
+                    # update the model output
+                    if self.result_existed:
+                        self.run_model_once()
+
+                    # remove old line
+                    if self.cur_line:
+                        self.polar_plot.removeItem(self.cur_line)
+
+                    # draw a line that represents current angle of rotation
+                    cur_x = 1 * np.cos(self.cur_rotation_angle/180*np.pi)
+                    cur_y = 1 * np.sin(self.cur_rotation_angle/180*np.pi)
+                    line_x = [0, cur_x]
+                    line_y = [0, cur_y]
+                    self.cur_line = self.polar_plot.plot(line_x, line_y, pen = QtGui.QPen(QtGui.Qt.red, 0.03))
+
+            self.polar_clicked = False
             self.polar_plot.scene().sigMouseClicked.connect(polar_mouse_clicked)
+            self.polar_plot.scene().sigMouseMoved.connect(polar_mouse_moved)
 
             # fix zoom level
             # self.polar_plot.vb.scaleBy((0.5, 0.5))
@@ -873,8 +907,7 @@ class UI_MainWindow(QWidget):
 
                 # remove old line
                 if self.cur_line:
-                    self.cur_line.clear()
-                    self.polar_plot.vb.scaleBy((1, 1))
+                    self.polar_plot.removeItem(self.cur_line)
 
                 # draw a line that represents current angle of rotation
                 cur_x = 1 * np.cos(self.cur_rotation_angle/180*np.pi)
