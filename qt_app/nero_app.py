@@ -306,17 +306,19 @@ class UI_MainWindow(QWidget):
             self.all_images_paths = glob.glob(os.path.join(self.dataset_dir, '*.png'))
             self.loaded_images_pt = []
             self.loaded_images_names = []
-            self.loaded_images_labels = []
-            self.cur_images_pt = []
-            for cur_image_path in self.all_images_paths:
+            self.loaded_images_labels = torch.zeros(len(self.all_images_paths), dtype=torch.int64)
+            self.cur_images_pt = torch.zeros((len(self.all_images_paths), 29, 29, 1))
+
+            for i, cur_image_path in enumerate(self.all_images_paths):
                 self.loaded_images_pt.append(torch.from_numpy(np.asarray(Image.open(cur_image_path)))[:, :, None])
                 self.loaded_images_names.append(cur_image_path.split('/')[-1])
-                self.loaded_images_labels.append(int(cur_image_path.split('/')[-1].split('_')[1]))
+                self.loaded_images_labels[i] = int(cur_image_path.split('/')[-1].split('_')[1])
 
                 # keep a copy to represent the current (rotated) version of the original images
                 # prepare image tensor for model purpose
-                self.cur_images_pt.append(nero_transform.prepare_mnist_image(self.loaded_images_pt[-1].clone()))
+                self.cur_images_pt[i] = nero_transform.prepare_mnist_image(self.loaded_images_pt[-1].clone())
 
+            # self.cur_images_pt = torch.from_numpy(np.asarray(self.cur_images_pt))
             # check the data to be ready
             self.data_existed = True
 
@@ -631,6 +633,14 @@ class UI_MainWindow(QWidget):
         # if model result ever existed
         self.aggregate_result_existed = False
 
+        # batch size when running in aggregate mode
+        if self.mode == 'digit_recognition':
+            self.batch_size = 100
+        elif self.mode == 'object_detection':
+            self.batch_size = 64
+        elif self.mode == 'piv':
+            self.batch_size = 16
+
     def init_single_result_layout(self):
         # loaded images and model result layout
         self.single_result_layout = QtWidgets.QGridLayout()
@@ -647,26 +657,41 @@ class UI_MainWindow(QWidget):
     @QtCore.Slot()
     def run_button_clicked(self):
         if self.data_mode == 'aggregate':
-            print(f'{self.data_mode} mode')
-
+            self.run_model_aggregated()
             self.aggregate_result_existed = True
 
         elif self.data_mode == 'single':
-            # run model once and display results
+            # run model once and display results (Detailed bar plot)
             self.run_model_once()
 
-            # run model all and display results
+            # run model all and display results (Individual NERO plot)
             self.run_model_all()
 
             self.single_result_existed = True
 
     # run model on the aggregate dataset
+    def run_model_aggregated(self):
+        if self.mode == 'digit_recognition':
+            # for all the loaded images
+            avg_loss, avg_accuracy, \
+            avg_loss_per_digit, avg_accuracy_per_digit, \
+            individual_losses_per_digit = nero_run_model.run_mnist_once(self.model_1,
+                                                                        self.cur_images_pt,
+                                                                        self.loaded_images_labels,
+                                                                        batch_size=self.batch_size)
+            print(avg_accuracy_per_digit)
+
+            # avg_loss, avg_accuracy, avg_loss_per_digit, avg_accuracy_per_digit, individual_losses_per_digit = self.all_outputs_2.append(nero_run_model.run_mnist_once(self.model_2, self.cur_images_pt))
 
 
 
-    # run model on a single test sample
+
+
+
+    # run model on a single test sample with no transfomations
     def run_model_once(self):
         if self.mode == 'digit_recognition':
+
             self.output_1 = nero_run_model.run_mnist_once(self.model_1, self.cur_image_pt)
             self.output_2 = nero_run_model.run_mnist_once(self.model_2, self.cur_image_pt)
 
