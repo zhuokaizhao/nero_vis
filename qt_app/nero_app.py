@@ -654,18 +654,24 @@ class UI_MainWindow(QWidget):
         # draw result using bar plot
         if mode == 'bar':
             bar_plot = pg.plot()
+            # constrain plot showing limit by setting view box
+            bar_plot.plotItem.vb.setLimits(xMin=-0.5, xMax=9.5, yMin=0, yMax=1.2)
             bar_plot.setBackground('w')
+            bar_plot.setFixedSize(700, 600)
             graph_1 = pg.BarGraphItem(x=np.arange(len(self.output_1))-0.2, height = list(self.output_1), width = 0.4, brush ='blue')
             graph_2 = pg.BarGraphItem(x=np.arange(len(self.output_1))+0.2, height = list(self.output_2), width = 0.4, brush ='green')
             bar_plot.addItem(graph_1)
             bar_plot.addItem(graph_2)
+            # disable moving around
+            bar_plot.setMouseEnabled(x=False, y=False)
 
             self.result_layout.addWidget(bar_plot, 0, 2)
 
         elif mode == 'polar':
             # draw a polar plot
             def draw_polar(plot):
-                # plot = pg.plot()
+                plot.setXRange(-1, 1)
+                plot.setYRange(-1, 1)
                 plot.setAspectLocked()
 
                 # Add polar grid lines
@@ -683,7 +689,7 @@ class UI_MainWindow(QWidget):
                 # clear manual mode line
                 if self.cur_line:
                     self.cur_line.clear()
-                    time.sleep(0.1)
+                    self.polar_plot.vb.scaleBy((1, 1))
 
                 # clear previously selected point's visual cue
                 if self.last_clicked:
@@ -732,6 +738,7 @@ class UI_MainWindow(QWidget):
             # initialize view and plot
             polar_view = pg.GraphicsLayoutWidget()
             polar_view.setBackground('white')
+            polar_view.setFixedSize(600, 600)
             self.polar_plot = polar_view.addPlot()
             self.polar_plot = draw_polar(self.polar_plot)
 
@@ -812,7 +819,8 @@ class UI_MainWindow(QWidget):
                     # remove old line
                     if self.cur_line:
                         self.cur_line.clear()
-                        time.sleep(0.1)
+                        # update zoom level to trigger repaint
+                        self.polar_plot.vb.scaleBy((1, 1))
 
                     # draw a line that represents current angle of rotation
                     cur_x = 1 * np.cos(self.cur_rotation_angle/180*np.pi)
@@ -824,11 +832,9 @@ class UI_MainWindow(QWidget):
             self.polar_plot.scene().sigMouseClicked.connect(polar_mouse_clicked)
 
             # fix zoom level
-            self.polar_plot.vb.scaleBy((0.5, 0.5))
+            # self.polar_plot.vb.scaleBy((0.5, 0.5))
             self.polar_plot.setMouseEnabled(x=False, y=False)
-            # install an event filter on the ViewBox and catch the mouse wheel event
-            # self.view_box = polar_view.addViewBox(row=1, col=1)
-            # self.view_box.installEventFilter(self)
+
             # add the plot view to the layout
             self.result_layout.addWidget(polar_view, 0, 3)
 
@@ -837,13 +843,9 @@ class UI_MainWindow(QWidget):
 
         painter.end()
 
-    def eventFilter(self, watched, event):
-        if event.type() == QEvent.GraphicsSceneWheel:
-            return True
-        return super().eventFilter(watched, event)
 
     def mouseMoveEvent(self, event):
-        print("mouseMoveEvent")
+        # print("mouseMoveEvent")
         # when in translation mode
         if self.translation:
             print('translating')
@@ -872,7 +874,7 @@ class UI_MainWindow(QWidget):
                 # remove old line
                 if self.cur_line:
                     self.cur_line.clear()
-                    time.sleep(0.1)
+                    self.polar_plot.vb.scaleBy((1, 1))
 
                 # draw a line that represents current angle of rotation
                 cur_x = 1 * np.cos(self.cur_rotation_angle/180*np.pi)
