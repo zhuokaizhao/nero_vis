@@ -1,9 +1,9 @@
 # the script gets called by nero_app when running the model
-from cgi import test
 import os
 import sys
 import time
 import torch
+import torchvision
 import numpy as np
 
 os.environ['CUDA_VISIBLE_DEVICES']='0'
@@ -29,7 +29,11 @@ class MnistDataset(torch.utils.data.Dataset):
 
 
     def __getitem__(self, index):
+
         image, label = self.images[index], self.labels[index]
+
+        if self.transform is not None:
+            image = self.transform(image)
 
         return image, label
 
@@ -97,7 +101,7 @@ def load_mnist_model(network_model, model_dir):
 
     return model
 
-def run_mnist_once(model, test_image, test_label=None, batch_size=None):
+def run_mnist_once(model, test_image, test_label=None, batch_size=None, rotate_angle=None):
 
     # print('Running inference on the single image')
     if len(test_image.shape) == 3:
@@ -151,7 +155,25 @@ def run_mnist_once(model, test_image, test_label=None, batch_size=None):
                             'shuffle': False}
 
             # generate dataset and data loader
-            dataset = MnistDataset(test_image, test_label)
+            if rotate_angle:
+                img_size = 28
+                if img_size != test_image.shape[2]:
+                    raise Exception(f'Warning: image shape {test_image.shape}, which means padding has been done before, \
+                                        result will be wrong')
+
+                # transform includes upsample, rotate, downsample and padding (right and bottom) to image_size
+                transform = torchvision.transforms.Compose([
+                    torchvision.transforms.Resize(img_size*3),
+                    torchvision.transforms.RandomRotation(degrees=(rotate_angle, rotate_angle), interpolation=torchvision.transforms.InterpolationMode.BILINEAR, expand=False),
+                    torchvision.transforms.Resize(img_size),
+                    torchvision.transforms.Normalize((0.1307,), (0.3081,)),
+                    torchvision.transforms.Pad((0, 0, 1, 1), fill=0, padding_mode='constant'),
+                ])
+            else:
+                transform = None
+
+            # create angle
+            dataset = MnistDataset(test_image, test_label, transform=transform)
             test_loader = torch.utils.data.DataLoader(dataset, **test_kwargs)
 
             for batch_idx, (data, target) in enumerate(test_loader):
@@ -192,17 +214,12 @@ def run_mnist_once(model, test_image, test_label=None, batch_size=None):
                                     length=50)
 
             # average (over digits) loss and accuracy
-            avg_loss = np.mean(all_batch_avg_losses)
             avg_accuracy = total_num_correct / len(test_loader.dataset)
             # each digits loss and accuracy
-            sum_individual_losses_per_digit = np.zeros(10)
-            for i in range(10):
-                sum_individual_losses_per_digit[i] = sum(individual_losses_per_digit[i])
-            avg_loss_per_digit = sum_individual_losses_per_digit / num_digits_per_digit
             avg_accuracy_per_digit = num_correct_per_digit / num_digits_per_digit
 
             # return the averaged batch loss
-            return avg_loss, avg_accuracy, avg_loss_per_digit, avg_accuracy_per_digit, individual_losses_per_digit
+            return avg_accuracy, avg_accuracy_per_digit
 
 
 # object detection (coco)

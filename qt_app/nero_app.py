@@ -672,14 +672,24 @@ class UI_MainWindow(QWidget):
     # run model on the aggregate dataset
     def run_model_aggregated(self):
         if self.mode == 'digit_recognition':
+            self.all_angles = []
+            self.all_avg_accuracy = []
+            self.all_avg_accuracy_per_digit = []
             # for all the loaded images
-            avg_loss, avg_accuracy, \
-            avg_loss_per_digit, avg_accuracy_per_digit, \
-            individual_losses_per_digit = nero_run_model.run_mnist_once(self.model_1,
-                                                                        self.cur_images_pt,
-                                                                        self.loaded_images_labels,
-                                                                        batch_size=self.batch_size)
-            print(avg_accuracy_per_digit)
+            for self.cur_rotation_angle in range(0, 365, 5):
+                # print(f'\nRotated {self.cur_rotation_angle} degrees')
+                self.all_angles.append(self.cur_rotation_angle)
+
+                avg_accuracy, avg_accuracy_per_digit = nero_run_model.run_mnist_once(self.model_1,
+                                                                                        self.cur_images_pt,
+                                                                                        self.loaded_images_labels,
+                                                                                        batch_size=self.batch_size,
+                                                                                        rotate_angle=self.cur_rotation_angle)
+
+                self.all_avg_accuracy.append(avg_accuracy)
+                self.all_avg_accuracy_per_digit.append(avg_accuracy_per_digit)
+
+            print(len(self.all_avg_accuracy))
 
             # avg_loss, avg_accuracy, avg_loss_per_digit, avg_accuracy_per_digit, individual_losses_per_digit = self.all_outputs_2.append(nero_run_model.run_mnist_once(self.model_2, self.cur_images_pt))
 

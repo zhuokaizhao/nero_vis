@@ -67,7 +67,7 @@ def main():
         # randomly pick 10 indices where each class has one
         sample_indices = []
         existed_classes = []
-        while len(sample_indices) < num_samples:
+        while len(sample_indices) <= num_samples:
             cur_sample_index = random.sample(range(0, data_size-1), 1)[0]
             if existed_classes.count(labels[cur_sample_index]) != num_samples//10:
                 existed_classes.append(labels[cur_sample_index])
