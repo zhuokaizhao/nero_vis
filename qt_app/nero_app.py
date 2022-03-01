@@ -34,7 +34,7 @@ class UI_MainWindow(QWidget):
         # white background color
         self.setStyleSheet('background-color: white;')
         # general layout
-        self.layout = QtWidgets.QVBoxLayout(self)
+        self.layout = QtWidgets.QGridLayout(self)
         self.layout.setAlignment(QtCore.Qt.AlignCenter)
         # left, top, right, and bottom margins
         self.layout.setContentsMargins(50, 50, 50, 50)
@@ -52,6 +52,8 @@ class UI_MainWindow(QWidget):
         self.selection_existed = False
         self.init_control_layout()
         self.run_button_existed = False
+        self.aggregate_result_existed = False
+        self.single_result_existed = False
 
         print(f'\nFinished rendering main layout')
 
@@ -84,7 +86,7 @@ class UI_MainWindow(QWidget):
         self.title_layout.setContentsMargins(0, 0, 0, 50)
 
         # add to general layout
-        self.layout.addLayout(self.title_layout)
+        self.layout.addLayout(self.title_layout, 0, 0)
 
 
     def init_control_layout(self):
@@ -102,7 +104,6 @@ class UI_MainWindow(QWidget):
                     self.clear_layout(self.result_layout)
 
                 self.init_load_layout()
-                self.init_result_layout()
 
                 # display mnist image size
                 self.display_image_size = 150
@@ -145,12 +146,12 @@ class UI_MainWindow(QWidget):
 
             # below layouts depend on mode selection
             if self.previous_mode != self.mode:
-                if self.selection_existed:
-                    self.clear_layout(self.control_layout)
-                    self.clear_layout(self.result_layout)
+                if self.aggregate_result_existed:
+                    self.clear_layout(self.aggregate_result_layout)
+                if self.single_result_existed:
+                    self.clear_layout(self.single_result_layout)
 
                 self.init_load_layout()
-                self.init_result_layout()
 
                 # display mnist image size
                 self.display_image_size = 150
@@ -192,7 +193,6 @@ class UI_MainWindow(QWidget):
                 self.clear_layout(self.result_layout)
 
             self.init_load_layout()
-            self.init_result_layout()
 
             # display mnist image size
             self.display_image_size = 150
@@ -263,7 +263,7 @@ class UI_MainWindow(QWidget):
         self.control_layout.addWidget(self.radio_button_3, 2, 1)
 
         # add to general layout
-        self.layout.addLayout(self.control_layout)
+        self.layout.addLayout(self.control_layout, 0, 0)
 
         # used for default state
         if self.mode == 'digit_recognition':
@@ -291,8 +291,11 @@ class UI_MainWindow(QWidget):
             # clear the single image selection
             self.image_menu.setCurrentIndex(0)
             # clear previous result layout
-            self.clear_layout(self.result_layout)
-            self.init_result_layout()
+            if self.aggregate_result_existed:
+                self.clear_layout(self.aggregate_result_layout)
+            if self.single_result_existed:
+                self.clear_layout(self.single_result_layout)
+            self.init_aggregate_result_layout()
 
             print('Loaded dataset:', text)
             self.data_mode = 'aggregate'
@@ -322,7 +325,7 @@ class UI_MainWindow(QWidget):
                 # run button
                 # buttons layout for run model
                 self.run_button_layout = QtWidgets.QGridLayout()
-                self.layout.addLayout(self.run_button_layout)
+                self.layout.addLayout(self.run_button_layout, 3, 0)
 
                 self.run_button = QtWidgets.QPushButton('Analyze model with aggregated dataset')
                 self.run_button.setStyleSheet('font-size: 18px')
@@ -346,8 +349,14 @@ class UI_MainWindow(QWidget):
             # clear the aggregate dataset selection
             self.aggregate_image_menu.setCurrentIndex(0)
             # clear previous result layout
-            self.clear_layout(self.result_layout)
-            self.init_result_layout()
+            if self.aggregate_result_existed:
+                self.clear_layout(self.aggregate_result_layout)
+                self.aggregate_result_existed = False
+            if self.single_result_existed:
+                self.clear_layout(self.single_result_layout)
+                self.single_result_existed = False
+
+            self.init_single_result_layout()
 
             print('Loaded image:', text)
             self.data_mode = 'single'
@@ -377,7 +386,7 @@ class UI_MainWindow(QWidget):
                 # run button
                 # buttons layout for run model
                 self.run_button_layout = QtWidgets.QGridLayout()
-                self.layout.addLayout(self.run_button_layout)
+                self.layout.addLayout(self.run_button_layout, 3, 0)
 
                 self.run_button = QtWidgets.QPushButton('Analyze model with single image')
                 self.run_button.setStyleSheet('font-size: 18px')
@@ -611,27 +620,48 @@ class UI_MainWindow(QWidget):
         model_2_menu.currentTextChanged.connect(model_2_selection_changed)
         self.control_layout.addWidget(model_2_menu, 3, 3)
 
-
-    def init_result_layout(self):
-        # loaded images and model layout
-        self.result_layout = QtWidgets.QGridLayout()
-        self.result_layout.setContentsMargins(30, 50, 30, 50)
+    def init_aggregate_result_layout(self):
+        # loaded images and model result layout
+        self.aggregate_result_layout = QtWidgets.QGridLayout()
+        self.aggregate_result_layout.setContentsMargins(30, 50, 30, 50)
 
         # add to general layout
-        self.layout.addLayout(self.result_layout)
+        self.layout.addLayout(self.aggregate_result_layout, 0, 1)
 
         # if model result ever existed
-        self.result_existed = False
+        self.aggregate_result_existed = False
+
+    def init_single_result_layout(self):
+        # loaded images and model result layout
+        self.single_result_layout = QtWidgets.QGridLayout()
+        self.single_result_layout.setContentsMargins(30, 50, 30, 50)
+
+        # add to general layout
+        self.layout.addLayout(self.single_result_layout, 1, 0)
+
+        # if model result ever existed
+        self.single_result_existed = False
 
 
     # run button execution that could be used by all modes
     @QtCore.Slot()
     def run_button_clicked(self):
-        # run model once and display results
-        self.run_model_once()
+        if self.data_mode == 'aggregate':
+            print(f'{self.data_mode} mode')
 
-        # run model all and display results
-        self.run_model_all()
+            self.aggregate_result_existed = True
+
+        elif self.data_mode == 'single':
+            # run model once and display results
+            self.run_model_once()
+
+            # run model all and display results
+            self.run_model_all()
+
+            self.single_result_existed = True
+
+    # run model on the aggregate dataset
+
 
 
     # run model on a single test sample
@@ -642,7 +672,7 @@ class UI_MainWindow(QWidget):
 
             # display the result
             # add a new label for result if no result has existed
-            if not self.result_existed:
+            if not self.single_result_existed:
                 self.mnist_label = QLabel(self)
                 self.mnist_label.setAlignment(QtCore.Qt.AlignCenter)
                 self.mnist_label.setWordWrap(True)
@@ -731,8 +761,8 @@ class UI_MainWindow(QWidget):
         name_label.setAlignment(QtCore.Qt.AlignCenter)
 
         # add this image to the layout
-        self.result_layout.addWidget(self.image_label, 0, 0)
-        self.result_layout.addWidget(name_label, 1, 0)
+        self.single_result_layout.addWidget(self.image_label, 0, 0)
+        self.single_result_layout.addWidget(name_label, 1, 0)
 
         # when loaded multiple images
 
@@ -766,7 +796,7 @@ class UI_MainWindow(QWidget):
 
         # add to the label and layout
         self.mnist_label.setPixmap(mnist_pixmap)
-        self.result_layout.addWidget(self.mnist_label, 0, 1)
+        self.single_result_layout.addWidget(self.mnist_label, 0, 1)
 
         # draw result using bar plot
         if mode == 'bar':
@@ -822,7 +852,7 @@ class UI_MainWindow(QWidget):
             # disable moving around
             self.bar_plot.setMouseEnabled(x=False, y=False)
 
-            self.result_layout.addWidget(self.bar_plot, 0, 2)
+            self.single_result_layout.addWidget(self.bar_plot, 0, 2)
 
         elif mode == 'polar':
             # draw a polar plot
@@ -1032,7 +1062,7 @@ class UI_MainWindow(QWidget):
             self.polar_plot.setMouseEnabled(x=False, y=False)
 
             # add the plot view to the layout
-            self.result_layout.addWidget(polar_view, 0, 3)
+            self.single_result_layout.addWidget(polar_view, 0, 3)
 
         else:
             raise Exception('Unsupported display mode')
