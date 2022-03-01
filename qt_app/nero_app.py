@@ -44,6 +44,8 @@ class UI_MainWindow(QWidget):
         # self.init_title_layout()
         # mode selections
         self.mode = 'digit_recognition'
+        # input data determines data mode
+        self.data_mode = None
         # save the previous mode selection for layout swap
         self.previous_mode = None
         # if any mode selection has been made
@@ -116,13 +118,12 @@ class UI_MainWindow(QWidget):
                 self.model_1 = nero_run_model.load_mnist_model('non-eqv', self.model_1_path)
 
                 # preload model 2
-                # self.model_2_name = 'Data augmentation model'
-                # self.model_2_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'aug_rot_eqv', '*.pt'))[0]
-                # self.model_2 = nero_run_model.load_mnist_model('aug-eqv', self.model_2_path)
-                self.model_2_name = 'E2CNN model'
-                self.model_2_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'rot_eqv', '*.pt'))[0]
-                self.model_2 = nero_run_model.load_mnist_model('rot-eqv', self.model_2_path)
-
+                self.model_2_name = 'Data augmentation model'
+                self.model_2_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'aug_rot_eqv', '*.pt'))[0]
+                self.model_2 = nero_run_model.load_mnist_model('aug-eqv', self.model_2_path)
+                # self.model_2_name = 'E2CNN model'
+                # self.model_2_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'rot_eqv', '*.pt'))[0]
+                # self.model_2 = nero_run_model.load_mnist_model('rot-eqv', self.model_2_path)
 
                 # unique quantity of the result of current data
                 self.all_quantities_1 = []
@@ -280,10 +281,76 @@ class UI_MainWindow(QWidget):
 
     def init_load_layout(self):
 
-        # push button that loads data
+        # load aggregate dataset drop-down menu
         @QtCore.Slot()
-        def image_selection_changed(text):
+        def aggregate_dataset_selection_changed(text):
+            # filter out 0 selection signal
+            if text == 'Please select input dataset':
+                return
+
+            # clear the single image selection
+            self.image_menu.setCurrentIndex(0)
+            # clear previous result layout
+            self.clear_layout(self.result_layout)
+            self.init_result_layout()
+
+            print('Loaded dataset:', text)
+            self.data_mode = 'aggregate'
+            self.dataset_index = int(text.split(' ')[-1])
+            self.dataset_dir = self.aggregate_data_dirs[self.dataset_index]
+            # load the image and scale the size
+            # get all the image paths from the directory
+            self.all_images_paths = glob.glob(os.path.join(self.dataset_dir, '*.png'))
+            self.loaded_images_pt = []
+            self.loaded_images_names = []
+            self.loaded_images_labels = []
+            self.cur_images_pt = []
+            for cur_image_path in self.all_images_paths:
+                self.loaded_images_pt.append(torch.from_numpy(np.asarray(Image.open(cur_image_path)))[:, :, None])
+                self.loaded_images_names.append(cur_image_path.split('/')[-1])
+                self.loaded_images_labels.append(int(cur_image_path.split('/')[-1].split('_')[1]))
+
+                # keep a copy to represent the current (rotated) version of the original images
+                # prepare image tensor for model purpose
+                self.cur_images_pt.append(nero_transform.prepare_mnist_image(self.loaded_images_pt[-1].clone()))
+
+            # check the data to be ready
+            self.data_existed = True
+
+            # show the run button when data is loaded
+            if not self.run_button_existed:
+                # run button
+                # buttons layout for run model
+                self.run_button_layout = QtWidgets.QGridLayout()
+                self.layout.addLayout(self.run_button_layout)
+
+                self.run_button = QtWidgets.QPushButton('Analyze model with aggregated dataset')
+                self.run_button.setStyleSheet('font-size: 18px')
+                run_button_size = QtCore.QSize(500, 50)
+                self.run_button.setMinimumSize(run_button_size)
+                self.run_button_layout.addWidget(self.run_button)
+                self.run_button.clicked.connect(self.run_button_clicked)
+
+                self.run_button_existed = True
+            else:
+                self.run_button.setText('Analyze model with aggregated dataset')
+
+
+        # load single image drop-down menu
+        @QtCore.Slot()
+        def single_image_selection_changed(text):
+            # filter out 0 selection signal
+            if text == 'Please select input image':
+                return
+
+            # clear the aggregate dataset selection
+            self.aggregate_image_menu.setCurrentIndex(0)
+            # clear previous result layout
+            self.clear_layout(self.result_layout)
+            self.init_result_layout()
+
             print('Loaded image:', text)
+            self.data_mode = 'single'
             self.image_index = int(text.split(' ')[-1])
             self.image_path = self.mnist_images_paths[self.image_index]
             # load the image and scale the size
@@ -312,7 +379,7 @@ class UI_MainWindow(QWidget):
                 self.run_button_layout = QtWidgets.QGridLayout()
                 self.layout.addLayout(self.run_button_layout)
 
-                self.run_button = QtWidgets.QPushButton('Analyze model')
+                self.run_button = QtWidgets.QPushButton('Analyze model with single image')
                 self.run_button.setStyleSheet('font-size: 18px')
                 run_button_size = QtCore.QSize(500, 50)
                 self.run_button.setMinimumSize(run_button_size)
@@ -320,6 +387,9 @@ class UI_MainWindow(QWidget):
                 self.run_button.clicked.connect(self.run_button_clicked)
 
                 self.run_button_existed = True
+            else:
+                self.run_button.setText('Analyze model with single image')
+
 
         # two drop down menus that let user choose models
         @QtCore.Slot()
@@ -413,7 +483,32 @@ class UI_MainWindow(QWidget):
         # add to the layout
         self.control_layout.addWidget(self.model_label, 0, 2)
 
-        # images loading drop down menus
+        # aggregate images loading drop down menu
+        self.aggregate_image_menu = QtWidgets.QComboBox()
+        self.aggregate_image_menu.setMinimumSize(QtCore.QSize(250, 50))
+        self.aggregate_image_menu.setStyleSheet('font-size: 18px')
+        self.aggregate_image_menu.addItem('Please select input dataset')
+        if self.mode == 'digit_recognition':
+            self.aggregate_data_dirs = glob.glob(os.path.join(os.getcwd(), 'example_data', self.mode, f'aggregate*'))
+            # load all images in the folder
+            for i in range(len(self.aggregate_data_dirs)):
+                # TODO: icons for aggregated datasets
+                self.aggregate_image_menu.addItem(f'Dataset {i}')
+
+            # set default to the prompt/description
+            self.aggregate_image_menu.setCurrentIndex(0)
+
+        elif self.mode == 'object_detection':
+            raise NotImplemented('Not implemented')
+
+        # connect the drop down menu with actions
+        self.aggregate_image_menu.currentTextChanged.connect(aggregate_dataset_selection_changed)
+        self.aggregate_image_menu.setEditable(True)
+        self.aggregate_image_menu.lineEdit().setReadOnly(True)
+        self.aggregate_image_menu.lineEdit().setAlignment(QtCore.Qt.AlignCenter)
+        self.control_layout.addWidget(self.aggregate_image_menu, 0, 3)
+
+        # single image loading drop down menu
         self.image_menu = QtWidgets.QComboBox()
         self.image_menu.setMinimumSize(QtCore.QSize(250, 50))
         self.image_menu.setStyleSheet('font-size: 18px')
@@ -422,7 +517,7 @@ class UI_MainWindow(QWidget):
             self.mnist_images_paths = []
             # add a image of each class
             for i in range(10):
-                cur_image_path = glob.glob(os.path.join(os.getcwd(), 'example_data', self.mode, f'label_{i}*.png'))[0]
+                cur_image_path = glob.glob(os.path.join(os.getcwd(), 'example_data', self.mode, 'single', f'label_{i}*.png'))[0]
                 self.mnist_images_paths.append(cur_image_path)
                 self.image_menu.addItem(QtGui.QIcon(cur_image_path), f'Image {i}')
 
@@ -439,13 +534,14 @@ class UI_MainWindow(QWidget):
             self.image_menu.setCurrentIndex(0)
 
         # connect the drop down menu with actions
-        self.image_menu.currentTextChanged.connect(image_selection_changed)
+        self.image_menu.currentTextChanged.connect(single_image_selection_changed)
         self.image_menu.setEditable(True)
         self.image_menu.lineEdit().setReadOnly(True)
         self.image_menu.lineEdit().setAlignment(QtCore.Qt.AlignCenter)
-        self.control_layout.addWidget(self.image_menu, 0, 3)
+        self.control_layout.addWidget(self.image_menu, 1, 3)
 
         # init flag to inidicate if an image has ever been loaded
+        self.data_existed = False
         self.image_existed = False
 
         # load models choices
@@ -480,7 +576,7 @@ class UI_MainWindow(QWidget):
         model_1_menu.setEditable(True)
         model_1_menu.lineEdit().setReadOnly(True)
         model_1_menu.lineEdit().setAlignment(QtCore.Qt.AlignCenter)
-        self.control_layout.addWidget(model_1_menu, 1, 3)
+        self.control_layout.addWidget(model_1_menu, 2, 3)
 
         # model 2
         # graphic representation
@@ -513,7 +609,7 @@ class UI_MainWindow(QWidget):
 
         # connect the drop down menu with actions
         model_2_menu.currentTextChanged.connect(model_2_selection_changed)
-        self.control_layout.addWidget(model_2_menu, 2, 3)
+        self.control_layout.addWidget(model_2_menu, 3, 3)
 
 
     def init_result_layout(self):
