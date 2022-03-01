@@ -444,6 +444,8 @@ class Rot_Eqv_Net_MNIST(torch.nn.Module):
             torch.nn.Linear(64, n_classes),
         )
 
+        self.softmax = torch.nn.Softmax(dim=1)
+
     def forward(self, input: torch.Tensor):
         # wrap the input tensor in a GeometricTensor
         # (associate it with the input type)
@@ -480,6 +482,9 @@ class Rot_Eqv_Net_MNIST(torch.nn.Module):
 
         # classify with the final fully connected layers)
         x = self.fully_net(x.reshape(x.shape[0], -1))
+
+        # softmax to produce probability
+        x = self.softmax(x)
 
         return x
 

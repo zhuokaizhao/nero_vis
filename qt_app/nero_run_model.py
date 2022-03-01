@@ -3,16 +3,15 @@ import os
 import sys
 import time
 import torch
-import numpy as np
 
-os.environ['CUDA_VISIBLE_DEVICES']='1'
+os.environ['CUDA_VISIBLE_DEVICES']='0'
 
 # add parent directories for importing model scripts
 current = os.path.dirname(os.path.realpath(__file__))
 parent = os.path.dirname(current)
 sys.path.append(parent)
 
-from nero_mnist import models as mnist_models
+import mnist_models
 
 # digit recognition (mnist)
 def load_mnist_model(network_model, model_dir):

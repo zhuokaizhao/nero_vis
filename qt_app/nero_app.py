@@ -21,7 +21,7 @@ pg.setConfigOptions(antialias=True, background='w')
 # use pyside gpu acceleration if gpu detected
 if torch.cuda.is_available():
     pg.setConfigOption('useCupy', True)
-    os.environ['CUDA_VISIBLE_DEVICES']='1'
+    os.environ['CUDA_VISIBLE_DEVICES']='0'
 else:
     pg.setConfigOption('useCupy', False)
 
@@ -110,14 +110,19 @@ class UI_MainWindow(QWidget):
                 # rotation angles
                 self.cur_rotation_angle = 0
 
-                # predefined model paths
+                # preload model 1
                 self.model_1_name = 'Simple model'
                 self.model_1_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'non_eqv', '*.pt'))[0]
-                self.model_2_name = 'Data augmentation model'
-                self.model_2_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'aug_rot_eqv', '*.pt'))[0]
-                # preload model
                 self.model_1 = nero_run_model.load_mnist_model('non-eqv', self.model_1_path)
-                self.model_2 = nero_run_model.load_mnist_model('aug-eqv', self.model_2_path)
+
+                # preload model 2
+                # self.model_2_name = 'Data augmentation model'
+                # self.model_2_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'aug_rot_eqv', '*.pt'))[0]
+                # self.model_2 = nero_run_model.load_mnist_model('aug-eqv', self.model_2_path)
+                self.model_2_name = 'E2CNN model'
+                self.model_2_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'rot_eqv', '*.pt'))[0]
+                self.model_2 = nero_run_model.load_mnist_model('rot-eqv', self.model_2_path)
+
 
                 # unique quantity of the result of current data
                 self.all_quantities_1 = []
@@ -292,6 +297,9 @@ class UI_MainWindow(QWidget):
             self.cur_display_image = nero_utilities.tensor_to_qt_image(self.cur_image_pt)
             # resize the display QImage
             self.cur_display_image = self.cur_display_image.scaledToWidth(self.display_image_size)
+            # prepare image tensor for model purpose
+            self.cur_image_pt = nero_transform.prepare_mnist_image(self.cur_image_pt)
+
 
             # display the image
             self.display_image()
@@ -497,7 +505,7 @@ class UI_MainWindow(QWidget):
             model_2_menu.addItem(model_2_icon, 'Simple model')
             model_2_menu.addItem(model_2_icon, 'E2CNN model')
             model_2_menu.addItem(model_2_icon, 'Data augmentation model')
-            model_2_menu.setCurrentText('Data augmentation model')
+            model_2_menu.setCurrentText('E2CNN model')
         elif self.mode == 'object_detection':
             model_2_menu.addItem(model_1_icon, 'Simple model')
             model_2_menu.addItem(model_1_icon, 'Shift-Invariant model')
@@ -568,6 +576,8 @@ class UI_MainWindow(QWidget):
                 self.cur_image_pt = nero_transform.rotate_mnist_image(self.loaded_image_pt, self.cur_rotation_angle)
                 # convert image tensor to qt image and resize for display
                 self.cur_display_image = nero_utilities.tensor_to_qt_image(self.cur_image_pt).scaledToWidth(self.display_image_size)
+                # prepare image tensor for model purpose
+                self.cur_image_pt = nero_transform.prepare_mnist_image(self.cur_image_pt)
                 # update the pixmap and label
                 image_pixmap = QPixmap(self.cur_display_image)
                 self.image_label.setPixmap(image_pixmap)
@@ -760,6 +770,8 @@ class UI_MainWindow(QWidget):
                 # self.image_pixmap = self.image_pixmap.transformed(QtGui.QTransform().rotate(angle), QtCore.Qt.SmoothTransformation)
                 # convert image tensor to qt image and resize for display
                 self.cur_display_image = nero_utilities.tensor_to_qt_image(self.cur_image_pt).scaledToWidth(self.display_image_size)
+                # prepare image tensor for model purpose
+                self.cur_image_pt = nero_transform.prepare_mnist_image(self.cur_image_pt)
                 # update the pixmap and label
                 self.image_pixmap = QPixmap(self.cur_display_image)
                 self.image_label.setPixmap(self.image_pixmap)
@@ -857,6 +869,8 @@ class UI_MainWindow(QWidget):
                     # self.image_pixmap = self.image_pixmap.transformed(QtGui.QTransform().rotate(angle), QtCore.Qt.SmoothTransformation)
                     # convert image tensor to qt image and resize for display
                     self.cur_display_image = nero_utilities.tensor_to_qt_image(self.cur_image_pt).scaledToWidth(self.display_image_size)
+                    # prepare image tensor for model purpose
+                    self.cur_image_pt = nero_transform.prepare_mnist_image(self.cur_image_pt)
                     # update the pixmap and label
                     self.image_pixmap = QPixmap(self.cur_display_image)
                     self.image_label.setPixmap(self.image_pixmap)
@@ -892,6 +906,8 @@ class UI_MainWindow(QWidget):
                     # self.image_pixmap = self.image_pixmap.transformed(QtGui.QTransform().rotate(angle), QtCore.Qt.SmoothTransformation)
                     # convert image tensor to qt image and resize for display
                     self.cur_display_image = nero_utilities.tensor_to_qt_image(self.cur_image_pt).scaledToWidth(self.display_image_size)
+                    # prepare image tensor for model purpose
+                    self.cur_image_pt = nero_transform.prepare_mnist_image(self.cur_image_pt)
                     # update the pixmap and label
                     self.image_pixmap = QPixmap(self.cur_display_image)
                     self.image_label.setPixmap(self.image_pixmap)
@@ -947,6 +963,8 @@ class UI_MainWindow(QWidget):
             # self.image_pixmap = self.image_pixmap.transformed(QtGui.QTransform().rotate(angle), QtCore.Qt.SmoothTransformation)
             # convert image tensor to qt image and resize for display
             self.cur_display_image = nero_utilities.tensor_to_qt_image(self.cur_image_pt).scaledToWidth(self.display_image_size)
+            # prepare image tensor for model purpose
+            self.cur_image_pt = nero_transform.prepare_mnist_image(self.cur_image_pt)
             # update the pixmap and label
             self.image_pixmap = QPixmap(self.cur_display_image)
             self.image_label.setPixmap(self.image_pixmap)
