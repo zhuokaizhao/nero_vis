@@ -1,21 +1,29 @@
 from gc import callbacks
 import os
 import sys
-import math
 import glob
+import time
 import torch
 import numpy as np
 from PIL import Image
 import pyqtgraph as pg
 from PySide6 import QtCore, QtWidgets, QtGui
 from PySide6.QtGui  import QPixmap, QFont
-from PySide6.QtCore import QObject
-from PySide6.QtWidgets import QFileDialog, QWidget, QLabel, QRadioButton
-# from PySide6.QtCharts import QBarSet, QBarSeries, QChart, QBarCategoryAxis, QValueAxis, QChartView, QPolarChart, QScatterSeries
+from PySide6.QtCore import QEvent
+from PySide6.QtWidgets import QWidget, QLabel, QRadioButton
 
 import nero_transform
 import nero_utilities
 import nero_run_model
+
+# globa configurations
+pg.setConfigOptions(antialias=True, background='w')
+# use pyside gpu acceleration if gpu detected
+if torch.cuda.is_available():
+    pg.setConfigOption('useCupy', True)
+    os.environ['CUDA_VISIBLE_DEVICES']='1'
+else:
+    pg.setConfigOption('useCupy', False)
 
 
 class UI_MainWindow(QWidget):
@@ -675,6 +683,7 @@ class UI_MainWindow(QWidget):
                 # clear manual mode line
                 if self.cur_line:
                     self.cur_line.clear()
+                    time.sleep(0.1)
 
                 # clear previously selected point's visual cue
                 if self.last_clicked:
@@ -800,7 +809,26 @@ class UI_MainWindow(QWidget):
                     if self.result_existed:
                         self.run_model_once()
 
+                    # remove old line
+                    if self.cur_line:
+                        self.cur_line.clear()
+                        time.sleep(0.1)
+
+                    # draw a line that represents current angle of rotation
+                    cur_x = 1 * np.cos(self.cur_rotation_angle/180*np.pi)
+                    cur_y = 1 * np.sin(self.cur_rotation_angle/180*np.pi)
+                    line_x = [0, cur_x]
+                    line_y = [0, cur_y]
+                    self.cur_line = self.polar_plot.plot(line_x, line_y, pen = QtGui.QPen(QtGui.Qt.red, 0.03))
+
             self.polar_plot.scene().sigMouseClicked.connect(polar_mouse_clicked)
+
+            # fix zoom level
+            self.polar_plot.vb.scaleBy((0.5, 0.5))
+            self.polar_plot.setMouseEnabled(x=False, y=False)
+            # install an event filter on the ViewBox and catch the mouse wheel event
+            # self.view_box = polar_view.addViewBox(row=1, col=1)
+            # self.view_box.installEventFilter(self)
             # add the plot view to the layout
             self.result_layout.addWidget(polar_view, 0, 3)
 
@@ -809,6 +837,10 @@ class UI_MainWindow(QWidget):
 
         painter.end()
 
+    def eventFilter(self, watched, event):
+        if event.type() == QEvent.GraphicsSceneWheel:
+            return True
+        return super().eventFilter(watched, event)
 
     def mouseMoveEvent(self, event):
         print("mouseMoveEvent")
@@ -823,7 +855,7 @@ class UI_MainWindow(QWidget):
                             / (self.prev_mouse_pos[0]*self.prev_mouse_pos[0] + self.prev_mouse_pos[1]*self.prev_mouse_pos[1]))*180
 
             self.cur_rotation_angle += angle_change
-            print(f'\nRotated {self.cur_rotation_angle} degrees')
+            # print(f'\nRotated {self.cur_rotation_angle} degrees')
             # rotate the image tensor
             self.cur_image_pt = nero_transform.rotate_mnist_image(self.loaded_image_pt, self.cur_rotation_angle)
             # self.image_pixmap = self.image_pixmap.transformed(QtGui.QTransform().rotate(angle), QtCore.Qt.SmoothTransformation)
@@ -840,13 +872,14 @@ class UI_MainWindow(QWidget):
                 # remove old line
                 if self.cur_line:
                     self.cur_line.clear()
+                    time.sleep(0.1)
 
                 # draw a line that represents current angle of rotation
                 cur_x = 1 * np.cos(self.cur_rotation_angle/180*np.pi)
                 cur_y = 1 * np.sin(self.cur_rotation_angle/180*np.pi)
                 line_x = [0, cur_x]
                 line_y = [0, cur_y]
-                self.cur_line = self.polar_plot.plot(line_x, line_y, pen = QtGui.QPen(QtGui.Qt.red, 0.01))
+                self.cur_line = self.polar_plot.plot(line_x, line_y, pen = QtGui.QPen(QtGui.Qt.red, 0.03))
 
             self.prev_mouse_pos = cur_mouse_pos
 
