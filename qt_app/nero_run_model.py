@@ -42,7 +42,7 @@ def load_mnist_model(network_model, model_dir):
         # method = 'DSS'
         model = mnist_models.Scale_Eqv_Net_MNIST(method=method).to(device)
 
-    loaded_model = torch.load(model_dir)
+    loaded_model = torch.load(model_dir, map_location=device)
     model.load_state_dict(loaded_model['state_dict'])
     # set model in evaluation mode
     model.eval()

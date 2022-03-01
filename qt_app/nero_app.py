@@ -111,9 +111,9 @@ class UI_MainWindow(QWidget):
                 self.cur_rotation_angle = 0
 
                 # predefined model paths
-                # model_1_name = 'Simple model'
+                self.model_1_name = 'Simple model'
                 self.model_1_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'non_eqv', '*.pt'))[0]
-                # model_2_name = 'Data augmentation model'
+                self.model_2_name = 'Data augmentation model'
                 self.model_2_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'aug_rot_eqv', '*.pt'))[0]
                 # preload model
                 self.model_1 = nero_run_model.load_mnist_model('non-eqv', self.model_1_path)
@@ -353,15 +353,15 @@ class UI_MainWindow(QWidget):
                 if text == 'Simple model':
                     self.model_2_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'non_eqv', '*.pt'))[0]
                     # reload model
-                    self.model_2 = nero_run_model.load_model('non-eqv', self.model_2_path)
+                    self.model_2 = nero_run_model.load_mnist_model('non-eqv', self.model_2_path)
                 elif text == 'E2CNN model':
                     self.model_2_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'rot_eqv', '*.pt'))[0]
                     # reload model
-                    self.model_2 = nero_run_model.load_model('rot-eqv', self.model_2_path)
+                    self.model_2 = nero_run_model.load_mnist_model('rot-eqv', self.model_2_path)
                 elif text == 'Data augmentation model':
                     self.model_2_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'aug_rot_eqv', '*.pt'))[0]
                     # reload model
-                    self.model_2 = nero_run_model.load_model('aug-eqv', self.model_2_path)
+                    self.model_2 = nero_run_model.load_mnist_model('aug-eqv', self.model_2_path)
             elif self.mode == 'object_detection':
                 if text == 'Simple model':
                     self.model_2_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'non_eqv', '*.pt'))[0]
@@ -664,19 +664,59 @@ class UI_MainWindow(QWidget):
 
         # draw result using bar plot
         if mode == 'bar':
-            bar_plot = pg.plot()
+            # create individual bar (item) for individual hover/click control
+            class InteractiveBarItem(pg.BarGraphItem):
+                def __init__(self, *args, **kwargs):
+                    super().__init__(*args, **kwargs)
+                    if self.opts['brush'] == 'blue':
+                        cur_class = int(self.opts.get('x0')[0] + 0.2)
+                        cur_value = self.opts.get('height')
+                    elif self.opts['brush'] == 'green':
+                        cur_class = int(self.opts.get('x0')[0] - 0.2)
+                        cur_value = self.opts.get('height')
+
+                    model_name = self.name()
+                    self.hover_text = f'{model_name}(x = {cur_class}) = {cur_value}'
+                    self.setToolTip(self.hover_text)
+
+                    # required in order to receive hoverEnter/Move/Leave events
+                    self.setAcceptHoverEvents(True)
+
+                def hoverEnterEvent(self, event):
+                    print('hover!')
+
+                def mousePressEvent(self, event):
+                    print('click!')
+
+            self.bar_plot = pg.plot()
             # constrain plot showing limit by setting view box
-            bar_plot.plotItem.vb.setLimits(xMin=-0.5, xMax=9.5, yMin=0, yMax=1.2)
-            bar_plot.setBackground('w')
-            bar_plot.setFixedSize(700, 600)
+            self.bar_plot.plotItem.vb.setLimits(xMin=-0.5, xMax=9.5, yMin=0, yMax=1.2)
+            self.bar_plot.setBackground('w')
+            self.bar_plot.setFixedSize(700, 600)
+            # for i in range(10):
+            #     cur_graph_1 = InteractiveBarItem(name=f'{self.model_1_name}',
+            #                                      x0=[i-0.2],
+            #                                      height=self.output_1[i],
+            #                                      width=0.4,
+            #                                      brush='blue')
+
+            #     cur_graph_2 = InteractiveBarItem(name=f'{self.model_2_name}',
+            #                                      x0=[i+0.2],
+            #                                      height=self.output_2[i],
+            #                                      width=0.4,
+            #                                      brush='green')
+
+            #     self.bar_plot.addItem(cur_graph_1)
+            #     self.bar_plot.addItem(cur_graph_2)
+
             graph_1 = pg.BarGraphItem(x=np.arange(len(self.output_1))-0.2, height = list(self.output_1), width = 0.4, brush ='blue')
             graph_2 = pg.BarGraphItem(x=np.arange(len(self.output_1))+0.2, height = list(self.output_2), width = 0.4, brush ='green')
-            bar_plot.addItem(graph_1)
-            bar_plot.addItem(graph_2)
+            self.bar_plot.addItem(graph_1)
+            self.bar_plot.addItem(graph_2)
             # disable moving around
-            bar_plot.setMouseEnabled(x=False, y=False)
+            self.bar_plot.setMouseEnabled(x=False, y=False)
 
-            self.result_layout.addWidget(bar_plot, 0, 2)
+            self.result_layout.addWidget(self.bar_plot, 0, 2)
 
         elif mode == 'polar':
             # draw a polar plot
