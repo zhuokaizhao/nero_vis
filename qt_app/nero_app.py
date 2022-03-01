@@ -40,15 +40,15 @@ class UI_MainWindow(QWidget):
         self.layout.setContentsMargins(50, 50, 50, 50)
 
         # individual laytout for different widgets
-        # title
-        self.init_title_layout()
+        # title (no title)
+        # self.init_title_layout()
         # mode selections
         self.mode = 'digit_recognition'
         # save the previous mode selection for layout swap
         self.previous_mode = None
         # if any mode selection has been made
         self.selection_existed = False
-        self.init_mode_layout()
+        self.init_control_layout()
         self.run_button_existed = False
 
         print(f'\nFinished rendering main layout')
@@ -85,7 +85,7 @@ class UI_MainWindow(QWidget):
         self.layout.addLayout(self.title_layout)
 
 
-    def init_mode_layout(self):
+    def init_control_layout(self):
         # three radio buttons that define the mode
         @QtCore.Slot()
         def digit_recognition_button_clicked():
@@ -96,7 +96,7 @@ class UI_MainWindow(QWidget):
             if self.previous_mode != self.mode:
                 # clear the previous method's layout
                 if self.selection_existed:
-                    self.clear_layout(self.load_button_layout)
+                    self.clear_layout(self.control_layout)
                     self.clear_layout(self.result_layout)
 
                 self.init_load_layout()
@@ -140,7 +140,7 @@ class UI_MainWindow(QWidget):
             # below layouts depend on mode selection
             if self.previous_mode != self.mode:
                 if self.selection_existed:
-                    self.clear_layout(self.load_button_layout)
+                    self.clear_layout(self.control_layout)
                     self.clear_layout(self.result_layout)
 
                 self.init_load_layout()
@@ -182,7 +182,7 @@ class UI_MainWindow(QWidget):
 
             # below layouts depend on mode selection
             if self.selection_existed:
-                self.clear_layout(self.load_button_layout)
+                self.clear_layout(self.control_layout)
                 self.clear_layout(self.result_layout)
 
             self.init_load_layout()
@@ -215,8 +215,8 @@ class UI_MainWindow(QWidget):
 
 
         # mode selection radio buttons
-        self.mode_layout = QtWidgets.QHBoxLayout()
-        self.mode_layout.setContentsMargins(50, 0, 0, 50)
+        self.control_layout = QtWidgets.QGridLayout()
+        self.control_layout.setContentsMargins(50, 0, 0, 50)
         # radio buttons on mode selection (digit_recognition, object detection, PIV)
         # title
         mode_pixmap = QPixmap(150, 30)
@@ -234,30 +234,30 @@ class UI_MainWindow(QWidget):
         self.mode_label.setTextFormat(QtGui.Qt.AutoText)
         self.mode_label.setPixmap(mode_pixmap)
         # add to the layout
-        self.mode_layout.addWidget(self.mode_label)
+        self.control_layout.addWidget(self.mode_label, 0, 0)
 
         # radio_buttons_layout = QtWidgets.QGridLayout(self)
         self.radio_button_1 = QRadioButton('Digit recognition')
         self.radio_button_1.setStyleSheet('QRadioButton{font: 18pt Helvetica;} QRadioButton::indicator { width: 18px; height: 18px;};')
         self.radio_button_1.pressed.connect(digit_recognition_button_clicked)
-        self.mode_layout.addWidget(self.radio_button_1)
+        self.control_layout.addWidget(self.radio_button_1, 0, 1)
         # spacer item
-        # self.mode_layout.addSpacing(30)
+        # self.control_layout.addSpacing(30)
 
         self.radio_button_2 = QRadioButton('Object detection')
         self.radio_button_2.setStyleSheet('QRadioButton{font: 18pt Helvetica;} QRadioButton::indicator { width: 18px; height: 18px;};')
         self.radio_button_2.pressed.connect(object_detection_button_clicked)
-        self.mode_layout.addWidget(self.radio_button_2)
+        self.control_layout.addWidget(self.radio_button_2, 1, 1)
         # spacer item
-        # self.mode_layout.addSpacing(30)
+        # self.control_layout.addSpacing(30)
 
         self.radio_button_3 = QRadioButton('Particle Image Velocimetry (PIV)')
         self.radio_button_3.setStyleSheet('QRadioButton{font: 18pt Helvetica;} QRadioButton::indicator { width: 18px; height: 18px;};')
         self.radio_button_3.pressed.connect(piv_button_clicked)
-        self.mode_layout.addWidget(self.radio_button_3)
+        self.control_layout.addWidget(self.radio_button_3, 2, 1)
 
         # add to general layout
-        self.layout.addLayout(self.mode_layout)
+        self.layout.addLayout(self.control_layout)
 
         # used for default state
         if self.mode == 'digit_recognition':
@@ -388,9 +388,22 @@ class UI_MainWindow(QWidget):
             painter.drawEllipse(center, radius, radius)
             painter.end()
 
-        # init layout for this section
-        self.load_button_layout = QtWidgets.QHBoxLayout()
-        self.load_button_layout.setContentsMargins(0, 0, 0, 0)
+        # draw text
+        model_pixmap = QPixmap(300, 30)
+        model_pixmap.fill(QtCore.Qt.white)
+        painter = QtGui.QPainter(model_pixmap)
+        painter.setFont(QFont('Helvetica', 18))
+        painter.drawText(0, 0, 300, 30, QtGui.Qt.AlignLeft, 'Data/Model Selection: ')
+        painter.end()
+
+        # create label to contain the texts
+        self.model_label = QLabel(self)
+        self.model_label.setAlignment(QtCore.Qt.AlignLeft)
+        self.model_label.setWordWrap(True)
+        self.model_label.setTextFormat(QtGui.Qt.AutoText)
+        self.model_label.setPixmap(model_pixmap)
+        # add to the layout
+        self.control_layout.addWidget(self.model_label, 0, 2)
 
         # images loading drop down menus
         self.image_menu = QtWidgets.QComboBox()
@@ -422,7 +435,7 @@ class UI_MainWindow(QWidget):
         self.image_menu.setEditable(True)
         self.image_menu.lineEdit().setReadOnly(True)
         self.image_menu.lineEdit().setAlignment(QtCore.Qt.AlignCenter)
-        self.load_button_layout.addWidget(self.image_menu)
+        self.control_layout.addWidget(self.image_menu, 0, 3)
 
         # init flag to inidicate if an image has ever been loaded
         self.image_existed = False
@@ -439,7 +452,7 @@ class UI_MainWindow(QWidget):
         draw_circle(painter, 12, 12, 10, 'blue')
 
         # spacer item
-        # self.load_button_layout.addSpacing(30)
+        # self.control_layout.addSpacing(30)
 
         model_1_menu = QtWidgets.QComboBox()
         model_1_menu.setMinimumSize(QtCore.QSize(250, 50))
@@ -459,7 +472,7 @@ class UI_MainWindow(QWidget):
         model_1_menu.setEditable(True)
         model_1_menu.lineEdit().setReadOnly(True)
         model_1_menu.lineEdit().setAlignment(QtCore.Qt.AlignCenter)
-        self.load_button_layout.addWidget(model_1_menu)
+        self.control_layout.addWidget(model_1_menu, 1, 3)
 
         # model 2
         # graphic representation
@@ -472,7 +485,7 @@ class UI_MainWindow(QWidget):
         draw_circle(painter, 12, 12, 10, 'Green')
 
         # spacer item
-        # self.load_button_layout.addSpacing(30)
+        # self.control_layout.addSpacing(30)
 
         model_2_menu = QtWidgets.QComboBox()
         model_2_menu.setMinimumSize(QtCore.QSize(250, 50))
@@ -492,10 +505,7 @@ class UI_MainWindow(QWidget):
 
         # connect the drop down menu with actions
         model_2_menu.currentTextChanged.connect(model_2_selection_changed)
-        self.load_button_layout.addWidget(model_2_menu)
-
-        # add to general layout
-        self.layout.addLayout(self.load_button_layout)
+        self.control_layout.addWidget(model_2_menu, 2, 3)
 
 
     def init_result_layout(self):
@@ -978,7 +988,7 @@ if __name__ == "__main__":
 # self.data_button.setStyleSheet('font-size: 18px')
 # data_button_size = QtCore.QSize(500, 50)
 # self.data_button.setMinimumSize(data_button_size)
-# self.load_button_layout.addWidget(self.data_button)
+# self.control_layout.addWidget(self.data_button)
 # self.data_button.clicked.connect(load_image_clicked)
 
 # @QtCore.Slot()
