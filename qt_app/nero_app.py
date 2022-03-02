@@ -380,7 +380,7 @@ class UI_MainWindow(QWidget):
 
 
             # display the image
-            self.display_image()
+            self.display_image(mode='single')
             self.image_existed = True
 
             # show the run button when data is loaded
@@ -400,7 +400,6 @@ class UI_MainWindow(QWidget):
                 self.run_button_existed = True
             else:
                 self.run_button.setText('Analyze model with single image')
-
 
         # two drop down menus that let user choose models
         @QtCore.Slot()
@@ -705,12 +704,17 @@ class UI_MainWindow(QWidget):
                 return low_dim
 
             # helper function for clicking inside the scatter plot
-            def clicked(plot, points):
+            def clicked(item, points):
 
-                # clear previously selected point's visual cue
+                # clear previous visualization
                 if self.last_clicked:
+                    # previously selected point's visual cue
                     self.last_clicked.resetPen()
                     self.last_clicked.setBrush(self.old_brush)
+                    # previous single image vis
+                    # self.clear_layout(self.single_result_layout)
+                    # self.single_result_existed = False
+                    # self.image_existed = False
 
                 # only allow clicking one point at a time
                 # save the old brush
@@ -727,19 +731,59 @@ class UI_MainWindow(QWidget):
 
                 self.last_clicked = points[0]
 
+                # get the clicked scatter item's information
+                self.image_index = int(item.opts['name'])
+                # start single result view from here
+                self.init_single_result_layout()
+                self.image_path = self.all_images_paths[self.image_index]
+
+                # load the image and scale the size
+                self.loaded_image_pt = torch.from_numpy(np.asarray(Image.open(self.image_path)))[:, :, None]
+                self.loaded_image_name = self.image_path.split('/')[-1]
+                self.loaded_image_label = int(self.image_path.split('/')[-1].split('_')[1])
+
+                # keep a copy to represent the current (rotated) version of the original images
+                self.cur_image_pt = self.loaded_image_pt.clone()
+                # convert to QImage for display purpose
+                self.cur_display_image = nero_utilities.tensor_to_qt_image(self.cur_image_pt)
+                # resize the display QImage
+                self.cur_display_image = self.cur_display_image.scaledToWidth(self.display_image_size)
+                # prepare image tensor for model purpose
+                self.cur_image_pt = nero_transform.prepare_mnist_image(self.cur_image_pt)
+
+                # display the image
+                self.display_image(mode='single')
+
+                # run model once and display results (Detailed bar plot)
+                self.run_model_once()
+
+                # run model all and display results (Individual NERO plot)
+                self.run_model_all()
+
+                self.single_result_existed = True
+
+
+
             # run pca of all images on the selected digit
             # each image has tensor with length being the number of rotations
             cur_digit_indices = []
-            for i in range(len(self.loaded_images_labels)):
-                if self.digit_selection == self.loaded_images_labels[i]:
-                    cur_digit_indices.append(i)
+            if self.digit_selection == -1:
+                cur_digit_indices = list(range(len(self.loaded_images_labels)))
+            else:
+                for i in range(len(self.loaded_images_labels)):
+                    if self.digit_selection == self.loaded_images_labels[i]:
+                        cur_digit_indices.append(i)
 
             all_high_dim_points_1 = np.zeros((len(cur_digit_indices), len(self.all_angles)))
             all_high_dim_points_2 = np.zeros((len(cur_digit_indices), len(self.all_angles)))
             for i, index in enumerate(cur_digit_indices):
-                for j, rotation in enumerate(self.all_angles):
-                    all_high_dim_points_1[i, j] = self.all_outputs_1[rotation][index]
-                    all_high_dim_points_2[i, j] = self.all_outputs_2[rotation][index]
+                for j in range(len(self.all_angles)):
+                    # all_outputs has shape (num_rotations, num_samples, 10)
+                    # all_high_dim_points_1[i, j] = self.all_outputs_1[j][index][self.loaded_images_labels[index]]
+                    # all_high_dim_points_2[i, j] = self.all_outputs_2[j][index][self.loaded_images_labels[index]]
+                    # all_avg_accuracy_per_digit has shape (num_rotations, 10)
+                    all_high_dim_points_1[i, j] = int(self.all_outputs_1[j][index].argmax() == self.loaded_images_labels[index])
+                    all_high_dim_points_2[i, j] = int(self.all_outputs_2[j][index].argmax() == self.loaded_images_labels[index])
 
             # run dimension reduction algorithm
             low_dim_1 = run_pca(all_high_dim_points_1, target_dim=2)
@@ -752,19 +796,32 @@ class UI_MainWindow(QWidget):
             self.low_dim_scatter_plot = low_dim_scatter_view.addPlot()
 
             # Set pxMode=False to allow spots to transform with the view
-            # all the points to be plotted
-            self.low_dim_scatter_items = pg.ScatterPlotItem(pxMode=False)
 
-            # add points to the item
-            self.low_dim_scatter_items.addPoints(low_dim_1)
-            self.low_dim_scatter_items.addPoints(low_dim_2)
+            for i, index in enumerate(cur_digit_indices):
+                # all the points to be plotted
+                # add individual items for getting the item's name later when clicking
+                self.low_dim_scatter_item = pg.ScatterPlotItem(pxMode=False)
+                low_dim_point_1 = [{'pos': (low_dim_1[i, 0], low_dim_1[i, 1]),
+                                    'size': 0.05,
+                                    'pen': {'color': 'w', 'width': 0.1},
+                                    'brush': (0, 0, 255, 150)}]
 
-            # add points to the plot
-            self.low_dim_scatter_plot.addItem(self.scatter_items)
-            # connect click events on scatter items
-            self.low_dim_scatter_items.sigClicked.connect(clicked)
+                low_dim_point_2 = [{'pos': (low_dim_2[i, 0], low_dim_2[i, 1]),
+                                    'size': 0.05,
+                                    'pen': {'color': 'w', 'width': 0.1},
+                                    'brush': (0, 255, 0, 150)}]
 
-            self.aggregate_result_layout.addWidget(low_dim_scatter_view, 0, 1)
+                # add points to the item
+                self.low_dim_scatter_item.addPoints(low_dim_point_1, name=str(index))
+                self.low_dim_scatter_item.addPoints(low_dim_point_2, name=str(index))
+
+                # add points to the plot
+                self.low_dim_scatter_plot.addItem(self.low_dim_scatter_item)
+
+                # connect click events on scatter items
+                self.low_dim_scatter_item.sigClicked.connect(clicked)
+
+            self.aggregate_result_layout.addWidget(low_dim_scatter_view, 0, 0)
 
 
 
@@ -906,12 +963,12 @@ class UI_MainWindow(QWidget):
 
             # display the result
             # add a new label for result if no result has existed
-            if not self.result_existed:
+            if not self.single_result_existed:
                 self.mnist_label = QLabel(self)
                 self.mnist_label.setAlignment(QtCore.Qt.AlignCenter)
                 self.mnist_label.setWordWrap(True)
                 self.mnist_label.setTextFormat(QtGui.Qt.AutoText)
-                self.result_existed = True
+                self.single_result_existed = True
                 self.repaint = False
             else:
                 self.repaint = True
@@ -923,7 +980,7 @@ class UI_MainWindow(QWidget):
             print('Not yet implemented')
 
 
-    def display_image(self):
+    def display_image(self, mode):
 
         # single image case
         # prepare a pixmap for the image
@@ -944,8 +1001,12 @@ class UI_MainWindow(QWidget):
         name_label.setAlignment(QtCore.Qt.AlignCenter)
 
         # add this image to the layout
-        self.single_result_layout.addWidget(self.image_label, 0, 0)
-        self.single_result_layout.addWidget(name_label, 1, 0)
+        if mode == 'single':
+            self.single_result_layout.addWidget(self.image_label, 0, 0)
+            self.single_result_layout.addWidget(name_label, 1, 0)
+        elif mode == 'aggregate':
+            self.single_result_layout.addWidget(self.image_label, 0, 1)
+            self.single_result_layout.addWidget(name_label, 1, 1)
 
         # when loaded multiple images
 
@@ -1128,7 +1189,7 @@ class UI_MainWindow(QWidget):
         elif mode == 'polar':
 
             # helper function for clicking inside polar plot
-            def clicked(plot, points):
+            def clicked(item, points):
                 # clear manual mode line
                 if self.cur_line:
                     self.polar_plot.removeItem(self.cur_line)
