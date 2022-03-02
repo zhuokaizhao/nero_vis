@@ -137,7 +137,6 @@ class UI_MainWindow(QWidget):
 
                 self.previous_mode = self.mode
 
-
         @QtCore.Slot()
         def object_detection_button_clicked():
             print('Object detection button clicked')
@@ -327,7 +326,7 @@ class UI_MainWindow(QWidget):
                 # run button
                 # buttons layout for run model
                 self.run_button_layout = QtWidgets.QGridLayout()
-                self.layout.addLayout(self.run_button_layout, 3, 0)
+                self.layout.addLayout(self.run_button_layout, 2, 0)
 
                 self.run_button = QtWidgets.QPushButton('Analyze model with aggregated dataset')
                 self.run_button.setStyleSheet('font-size: 18px')
@@ -625,10 +624,10 @@ class UI_MainWindow(QWidget):
     def init_aggregate_result_layout(self):
         # loaded images and model result layout
         self.aggregate_result_layout = QtWidgets.QGridLayout()
-        self.aggregate_result_layout.setContentsMargins(30, 50, 30, 50)
+        # self.aggregate_result_layout.setContentsMargins(30, 50, 30, 50)
 
         # add to general layout
-        self.layout.addLayout(self.aggregate_result_layout, 0, 1)
+        self.layout.addLayout(self.aggregate_result_layout, 0, 2)
 
         # if model result ever existed
         self.aggregate_result_existed = False
@@ -669,33 +668,90 @@ class UI_MainWindow(QWidget):
 
             self.single_result_existed = True
 
+
+    # initialize digit selection control drop down menu
+    def init_aggregate_polar_control(self):
+        # aggregate digit selection drop-down menu
+        @QtCore.Slot()
+        def aggregate_digit_selection_changed(text):
+            # update the current digit selection
+            self.digit_selection = int(text.split(' ')[-1])
+            # display the plot
+            self.display_mnist_aggregate_result()
+
+        # run PCA on demand
+        @QtCore.Slot()
+        def run_pca():
+            print('Run PCA')
+
+
+        # drop down menu on choosing the digit
+        # self.digit_selection_layout = QtWidgets.QVBoxLayout()
+        self.digit_selection_menu = QtWidgets.QComboBox()
+        self.digit_selection_menu.setMinimumSize(QtCore.QSize(250, 50))
+        self.digit_selection_menu.setStyleSheet('font-size: 18px')
+
+        # add all digits as items
+        for i in range(10):
+            self.digit_selection_menu.addItem(f'Digit {i}')
+
+        # set default to digit 0
+        self.digit_selection = 0
+        self.digit_selection_menu.setCurrentIndex(0)
+
+        # connect the drop down menu with actions
+        self.digit_selection_menu.currentTextChanged.connect(aggregate_digit_selection_changed)
+        self.digit_selection_menu.setEditable(True)
+        self.digit_selection_menu.lineEdit().setReadOnly(True)
+        self.digit_selection_menu.lineEdit().setAlignment(QtCore.Qt.AlignRight)
+
+        self.aggregate_result_layout.addWidget(self.digit_selection_menu, 0, 2)
+
+        # push button on running PCA
+        self.pca_button = QtWidgets.QPushButton('See Overview')
+        self.pca_button.setStyleSheet('font-size: 18px')
+        self.pca_button.setMinimumSize(QtCore.QSize(250, 50))
+        self.pca_button.clicked.connect(run_pca)
+        self.aggregate_result_layout.addWidget(self.pca_button, 1, 2)
+
+
     # run model on the aggregate dataset
     def run_model_aggregated(self):
         if self.mode == 'digit_recognition':
             self.all_angles = []
-            self.all_avg_accuracy = []
-            self.all_avg_accuracy_per_digit = []
+            self.all_avg_accuracy_1 = []
+            self.all_avg_accuracy_per_digit_1 = []
+            self.all_avg_accuracy_2 = []
+            self.all_avg_accuracy_per_digit_2 = []
             # for all the loaded images
-            for self.cur_rotation_angle in range(0, 365, 5):
-                # print(f'\nRotated {self.cur_rotation_angle} degrees')
+            # for self.cur_rotation_angle in range(0, 365, 5):
+            for self.cur_rotation_angle in range(0, 365, 90):
+                print(f'\nAggregate mode: Rotated {self.cur_rotation_angle} degrees')
                 self.all_angles.append(self.cur_rotation_angle)
 
-                avg_accuracy, avg_accuracy_per_digit = nero_run_model.run_mnist_once(self.model_1,
+                avg_accuracy_1, avg_accuracy_per_digit_1 = nero_run_model.run_mnist_once(self.model_1,
                                                                                         self.cur_images_pt,
                                                                                         self.loaded_images_labels,
                                                                                         batch_size=self.batch_size,
                                                                                         rotate_angle=self.cur_rotation_angle)
 
-                self.all_avg_accuracy.append(avg_accuracy)
-                self.all_avg_accuracy_per_digit.append(avg_accuracy_per_digit)
+                avg_accuracy_2, avg_accuracy_per_digit_2 = nero_run_model.run_mnist_once(self.model_2,
+                                                                                        self.cur_images_pt,
+                                                                                        self.loaded_images_labels,
+                                                                                        batch_size=self.batch_size,
+                                                                                        rotate_angle=self.cur_rotation_angle)
 
-            print(len(self.all_avg_accuracy))
+                # append to results
+                self.all_avg_accuracy_1.append(avg_accuracy_1)
+                self.all_avg_accuracy_per_digit_1.append(avg_accuracy_per_digit_1)
+                self.all_avg_accuracy_2.append(avg_accuracy_2)
+                self.all_avg_accuracy_per_digit_2.append(avg_accuracy_per_digit_2)
 
-            # avg_loss, avg_accuracy, avg_loss_per_digit, avg_accuracy_per_digit, individual_losses_per_digit = self.all_outputs_2.append(nero_run_model.run_mnist_once(self.model_2, self.cur_images_pt))
+            # initialize digit selection control
+            self.init_aggregate_polar_control()
 
-
-
-
+            # display the result
+            self.display_mnist_aggregate_result()
 
 
     # run model on a single test sample with no transfomations
@@ -718,7 +774,7 @@ class UI_MainWindow(QWidget):
                 self.repaint = True
 
             # display result
-            self.display_mnist_result(mode='bar', boundary_width=3)
+            self.display_mnist_single_result(mode='bar', boundary_width=3)
         elif self.mode == 'object_detection':
             print('Not yet implemented')
 
@@ -769,7 +825,7 @@ class UI_MainWindow(QWidget):
                 self.repaint = True
 
             # display result
-            self.display_mnist_result(mode='polar', boundary_width=3)
+            self.display_mnist_single_result(mode='polar', boundary_width=3)
 
         elif self.mode == 'object_detection':
             print('Not yet implemented')
@@ -816,8 +872,90 @@ class UI_MainWindow(QWidget):
         painter.drawLine(int(0.6*width), int(0.75*height), width, height//2)
 
 
+    # draw a polar plot
+    def draw_polar(self, plot):
+        plot.setXRange(-1, 1)
+        plot.setYRange(-1, 1)
+        plot.setAspectLocked()
 
-    def display_mnist_result(self, mode, boundary_width):
+        # Add polar grid lines
+        plot.addLine(x=0, pen=pg.mkPen('black', width=2))
+        plot.addLine(y=0, pen=pg.mkPen('black', width=2))
+        for r in np.arange(0, 1.2, 0.2):
+            circle = pg.QtGui.QGraphicsEllipseItem(-r, -r, 2*r, 2*r)
+            circle.setPen(pg.mkPen('black', width=2))
+            plot.addItem(circle)
+
+        return plot
+
+
+    # display MNIST aggregated results
+    def display_mnist_aggregate_result(self):
+
+        # initialize view and plot
+        polar_view = pg.GraphicsLayoutWidget()
+        polar_view.setBackground('white')
+        polar_view.setFixedSize(600, 600)
+        self.aggregate_polar_plot = polar_view.addPlot()
+        self.aggregate_polar_plot = self.draw_polar(self.aggregate_polar_plot)
+
+        # Set pxMode=False to allow spots to transform with the view
+        # all the points to be plotted
+        self.aggregate_scatter_items = pg.ScatterPlotItem(pxMode=False)
+        all_points_1 = []
+        all_points_2 = []
+        all_x_1 = []
+        all_y_1 = []
+        all_x_2 = []
+        all_y_2 = []
+        # plot selected digit's average accuracy across all rotations
+        for i in range(len(self.all_angles)):
+            radian = self.all_angles[i] / 180 * np.pi
+            # model 1 accuracy
+            cur_quantity_1 = self.all_avg_accuracy_per_digit_1[i][self.digit_selection]
+            # Transform to cartesian and plot
+            x_1 = cur_quantity_1 * np.cos(radian)
+            y_1 = cur_quantity_1 * np.sin(radian)
+            all_x_1.append(x_1)
+            all_y_1.append(y_1)
+            all_points_1.append({'pos': (x_1, y_1),
+                                'size': 0.05,
+                                'pen': {'color': 'w', 'width': 0.1},
+                                'brush': (0, 0, 255, 150)})
+
+            # model 2 quantity
+            cur_quantity_2 = self.all_avg_accuracy_per_digit_2[i][self.digit_selection]
+            # Transform to cartesian and plot
+            x_2 = cur_quantity_2 * np.cos(radian)
+            y_2 = cur_quantity_2 * np.sin(radian)
+            all_x_2.append(x_2)
+            all_y_2.append(y_2)
+            all_points_2.append({'pos': (x_2, y_2),
+                                'size': 0.05,
+                                'pen': {'color': 'w', 'width': 0.1},
+                                'brush': (0, 255, 0, 150)})
+
+        # draw lines to better show shape
+        line_1 = self.aggregate_polar_plot.plot(all_x_1, all_y_1, pen = QtGui.QPen(QtGui.Qt.blue, 0.03))
+        line_2 = self.aggregate_polar_plot.plot(all_x_2, all_y_2, pen = QtGui.QPen(QtGui.Qt.green, 0.03))
+
+        # add points to the item
+        self.aggregate_scatter_items.addPoints(all_points_1)
+        self.aggregate_scatter_items.addPoints(all_points_2)
+
+        # add points to the plot
+        self.aggregate_polar_plot.addItem(self.aggregate_scatter_items)
+
+        # fix zoom level
+        # self.polar_plot.vb.scaleBy((0.5, 0.5))
+        self.aggregate_polar_plot.setMouseEnabled(x=False, y=False)
+
+        # add the plot view to the layout
+        self.aggregate_result_layout.addWidget(polar_view, 0, 1)
+
+
+    # display MNIST single results
+    def display_mnist_single_result(self, mode, boundary_width):
 
         # use the result_layout
         mnist_pixmap = QPixmap(100, 50)
@@ -890,21 +1028,6 @@ class UI_MainWindow(QWidget):
             self.single_result_layout.addWidget(self.bar_plot, 0, 2)
 
         elif mode == 'polar':
-            # draw a polar plot
-            def draw_polar(plot):
-                plot.setXRange(-1, 1)
-                plot.setYRange(-1, 1)
-                plot.setAspectLocked()
-
-                # Add polar grid lines
-                plot.addLine(x=0, pen=pg.mkPen('black', width=2))
-                plot.addLine(y=0, pen=pg.mkPen('black', width=2))
-                for r in np.arange(0, 1.2, 0.2):
-                    circle = pg.QtGui.QGraphicsEllipseItem(-r, -r, 2*r, 2*r)
-                    circle.setPen(pg.mkPen('black', width=2))
-                    plot.addItem(circle)
-
-                return plot
 
             # helper function for clicking inside polar plot
             def clicked(plot, points):
@@ -961,7 +1084,7 @@ class UI_MainWindow(QWidget):
             polar_view.setBackground('white')
             polar_view.setFixedSize(600, 600)
             self.polar_plot = polar_view.addPlot()
-            self.polar_plot = draw_polar(self.polar_plot)
+            self.polar_plot = self.draw_polar(self.polar_plot)
 
             # Set pxMode=False to allow spots to transform with the view
             # all the points to be plotted

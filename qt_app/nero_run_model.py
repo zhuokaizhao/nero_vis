@@ -156,18 +156,13 @@ def run_mnist_once(model, test_image, test_label=None, batch_size=None, rotate_a
 
             # generate dataset and data loader
             if rotate_angle:
-                img_size = 28
-                if img_size != test_image.shape[2]:
-                    raise Exception(f'Warning: image shape {test_image.shape}, which means padding has been done before, \
-                                        result will be wrong')
+                img_size = 29
 
                 # transform includes upsample, rotate, downsample and padding (right and bottom) to image_size
                 transform = torchvision.transforms.Compose([
                     torchvision.transforms.Resize(img_size*3),
                     torchvision.transforms.RandomRotation(degrees=(rotate_angle, rotate_angle), interpolation=torchvision.transforms.InterpolationMode.BILINEAR, expand=False),
                     torchvision.transforms.Resize(img_size),
-                    torchvision.transforms.Normalize((0.1307,), (0.3081,)),
-                    torchvision.transforms.Pad((0, 0, 1, 1), fill=0, padding_mode='constant'),
                 ])
             else:
                 transform = None
@@ -207,11 +202,11 @@ def run_mnist_once(model, test_image, test_label=None, batch_size=None, rotate_a
                 batch_time_end = time.time()
                 batch_time_cost = batch_time_end - batch_time_start
 
-                print_progress_bar(iteration=batch_idx+1,
-                                    total=len(test_loader),
-                                    prefix=f'Test batch {batch_idx+1}/{len(test_loader)},',
-                                    suffix='%s: %.3f, time: %.2f' % ('CE loss', all_batch_avg_losses[-1], batch_time_cost),
-                                    length=50)
+                # print_progress_bar(iteration=batch_idx+1,
+                #                     total=len(test_loader),
+                #                     prefix=f'Test batch {batch_idx+1}/{len(test_loader)},',
+                #                     suffix='%s: %.3f, time: %.2f' % ('CE loss', all_batch_avg_losses[-1], batch_time_cost),
+                #                     length=50)
 
             # average (over digits) loss and accuracy
             avg_accuracy = total_num_correct / len(test_loader.dataset)
