@@ -363,9 +363,6 @@ class UI_MainWindow(QWidget):
             if text == 'Please select input image':
                 return
 
-            # resize window
-            self.resize(1920, 1080)
-
             # clear the aggregate dataset selection
             self.aggregate_image_menu.setCurrentIndex(0)
             # clear previous result layout
@@ -374,15 +371,14 @@ class UI_MainWindow(QWidget):
                 self.aggregate_result_existed = False
                 self.data_existed = False
             if self.single_result_existed:
-                print('cleared')
                 self.clear_layout(self.single_result_layout)
                 self.single_result_existed = False
                 self.image_existed = False
 
+            self.data_mode = 'single'
             self.init_single_result_layout()
 
             print('Loaded image:', text)
-            self.data_mode = 'single'
             self.image_index = int(text.split(' ')[-1])
             self.image_path = self.mnist_images_paths[self.image_index]
             # load the image and scale the size
