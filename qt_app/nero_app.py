@@ -30,6 +30,9 @@ else:
 class UI_MainWindow(QWidget):
     def __init__(self):
         super().__init__()
+        # window size
+        # self.setFixedSize(1920, 1080)
+        self.resize(1920, 1080)
         # set window title
         self.setWindowTitle('Non-Equivariance Revealed on Orbits')
         # white background color
@@ -235,6 +238,7 @@ class UI_MainWindow(QWidget):
 
         # create label to contain the texts
         self.mode_label = QLabel(self)
+        self.mode_label.setFixedSize(QtCore.QSize(150, 30))
         self.mode_label.setAlignment(QtCore.Qt.AlignLeft)
         self.mode_label.setWordWrap(True)
         self.mode_label.setTextFormat(QtGui.Qt.AutoText)
@@ -244,6 +248,7 @@ class UI_MainWindow(QWidget):
 
         # radio_buttons_layout = QtWidgets.QGridLayout(self)
         self.radio_button_1 = QRadioButton('Digit recognition')
+        self.radio_button_1.setFixedSize(QtCore.QSize(400, 50))
         self.radio_button_1.setStyleSheet('QRadioButton{font: 18pt Helvetica;} QRadioButton::indicator { width: 18px; height: 18px;};')
         self.radio_button_1.pressed.connect(digit_recognition_button_clicked)
         self.control_layout.addWidget(self.radio_button_1, 0, 1)
@@ -251,6 +256,7 @@ class UI_MainWindow(QWidget):
         # self.control_layout.addSpacing(30)
 
         self.radio_button_2 = QRadioButton('Object detection')
+        self.radio_button_2.setFixedSize(QtCore.QSize(400, 50))
         self.radio_button_2.setStyleSheet('QRadioButton{font: 18pt Helvetica;} QRadioButton::indicator { width: 18px; height: 18px;};')
         self.radio_button_2.pressed.connect(object_detection_button_clicked)
         self.control_layout.addWidget(self.radio_button_2, 1, 1)
@@ -258,9 +264,13 @@ class UI_MainWindow(QWidget):
         # self.control_layout.addSpacing(30)
 
         self.radio_button_3 = QRadioButton('Particle Image Velocimetry (PIV)')
+        self.radio_button_3.setFixedSize(QtCore.QSize(400, 50))
         self.radio_button_3.setStyleSheet('QRadioButton{font: 18pt Helvetica;} QRadioButton::indicator { width: 18px; height: 18px;};')
         self.radio_button_3.pressed.connect(piv_button_clicked)
         self.control_layout.addWidget(self.radio_button_3, 2, 1)
+
+        # self.control_layout.setRowStretch(0, 0)
+        # self.control_layout.setColumnStretch(0, 0)
 
         # add to general layout
         self.layout.addLayout(self.control_layout, 0, 0)
@@ -293,8 +303,13 @@ class UI_MainWindow(QWidget):
             # clear previous result layout
             if self.aggregate_result_existed:
                 self.clear_layout(self.aggregate_result_layout)
+                self.aggregate_result_existed = False
+                self.data_existed = False
             if self.single_result_existed:
                 self.clear_layout(self.single_result_layout)
+                self.single_result_existed = False
+                self.image_existed = False
+
             self.init_aggregate_result_layout()
 
             print('Loaded dataset:', text)
@@ -348,17 +363,23 @@ class UI_MainWindow(QWidget):
             if text == 'Please select input image':
                 return
 
+            # resize window
+            self.resize(1920, 1080)
+
             # clear the aggregate dataset selection
             self.aggregate_image_menu.setCurrentIndex(0)
             # clear previous result layout
             if self.aggregate_result_existed:
                 self.clear_layout(self.aggregate_result_layout)
                 self.aggregate_result_existed = False
+                self.data_existed = False
             if self.single_result_existed:
                 self.clear_layout(self.single_result_layout)
                 self.single_result_existed = False
+                self.image_existed = False
 
-            self.init_single_result_layout()
+            if not self.image_existed:
+                self.init_single_result_layout()
 
             print('Loaded image:', text)
             self.data_mode = 'single'
@@ -380,7 +401,7 @@ class UI_MainWindow(QWidget):
 
 
             # display the image
-            self.display_image(mode='single')
+            self.display_image()
             self.image_existed = True
 
             # show the run button when data is loaded
@@ -486,6 +507,7 @@ class UI_MainWindow(QWidget):
 
         # create label to contain the texts
         self.model_label = QLabel(self)
+        self.model_label.setFixedSize(QtCore.QSize(300, 30))
         self.model_label.setAlignment(QtCore.Qt.AlignLeft)
         self.model_label.setWordWrap(True)
         self.model_label.setTextFormat(QtGui.Qt.AutoText)
@@ -495,7 +517,7 @@ class UI_MainWindow(QWidget):
 
         # aggregate images loading drop down menu
         self.aggregate_image_menu = QtWidgets.QComboBox()
-        self.aggregate_image_menu.setMinimumSize(QtCore.QSize(250, 50))
+        self.aggregate_image_menu.setFixedSize(QtCore.QSize(300, 50))
         self.aggregate_image_menu.setStyleSheet('font-size: 18px')
         self.aggregate_image_menu.addItem('Please select input dataset')
         if self.mode == 'digit_recognition':
@@ -520,7 +542,7 @@ class UI_MainWindow(QWidget):
 
         # single image loading drop down menu
         self.image_menu = QtWidgets.QComboBox()
-        self.image_menu.setMinimumSize(QtCore.QSize(250, 50))
+        self.image_menu.setFixedSize(QtCore.QSize(300, 50))
         self.image_menu.setStyleSheet('font-size: 18px')
         self.image_menu.addItem('Please select input image')
         if self.mode == 'digit_recognition':
@@ -734,7 +756,8 @@ class UI_MainWindow(QWidget):
                 # get the clicked scatter item's information
                 self.image_index = int(item.opts['name'])
                 # start single result view from here
-                self.init_single_result_layout()
+                if not self.image_existed:
+                    self.init_single_result_layout()
                 self.image_path = self.all_images_paths[self.image_index]
 
                 # load the image and scale the size
@@ -752,7 +775,7 @@ class UI_MainWindow(QWidget):
                 self.cur_image_pt = nero_transform.prepare_mnist_image(self.cur_image_pt)
 
                 # display the image
-                self.display_image(mode='single')
+                self.display_image()
 
                 # run model once and display results (Detailed bar plot)
                 self.run_model_once()
@@ -923,7 +946,7 @@ class UI_MainWindow(QWidget):
                 self.repaint = True
 
             # display result
-            self.display_mnist_single_result(mode='bar', boundary_width=3)
+            self.display_mnist_single_result(mode=self.data_mode, type='bar', boundary_width=3)
         elif self.mode == 'object_detection':
             print('Not yet implemented')
 
@@ -974,13 +997,13 @@ class UI_MainWindow(QWidget):
                 self.repaint = True
 
             # display result
-            self.display_mnist_single_result(mode='polar', boundary_width=3)
+            self.display_mnist_single_result(mode=self.data_mode, type='polar', boundary_width=3)
 
         elif self.mode == 'object_detection':
             print('Not yet implemented')
 
 
-    def display_image(self, mode):
+    def display_image(self):
 
         # single image case
         # prepare a pixmap for the image
@@ -1001,12 +1024,12 @@ class UI_MainWindow(QWidget):
         name_label.setAlignment(QtCore.Qt.AlignCenter)
 
         # add this image to the layout
-        if mode == 'single':
+        if self.data_mode == 'single':
             self.single_result_layout.addWidget(self.image_label, 0, 0)
             self.single_result_layout.addWidget(name_label, 1, 0)
-        elif mode == 'aggregate':
-            self.single_result_layout.addWidget(self.image_label, 0, 1)
-            self.single_result_layout.addWidget(name_label, 1, 1)
+        elif self.data_mode == 'aggregate':
+            self.single_result_layout.addWidget(self.image_label, 0, 2)
+            self.single_result_layout.addWidget(name_label, 1, 2)
 
         # when loaded multiple images
 
@@ -1114,24 +1137,26 @@ class UI_MainWindow(QWidget):
 
 
     # display MNIST single results
-    def display_mnist_single_result(self, mode, boundary_width):
+    def display_mnist_single_result(self, mode, type, boundary_width):
 
-        # use the result_layout
-        mnist_pixmap = QPixmap(100, 50)
-        mnist_pixmap.fill(QtCore.Qt.white)
-        # draw arrow
-        painter = QtGui.QPainter(mnist_pixmap)
-        # set pen (used to draw outlines of shapes) and brush (draw the background of a shape)
-        pen = QtGui.QPen()
-        # draw arrow to indicate feeding
-        self.draw_arrow(painter, pen, 100, 50, boundary_width)
+        # aggregate mode does not draw arrow
+        if mode == 'single':
+            mnist_pixmap = QPixmap(100, 50)
+            mnist_pixmap.fill(QtCore.Qt.white)
+            # draw arrow
+            painter = QtGui.QPainter(mnist_pixmap)
+            # set pen (used to draw outlines of shapes) and brush (draw the background of a shape)
+            pen = QtGui.QPen()
+            # draw arrow to indicate feeding
+            self.draw_arrow(painter, pen, 100, 50, boundary_width)
 
-        # add to the label and layout
-        self.mnist_label.setPixmap(mnist_pixmap)
-        self.single_result_layout.addWidget(self.mnist_label, 0, 1)
+            # add to the label and layout
+            self.mnist_label.setPixmap(mnist_pixmap)
+            self.single_result_layout.addWidget(self.mnist_label, 0, 1)
+            painter.end()
 
         # draw result using bar plot
-        if mode == 'bar':
+        if type == 'bar':
             # create individual bar (item) for individual hover/click control
             class InteractiveBarItem(pg.BarGraphItem):
                 def __init__(self, *args, **kwargs):
@@ -1183,10 +1208,12 @@ class UI_MainWindow(QWidget):
             self.bar_plot.addItem(graph_2)
             # disable moving around
             self.bar_plot.setMouseEnabled(x=False, y=False)
+            if mode == 'single':
+                self.single_result_layout.addWidget(self.bar_plot, 0, 2)
+            elif mode == 'aggregate':
+                self.single_result_layout.addWidget(self.bar_plot, 0, 0)
 
-            self.single_result_layout.addWidget(self.bar_plot, 0, 2)
-
-        elif mode == 'polar':
+        elif type == 'polar':
 
             # helper function for clicking inside polar plot
             def clicked(item, points):
@@ -1384,8 +1411,6 @@ class UI_MainWindow(QWidget):
         else:
             raise Exception('Unsupported display mode')
 
-        painter.end()
-
 
     def mouseMoveEvent(self, event):
         # print("mouseMoveEvent")
@@ -1414,6 +1439,7 @@ class UI_MainWindow(QWidget):
 
             # update the model output
             if self.result_existed:
+
                 self.run_model_once()
 
                 # remove old line
@@ -1470,7 +1496,7 @@ if __name__ == "__main__":
 
     app = QtWidgets.QApplication([])
     widget = UI_MainWindow()
-    widget.resize(1920, 1080)
+    # widget.resize(1920, 1080)
     widget.show()
 
     sys.exit(app.exec())
