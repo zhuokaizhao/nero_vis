@@ -67,9 +67,10 @@ def main():
         # randomly pick 10 indices where each class has one
         sample_indices = []
         existed_classes = []
-        while len(sample_indices) <= num_samples:
+        while len(sample_indices) < num_samples:
             cur_sample_index = random.sample(range(0, data_size-1), 1)[0]
-            if existed_classes.count(labels[cur_sample_index]) != num_samples//10:
+
+            if existed_classes.count(labels[cur_sample_index]) < num_samples//10 and cur_sample_index not in sample_indices:
                 existed_classes.append(labels[cur_sample_index])
                 sample_indices.append(cur_sample_index)
 
@@ -78,12 +79,9 @@ def main():
             image = np.asarray(image).astype(np.uint8)
 
             # save image as png
-            # image_dir = os.path.join(output_dir, f'{label}')
-            # if not os.path.exists(image_dir):
-            #     os.mkdir(image_dir)
             Image.fromarray(image).save(os.path.join(output_dir, f'label_{label}_sample_{index}.png'))
 
-    print(f'{num_samples} {name} images have been selected and saved')
+    print(f'{len(sample_indices)} {name} images have been selected and saved')
 
 
 if __name__ == '__main__':
