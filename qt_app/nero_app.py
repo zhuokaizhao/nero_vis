@@ -681,8 +681,59 @@ class UI_MainWindow(QWidget):
 
         # run PCA on demand
         @QtCore.Slot()
-        def run_pca():
-            print('Run PCA')
+        def run_dimension_reduction():
+            # helper function on computing dimension reduction via PCA
+            def run_pca(high_dim, target_dim):
+                # get covariance matrix
+                cov_matrix = np.cov(high_dim.T)
+                # eigendecomposition
+                values, vectors = np.linalg.eig(cov_matrix)
+                values = np.real(values)
+                vectors = np.real(vectors)
+
+                # project onto principle components
+                low_dim = np.zeros((len(high_dim), target_dim))
+                for i in range(target_dim):
+                    low_dim[:, i] = high_dim.dot(vectors.T[i])
+
+                return low_dim
+
+            # run pca of all images on the selected digit
+            # each image has tensor with length being the number of rotations
+            cur_digit_indices = []
+            for i in range(len(self.loaded_images_labels)):
+                if self.digit_selection == self.loaded_images_labels[i]:
+                    cur_digit_indices.append(i)
+
+            all_high_dim_points_1 = np.zeros((len(cur_digit_indices), len(self.all_angles)))
+            all_high_dim_points_2 = np.zeros((len(cur_digit_indices), len(self.all_angles)))
+            for i, index in enumerate(cur_digit_indices):
+                all_high_dim_points_1[i] = self.all_avg_accuracy_per_digit_1[index]
+                all_high_dim_points_2[i] = self.all_avg_accuracy_per_digit_2[index]
+
+            # run dimension reduction algorithm
+            low_dim_1 = run_pca(all_high_dim_points_1, target_dim=2)
+            low_dim_2 = run_pca(all_high_dim_points_2, target_dim=2)
+
+            # scatter plot on low-dim points
+            low_dim_scatter_view = pg.GraphicsLayoutWidget()
+            low_dim_scatter_view.setBackground('white')
+            low_dim_scatter_view.setFixedSize(600, 600)
+            self.low_dim_scatter_plot = low_dim_scatter_view.addPlot()
+
+            # Set pxMode=False to allow spots to transform with the view
+            # all the points to be plotted
+            self.low_dim_scatter_items = pg.ScatterPlotItem(pxMode=False)
+
+            # add points to the item
+            self.low_dim_scatter_items.addPoints(low_dim_1)
+            self.low_dim_scatter_items.addPoints(low_dim_2)
+
+            # add points to the plot
+            self.polar_plot.addItem(self.scatter_items)
+            # connect click events on scatter items
+            self.scatter_items.sigClicked.connect(clicked)
+
 
 
         # drop down menu on choosing the digit
@@ -711,7 +762,7 @@ class UI_MainWindow(QWidget):
         self.pca_button = QtWidgets.QPushButton('See Overview')
         self.pca_button.setStyleSheet('font-size: 18px')
         self.pca_button.setMinimumSize(QtCore.QSize(250, 50))
-        self.pca_button.clicked.connect(run_pca)
+        self.pca_button.clicked.connect(run_dimension_reduction)
         self.aggregate_result_layout.addWidget(self.pca_button, 1, 2)
 
 
