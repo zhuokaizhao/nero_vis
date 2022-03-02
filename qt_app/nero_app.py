@@ -1,3 +1,4 @@
+import enum
 from gc import callbacks
 import os
 import sys
@@ -675,7 +676,12 @@ class UI_MainWindow(QWidget):
         @QtCore.Slot()
         def aggregate_digit_selection_changed(text):
             # update the current digit selection
-            self.digit_selection = int(text.split(' ')[-1])
+            # if average or a specific digit
+            if text.split(' ')[0] == 'Average':
+                self.digit_selection = -1
+            elif text.split(' ')[0] == 'Digit':
+                self.digit_selection = int(text.split(' ')[-1])
+
             # display the plot
             self.display_mnist_aggregate_result()
 
@@ -698,6 +704,29 @@ class UI_MainWindow(QWidget):
 
                 return low_dim
 
+            # helper function for clicking inside the scatter plot
+            def clicked(plot, points):
+
+                # clear previously selected point's visual cue
+                if self.last_clicked:
+                    self.last_clicked.resetPen()
+                    self.last_clicked.setBrush(self.old_brush)
+
+                # only allow clicking one point at a time
+                # save the old brush
+                if points[0].brush() == pg.mkBrush(0, 0, 255, 150):
+                    self.old_brush = pg.mkBrush(0, 0, 255, 150)
+
+                elif points[0].brush() == pg.mkBrush(0, 255, 0, 150):
+                    self.old_brush = pg.mkBrush(0, 255, 0, 150)
+
+                # create new brush
+                new_brush = pg.mkBrush(255, 0, 0, 255)
+                points[0].setBrush(new_brush)
+                points[0].setPen(5)
+
+                self.last_clicked = points[0]
+
             # run pca of all images on the selected digit
             # each image has tensor with length being the number of rotations
             cur_digit_indices = []
@@ -708,8 +737,9 @@ class UI_MainWindow(QWidget):
             all_high_dim_points_1 = np.zeros((len(cur_digit_indices), len(self.all_angles)))
             all_high_dim_points_2 = np.zeros((len(cur_digit_indices), len(self.all_angles)))
             for i, index in enumerate(cur_digit_indices):
-                all_high_dim_points_1[i] = self.all_avg_accuracy_per_digit_1[index]
-                all_high_dim_points_2[i] = self.all_avg_accuracy_per_digit_2[index]
+                for j, rotation in enumerate(self.all_angles):
+                    all_high_dim_points_1[i, j] = self.all_outputs_1[rotation][index]
+                    all_high_dim_points_2[i, j] = self.all_outputs_2[rotation][index]
 
             # run dimension reduction algorithm
             low_dim_1 = run_pca(all_high_dim_points_1, target_dim=2)
@@ -730,9 +760,11 @@ class UI_MainWindow(QWidget):
             self.low_dim_scatter_items.addPoints(low_dim_2)
 
             # add points to the plot
-            self.polar_plot.addItem(self.scatter_items)
+            self.low_dim_scatter_plot.addItem(self.scatter_items)
             # connect click events on scatter items
-            self.scatter_items.sigClicked.connect(clicked)
+            self.low_dim_scatter_items.sigClicked.connect(clicked)
+
+            self.aggregate_result_layout.addWidget(low_dim_scatter_view, 0, 1)
 
 
 
@@ -741,13 +773,13 @@ class UI_MainWindow(QWidget):
         self.digit_selection_menu = QtWidgets.QComboBox()
         self.digit_selection_menu.setMinimumSize(QtCore.QSize(250, 50))
         self.digit_selection_menu.setStyleSheet('font-size: 18px')
-
+        self.digit_selection_menu.addItem(f'Averaged over all digits')
         # add all digits as items
         for i in range(10):
             self.digit_selection_menu.addItem(f'Digit {i}')
 
-        # set default to digit 0
-        self.digit_selection = 0
+        # set default to digit -1, which means the average one
+        self.digit_selection = -1
         self.digit_selection_menu.setCurrentIndex(0)
 
         # connect the drop down menu with actions
@@ -769,34 +801,43 @@ class UI_MainWindow(QWidget):
     # run model on the aggregate dataset
     def run_model_aggregated(self):
         if self.mode == 'digit_recognition':
-            self.all_angles = []
-            self.all_avg_accuracy_1 = []
-            self.all_avg_accuracy_per_digit_1 = []
-            self.all_avg_accuracy_2 = []
-            self.all_avg_accuracy_per_digit_2 = []
-            # for all the loaded images
-            # for self.cur_rotation_angle in range(0, 365, 5):
-            for self.cur_rotation_angle in range(0, 365, 90):
-                print(f'\nAggregate mode: Rotated {self.cur_rotation_angle} degrees')
-                self.all_angles.append(self.cur_rotation_angle)
+            # all the rotation angles applied to the aggregated dataset
+            self.all_angles = list(range(0, 365, 90))
+            # average accuracies over all digits under all rotations, has shape (num_rotations, 1)
+            self.all_avg_accuracy_1 = np.zeros(len(self.all_angles))
+            self.all_avg_accuracy_2 = np.zeros(len(self.all_angles))
+            # average accuracies of each digit under all rotations, has shape (num_rotations, 10)
+            self.all_avg_accuracy_per_digit_1 = np.zeros((len(self.all_angles), 10))
+            self.all_avg_accuracy_per_digit_2 = np.zeros((len(self.all_angles), 10))
+            # output of each class's probablity of all samples, has shape (num_rotations, num_samples, 10)
+            self.all_outputs_1 = np.zeros((len(self.all_angles), len(self.cur_images_pt), 10))
+            self.all_outputs_2 = np.zeros((len(self.all_angles), len(self.cur_images_pt), 10))
 
-                avg_accuracy_1, avg_accuracy_per_digit_1 = nero_run_model.run_mnist_once(self.model_1,
+            # for all the loaded images
+            # for i, self.cur_rotation_angle in enumerate(range(0, 365, 5)):
+            for i, self.cur_rotation_angle in enumerate(range(0, 365, 90)):
+                print(f'\nAggregate mode: Rotated {self.cur_rotation_angle} degrees')
+                # self.all_angles.append(self.cur_rotation_angle)
+
+                avg_accuracy_1, avg_accuracy_per_digit_1, output_1 = nero_run_model.run_mnist_once(self.model_1,
                                                                                         self.cur_images_pt,
                                                                                         self.loaded_images_labels,
                                                                                         batch_size=self.batch_size,
                                                                                         rotate_angle=self.cur_rotation_angle)
 
-                avg_accuracy_2, avg_accuracy_per_digit_2 = nero_run_model.run_mnist_once(self.model_2,
+                avg_accuracy_2, avg_accuracy_per_digit_2, output_2 = nero_run_model.run_mnist_once(self.model_2,
                                                                                         self.cur_images_pt,
                                                                                         self.loaded_images_labels,
                                                                                         batch_size=self.batch_size,
                                                                                         rotate_angle=self.cur_rotation_angle)
 
                 # append to results
-                self.all_avg_accuracy_1.append(avg_accuracy_1)
-                self.all_avg_accuracy_per_digit_1.append(avg_accuracy_per_digit_1)
-                self.all_avg_accuracy_2.append(avg_accuracy_2)
-                self.all_avg_accuracy_per_digit_2.append(avg_accuracy_per_digit_2)
+                self.all_avg_accuracy_1[i] = avg_accuracy_1
+                self.all_avg_accuracy_2[i] = avg_accuracy_2
+                self.all_avg_accuracy_per_digit_1[i] = avg_accuracy_per_digit_1
+                self.all_avg_accuracy_per_digit_2[i] = avg_accuracy_per_digit_2
+                self.all_outputs_1[i] = output_1
+                self.all_outputs_2[i] = output_2
 
             # initialize digit selection control
             self.init_aggregate_polar_control()
@@ -963,7 +1004,10 @@ class UI_MainWindow(QWidget):
         for i in range(len(self.all_angles)):
             radian = self.all_angles[i] / 180 * np.pi
             # model 1 accuracy
-            cur_quantity_1 = self.all_avg_accuracy_per_digit_1[i][self.digit_selection]
+            if self.digit_selection == -1:
+                cur_quantity_1 = self.all_avg_accuracy_1[i]
+            else:
+                cur_quantity_1 = self.all_avg_accuracy_per_digit_1[i][self.digit_selection]
             # Transform to cartesian and plot
             x_1 = cur_quantity_1 * np.cos(radian)
             y_1 = cur_quantity_1 * np.sin(radian)
@@ -975,7 +1019,10 @@ class UI_MainWindow(QWidget):
                                 'brush': (0, 0, 255, 150)})
 
             # model 2 quantity
-            cur_quantity_2 = self.all_avg_accuracy_per_digit_2[i][self.digit_selection]
+            if self.digit_selection == -1:
+                cur_quantity_2 = self.all_avg_accuracy_2[i]
+            else:
+                cur_quantity_2 = self.all_avg_accuracy_per_digit_2[i][self.digit_selection]
             # Transform to cartesian and plot
             x_2 = cur_quantity_2 * np.cos(radian)
             y_2 = cur_quantity_2 * np.sin(radian)

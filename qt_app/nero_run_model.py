@@ -138,6 +138,7 @@ def run_mnist_once(model, test_image, test_label=None, batch_size=None, rotate_a
 
         elif len(test_image.shape) == 4 and batch_size:
             loss_function = torch.nn.CrossEntropyLoss(reduction='none')
+            all_output = np.zeros((len(test_image), 10))
             all_batch_avg_losses = []
             total_num_correct = 0
             # number of correct for each digit
@@ -179,6 +180,7 @@ def run_mnist_once(model, test_image, test_label=None, batch_size=None, rotate_a
 
                 # inference
                 output = model(data)
+                all_output[batch_idx*batch_size:(batch_idx+1)*batch_size, :] = output.cpu().detach().numpy()
                 loss = loss_function(output, target)
                 all_batch_avg_losses.append(torch.mean(loss).item())
 
@@ -214,7 +216,7 @@ def run_mnist_once(model, test_image, test_label=None, batch_size=None, rotate_a
             avg_accuracy_per_digit = num_correct_per_digit / num_digits_per_digit
 
             # return the averaged batch loss
-            return avg_accuracy, avg_accuracy_per_digit
+            return avg_accuracy, avg_accuracy_per_digit, all_output
 
 
 # object detection (coco)
