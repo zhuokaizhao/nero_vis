@@ -374,12 +374,12 @@ class UI_MainWindow(QWidget):
                 self.aggregate_result_existed = False
                 self.data_existed = False
             if self.single_result_existed:
+                print('cleared')
                 self.clear_layout(self.single_result_layout)
                 self.single_result_existed = False
                 self.image_existed = False
 
-            if not self.image_existed:
-                self.init_single_result_layout()
+            self.init_single_result_layout()
 
             print('Loaded image:', text)
             self.data_mode = 'single'
@@ -668,7 +668,10 @@ class UI_MainWindow(QWidget):
         self.single_result_layout.setContentsMargins(30, 50, 30, 50)
 
         # add to general layout
-        self.layout.addLayout(self.single_result_layout, 1, 0)
+        if self.data_mode == 'single':
+            self.layout.addLayout(self.single_result_layout, 1, 0)
+        elif self.data_mode == 'aggregate':
+            self.layout.addLayout(self.single_result_layout, 1, 2)
 
         # if model result ever existed
         self.single_result_existed = False
@@ -698,7 +701,7 @@ class UI_MainWindow(QWidget):
         def aggregate_digit_selection_changed(text):
             # update the current digit selection
             # if average or a specific digit
-            if text.split(' ')[0] == 'Average':
+            if text.split(' ')[0] == 'Averaged':
                 self.digit_selection = -1
             elif text.split(' ')[0] == 'Digit':
                 self.digit_selection = int(text.split(' ')[-1])
@@ -797,10 +800,10 @@ class UI_MainWindow(QWidget):
                     if self.digit_selection == self.loaded_images_labels[i]:
                         cur_digit_indices.append(i)
 
-            all_high_dim_points_1 = np.zeros((len(cur_digit_indices), len(self.all_angles)))
-            all_high_dim_points_2 = np.zeros((len(cur_digit_indices), len(self.all_angles)))
+            all_high_dim_points_1 = np.zeros((len(cur_digit_indices), len(self.all_aggregate_angles)))
+            all_high_dim_points_2 = np.zeros((len(cur_digit_indices), len(self.all_aggregate_angles)))
             for i, index in enumerate(cur_digit_indices):
-                for j in range(len(self.all_angles)):
+                for j in range(len(self.all_aggregate_angles)):
                     # all_outputs has shape (num_rotations, num_samples, 10)
                     # all_high_dim_points_1[i, j] = self.all_outputs_1[j][index][self.loaded_images_labels[index]]
                     # all_high_dim_points_2[i, j] = self.all_outputs_2[j][index][self.loaded_images_labels[index]]
@@ -815,7 +818,7 @@ class UI_MainWindow(QWidget):
             # scatter plot on low-dim points
             low_dim_scatter_view = pg.GraphicsLayoutWidget()
             low_dim_scatter_view.setBackground('white')
-            low_dim_scatter_view.setFixedSize(600, 600)
+            low_dim_scatter_view.setFixedSize(500, 500)
             self.low_dim_scatter_plot = low_dim_scatter_view.addPlot()
 
             # Set pxMode=False to allow spots to transform with the view
@@ -882,20 +885,20 @@ class UI_MainWindow(QWidget):
     def run_model_aggregated(self):
         if self.mode == 'digit_recognition':
             # all the rotation angles applied to the aggregated dataset
-            self.all_angles = list(range(0, 365, 90))
+            self.all_aggregate_angles = list(range(0, 365, 90))
             # average accuracies over all digits under all rotations, has shape (num_rotations, 1)
-            self.all_avg_accuracy_1 = np.zeros(len(self.all_angles))
-            self.all_avg_accuracy_2 = np.zeros(len(self.all_angles))
+            self.all_avg_accuracy_1 = np.zeros(len(self.all_aggregate_angles))
+            self.all_avg_accuracy_2 = np.zeros(len(self.all_aggregate_angles))
             # average accuracies of each digit under all rotations, has shape (num_rotations, 10)
-            self.all_avg_accuracy_per_digit_1 = np.zeros((len(self.all_angles), 10))
-            self.all_avg_accuracy_per_digit_2 = np.zeros((len(self.all_angles), 10))
+            self.all_avg_accuracy_per_digit_1 = np.zeros((len(self.all_aggregate_angles), 10))
+            self.all_avg_accuracy_per_digit_2 = np.zeros((len(self.all_aggregate_angles), 10))
             # output of each class's probablity of all samples, has shape (num_rotations, num_samples, 10)
-            self.all_outputs_1 = np.zeros((len(self.all_angles), len(self.cur_images_pt), 10))
-            self.all_outputs_2 = np.zeros((len(self.all_angles), len(self.cur_images_pt), 10))
+            self.all_outputs_1 = np.zeros((len(self.all_aggregate_angles), len(self.cur_images_pt), 10))
+            self.all_outputs_2 = np.zeros((len(self.all_aggregate_angles), len(self.cur_images_pt), 10))
 
             # for all the loaded images
             # for i, self.cur_rotation_angle in enumerate(range(0, 365, 5)):
-            for i, self.cur_rotation_angle in enumerate(range(0, 365, 90)):
+            for i, self.cur_rotation_angle in enumerate(self.all_aggregate_angles):
                 print(f'\nAggregate mode: Rotated {self.cur_rotation_angle} degrees')
                 # self.all_angles.append(self.cur_rotation_angle)
 
@@ -1071,7 +1074,7 @@ class UI_MainWindow(QWidget):
         # initialize view and plot
         polar_view = pg.GraphicsLayoutWidget()
         polar_view.setBackground('white')
-        polar_view.setFixedSize(600, 600)
+        polar_view.setFixedSize(500, 500)
         self.aggregate_polar_plot = polar_view.addPlot()
         self.aggregate_polar_plot = self.draw_polar(self.aggregate_polar_plot)
 
@@ -1085,8 +1088,8 @@ class UI_MainWindow(QWidget):
         all_x_2 = []
         all_y_2 = []
         # plot selected digit's average accuracy across all rotations
-        for i in range(len(self.all_angles)):
-            radian = self.all_angles[i] / 180 * np.pi
+        for i in range(len(self.all_aggregate_angles)):
+            radian = self.all_aggregate_angles[i] / 180 * np.pi
             # model 1 accuracy
             if self.digit_selection == -1:
                 cur_quantity_1 = self.all_avg_accuracy_1[i]
@@ -1185,7 +1188,7 @@ class UI_MainWindow(QWidget):
             # constrain plot showing limit by setting view box
             self.bar_plot.plotItem.vb.setLimits(xMin=-0.5, xMax=9.5, yMin=0, yMax=1.2)
             self.bar_plot.setBackground('w')
-            self.bar_plot.setFixedSize(700, 600)
+            self.bar_plot.setFixedSize(600, 500)
             # for i in range(10):
             #     cur_graph_1 = InteractiveBarItem(name=f'{self.model_1_name}',
             #                                      x0=[i-0.2],
@@ -1268,7 +1271,7 @@ class UI_MainWindow(QWidget):
             # initialize view and plot
             polar_view = pg.GraphicsLayoutWidget()
             polar_view.setBackground('white')
-            polar_view.setFixedSize(600, 600)
+            polar_view.setFixedSize(500, 500)
             self.polar_plot = polar_view.addPlot()
             self.polar_plot = self.draw_polar(self.polar_plot)
 
