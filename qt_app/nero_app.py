@@ -153,7 +153,7 @@ class UI_MainWindow(QWidget):
                 self.init_load_layout()
 
                 # display mnist image size
-                self.display_image_size = 150
+                self.display_image_size = 300
                 # image (input data) modification mode
                 self.rotation = False
                 self.translation = False
@@ -374,21 +374,39 @@ class UI_MainWindow(QWidget):
             self.init_single_result_layout()
 
             print('Loaded image:', text)
-            self.image_index = int(text.split(' ')[-1])
-            self.image_path = self.single_images_paths[self.image_index]
-            # load the image and scale the size
-            self.loaded_image_pt = torch.from_numpy(np.asarray(Image.open(self.image_path)))[:, :, None]
-            self.loaded_image_name = self.image_path.split('/')[-1]
-            self.loaded_image_label = int(self.image_path.split('/')[-1].split('_')[1])
+            if self.mode == 'digit_recognition':
+                self.image_index = int(text.split(' ')[-1])
+                self.image_path = self.single_images_paths[self.image_index]
+                self.loaded_image_label = int(self.image_path.split('/')[-1].split('_')[1])
+                # load the image
+                self.loaded_image_pt = torch.from_numpy(np.asarray(Image.open(self.image_path)))[:, :, None]
+                self.loaded_image_name = self.image_path.split('/')[-1]
+            elif self.mode == 'object_detection':
+                self.image_index = self.coco_classes.index(text.split(' ')[0])
+                self.image_path = self.single_images_paths[self.image_index]
+                self.label_path = self.image_path.replace('png', 'npy')
+                self.loaded_image_label = np.load(self.label_path)
+                # the center of the bounding box is the center of cropped image
+                self.center_x = int((self.loaded_image_label[0] + self.loaded_image_label[2]) // 2)
+                self.center_y = int((self.loaded_image_label[1] + self.loaded_image_label[3]) // 2)
+
+                # load the image
+                self.loaded_image_pt = torch.from_numpy(np.asarray(Image.open(self.image_path).convert('RGB')))[self.center_x-64:self.center_x+64, self.center_y-64:self.center_y+64, :]
+                self.loaded_image_name = self.image_path.split('/')[-1]
 
             # keep a copy to represent the current (rotated) version of the original images
+            print(self.loaded_image_pt.shape)
             self.cur_image_pt = self.loaded_image_pt.clone()
             # convert to QImage for display purpose
             self.cur_display_image = nero_utilities.tensor_to_qt_image(self.cur_image_pt)
             # resize the display QImage
+            print(self.display_image_size)
             self.cur_display_image = self.cur_display_image.scaledToWidth(self.display_image_size)
             # prepare image tensor for model purpose
-            self.cur_image_pt = nero_transform.prepare_mnist_image(self.cur_image_pt)
+            if self.mode == 'digit_recognition':
+                self.cur_image_pt = nero_transform.prepare_mnist_image(self.cur_image_pt)
+            # elif self.mode == 'object_detection':
+            #     self.cur_image_pt = nero_transform.prepare_coco_image(self.cur_image_pt)
 
 
             # display the image
@@ -572,7 +590,7 @@ class UI_MainWindow(QWidget):
             for i, cur_class in enumerate(self.coco_classes):
                 cur_image_path = glob.glob(os.path.join(os.getcwd(), 'example_data', self.mode, 'single', f'{cur_class}*.png'))[0]
                 self.single_images_paths.append(cur_image_path)
-                self.image_menu.addItem(QtGui.QIcon(cur_image_path), f'Image {i}')
+                self.image_menu.addItem(QtGui.QIcon(cur_image_path), f'{cur_class} image')
 
             self.image_menu.setCurrentIndex(0)
 

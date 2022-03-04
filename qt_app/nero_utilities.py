@@ -43,7 +43,10 @@ def qt_image_to_tensor(img, share_memory=False):
 
 def tensor_to_qt_image(img_pt):
     img_np = img_pt.numpy()
-    # qt image uses width, height
-    img_qt = QtGui.QImage(img_np, img_np.shape[1], img_np.shape[0], QtGui.QImage.Format_Grayscale8)
+    if img_np.shape[-1] == 1:
+        # qt image uses width, height
+        img_qt = QtGui.QImage(img_np, img_np.shape[1], img_np.shape[0], QtGui.QImage.Format_Grayscale8)
+    elif img_np.shape[-1] == 3:
+        img_qt = QtGui.QImage(img_np, img_np.shape[1], img_np.shape[0], QtGui.QImage.Format_RGB888)
 
     return img_qt

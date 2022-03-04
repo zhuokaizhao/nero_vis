@@ -29,3 +29,15 @@ def prepare_mnist_image(image):
     image = torch.permute(image, (1, 2, 0))
 
     return image
+
+
+# prepare mnist image tensor
+# def prepare_coco_image(image):
+#     # rearrange image format from (28, 28, 1) to (1, 28, 28)
+#     image = torch.permute(image, (2, 0, 1)).float()
+#     image = torchvision.transforms.Normalize((0.1307,), (0.3081,))(image)
+#     image = torchvision.transforms.Pad((0, 0, 1, 1), fill=0, padding_mode='constant')(image)
+#     # permute back
+#     image = torch.permute(image, (1, 2, 0))
+
+#     return image
