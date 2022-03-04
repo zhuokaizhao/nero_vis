@@ -387,8 +387,8 @@ class UI_MainWindow(QWidget):
                 self.label_path = self.image_path.replace('png', 'npy')
                 self.loaded_image_label = np.load(self.label_path)
                 # the center of the bounding box is the center of cropped image
-                self.center_x = int((self.loaded_image_label[0] + self.loaded_image_label[2]) // 2)
-                self.center_y = int((self.loaded_image_label[1] + self.loaded_image_label[3]) // 2)
+                self.center_x = int((self.loaded_image_label[1] + self.loaded_image_label[3]) // 2)
+                self.center_y = int((self.loaded_image_label[0] + self.loaded_image_label[2]) // 2)
 
                 # load the image
                 self.loaded_image_pt = torch.from_numpy(np.asarray(Image.open(self.image_path).convert('RGB')))[self.center_x-64:self.center_x+64, self.center_y-64:self.center_y+64, :]
