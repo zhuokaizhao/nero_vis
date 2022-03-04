@@ -1141,6 +1141,26 @@ class UI_MainWindow(QWidget):
         return plot
 
 
+    # helper function on drawing the little circle on polar plot
+    def draw_circle_on_polar(self):
+        r = 0.06
+        # transform to x and y coordinate
+        cur_quantity_1_x = self.output_1[self.loaded_image_label] * np.cos(self.cur_rotation_angle/180*np.pi)
+        cur_quantity_1_y = self.output_1[self.loaded_image_label] * np.sin(self.cur_rotation_angle/180*np.pi)
+        # plot a circle item
+        self.circle_1 = pg.QtGui.QGraphicsEllipseItem(cur_quantity_1_x-r/2, cur_quantity_1_y-r/2, r, r)
+        self.circle_1.setPen(pg.mkPen('blue', width=10))
+        self.polar_plot.addItem(self.circle_1)
+
+        # transform to x and y coordinate
+        cur_quantity_2_x = self.output_2[self.loaded_image_label] * np.cos(self.cur_rotation_angle/180*np.pi)
+        cur_quantity_2_y = self.output_2[self.loaded_image_label] * np.sin(self.cur_rotation_angle/180*np.pi)
+        # plot a circle item
+        self.circle_2 = pg.QtGui.QGraphicsEllipseItem(cur_quantity_2_x-r/2, cur_quantity_2_y-r/2, r, r)
+        self.circle_2.setPen(pg.mkPen('green', width=10))
+        self.polar_plot.addItem(self.circle_2)
+
+
     # display MNIST aggregated results
     def display_mnist_aggregate_result(self):
 
@@ -1396,24 +1416,6 @@ class UI_MainWindow(QWidget):
             # connect click events on scatter items
             self.scatter_items.sigClicked.connect(clicked)
 
-            # helper function on drawing the little circle on polar plot
-            def draw_circle_on_polar():
-                # transform to x and y coordinate
-                cur_quantity_1_x = self.output_1[self.loaded_image_label] * np.cos(self.cur_rotation_angle/180*np.pi)
-                cur_quantity_1_y = self.output_1[self.loaded_image_label] * np.sin(self.cur_rotation_angle/180*np.pi)
-                # plot a circle item
-                self.circle_1 = pg.QtGui.QGraphicsEllipseItem(cur_quantity_1_x, cur_quantity_1_y, 0.04, 0.04)
-                self.circle_1.setPen(pg.mkPen('blue', width=5))
-                self.polar_plot.addItem(self.circle_1)
-
-                # transform to x and y coordinate
-                cur_quantity_2_x = self.output_2[self.loaded_image_label] * np.cos(self.cur_rotation_angle/180*np.pi)
-                cur_quantity_2_y = self.output_2[self.loaded_image_label] * np.sin(self.cur_rotation_angle/180*np.pi)
-                # plot a circle item
-                self.circle_2 = pg.QtGui.QGraphicsEllipseItem(cur_quantity_2_x, cur_quantity_2_y, 0.04, 0.04)
-                self.circle_2.setPen(pg.mkPen('green', width=5))
-                self.polar_plot.addItem(self.circle_2)
-
             # used for clicking on the polar plot
             def polar_mouse_clicked(event):
                 self.polar_clicked = not self.polar_clicked
@@ -1457,7 +1459,7 @@ class UI_MainWindow(QWidget):
                     self.cur_line = self.polar_plot.plot(line_x, line_y, pen = QtGui.QPen(QtGui.Qt.red, 0.01))
 
                     # display current results on the line
-                    draw_circle_on_polar()
+                    self.draw_circle_on_polar()
 
             def polar_mouse_moved(event):
                 # check if the click is within the polar plot
@@ -1499,7 +1501,7 @@ class UI_MainWindow(QWidget):
                     self.cur_line = self.polar_plot.plot(line_x, line_y, pen = QtGui.QPen(QtGui.Qt.red, 0.01))
 
                     # display current results on the line
-                    draw_circle_on_polar()
+                    self.draw_circle_on_polar()
 
 
             self.polar_clicked = False
@@ -1550,6 +1552,8 @@ class UI_MainWindow(QWidget):
                 # remove old line
                 if self.cur_line:
                     self.polar_plot.removeItem(self.cur_line)
+                    self.polar_plot.removeItem(self.circle_1)
+                    self.polar_plot.removeItem(self.circle_2)
 
                 # draw a line that represents current angle of rotation
                 cur_x = 1 * np.cos(self.cur_rotation_angle/180*np.pi)
@@ -1557,6 +1561,9 @@ class UI_MainWindow(QWidget):
                 line_x = [0, cur_x]
                 line_y = [0, cur_y]
                 self.cur_line = self.polar_plot.plot(line_x, line_y, pen = QtGui.QPen(QtGui.Qt.red, 0.01))
+
+                # display current results on the line
+                self.draw_circle_on_polar()
 
             self.prev_mouse_pos = cur_mouse_pos
 
