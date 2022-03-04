@@ -54,6 +54,7 @@ class UI_MainWindow(QWidget):
 
         # initialize control panel on mode selection
         self.init_mode_control_layout()
+        self.image_existed = False
         self.run_button_existed = False
         self.aggregate_result_existed = False
         self.single_result_existed = False
@@ -93,7 +94,7 @@ class UI_MainWindow(QWidget):
                 if self.aggregate_result_existed:
                     print(f'Cleaned {self.previous_mode} aggregate_result_layout')
                     self.clear_layout(self.aggregate_result_layout)
-                if self.single_result_existed:
+                if self.image_existed:
                     print(f'Cleaned {self.previous_mode} single_result_layout')
                     self.clear_layout(self.single_result_layout)
 
@@ -146,7 +147,7 @@ class UI_MainWindow(QWidget):
                 if self.aggregate_result_existed:
                     print(f'Cleaned {self.previous_mode} aggregate_result_layout')
                     self.clear_layout(self.aggregate_result_layout)
-                if self.single_result_existed:
+                if self.image_existed:
                     print(f'Cleaned {self.previous_mode} single_result_layout')
                     self.clear_layout(self.single_result_layout)
 
@@ -191,7 +192,7 @@ class UI_MainWindow(QWidget):
                     self.clear_layout(self.load_menu_layout)
                 if self.aggregate_result_existed:
                     self.clear_layout(self.aggregate_result_layout)
-                if self.single_result_existed:
+                if self.image_existed:
                     self.clear_layout(self.single_result_layout)
 
             self.init_load_layout()
@@ -361,11 +362,11 @@ class UI_MainWindow(QWidget):
             # clear the aggregate dataset selection
             self.aggregate_image_menu.setCurrentIndex(0)
             # clear previous result layout
-            if self.aggregate_result_existed:
+            if self.data_existed:
                 self.clear_layout(self.aggregate_result_layout)
                 self.aggregate_result_existed = False
                 self.data_existed = False
-            if self.single_result_existed:
+            if self.image_existed:
                 self.clear_layout(self.single_result_layout)
                 self.single_result_existed = False
                 self.image_existed = False
@@ -409,7 +410,6 @@ class UI_MainWindow(QWidget):
             # display the image
             self.display_image()
             self.image_existed = True
-            self.single_result_existed = True
 
             # show the run button when data is loaded
             if not self.run_button_existed:
@@ -1008,6 +1008,7 @@ class UI_MainWindow(QWidget):
 
             # display result
             self.display_mnist_single_result(mode=self.data_mode, type='bar', boundary_width=3)
+
         elif self.mode == 'object_detection':
             print('Not yet implemented')
 
@@ -1079,6 +1080,22 @@ class UI_MainWindow(QWidget):
         # put pixmap in the label
         self.image_label.setPixmap(self.image_pixmap)
         self.image_label.setContentsMargins(0, 0, 0, 0)
+
+        # pixel mouse over for object detection mode
+        if self.mode == 'object_detection':
+            def getPixel(event):
+                x = event.pos().x()
+                y = event.pos().y()
+                # c = self.image_label.pixel(x, y)  # color code (integer): 3235912
+                # # depending on what kind of value you like (arbitary examples)
+                # c_qobj = QtGui.QColor(c)  # color object
+                # c_rgb = QtGui.QColor(c).getRgb()  # 8bit RGBA: (255, 23, 0, 255)
+                # c_rgbf = QtGui.QColor(c).getRgbf()  # RGBA float: (1.0, 0.3123, 0.0, 1.0)
+
+                print(x, y)
+                return x, y
+
+            self.image_label.mousePressEvent = getPixel
 
         # name of the image
         self.name_label = QLabel(self.loaded_image_name)
@@ -1379,6 +1396,24 @@ class UI_MainWindow(QWidget):
             # connect click events on scatter items
             self.scatter_items.sigClicked.connect(clicked)
 
+            # helper function on drawing the little circle on polar plot
+            def draw_circle_on_polar():
+                # transform to x and y coordinate
+                cur_quantity_1_x = self.output_1[self.loaded_image_label] * np.cos(self.cur_rotation_angle/180*np.pi)
+                cur_quantity_1_y = self.output_1[self.loaded_image_label] * np.sin(self.cur_rotation_angle/180*np.pi)
+                # plot a circle item
+                self.circle_1 = pg.QtGui.QGraphicsEllipseItem(cur_quantity_1_x, cur_quantity_1_y, 0.04, 0.04)
+                self.circle_1.setPen(pg.mkPen('blue', width=5))
+                self.polar_plot.addItem(self.circle_1)
+
+                # transform to x and y coordinate
+                cur_quantity_2_x = self.output_2[self.loaded_image_label] * np.cos(self.cur_rotation_angle/180*np.pi)
+                cur_quantity_2_y = self.output_2[self.loaded_image_label] * np.sin(self.cur_rotation_angle/180*np.pi)
+                # plot a circle item
+                self.circle_2 = pg.QtGui.QGraphicsEllipseItem(cur_quantity_2_x, cur_quantity_2_y, 0.04, 0.04)
+                self.circle_2.setPen(pg.mkPen('green', width=5))
+                self.polar_plot.addItem(self.circle_2)
+
             # used for clicking on the polar plot
             def polar_mouse_clicked(event):
                 self.polar_clicked = not self.polar_clicked
@@ -1411,13 +1446,18 @@ class UI_MainWindow(QWidget):
                     # remove old line
                     if self.cur_line:
                         self.polar_plot.removeItem(self.cur_line)
+                        self.polar_plot.removeItem(self.circle_1)
+                        self.polar_plot.removeItem(self.circle_2)
 
                     # draw a line that represents current angle of rotation
                     cur_x = 1 * np.cos(self.cur_rotation_angle/180*np.pi)
                     cur_y = 1 * np.sin(self.cur_rotation_angle/180*np.pi)
                     line_x = [0, cur_x]
                     line_y = [0, cur_y]
-                    self.cur_line = self.polar_plot.plot(line_x, line_y, pen = QtGui.QPen(QtGui.Qt.red, 0.03))
+                    self.cur_line = self.polar_plot.plot(line_x, line_y, pen = QtGui.QPen(QtGui.Qt.red, 0.01))
+
+                    # display current results on the line
+                    draw_circle_on_polar()
 
             def polar_mouse_moved(event):
                 # check if the click is within the polar plot
@@ -1445,16 +1485,22 @@ class UI_MainWindow(QWidget):
                     if self.result_existed:
                         self.run_model_once()
 
-                    # remove old line
+                    # remove old line and circle
                     if self.cur_line:
                         self.polar_plot.removeItem(self.cur_line)
+                        self.polar_plot.removeItem(self.circle_1)
+                        self.polar_plot.removeItem(self.circle_2)
 
                     # draw a line that represents current angle of rotation
                     cur_x = 1 * np.cos(self.cur_rotation_angle/180*np.pi)
                     cur_y = 1 * np.sin(self.cur_rotation_angle/180*np.pi)
                     line_x = [0, cur_x]
                     line_y = [0, cur_y]
-                    self.cur_line = self.polar_plot.plot(line_x, line_y, pen = QtGui.QPen(QtGui.Qt.red, 0.03))
+                    self.cur_line = self.polar_plot.plot(line_x, line_y, pen = QtGui.QPen(QtGui.Qt.red, 0.01))
+
+                    # display current results on the line
+                    draw_circle_on_polar()
+
 
             self.polar_clicked = False
             self.polar_plot.scene().sigMouseClicked.connect(polar_mouse_clicked)
@@ -1510,7 +1556,7 @@ class UI_MainWindow(QWidget):
                 cur_y = 1 * np.sin(self.cur_rotation_angle/180*np.pi)
                 line_x = [0, cur_x]
                 line_y = [0, cur_y]
-                self.cur_line = self.polar_plot.plot(line_x, line_y, pen = QtGui.QPen(QtGui.Qt.red, 0.03))
+                self.cur_line = self.polar_plot.plot(line_x, line_y, pen = QtGui.QPen(QtGui.Qt.red, 0.01))
 
             self.prev_mouse_pos = cur_mouse_pos
 
