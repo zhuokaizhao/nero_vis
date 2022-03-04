@@ -5,6 +5,7 @@ import time
 import torch
 import torchvision
 import numpy as np
+from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
 
 os.environ['CUDA_VISIBLE_DEVICES']='0'
 
@@ -82,16 +83,6 @@ def load_mnist_model(network_model, model_dir):
         num_rotation = 8
         model = mnist_models.Rot_Eqv_Net_MNIST(image_size=None, num_rotation=num_rotation).to(device)
 
-    elif network_model == 'shift-eqv':
-        model = mnist_models.Shift_Eqv_Net_MNIST().to(device)
-
-    elif network_model == 'scale-eqv':
-        # Scale-Equivariant Steerable Networks
-        method = 'SESN'
-        # Deep Scale Spaces: Equivariant Over Scale
-        # method = 'DSS'
-        model = mnist_models.Scale_Eqv_Net_MNIST(method=method).to(device)
-
     loaded_model = torch.load(model_dir, map_location=device)
     model.load_state_dict(loaded_model['state_dict'])
     # set model in evaluation mode
@@ -101,6 +92,8 @@ def load_mnist_model(network_model, model_dir):
 
     return model
 
+
+# run model on either on a single MNIST image or a batch of MNIST images
 def run_mnist_once(model, test_image, test_label=None, batch_size=None, rotate_angle=None):
 
     # print('Running inference on the single image')
@@ -220,8 +213,36 @@ def run_mnist_once(model, test_image, test_label=None, batch_size=None, rotate_a
 
 
 # object detection (coco)
-def load_coco_model(network_model, model_dir):
-    print(network_model)
-# run mnist model on all rotations and return all the results
-# def run_mnist_all_rotations(model, test_image):
-#     exit()
+def load_coco_model(model_dir, num_classes = 5):
+
+    # basic settings for pytorch
+    if torch.cuda.is_available():
+        # device set up
+        device = torch.device('cuda:0')
+    else:
+        device = torch.device('cpu')
+
+    # initiate model
+    model = torchvision.models.detection.fasterrcnn_resnet50_fpn(pretrained=False,
+                                                                num_classes=num_classes+1,
+                                                                pretrained_backbone=True,
+                                                                min_size=128)
+    # get number of input features for the classifier
+    in_features = model.roi_heads.box_predictor.cls_score.in_features
+    # replace the pre-trained head with a new one
+    model.roi_heads.box_predictor = FastRCNNPredictor(in_features, num_classes+1)
+
+    # load the weight
+    loaded_model = torch.load(model_dir, map_location=device)
+    model.load_state_dict(loaded_model['state_dict'])
+
+    # set model in evaluation mode
+    model.eval()
+
+    return model
+
+
+# run model on either on a single COCO image or a batch of COCO images
+def run_coco_once(model, test_image, test_label=None, batch_size=None):
+    print('aaa')
+
