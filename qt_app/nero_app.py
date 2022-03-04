@@ -153,7 +153,7 @@ class UI_MainWindow(QWidget):
                 self.init_load_layout()
 
                 # display mnist image size
-                self.display_image_size = 300
+                self.display_image_size = 512
                 # image (input data) modification mode
                 self.rotation = False
                 self.translation = False
@@ -381,6 +381,7 @@ class UI_MainWindow(QWidget):
                 # load the image
                 self.loaded_image_pt = torch.from_numpy(np.asarray(Image.open(self.image_path)))[:, :, None]
                 self.loaded_image_name = self.image_path.split('/')[-1]
+
             elif self.mode == 'object_detection':
                 self.image_index = self.coco_classes.index(text.split(' ')[0])
                 self.image_path = self.single_images_paths[self.image_index]
@@ -395,23 +396,20 @@ class UI_MainWindow(QWidget):
                 self.loaded_image_name = self.image_path.split('/')[-1]
 
             # keep a copy to represent the current (rotated) version of the original images
-            print(self.loaded_image_pt.shape)
             self.cur_image_pt = self.loaded_image_pt.clone()
             # convert to QImage for display purpose
             self.cur_display_image = nero_utilities.tensor_to_qt_image(self.cur_image_pt)
             # resize the display QImage
-            print(self.display_image_size)
             self.cur_display_image = self.cur_display_image.scaledToWidth(self.display_image_size)
             # prepare image tensor for model purpose
             if self.mode == 'digit_recognition':
                 self.cur_image_pt = nero_transform.prepare_mnist_image(self.cur_image_pt)
-            # elif self.mode == 'object_detection':
-            #     self.cur_image_pt = nero_transform.prepare_coco_image(self.cur_image_pt)
 
 
             # display the image
             self.display_image()
             self.image_existed = True
+            self.single_result_existed = True
 
             # show the run button when data is loaded
             if not self.run_button_existed:
@@ -1083,16 +1081,16 @@ class UI_MainWindow(QWidget):
         self.image_label.setContentsMargins(0, 0, 0, 0)
 
         # name of the image
-        name_label = QLabel(self.loaded_image_name)
-        name_label.setAlignment(QtCore.Qt.AlignCenter)
+        self.name_label = QLabel(self.loaded_image_name)
+        self.name_label.setAlignment(QtCore.Qt.AlignCenter)
 
         # add this image to the layout
         if self.data_mode == 'single':
             self.single_result_layout.addWidget(self.image_label, 0, 0)
-            self.single_result_layout.addWidget(name_label, 1, 0)
+            self.single_result_layout.addWidget(self.name_label, 1, 0)
         elif self.data_mode == 'aggregate':
             self.single_result_layout.addWidget(self.image_label, 0, 2)
-            self.single_result_layout.addWidget(name_label, 1, 2)
+            self.single_result_layout.addWidget(self.name_label, 1, 2)
 
 
     # draw an arrow, used between input image(s) and model outputs
