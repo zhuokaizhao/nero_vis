@@ -291,7 +291,7 @@ class UI_MainWindow(QWidget):
         @QtCore.Slot()
         def aggregate_dataset_selection_changed(text):
             # filter out 0 selection signal
-            if text == 'Please select input dataset':
+            if text == 'Input dataset':
                 return
 
             # clear the single image selection
@@ -355,7 +355,7 @@ class UI_MainWindow(QWidget):
         @QtCore.Slot()
         def single_image_selection_changed(text):
             # filter out 0 selection signal
-            if text == 'Please select input image':
+            if text == 'Input image':
                 return
 
             # clear the aggregate dataset selection
@@ -474,6 +474,12 @@ class UI_MainWindow(QWidget):
 
             print('Model 2 path:', self.model_2_path)
 
+        @QtCore.Slot()
+        def jittering_menu_selection_changed(text):
+            print('Jittering level:', text)
+            self.jittering_level = int(text.split('%')[0])
+            print(self.jittering_level)
+
         # function used as model icon
         def draw_circle(painter, center_x, center_y, radius, color):
             # optional
@@ -514,7 +520,7 @@ class UI_MainWindow(QWidget):
         self.aggregate_image_menu = QtWidgets.QComboBox()
         self.aggregate_image_menu.setFixedSize(QtCore.QSize(300, 50))
         self.aggregate_image_menu.setStyleSheet('font-size: 18px')
-        self.aggregate_image_menu.addItem('Please select input dataset')
+        self.aggregate_image_menu.addItem('Input dataset')
 
         if self.mode == 'digit_recognition':
             self.aggregate_data_dirs = glob.glob(os.path.join(os.getcwd(), 'example_data', self.mode, f'aggregate*'))
@@ -547,7 +553,7 @@ class UI_MainWindow(QWidget):
         self.image_menu = QtWidgets.QComboBox()
         self.image_menu.setFixedSize(QtCore.QSize(300, 50))
         self.image_menu.setStyleSheet('font-size: 18px')
-        self.image_menu.addItem('Please select input image')
+        self.image_menu.addItem('Input image')
 
         if self.mode == 'digit_recognition':
             self.single_images_paths = []
@@ -561,10 +567,10 @@ class UI_MainWindow(QWidget):
 
         elif self.mode == 'object_detection':
             self.single_images_paths = []
-            self.coco_classes = ['book', 'bottle', 'car', 'chair', 'cup']
+            self.coco_classes = ['car', 'bottle', 'cup', 'chair', 'book']
             # add a image of each class
-            for i in range(5):
-                cur_image_path = glob.glob(os.path.join(os.getcwd(), 'example_data', self.mode, 'single', f'*.png'))[0]
+            for i, cur_class in enumerate(self.coco_classes):
+                cur_image_path = glob.glob(os.path.join(os.getcwd(), 'example_data', self.mode, 'single', f'{cur_class}*.png'))[0]
                 self.single_images_paths.append(cur_image_path)
                 self.image_menu.addItem(QtGui.QIcon(cur_image_path), f'Image {i}')
 
@@ -580,6 +586,26 @@ class UI_MainWindow(QWidget):
         # init flag to inidicate if an image has ever been loaded
         self.data_existed = False
         self.image_existed = False
+
+        # add jittering level selection for the object detection mode
+        if self.mode == 'object_detection':
+            jittering_menu = QtWidgets.QComboBox()
+            jittering_menu.setMinimumSize(QtCore.QSize(250, 50))
+            jittering_menu.setStyleSheet('font-size: 18px')
+            jittering_menu.setEditable(True)
+            jittering_menu.lineEdit().setReadOnly(True)
+            jittering_menu.lineEdit().setAlignment(QtCore.Qt.AlignCenter)
+
+            # add items
+            jittering_menu.addItem('Jittering level')
+            for i in range(0, 100, 33):
+                jittering_menu.addItem(f'{i}%')
+
+            self.image_menu.setCurrentIndex(0)
+            # connect the drop down menu with actions
+            jittering_menu.currentTextChanged.connect(jittering_menu_selection_changed)
+
+            self.load_menu_layout.addWidget(jittering_menu, 2, 3)
 
         # load models choices
         # model 1
@@ -613,50 +639,45 @@ class UI_MainWindow(QWidget):
         model_1_menu.setEditable(True)
         model_1_menu.lineEdit().setReadOnly(True)
         model_1_menu.lineEdit().setAlignment(QtCore.Qt.AlignCenter)
-        self.load_menu_layout.addWidget(model_1_menu, 2, 3)
+        if self.mode == 'digit_recognition':
+            self.load_menu_layout.addWidget(model_1_menu, 2, 3)
+        elif self.mode == 'object_detection':
+            self.load_menu_layout.addWidget(model_1_menu, 3, 3)
 
         # model 2
-        # graphic representation
-        self.model_2_label = QLabel(self)
-        self.model_2_label.setAlignment(QtCore.Qt.AlignCenter)
-        model_2_icon = QPixmap(25, 25)
-        model_2_icon.fill(QtCore.Qt.white)
-        # draw model representation
-        painter = QtGui.QPainter(model_2_icon)
-        draw_circle(painter, 12, 12, 10, 'Green')
-
-        # spacer item
-        # self.mode_control_layout.addSpacing(30)
-
-        model_2_menu = QtWidgets.QComboBox()
-        model_2_menu.setMinimumSize(QtCore.QSize(250, 50))
-        model_2_menu.setStyleSheet('font-size: 18px')
-        model_2_menu.setEditable(True)
-        model_2_menu.lineEdit().setReadOnly(True)
-        model_2_menu.lineEdit().setAlignment(QtCore.Qt.AlignCenter)
         if self.mode == 'digit_recognition':
-            model_2_menu.addItem(model_2_icon, 'Simple model')
-            model_2_menu.addItem(model_2_icon, 'E2CNN model')
-            model_2_menu.addItem(model_2_icon, 'Data augmentation model')
-            model_2_menu.setCurrentText('E2CNN model')
-        elif self.mode == 'object_detection':
-            model_2_menu.addItem(model_1_icon, 'Simple model')
-            model_2_menu.addItem(model_1_icon, 'Shift-Invariant model')
-            model_2_menu.setCurrentText('Simple model')
+            # graphic representation
+            self.model_2_label = QLabel(self)
+            self.model_2_label.setAlignment(QtCore.Qt.AlignCenter)
+            model_2_icon = QPixmap(25, 25)
+            model_2_icon.fill(QtCore.Qt.white)
+            # draw model representation
+            painter = QtGui.QPainter(model_2_icon)
+            draw_circle(painter, 12, 12, 10, 'Green')
 
-        # connect the drop down menu with actions
-        model_2_menu.currentTextChanged.connect(model_2_selection_changed)
-        self.load_menu_layout.addWidget(model_2_menu, 3, 3)
+            # spacer item
+            # self.mode_control_layout.addSpacing(30)
 
-        # add jittering level selection for the object detection mode
-        if self.mode == 'object_detection':
-            jiterring_slider = QtGui.QSlider(QtCore.Qt.Horizontal)
-            jiterring_slider.setFocusPolicy(QtCore.Qt.StrongFocus)
-            jiterring_slider.setTickPosition(QtGui.QSlider.TicksBothSides)
-            jiterring_slider.setTickInterval(100)
-            jiterring_slider.setSingleStep(33)
+            model_2_menu = QtWidgets.QComboBox()
+            model_2_menu.setMinimumSize(QtCore.QSize(250, 50))
+            model_2_menu.setStyleSheet('font-size: 18px')
+            model_2_menu.setEditable(True)
+            model_2_menu.lineEdit().setReadOnly(True)
+            model_2_menu.lineEdit().setAlignment(QtCore.Qt.AlignCenter)
+            if self.mode == 'digit_recognition':
+                model_2_menu.addItem(model_2_icon, 'Simple model')
+                model_2_menu.addItem(model_2_icon, 'E2CNN model')
+                model_2_menu.addItem(model_2_icon, 'Data augmentation model')
+                model_2_menu.setCurrentText('E2CNN model')
+            elif self.mode == 'object_detection':
+                model_2_menu.addItem(model_2_icon, 'Simple model')
+                model_2_menu.addItem(model_2_icon, 'Shift-Invariant model')
+                model_2_menu.setCurrentText('Shift-Invariant model')
 
-            self.load_menu_layout.addWidget(jiterring_slider, 4, 3)
+            # connect the drop down menu with actions
+            model_2_menu.currentTextChanged.connect(model_2_selection_changed)
+            self.load_menu_layout.addWidget(model_2_menu, 3, 3)
+
 
         # add this layout to the general layout
         self.layout.addLayout(self.load_menu_layout, 0, 1)
