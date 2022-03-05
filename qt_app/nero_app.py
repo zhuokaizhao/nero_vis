@@ -726,7 +726,8 @@ class UI_MainWindow(QWidget):
 
         # add to general layout
         if self.data_mode == 'single':
-            self.layout.addLayout(self.single_result_layout, 1, 0)
+            # take up two columns in UI layout
+            self.layout.addLayout(self.single_result_layout, 1, 0, 1, 2)
         elif self.data_mode == 'aggregate':
             self.layout.addLayout(self.single_result_layout, 1, 2)
 
@@ -1130,6 +1131,9 @@ class UI_MainWindow(QWidget):
         plot.setYRange(-1, 1)
         plot.setAspectLocked()
 
+        plot.hideAxis('bottom')
+        plot.hideAxis('left')
+
         # Add polar grid lines
         plot.addLine(x=0, pen=pg.mkPen('black', width=2))
         plot.addLine(y=0, pen=pg.mkPen('black', width=2))
@@ -1282,6 +1286,8 @@ class UI_MainWindow(QWidget):
             self.bar_plot.plotItem.vb.setLimits(xMin=-0.5, xMax=9.5, yMin=0, yMax=1.2)
             self.bar_plot.setBackground('w')
             self.bar_plot.setFixedSize(600, 500)
+            self.bar_plot.getAxis('bottom').setLabel('Digit')
+            self.bar_plot.getAxis('left').setLabel('Confidence')
             # for i in range(10):
             #     cur_graph_1 = InteractiveBarItem(name=f'{self.model_1_name}',
             #                                      x0=[i-0.2],
