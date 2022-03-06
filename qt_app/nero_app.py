@@ -1073,30 +1073,39 @@ class UI_MainWindow(QWidget):
 
             # all the x and y translations
             # x translates on columns, y translates on rows
-            x_translation = list(range(-self.image_size//2+1, self.image_size//2))
-            y_translation = list(range(-self.image_size//2+1, self.image_size//2))
+            x_translation = list(range(-self.image_size//2, self.image_size//2, 7))
+            y_translation = list(range(-self.image_size//2, self.image_size//2, 7))
 
-            # for x_tran in x_translation:
-            #     for y_tran in y_translation:
-            # since displayed image enlarges the actual image by 2
-            x_tran = x_translation[0] * 2
-            y_tran = y_translation[0] * 2
-            display_rect_width = self.display_image_size//2
-            display_rect_height = self.display_image_size//2
-            # displayed image has center at the center of the display
-            # since the translation measures on the movement of object instead of the point of view, the sign is reversed
-            rect_center_x = self.display_image_size//2 - x_tran
-            rect_center_y = self.display_image_size//2 - y_tran
+            for x_tran in x_translation:
+                for y_tran in y_translation:
+                    # re-display image for each rectangle drawn
+                    self.display_image()
+                    # since displayed image enlarges the actual image by 2
+                    # x_tran = 0
+                    # y_tran = 0
+                    # print(x_tran*2, y_tran*2)
+                    display_rect_width = self.display_image_size//2
+                    display_rect_height = self.display_image_size//2
+                    # displayed image has center at the center of the display
+                    # since the translation measures on the movement of object instead of the point of view, the sign is reversed
+                    rect_center_x = self.display_image_size//2 - x_tran*2
+                    rect_center_y = self.display_image_size//2 - y_tran*2
 
-            # draw rectangle on the displayed image to indicate scanning process
-            painter = QtGui.QPainter(self.image_pixmap)
-            # set pen (used to draw outlines of shapes) and brush (draw the background of a shape)
-            pen = QtGui.QPen()
-            # draw the rectangle
-            self.draw_rectangle(painter, pen, rect_center_x, rect_center_y, display_rect_width, display_rect_height)
-            # update pixmap with the label
-            self.image_label.setPixmap(self.image_pixmap)
-            painter.end()
+                    # draw rectangle on the displayed image to indicate scanning process
+                    painter = QtGui.QPainter(self.image_pixmap)
+                    # set pen (used to draw outlines of shapes) and brush (draw the background of a shape)
+                    pen = QtGui.QPen()
+                    # draw the rectangle
+                    self.draw_rectangle(painter, pen, rect_center_x, rect_center_y, display_rect_width, display_rect_height)
+                    painter.end()
+
+                    # update pixmap with the label
+                    self.image_label.setPixmap(self.image_pixmap)
+
+                    # force repaint
+                    self.image_label.repaint()
+
+
 
 
     def display_image(self):
@@ -1163,7 +1172,8 @@ class UI_MainWindow(QWidget):
         pen.setWidth(boundary_width)
         pen.setColor(QtGui.QColor('red'))
         painter.setPen(pen)
-        rectangle = QtCore.QRect(center_y-height//2, center_x-width//2, center_y+height//2, center_x+width//2)
+        # left, top, width, height for QRect
+        rectangle = QtCore.QRect(center_y-height//2, center_x-width//2, width, height)
         painter.drawRect(rectangle)
 
 
