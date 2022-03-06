@@ -403,18 +403,16 @@ class UI_MainWindow(QWidget):
                 self.label_path = self.image_path.replace('png', 'npy')
                 self.loaded_image_label = np.load(self.label_path)
                 # the center of the bounding box is the center of cropped image
-                self.center_x = int((self.loaded_image_label[1] + self.loaded_image_label[3]) // 2)
-                self.center_y = int((self.loaded_image_label[0] + self.loaded_image_label[2]) // 2)
+                # x is column, y is row
+                self.center_x = int((self.loaded_image_label[0] + self.loaded_image_label[2]) // 2)
+                self.center_y = int((self.loaded_image_label[1] + self.loaded_image_label[3]) // 2)
 
                 # load the image
-                self.loaded_image_pt = torch.from_numpy(np.asarray(Image.open(self.image_path).convert('RGB')))[self.center_x-128:self.center_x+128, self.center_y-128:self.center_y+128, :]
+                self.loaded_image_pt = torch.from_numpy(np.asarray(Image.open(self.image_path).convert('RGB')))
                 self.loaded_image_name = self.image_path.split('/')[-1]
 
-                # data config file for running the model
-
-
             # keep a copy to represent the current (rotated) version of the original images
-            self.cur_image_pt = self.loaded_image_pt.clone()
+            self.cur_image_pt = self.loaded_image_pt[self.center_y-128:self.center_y+128, self.center_x-128:self.center_x+128, :]
             # convert to QImage for display purpose
             self.cur_display_image = nero_utilities.tensor_to_qt_image(self.cur_image_pt)
             # resize the display QImage
@@ -1027,10 +1025,10 @@ class UI_MainWindow(QWidget):
 
         elif self.mode == 'object_detection':
 
-            self.output_1 = nero_run_model.run_coco_once(self.model_1, self.cur_image_pt)
-            self.output_2 = nero_run_model.run_coco_once(self.model_2, self.cur_image_pt)
+            self.output_1 = nero_run_model.run_coco_once(self.model_1_name, self.model_1, self.cur_image_pt, self.original_coco_names, self.custom_coco_names, self.pytorch_coco_names)
+            # self.output_2 = nero_run_model.run_coco_once(self.model_2, self.cur_image_pt)
 
-            print(self.output_1)
+            print(len(self.output_1))
 
 
 
@@ -1072,9 +1070,33 @@ class UI_MainWindow(QWidget):
             self.display_mnist_single_result(mode=self.data_mode, type='polar', boundary_width=3)
 
         elif self.mode == 'object_detection':
+
             # all the x and y translations
-            x_translation = list(range(-self.image_size//2, self.image_size//2))
-            y_translation = list(range(-self.image_size//2, self.image_size//2))
+            # x translates on columns, y translates on rows
+            x_translation = list(range(-self.image_size//2+1, self.image_size//2))
+            y_translation = list(range(-self.image_size//2+1, self.image_size//2))
+
+            # for x_tran in x_translation:
+            #     for y_tran in y_translation:
+            # since displayed image enlarges the actual image by 2
+            x_tran = x_translation[0] * 2
+            y_tran = y_translation[0] * 2
+            display_rect_width = self.display_image_size//2
+            display_rect_height = self.display_image_size//2
+            # displayed image has center at the center of the display
+            # since the translation measures on the movement of object instead of the point of view, the sign is reversed
+            rect_center_x = self.display_image_size//2 - x_tran
+            rect_center_y = self.display_image_size//2 - y_tran
+
+            # draw rectangle on the displayed image to indicate scanning process
+            painter = QtGui.QPainter(self.image_pixmap)
+            # set pen (used to draw outlines of shapes) and brush (draw the background of a shape)
+            pen = QtGui.QPen()
+            # draw the rectangle
+            self.draw_rectangle(painter, pen, rect_center_x, rect_center_y, display_rect_width, display_rect_height)
+            # update pixmap with the label
+            self.image_label.setPixmap(self.image_pixmap)
+            painter.end()
 
 
     def display_image(self):
@@ -1134,6 +1156,15 @@ class UI_MainWindow(QWidget):
         painter.drawLine(int(0.6*width), int(0.25*height), width, height//2)
         # bottom arrow
         painter.drawLine(int(0.6*width), int(0.75*height), width, height//2)
+
+
+    # draw a rectangle
+    def draw_rectangle(self, painter, pen, center_x, center_y, width, height, boundary_width=3):
+        pen.setWidth(boundary_width)
+        pen.setColor(QtGui.QColor('red'))
+        painter.setPen(pen)
+        rectangle = QtCore.QRect(center_y-height//2, center_x-width//2, center_y+height//2, center_x+width//2)
+        painter.drawRect(rectangle)
 
 
     # draw a polar plot

@@ -220,10 +220,23 @@ def run_mnist_once(model, test_image, test_label=None, batch_size=None, rotate_a
 
 
 # run model on either on a single COCO image or a batch of COCO images
-def run_coco_once(model_type, model, test_image, original_names, custom_names, pytorch_names, test_label=None, batch_size=None):
-    model.eval()
+def run_coco_once(model_name, model, test_image, original_names, custom_names, pytorch_names, batch_size=1):
+
+    # prepare input image shapes
     img_size = test_image.shape[0]
-    # Get dataloader
+    if len(test_image.shape) == 3:
+        # reformat input image from (height, width, channel) to (batch size, channel, height, width)
+        test_image = test_image.permute((2, 0, 1))[None, :, :, :].float()
+    elif len(test_image.shape) == 4:
+        # reformat input image from (batch_size, height, width, channel) to (batch_size, batch size, channel, height, width)
+        test_image = test_image.permute((0, 3, 1, 2)).float()
+    else:
+        raise Exception('Wrong input image shape')
+
+    # ensure the model is in evaluation mode
+    model.eval()
+
+    # create dataloader to take care of classes conversion, etc
     EVALUATE_TRANSFORMS = transforms.Compose([nero_transform.ConvertLabel(original_names, custom_names),
                                             nero_transform.ToTensor()])
 
@@ -296,7 +309,7 @@ def run_coco_once(model_type, model, test_image, original_names, custom_names, p
             continue
 
         # when we are using pretrained model
-        if model_type == 'pt':
+        if model_name == 'Pre-trained FasterRCNN':
             for i in range(len(targets)):
                 targets[i, 1] = pytorch_names.index(custom_names[int(targets[i, 1]-1)]) + 1
 

@@ -49,7 +49,14 @@ def qt_image_to_tensor(img, share_memory=False):
 
 
 def tensor_to_qt_image(img_pt):
+
+    # convert input torch tensor to numpy array
     img_np = img_pt.numpy()
+
+    # make sure numpy array is c contiguous, as required by QImage
+    if not img_np.flags['C_CONTIGUOUS']:
+        img_np = np.ascontiguousarray(img_np)
+
     if img_np.shape[-1] == 1:
         # qt image uses width, height
         img_qt = QtGui.QImage(img_np, img_np.shape[1], img_np.shape[0], QtGui.QImage.Format_Grayscale8)

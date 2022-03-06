@@ -57,11 +57,11 @@ def load_classes(path):
     return names
 
 
-# convert object classes from coco to custom class labels
+# convert label file from coco original classes to target classes
 class ConvertLabel(object):
-    def __init__(self, coco_classes, desired_classes):
+    def __init__(self, original_classes, desired_classes):
 
-        self.coco_classes = coco_classes
+        self.original_classes = original_classes
         self.desired_classes = desired_classes
 
     def __call__(self, data):
