@@ -111,12 +111,12 @@ class UI_MainWindow(QWidget):
                 # preload model 1
                 self.model_1_name = 'Simple model'
                 self.model_1_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'non_eqv', '*.pt'))[0]
-                self.model_1 = nero_run_model.load_model(self.mode, 'non-eqv', self.model_1_path)
+                self.model_1 = nero_run_model.load_model(self.mode, 'non_eqv', self.model_1_path)
 
                 # preload model 2
                 self.model_2_name = 'Simple model with DA'
                 self.model_2_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'aug_rot_eqv', '*.pt'))[0]
-                self.model_2 = nero_run_model.load_model(self.mode, 'aug-eqv', self.model_2_path)
+                self.model_2 = nero_run_model.load_model(self.mode, 'aug_eqv', self.model_2_path)
                 # self.model_2_name = 'Simple model with E2CNN'
                 # self.model_2_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'rot_eqv', '*.pt'))[0]
                 # self.model_2 = nero_run_model.load_model('rot-eqv', self.model_2_path)
@@ -160,13 +160,13 @@ class UI_MainWindow(QWidget):
                 self.translation = False
 
                 # predefined model paths
-                # model_1_name = 'Simple model'
-                self.model_1_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'non_eqv', '*.pt'))[0]
-                # model_2_name = 'Simple model with DA'
-                self.model_2_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'aug_rot_eqv', '*.pt'))[0]
+                # model_1_name = 'Custome-trained FasterRCNN'
+                self.model_1_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'custom_trained', f'object_{self.jittering_level}-jittered', '*.pth'))[0]
+                # model_2_name = 'Pre-trained FasterRCNN'
+                self.model_2_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'pre_trained', '*.pth'))[0]
                 # preload model
-                self.model_1 = nero_run_model.load_model(self.mode, 'non-eqv', self.model_1_path)
-                self.model_2 = nero_run_model.load_model(self.mode, 'aug-eqv', self.model_2_path)
+                self.model_1 = nero_run_model.load_model(self.mode, 'custom_trained', self.model_1_path)
+                self.model_2 = nero_run_model.load_model(self.mode, 'pre_trained', self.model_2_path)
 
                 # unique quantity of the result of current data
                 self.all_quantities_1 = []
@@ -339,7 +339,7 @@ class UI_MainWindow(QWidget):
                 # run button
                 # buttons layout for run model
                 self.run_button_layout = QtWidgets.QGridLayout()
-                self.layout.addLayout(self.run_button_layout, 2, 0)
+                self.layout.addLayout(self.run_button_layout, 2, 0, 1, 2)
 
                 self.run_button = QtWidgets.QPushButton('Analyze model with aggregated dataset')
                 self.run_button.setStyleSheet('font-size: 18px')
@@ -393,7 +393,7 @@ class UI_MainWindow(QWidget):
                 self.center_y = int((self.loaded_image_label[0] + self.loaded_image_label[2]) // 2)
 
                 # load the image
-                self.loaded_image_pt = torch.from_numpy(np.asarray(Image.open(self.image_path).convert('RGB')))[self.center_x-64:self.center_x+64, self.center_y-64:self.center_y+64, :]
+                self.loaded_image_pt = torch.from_numpy(np.asarray(Image.open(self.image_path).convert('RGB')))[self.center_x-128:self.center_x+128, self.center_y-128:self.center_y+128, :]
                 self.loaded_image_name = self.image_path.split('/')[-1]
 
             # keep a copy to represent the current (rotated) version of the original images
@@ -416,7 +416,7 @@ class UI_MainWindow(QWidget):
                 # run button
                 # buttons layout for run model
                 self.run_button_layout = QtWidgets.QGridLayout()
-                self.layout.addLayout(self.run_button_layout, 3, 0)
+                self.layout.addLayout(self.run_button_layout, 3, 0, 1, 2)
 
                 self.run_button = QtWidgets.QPushButton('Analyze model with single image')
                 self.run_button.setStyleSheet('font-size: 18px')
@@ -450,11 +450,11 @@ class UI_MainWindow(QWidget):
                     self.model_1 = nero_run_model.load_model(self.mode, 'aug-eqv', self.model_1_path)
 
             elif self.mode == 'object_detection':
-                if text == 'Self-trained model':
+                if text == 'Custom-trained FasterRCNN':
                     self.model_1_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'non_eqv', '*.pt'))[0]
                     # reload model
                     self.model_1 = nero_run_model.load_model(self.mode, 'non-eqv', self.model_1_path)
-                elif text == 'Pre-trained model':
+                elif text == 'Pre-trained FasterRCNN':
                     self.model_1_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'rot_eqv', '*.pt'))[0]
                     # reload model
                     self.model_1 = nero_run_model.load_model(self.mode, 'rot-eqv', self.model_1_path)
@@ -470,25 +470,25 @@ class UI_MainWindow(QWidget):
                 if text == 'Simple model':
                     self.model_2_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'non_eqv', '*.pt'))[0]
                     # reload model
-                    self.model_2 = nero_run_model.load_model('non-eqv', self.model_2_path)
+                    self.model_2 = nero_run_model.load_model('non_eqv', self.model_2_path)
                 elif text == 'Simple model with E2CNN':
                     self.model_2_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'rot_eqv', '*.pt'))[0]
                     # reload model
-                    self.model_2 = nero_run_model.load_model('rot-eqv', self.model_2_path)
+                    self.model_2 = nero_run_model.load_model('rot_eqv', self.model_2_path)
                 elif text == 'Simple model with DA':
                     self.model_2_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'aug_rot_eqv', '*.pt'))[0]
                     # reload model
-                    self.model_2 = nero_run_model.load_model('aug-eqv', self.model_2_path)
+                    self.model_2 = nero_run_model.load_model('aug_eqv', self.model_2_path)
 
             elif self.mode == 'object_detection':
-                if text == 'Simple model':
-                    self.model_2_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'non_eqv', '*.pt'))[0]
+                if text == 'Custome-trained FasterRCNN':
+                    self.model_2_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'custom_trained', f'object_{self.jittering_level}-jittered', '*.pt'))[0]
                     # reload model
-                    self.model_2 = nero_run_model.load_model(self.mode, 'non-eqv', self.model_2_path)
-                elif text == 'Shift-Invariant model':
-                    self.model_2_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'rot_eqv', '*.pt'))[0]
+                    self.model_2 = nero_run_model.load_model(self.mode, 'custom_trained', self.model_2_path)
+                elif text == 'Pre-trained FasterRCNN':
+                    self.model_2_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'pre_trained', '*.pt'))[0]
                     # reload model
-                    self.model_2 = nero_run_model.load_model(self.mode, 'rot-eqv', self.model_2_path)
+                    self.model_2 = nero_run_model.load_model(self.mode, 'pre_trained', self.model_2_path)
 
             print('Model 2 path:', self.model_2_path)
 
@@ -496,7 +496,6 @@ class UI_MainWindow(QWidget):
         def jittering_menu_selection_changed(text):
             print('Jittering level:', text)
             self.jittering_level = int(text.split('%')[0])
-            print(self.jittering_level)
 
         # function used as model icon
         def draw_circle(painter, center_x, center_y, radius, color):
@@ -619,6 +618,8 @@ class UI_MainWindow(QWidget):
             for i in range(0, 100, 33):
                 jittering_menu.addItem(f'{i}%')
 
+            # default selection is 0 percent jittering
+            self.jittering_level = 0
             self.image_menu.setCurrentIndex(0)
             # connect the drop down menu with actions
             jittering_menu.currentTextChanged.connect(jittering_menu_selection_changed)
@@ -648,9 +649,9 @@ class UI_MainWindow(QWidget):
             model_1_menu.addItem(model_1_icon, 'Simple model with DA')
             model_1_menu.setCurrentText('Simple model')
         elif self.mode == 'object_detection':
-            model_1_menu.addItem(model_1_icon, 'Self-trained model')
-            model_1_menu.addItem(model_1_icon, 'Pre-trained model')
-            model_1_menu.setCurrentText('Self-trained model')
+            model_1_menu.addItem(model_1_icon, 'Custom-trained FasterRCNN')
+            model_1_menu.addItem(model_1_icon, 'Pre-trained FasterRCNN')
+            model_1_menu.setCurrentText('Custom-trained FasterRCNN')
 
         # connect the drop down menu with actions
         model_1_menu.currentTextChanged.connect(model_1_selection_changed)
@@ -688,9 +689,9 @@ class UI_MainWindow(QWidget):
             # model_2_menu.setCurrentText('Simple model with E2CNN')
             model_2_menu.setCurrentText('Simple model with DA')
         elif self.mode == 'object_detection':
-            model_2_menu.addItem(model_2_icon, 'Self-trained model')
-            model_2_menu.addItem(model_2_icon, 'Pre-trained model')
-            model_2_menu.setCurrentText('Pre-trained model')
+            model_2_menu.addItem(model_2_icon, 'Custom-trained FasterRCNN')
+            model_2_menu.addItem(model_2_icon, 'Pre-trained FasterRCNN')
+            model_2_menu.setCurrentText('Pre-trained FasterRCNN')
 
         # connect the drop down menu with actions
         model_2_menu.currentTextChanged.connect(model_2_selection_changed)
@@ -1679,52 +1680,8 @@ if __name__ == "__main__":
 #         # resize the display QImage
 #         self.display_images.append(self.cur_display_image.scaledToWidth(self.display_image_size))
 
-#     # display the image
-#     self.display_image()
-#     self.data_button.setText(f'Click to load new image')
-#     self.image_existed = True
-
-#     # show the run button when data is loaded
-#     if not self.run_button_existed:
-#         # run button
-#         self.run_button = QtWidgets.QPushButton('Analyze model')
-#         self.run_button.setStyleSheet('font-size: 18px')
-#         run_button_size = QtCore.QSize(500, 50)
-#         self.run_button.setMinimumSize(run_button_size)
-#         self.run_button_layout.addWidget(self.run_button)
-#         self.run_button.clicked.connect(self.run_button_clicked)
-
-#         self.run_button_existed = True
 
 
-# @QtCore.Slot()
-# def load_model_clicked(self):
-#     self.model_path, _ = QFileDialog.getOpenFileName(self, QObject.tr('Load Model'))
-#     # in case user did not load any image
-#     if self.model_path == '':
-#         return
-#     print(f'Loaded model {self.model_path}')
-
-#     model_name = self.model_path.split('/')[-1]
-#     width = 300
-#     height = 300
-#     # display the model
-#     self.display_model(model_name, width, height, boundary_width=3)
-#     # change the button text
-#     self.model_button.setText(f'Loaded model {model_name}. Click to load new model')
-
-#     # show the run button when both ready
-#     if self.model_existed and self.image_existed and not self.run_buttons_existed:
-#         # run once button
-#         self.run_once_button = QtWidgets.QPushButton('Run model once')
-#         self.run_button_layout.addWidget(self.run_once_button)
-#         self.run_once_button.clicked.connect(self.run_once_button_clicked)
-#         # load model button
-#         self.run_all_button = QtWidgets.QPushButton('Run model on all transformations')
-#         self.run_button_layout.addWidget(self.run_all_button)
-#         self.run_all_button.clicked.connect(self.run_all_button_clicked)
-
-#         self.run_buttons_existed = True
 
 # draw model diagram, return model pixmap
 # def draw_model_diagram(self, painter, pen, name, font_size, width, height, boundary_width):

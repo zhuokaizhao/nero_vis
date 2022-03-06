@@ -306,9 +306,10 @@ class Rot_Eqv_Net_MNIST(torch.nn.Module):
 
 
 ######################################## Object Detection (COCO) ########################################
-# Self-trained model with different levels of jittering
-class Self_Trained_FastRCNN(torch.nn.Module):
+# Custom-trained model with different levels of jittering
+class Custom_Trained_FastRCNN(torch.nn.Module):
     def __init__(self, num_classes=5, image_size=128):
+        super().__init__()
         self.model = torchvision.models.detection.fasterrcnn_resnet50_fpn(pretrained=False,
                                                                             num_classes=num_classes+1,
                                                                             pretrained_backbone=True,
@@ -327,7 +328,9 @@ class Self_Trained_FastRCNN(torch.nn.Module):
 # Pre-trained model with all sorts of data augmentation
 class Pre_Trained_FastRCNN(torch.nn.Module):
     def __init__(self, image_size=128):
-        self.model = torchvision.models.detection.fasterrcnn_resnet50_fpn(pretrained=True,
+        super().__init__()
+        # load from file instead of downloading from PyTorch
+        self.model = torchvision.models.detection.fasterrcnn_resnet50_fpn(pretrained=False,
                                                                             min_size=image_size)
 
     def forward(self, x):

@@ -5,6 +5,7 @@ import time
 import torch
 import torchvision
 import numpy as np
+from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
 
 os.environ['CUDA_VISIBLE_DEVICES']='0'
 
@@ -76,28 +77,42 @@ def load_model(mode, network_model, model_dir):
 
     if mode == 'digit_recognition':
         # model
-        if network_model == 'non-eqv' or network_model == 'aug-eqv':
+        if network_model == 'non_eqv' or network_model == 'aug_eqv':
             model = models.Non_Eqv_Net_MNIST('rotation').to(device)
 
-        elif network_model == 'rot-eqv':
+        elif network_model == 'rot_eqv':
             # number of groups for e2cnn
             num_rotation = 8
             model = models.Rot_Eqv_Net_MNIST(image_size=None, num_rotation=num_rotation).to(device)
 
-    elif mode == 'object_detection':
-        if network_model == 'self-trained':
-            model = models.Self_Trained_FastRCNN()
+        loaded_model = torch.load(model_dir, map_location=device)
+        model.load_state_dict(loaded_model['state_dict'])
 
-        elif network_model == 'pre-trained':
+    elif mode == 'object_detection':
+        num_classes = 5
+        image_size = 128
+        if network_model == 'custom_trained':
+            # model = models.Custom_Trained_FastRCNN()
+            model = torchvision.models.detection.fasterrcnn_resnet50_fpn(pretrained=False,
+                                                                            num_classes=num_classes+1,
+                                                                            pretrained_backbone=True,
+                                                                            min_size=image_size)
+            # get number of input features for the classifier
+            in_features = model.roi_heads.box_predictor.cls_score.in_features
+            # replace the pre-trained head with a new one
+            model.roi_heads.box_predictor = FastRCNNPredictor(in_features, num_classes+1)
+
+        elif network_model == 'pre_trained':
+            # model = torchvision.models.detection.fasterrcnn_resnet50_fpn(pretrained=False,
+            #                                                                 min_size=image_size)
             model = models.Pre_Trained_FastRCNN()
 
+        model.load_state_dict(torch.load(model_dir, map_location=device))
 
-    loaded_model = torch.load(model_dir, map_location=device)
-    model.load_state_dict(loaded_model['state_dict'])
     # set model in evaluation mode
     model.eval()
 
-    print(f'{network_model} loaded')
+    print(f'{network_model} loaded from {model_dir}')
 
     return model
 
