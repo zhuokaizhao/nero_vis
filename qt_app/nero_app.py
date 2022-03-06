@@ -1000,23 +1000,12 @@ class UI_MainWindow(QWidget):
             self.output_1 = nero_run_model.run_mnist_once(self.model_1, self.cur_image_pt)
             self.output_2 = nero_run_model.run_mnist_once(self.model_2, self.cur_image_pt)
 
-            # display the result
-            # add a new label for result if no result has existed
-            if not self.single_result_existed:
-                self.mnist_label = QLabel(self)
-                self.mnist_label.setAlignment(QtCore.Qt.AlignCenter)
-                self.mnist_label.setWordWrap(True)
-                self.mnist_label.setTextFormat(QtGui.Qt.AutoText)
-                self.result_existed = True
-                self.repaint = False
-            else:
-                self.repaint = True
-
             # display result
             self.display_mnist_single_result(mode=self.data_mode, type='bar', boundary_width=3)
 
-        elif self.mode == 'object_detection':
-            print('Not yet implemented')
+        # elif self.mode == 'object_detection':
+
+
 
 
     # run model on all the available transformations on a single sample
@@ -1051,18 +1040,6 @@ class UI_MainWindow(QWidget):
 
                 self.all_quantities_1.append(quantity_1)
                 self.all_quantities_2.append(quantity_2)
-
-            # display the result
-            # add a new label for result if no result has existed
-            if not self.single_result_existed:
-                self.mnist_label = QLabel(self)
-                self.mnist_label.setAlignment(QtCore.Qt.AlignCenter)
-                self.mnist_label.setWordWrap(True)
-                self.mnist_label.setTextFormat(QtGui.Qt.AutoText)
-                self.single_result_existed = True
-                self.repaint = False
-            else:
-                self.repaint = True
 
             # display result
             self.display_mnist_single_result(mode=self.data_mode, type='polar', boundary_width=3)
@@ -1246,18 +1223,26 @@ class UI_MainWindow(QWidget):
 
         # aggregate mode does not draw arrow
         if mode == 'single':
-            mnist_pixmap = QPixmap(100, 50)
-            mnist_pixmap.fill(QtCore.Qt.white)
+            # add a new label for result if no result has existed
+            if not self.single_result_existed:
+                self.arrow_label = QLabel(self)
+                self.arrow_label.setAlignment(QtCore.Qt.AlignCenter)
+                self.arrow_label.setWordWrap(True)
+                self.arrow_label.setTextFormat(QtGui.Qt.AutoText)
+                self.single_result_existed = True
+
+            arrow_pixmap = QPixmap(100, 50)
+            arrow_pixmap.fill(QtCore.Qt.white)
             # draw arrow
-            painter = QtGui.QPainter(mnist_pixmap)
+            painter = QtGui.QPainter(arrow_pixmap)
             # set pen (used to draw outlines of shapes) and brush (draw the background of a shape)
             pen = QtGui.QPen()
             # draw arrow to indicate feeding
             self.draw_arrow(painter, pen, 100, 50, boundary_width)
 
             # add to the label and layout
-            self.mnist_label.setPixmap(mnist_pixmap)
-            self.single_result_layout.addWidget(self.mnist_label, 0, 1)
+            self.arrow_label.setPixmap(arrow_pixmap)
+            self.single_result_layout.addWidget(self.arrow_label, 0, 1)
             painter.end()
 
         # draw result using bar plot
