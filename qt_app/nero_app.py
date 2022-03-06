@@ -111,15 +111,15 @@ class UI_MainWindow(QWidget):
                 # preload model 1
                 self.model_1_name = 'Simple model'
                 self.model_1_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'non_eqv', '*.pt'))[0]
-                self.model_1 = nero_run_model.load_mnist_model('non-eqv', self.model_1_path)
+                self.model_1 = nero_run_model.load_model(self.mode, 'non-eqv', self.model_1_path)
 
                 # preload model 2
-                self.model_2_name = 'Data augmentation model'
+                self.model_2_name = 'Simple model with DA'
                 self.model_2_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'aug_rot_eqv', '*.pt'))[0]
-                self.model_2 = nero_run_model.load_mnist_model('aug-eqv', self.model_2_path)
-                # self.model_2_name = 'E2CNN model'
+                self.model_2 = nero_run_model.load_model(self.mode, 'aug-eqv', self.model_2_path)
+                # self.model_2_name = 'Simple model with E2CNN'
                 # self.model_2_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'rot_eqv', '*.pt'))[0]
-                # self.model_2 = nero_run_model.load_mnist_model('rot-eqv', self.model_2_path)
+                # self.model_2 = nero_run_model.load_model('rot-eqv', self.model_2_path)
 
                 # unique quantity of the result of current data
                 self.all_quantities_1 = []
@@ -162,11 +162,11 @@ class UI_MainWindow(QWidget):
                 # predefined model paths
                 # model_1_name = 'Simple model'
                 self.model_1_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'non_eqv', '*.pt'))[0]
-                # model_2_name = 'Data augmentation model'
+                # model_2_name = 'Simple model with DA'
                 self.model_2_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'aug_rot_eqv', '*.pt'))[0]
                 # preload model
-                self.model_1 = nero_run_model.load_mnist_model('non-eqv', self.model_1_path)
-                self.model_2 = nero_run_model.load_mnist_model('aug-eqv', self.model_2_path)
+                self.model_1 = nero_run_model.load_model(self.mode, 'non-eqv', self.model_1_path)
+                self.model_2 = nero_run_model.load_model(self.mode, 'aug-eqv', self.model_2_path)
 
                 # unique quantity of the result of current data
                 self.all_quantities_1 = []
@@ -207,11 +207,11 @@ class UI_MainWindow(QWidget):
             # predefined model paths
             self.model_1_name = 'Simple model'
             self.model_1_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'non_eqv', '*.pt'))[0]
-            self.model_2_name = 'Data augmentation model'
+            self.model_2_name = 'Simple model with DA'
             self.model_2_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'aug_rot_eqv', '*.pt'))[0]
             # preload model
-            self.model_1 = nero_run_model.load_mnist_model('non-eqv', self.model_1_path)
-            self.model_2 = nero_run_model.load_mnist_model('aug-eqv', self.model_2_path)
+            self.model_1 = nero_run_model.load_model(self.mode, 'non-eqv', self.model_1_path)
+            self.model_2 = nero_run_model.load_model(self.mode, 'aug-eqv', self.model_2_path)
 
             # unique quantity of the result of current data
             self.all_quantities_1 = []
@@ -439,24 +439,25 @@ class UI_MainWindow(QWidget):
                 if text == 'Simple model':
                     self.model_1_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'non_eqv', '*.pt'))[0]
                     # reload model
-                    self.model_1 = nero_run_model.load_mnist_model('non-eqv', self.model_1_path)
-                elif text == 'E2CNN model':
+                    self.model_1 = nero_run_model.load_model(self.mode, 'non-eqv', self.model_1_path)
+                elif text == 'Simple model with E2CNN':
                     self.model_1_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'rot_eqv', '*.pt'))[0]
                     # reload model
-                    self.model_1 = nero_run_model.load_mnist_model('rot-eqv', self.model_1_path)
-                elif text == 'Data augmentation model':
+                    self.model_1 = nero_run_model.load_model(self.mode, 'rot-eqv', self.model_1_path)
+                elif text == 'Simple model with DA':
                     self.model_1_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'aug_rot_eqv', '*.pt'))[0]
                     # reload model
-                    self.model_1 = nero_run_model.load_mnist_model('aug-eqv', self.model_1_path)
+                    self.model_1 = nero_run_model.load_model(self.mode, 'aug-eqv', self.model_1_path)
+
             elif self.mode == 'object_detection':
-                if text == 'Simple model':
+                if text == 'Self-trained model':
                     self.model_1_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'non_eqv', '*.pt'))[0]
                     # reload model
-                    self.model_1 = nero_run_model.load_coco_model('non-eqv', self.model_1_path)
-                elif text == 'Shift-Invariant model':
+                    self.model_1 = nero_run_model.load_model(self.mode, 'non-eqv', self.model_1_path)
+                elif text == 'Pre-trained model':
                     self.model_1_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'rot_eqv', '*.pt'))[0]
                     # reload model
-                    self.model_1 = nero_run_model.load_coco_model('rot-eqv', self.model_1_path)
+                    self.model_1 = nero_run_model.load_model(self.mode, 'rot-eqv', self.model_1_path)
 
             print('Model 1 path:', self.model_1_path)
 
@@ -469,24 +470,25 @@ class UI_MainWindow(QWidget):
                 if text == 'Simple model':
                     self.model_2_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'non_eqv', '*.pt'))[0]
                     # reload model
-                    self.model_2 = nero_run_model.load_mnist_model('non-eqv', self.model_2_path)
-                elif text == 'E2CNN model':
+                    self.model_2 = nero_run_model.load_model('non-eqv', self.model_2_path)
+                elif text == 'Simple model with E2CNN':
                     self.model_2_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'rot_eqv', '*.pt'))[0]
                     # reload model
-                    self.model_2 = nero_run_model.load_mnist_model('rot-eqv', self.model_2_path)
-                elif text == 'Data augmentation model':
+                    self.model_2 = nero_run_model.load_model('rot-eqv', self.model_2_path)
+                elif text == 'Simple model with DA':
                     self.model_2_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'aug_rot_eqv', '*.pt'))[0]
                     # reload model
-                    self.model_2 = nero_run_model.load_mnist_model('aug-eqv', self.model_2_path)
+                    self.model_2 = nero_run_model.load_model('aug-eqv', self.model_2_path)
+
             elif self.mode == 'object_detection':
                 if text == 'Simple model':
                     self.model_2_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'non_eqv', '*.pt'))[0]
                     # reload model
-                    self.model_2 = nero_run_model.load_coco_model('non-eqv', self.model_2_path)
+                    self.model_2 = nero_run_model.load_model(self.mode, 'non-eqv', self.model_2_path)
                 elif text == 'Shift-Invariant model':
                     self.model_2_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'rot_eqv', '*.pt'))[0]
                     # reload model
-                    self.model_2 = nero_run_model.load_coco_model('rot-eqv', self.model_2_path)
+                    self.model_2 = nero_run_model.load_model(self.mode, 'rot-eqv', self.model_2_path)
 
             print('Model 2 path:', self.model_2_path)
 
@@ -613,7 +615,7 @@ class UI_MainWindow(QWidget):
             jittering_menu.lineEdit().setAlignment(QtCore.Qt.AlignCenter)
 
             # add items
-            jittering_menu.addItem('Jittering level')
+            # jittering_menu.addItem('Jittering level')
             for i in range(0, 100, 33):
                 jittering_menu.addItem(f'{i}%')
 
@@ -642,13 +644,13 @@ class UI_MainWindow(QWidget):
         model_1_menu.setStyleSheet('font-size: 18px')
         if self.mode == 'digit_recognition':
             model_1_menu.addItem(model_1_icon, 'Simple model')
-            model_1_menu.addItem(model_1_icon, 'E2CNN model')
-            model_1_menu.addItem(model_1_icon, 'Data augmentation model')
+            model_1_menu.addItem(model_1_icon, 'Simple model with E2CNN')
+            model_1_menu.addItem(model_1_icon, 'Simple model with DA')
             model_1_menu.setCurrentText('Simple model')
         elif self.mode == 'object_detection':
-            model_1_menu.addItem(model_1_icon, 'Simple model')
-            model_1_menu.addItem(model_1_icon, 'Shift-Invariant model')
-            model_1_menu.setCurrentText('Simple model')
+            model_1_menu.addItem(model_1_icon, 'Self-trained model')
+            model_1_menu.addItem(model_1_icon, 'Pre-trained model')
+            model_1_menu.setCurrentText('Self-trained model')
 
         # connect the drop down menu with actions
         model_1_menu.currentTextChanged.connect(model_1_selection_changed)
@@ -661,38 +663,41 @@ class UI_MainWindow(QWidget):
             self.load_menu_layout.addWidget(model_1_menu, 3, 3)
 
         # model 2
+        # graphic representation
+        self.model_2_label = QLabel(self)
+        self.model_2_label.setAlignment(QtCore.Qt.AlignCenter)
+        model_2_icon = QPixmap(25, 25)
+        model_2_icon.fill(QtCore.Qt.white)
+        # draw model representation
+        painter = QtGui.QPainter(model_2_icon)
+        draw_circle(painter, 12, 12, 10, 'Green')
+
+        # spacer item
+        # self.mode_control_layout.addSpacing(30)
+
+        model_2_menu = QtWidgets.QComboBox()
+        model_2_menu.setMinimumSize(QtCore.QSize(250, 50))
+        model_2_menu.setStyleSheet('font-size: 18px')
+        model_2_menu.setEditable(True)
+        model_2_menu.lineEdit().setReadOnly(True)
+        model_2_menu.lineEdit().setAlignment(QtCore.Qt.AlignCenter)
         if self.mode == 'digit_recognition':
-            # graphic representation
-            self.model_2_label = QLabel(self)
-            self.model_2_label.setAlignment(QtCore.Qt.AlignCenter)
-            model_2_icon = QPixmap(25, 25)
-            model_2_icon.fill(QtCore.Qt.white)
-            # draw model representation
-            painter = QtGui.QPainter(model_2_icon)
-            draw_circle(painter, 12, 12, 10, 'Green')
+            model_2_menu.addItem(model_2_icon, 'Simple model')
+            model_2_menu.addItem(model_2_icon, 'Simple model with E2CNN')
+            model_2_menu.addItem(model_2_icon, 'Simple model with DA')
+            # model_2_menu.setCurrentText('Simple model with E2CNN')
+            model_2_menu.setCurrentText('Simple model with DA')
+        elif self.mode == 'object_detection':
+            model_2_menu.addItem(model_2_icon, 'Self-trained model')
+            model_2_menu.addItem(model_2_icon, 'Pre-trained model')
+            model_2_menu.setCurrentText('Pre-trained model')
 
-            # spacer item
-            # self.mode_control_layout.addSpacing(30)
-
-            model_2_menu = QtWidgets.QComboBox()
-            model_2_menu.setMinimumSize(QtCore.QSize(250, 50))
-            model_2_menu.setStyleSheet('font-size: 18px')
-            model_2_menu.setEditable(True)
-            model_2_menu.lineEdit().setReadOnly(True)
-            model_2_menu.lineEdit().setAlignment(QtCore.Qt.AlignCenter)
-            if self.mode == 'digit_recognition':
-                model_2_menu.addItem(model_2_icon, 'Simple model')
-                model_2_menu.addItem(model_2_icon, 'E2CNN model')
-                model_2_menu.addItem(model_2_icon, 'Data augmentation model')
-                model_2_menu.setCurrentText('E2CNN model')
-            elif self.mode == 'object_detection':
-                model_2_menu.addItem(model_2_icon, 'Simple model')
-                model_2_menu.addItem(model_2_icon, 'Shift-Invariant model')
-                model_2_menu.setCurrentText('Shift-Invariant model')
-
-            # connect the drop down menu with actions
-            model_2_menu.currentTextChanged.connect(model_2_selection_changed)
+        # connect the drop down menu with actions
+        model_2_menu.currentTextChanged.connect(model_2_selection_changed)
+        if self.mode == 'digit_recognition':
             self.load_menu_layout.addWidget(model_2_menu, 3, 3)
+        elif self.mode == 'object_detection':
+            self.load_menu_layout.addWidget(model_2_menu, 4, 3)
 
 
         # add this layout to the general layout
@@ -738,19 +743,18 @@ class UI_MainWindow(QWidget):
     # run button execution that could be used by all modes
     @QtCore.Slot()
     def run_button_clicked(self):
-        if self.mode == 'digit_recognition':
-            if self.data_mode == 'aggregate':
-                self.run_model_aggregated()
-                self.aggregate_result_existed = True
+        if self.data_mode == 'aggregate':
+            self.run_model_aggregated()
+            self.aggregate_result_existed = True
 
-            elif self.data_mode == 'single':
-                # run model once and display results (Detailed bar plot)
-                self.run_model_once()
+        elif self.data_mode == 'single':
+            # run model once and display results (Detailed bar plot)
+            self.run_model_once()
 
-                # run model all and display results (Individual NERO plot)
-                self.run_model_all()
+            # run model all and display results (Individual NERO plot)
+            self.run_model_all()
 
-                self.single_result_existed = True
+            self.single_result_existed = True
 
 
     # initialize digit selection control drop down menu

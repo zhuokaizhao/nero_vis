@@ -5,7 +5,6 @@ import time
 import torch
 import torchvision
 import numpy as np
-from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
 
 os.environ['CUDA_VISIBLE_DEVICES']='0'
 
@@ -14,7 +13,7 @@ current = os.path.dirname(os.path.realpath(__file__))
 parent = os.path.dirname(current)
 sys.path.append(parent)
 
-import mnist_models
+import models
 
 # MNIST dataset for running in aggregate mode
 class MnistDataset(torch.utils.data.Dataset):
@@ -66,7 +65,8 @@ def print_progress_bar (iteration, total, prefix = '', suffix = '', decimals = 1
 
 
 # digit recognition (mnist)
-def load_mnist_model(network_model, model_dir):
+def load_model(mode, network_model, model_dir):
+
     # basic settings for pytorch
     if torch.cuda.is_available():
         # device set up
@@ -74,14 +74,23 @@ def load_mnist_model(network_model, model_dir):
     else:
         device = torch.device('cpu')
 
-    # model
-    if network_model == 'non-eqv' or network_model == 'aug-eqv':
-        model = mnist_models.Non_Eqv_Net_MNIST('rotation').to(device)
+    if mode == 'digit_recognition':
+        # model
+        if network_model == 'non-eqv' or network_model == 'aug-eqv':
+            model = models.Non_Eqv_Net_MNIST('rotation').to(device)
 
-    elif network_model == 'rot-eqv':
-        # number of groups for e2cnn
-        num_rotation = 8
-        model = mnist_models.Rot_Eqv_Net_MNIST(image_size=None, num_rotation=num_rotation).to(device)
+        elif network_model == 'rot-eqv':
+            # number of groups for e2cnn
+            num_rotation = 8
+            model = models.Rot_Eqv_Net_MNIST(image_size=None, num_rotation=num_rotation).to(device)
+
+    elif mode == 'object_detection':
+        if network_model == 'self-trained':
+            model = models.Self_Trained_FastRCNN()
+
+        elif network_model == 'pre-trained':
+            model = models.Pre_Trained_FastRCNN()
+
 
     loaded_model = torch.load(model_dir, map_location=device)
     model.load_state_dict(loaded_model['state_dict'])
@@ -210,36 +219,6 @@ def run_mnist_once(model, test_image, test_label=None, batch_size=None, rotate_a
 
             # return the averaged batch loss
             return avg_accuracy, avg_accuracy_per_digit, all_output
-
-
-# object detection (coco)
-def load_coco_model(model_dir, num_classes = 5):
-
-    # basic settings for pytorch
-    if torch.cuda.is_available():
-        # device set up
-        device = torch.device('cuda:0')
-    else:
-        device = torch.device('cpu')
-
-    # initiate model
-    model = torchvision.models.detection.fasterrcnn_resnet50_fpn(pretrained=False,
-                                                                num_classes=num_classes+1,
-                                                                pretrained_backbone=True,
-                                                                min_size=128)
-    # get number of input features for the classifier
-    in_features = model.roi_heads.box_predictor.cls_score.in_features
-    # replace the pre-trained head with a new one
-    model.roi_heads.box_predictor = FastRCNNPredictor(in_features, num_classes+1)
-
-    # load the weight
-    loaded_model = torch.load(model_dir, map_location=device)
-    model.load_state_dict(loaded_model['state_dict'])
-
-    # set model in evaluation mode
-    model.eval()
-
-    return model
 
 
 # run model on either on a single COCO image or a batch of COCO images

@@ -1,11 +1,13 @@
 import torch
 import e2cnn
 import numpy as np
+import torchvision
 from e2cnn import gspaces
 import torch.utils.model_zoo as model_zoo
+from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
 
 
-######################################## For MNIST dataset ########################################
+######################################## Digit Recognition (MNIST) ########################################
 # non-rotation equivariant network
 class Non_Eqv_Net_MNIST(torch.nn.Module):
     def __init__(self, type, n_classes=10):
@@ -302,3 +304,33 @@ class Rot_Eqv_Net_MNIST(torch.nn.Module):
         return x
 
 
+
+######################################## Object Detection (COCO) ########################################
+# Self-trained model with different levels of jittering
+class Self_Trained_FastRCNN(torch.nn.Module):
+    def __init__(self, num_classes=5, image_size=128):
+        self.model = torchvision.models.detection.fasterrcnn_resnet50_fpn(pretrained=False,
+                                                                            num_classes=num_classes+1,
+                                                                            pretrained_backbone=True,
+                                                                            min_size=image_size)
+        # get number of input features for the classifier
+        in_features = self.model.roi_heads.box_predictor.cls_score.in_features
+        # replace the pre-trained head with a new one
+        self.model.roi_heads.box_predictor = FastRCNNPredictor(in_features, num_classes+1)
+
+    def forward(self, x):
+        x = self.model(x)
+
+        return x
+
+
+# Pre-trained model with all sorts of data augmentation
+class Pre_Trained_FastRCNN(torch.nn.Module):
+    def __init__(self, image_size=128):
+        self.model = torchvision.models.detection.fasterrcnn_resnet50_fpn(pretrained=True,
+                                                                            min_size=image_size)
+
+    def forward(self, x):
+        x = self.model(x)
+
+        return x
