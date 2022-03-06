@@ -100,7 +100,8 @@ class UI_MainWindow(QWidget):
 
                 self.init_load_layout()
 
-                # display mnist image size
+                # analyze and display mnist image size
+                self.image_size = 29
                 self.display_image_size = 150
                 # image (input data) modification mode
                 self.rotation = True
@@ -153,7 +154,8 @@ class UI_MainWindow(QWidget):
 
                 self.init_load_layout()
 
-                # display mnist image size
+                # analyze and display COCO image size
+                self.image_size = 128
                 self.display_image_size = 512
                 # image (input data) modification mode
                 self.rotation = False
@@ -167,6 +169,18 @@ class UI_MainWindow(QWidget):
                 # preload model
                 self.model_1 = nero_run_model.load_model(self.mode, 'custom_trained', self.model_1_path)
                 self.model_2 = nero_run_model.load_model(self.mode, 'pre_trained', self.model_2_path)
+
+                # different class names (original COCO classes, custom 5-class and the one that pretrained PyTorch model uses)
+                self.original_coco_names_path = os.path.join(os.getcwd(), 'example_data', self.mode, 'coco.names')
+                self.custom_coco_names_path = os.path.join(os.getcwd(), 'example_data', self.mode, 'custom.names')
+                self.pytorch_coco_names_path = os.path.join(os.getcwd(), 'example_data', self.mode, 'pytorch_coco.names')
+
+                # load these name files
+                self.original_coco_names = nero_utilities.load_coco_classes_file(self.original_coco_names_path)
+                self.custom_coco_names = nero_utilities.load_coco_classes_file(self.custom_coco_names_path)
+                self.pytorch_coco_names = nero_utilities.load_coco_classes_file(self.pytorch_coco_names_path)
+
+                print(self.custom_coco_names)
 
                 # unique quantity of the result of current data
                 self.all_quantities_1 = []
@@ -396,6 +410,9 @@ class UI_MainWindow(QWidget):
                 self.loaded_image_pt = torch.from_numpy(np.asarray(Image.open(self.image_path).convert('RGB')))[self.center_x-128:self.center_x+128, self.center_y-128:self.center_y+128, :]
                 self.loaded_image_name = self.image_path.split('/')[-1]
 
+                # data config file for running the model
+
+
             # keep a copy to represent the current (rotated) version of the original images
             self.cur_image_pt = self.loaded_image_pt.clone()
             # convert to QImage for display purpose
@@ -584,6 +601,7 @@ class UI_MainWindow(QWidget):
 
         elif self.mode == 'object_detection':
             self.single_images_paths = []
+            self.data_config_paths = []
             self.coco_classes = ['car', 'bottle', 'cup', 'chair', 'book']
             # add a image of each class
             for i, cur_class in enumerate(self.coco_classes):
@@ -749,11 +767,15 @@ class UI_MainWindow(QWidget):
             self.aggregate_result_existed = True
 
         elif self.data_mode == 'single':
-            # run model once and display results (Detailed bar plot)
-            self.run_model_once()
+            if self.mode == 'digit_recognition':
+                # run model once and display results
+                self.run_model_once()
+                # run model all and display results (Individual NERO plot)
+                self.run_model_all()
 
-            # run model all and display results (Individual NERO plot)
-            self.run_model_all()
+            elif self.mode == 'object_detection':
+                # run model all and display results (Individual NERO plot)
+                self.run_model_all()
 
             self.single_result_existed = True
 
@@ -1003,7 +1025,12 @@ class UI_MainWindow(QWidget):
             # display result
             self.display_mnist_single_result(mode=self.data_mode, type='bar', boundary_width=3)
 
-        # elif self.mode == 'object_detection':
+        elif self.mode == 'object_detection':
+
+            self.output_1 = nero_run_model.run_coco_once(self.model_1, self.cur_image_pt)
+            self.output_2 = nero_run_model.run_coco_once(self.model_2, self.cur_image_pt)
+
+            print(self.output_1)
 
 
 
@@ -1045,7 +1072,9 @@ class UI_MainWindow(QWidget):
             self.display_mnist_single_result(mode=self.data_mode, type='polar', boundary_width=3)
 
         elif self.mode == 'object_detection':
-            print('Not yet implemented')
+            # all the x and y translations
+            x_translation = list(range(-self.image_size//2, self.image_size//2))
+            y_translation = list(range(-self.image_size//2, self.image_size//2))
 
 
     def display_image(self):
@@ -1223,6 +1252,7 @@ class UI_MainWindow(QWidget):
 
         # aggregate mode does not draw arrow
         if mode == 'single':
+            # draw arrow
             # add a new label for result if no result has existed
             if not self.single_result_existed:
                 self.arrow_label = QLabel(self)
@@ -1233,7 +1263,6 @@ class UI_MainWindow(QWidget):
 
             arrow_pixmap = QPixmap(100, 50)
             arrow_pixmap.fill(QtCore.Qt.white)
-            # draw arrow
             painter = QtGui.QPainter(arrow_pixmap)
             # set pen (used to draw outlines of shapes) and brush (draw the background of a shape)
             pen = QtGui.QPen()
