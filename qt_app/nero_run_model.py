@@ -84,11 +84,12 @@ def load_model(mode, network_model, model_dir):
             in_features = model.roi_heads.box_predictor.cls_score.in_features
             # replace the pre-trained head with a new one
             model.roi_heads.box_predictor = FastRCNNPredictor(in_features, num_classes+1)
+            model.to(device)
 
         elif network_model == 'pre_trained':
             # model = torchvision.models.detection.fasterrcnn_resnet50_fpn(pretrained=False,
             #                                                                 min_size=image_size)
-            model = models.Pre_Trained_FastRCNN()
+            model = models.Pre_Trained_FastRCNN().to(device)
 
         model.load_state_dict(torch.load(model_dir, map_location=device))
 
@@ -136,6 +137,7 @@ def run_mnist_once(model, test_image, test_label=None, batch_size=None, rotate_a
 
             return output
 
+        # multiple images (aggregated) mode
         elif len(test_image.shape) == 4 and batch_size:
             loss_function = torch.nn.CrossEntropyLoss(reduction='none')
             all_output = np.zeros((len(test_image), 10))
@@ -219,11 +221,107 @@ def run_mnist_once(model, test_image, test_label=None, batch_size=None, rotate_a
             return avg_accuracy, avg_accuracy_per_digit, all_output
 
 
+# helper function on processing coco model output
+def process_model_outputs(outputs, targets, iou_thres=0.5, conf_thres=1e-4):
+
+    def bbox_iou(box1, box2):
+        """
+        Returns the IoU of two bounding boxes
+        """
+        # Get the coordinates of bounding boxes
+        b1_x1, b1_y1, b1_x2, b1_y2 = box1[:, 0], box1[:, 1], box1[:, 2], box1[:, 3]
+        b2_x1, b2_y1, b2_x2, b2_y2 = box2[:, 0], box2[:, 1], box2[:, 2], box2[:, 3]
+
+        # get the corrdinates of the intersection rectangle
+        inter_rect_x1 = torch.max(b1_x1, b2_x1)
+        inter_rect_y1 = torch.max(b1_y1, b2_y1)
+        inter_rect_x2 = torch.min(b1_x2, b2_x2)
+        inter_rect_y2 = torch.min(b1_y2, b2_y2)
+        # Intersection area
+        inter_area = torch.clamp(inter_rect_x2 - inter_rect_x1 + 1, min=0) * torch.clamp(
+            inter_rect_y2 - inter_rect_y1 + 1, min=0
+        )
+        # Union Area
+        b1_area = (b1_x2 - b1_x1 + 1) * (b1_y2 - b1_y1 + 1)
+        b2_area = (b2_x2 - b2_x1 + 1) * (b2_y2 - b2_y1 + 1)
+
+        iou = inter_area / (b1_area + b2_area - inter_area + 1e-16)
+
+        return iou
+
+    # get all the outputs (the model proposes multiple bounding boxes for each object)
+    all_precisions = []
+    all_recalls = []
+    all_F_measure = []
+
+    # loop through each object
+    for i in range(len(outputs)):
+
+        if outputs[i] is None:
+            continue
+
+        # output has to pass the conf threshold to filter out noisy predictions
+        # faster-rcnn output has format (x1, y1, x2, y2, conf, class_pred)
+        output = outputs[i]
+        cur_object_outputs = []
+        for j in range(len(output)):
+            if output[j, 4] >= conf_thres:
+                cur_object_outputs.append(output[j].numpy())
+
+        cur_object_outputs = np.array(cur_object_outputs)
+        cur_object_outputs = torch.from_numpy(cur_object_outputs)
+
+        # cur_object_outputs = outputs[i]
+
+        # all predicted labels and true label for the current object
+        pred_labels = cur_object_outputs[:, -1].numpy()
+        true_labels = targets[targets[:, 0] == i][:, 1].numpy()
+
+        # all predicted bounding boxes and true bb for the current object
+        pred_boxes = cur_object_outputs[:, :4]
+        true_boxes = targets[targets[:, 0] == i][:, 2:]
+        cur_qualified_output = []
+        num_true_positive = 0
+        num_false_positive = 0
+
+        # loop through all the proposed bounding boxes
+        for j, pred_box in enumerate(pred_boxes):
+            # print(f'True label: {true_labels[i]}, Pred label: {pred_labels[j]}')
+            # if the label is predicted correctly
+            if pred_labels[j] == true_labels[i]:
+                # compute iou
+                cur_iou = bbox_iou(pred_box.unsqueeze(0), true_boxes)
+                # if iou passed threshold
+                if cur_iou > iou_thres:
+                    # save current output
+                    cur_qualified_output.append(np.append(cur_object_outputs[j].numpy(), cur_iou))
+                    num_true_positive += 1
+                else:
+                    num_false_positive += 1
+            # if the label is wrong, mark as false positive
+            else:
+                num_false_positive += 1
+
+        # Number of TP and FP is computed from all predictions (un-iou thresheld)
+        # precision = TP / (TP + FP)
+        precision = num_true_positive / (num_true_positive + num_false_positive + 1e-16)
+        # Recall = TP / (TP + FN), where (TP + FN) is just the number of ground truths
+        recall = num_true_positive / (len(true_boxes) + 1e-16)
+        # F-measure = (2 * Precision * Recall) / (Precision + Recall)
+        F_measure = (2 * precision * recall) / (precision + recall + 1e-16)
+
+        all_precisions.append(precision)
+        all_recalls.append(recall)
+        all_F_measure.append(F_measure)
+
+    return all_precisions, all_recalls, all_F_measure
+
+
 # run model on either on a single COCO image or a batch of COCO images
-def run_coco_once(model_name, model, test_image, original_names, custom_names, pytorch_names, batch_size=1):
+def run_coco_once(model_name, model, test_image, original_names, custom_names, pytorch_names, test_label=None, batch_size=1):
 
     # prepare input image shapes
-    img_size = test_image.shape[0]
+    # img_size = test_image.shape[0]
     if len(test_image.shape) == 3:
         # reformat input image from (height, width, channel) to (batch size, channel, height, width)
         test_image = test_image.permute((2, 0, 1))[None, :, :, :].float()
@@ -233,236 +331,76 @@ def run_coco_once(model_name, model, test_image, original_names, custom_names, p
     else:
         raise Exception('Wrong input image shape')
 
-    # ensure the model is in evaluation mode
-    model.eval()
+    # basic settings for pytorch
+    if torch.cuda.is_available():
+        # device set up
+        device = torch.device('cuda:0')
+        Tensor = torch.cuda.FloatTensor
+    else:
+        device = torch.device('cpu')
+        Tensor = torch.FloatTensor
+
+    with torch.no_grad():
+        # single image mode
+        if test_image.shape[0] == 1:
+            # batch_time_start = time.time()
+            # prepare current batch's testing data
+            test_image = test_image.to(device)
+
+            # when we are using pretrained model and label is present
+            if model_name == 'Pre-trained FasterRCNN' and test_label:
+                for i in range(len(test_label)):
+                    test_label[i, 1] = pytorch_names.index(custom_names[int(test_label[i, 1]-1)]) + 1
+
+            # run model inference
+            outputs_dict = model(test_image)
+            outputs = []
+            # model can propose multiple objects
+            for image_pred in outputs_dict:
+                # the model proposes multiple bounding boxes for each object
+                pred_boxes = image_pred['boxes'].cpu()
+                pred_labels = image_pred['labels'].cpu()
+                pred_confs = image_pred['scores'].cpu()
+
+                # transform output in the format of (x1, y1, x2, y2, conf, class_pred)
+                output = torch.zeros((len(pred_boxes), 6))
+                output[:, :4] = pred_boxes
+                output[:, 4] = pred_confs
+                output[:, 5] = pred_labels
+
+                outputs.append(output)
+
+            if outputs != []:
+                cur_precision, cur_recall, cur_F_measure = process_model_outputs(outputs, test_label)
+            else:
+                cur_precision = [0]
+                cur_recall = [0]
+                cur_F_measure = [0]
+            # batch_time_end = time.time()
+            # batch_time_cost = batch_time_end - batch_time_start
+            # print(f'Inference time: {batch_time_cost} seconds')
+
+            return cur_precision, cur_recall, cur_F_measure
+
+
+
+
 
     # create dataloader to take care of classes conversion, etc
-    EVALUATE_TRANSFORMS = transforms.Compose([nero_transform.ConvertLabel(original_names, custom_names),
-                                            nero_transform.ToTensor()])
+    # EVALUATE_TRANSFORMS = transforms.Compose([nero_transform.ConvertLabel(original_names, custom_names),
+    #                                         nero_transform.ToTensor()])
 
-    dataset = datasets.CreateDataset(path, img_size=img_size, transform=EVALUATE_TRANSFORMS)
-    dataloader = torch.utils.data.DataLoader(
-        dataset,
-        batch_size=batch_size,
-        shuffle=False,
-        num_workers=1,
-        collate_fn=dataset.collate_fn
-    )
-
-
-    result_size = int(np.sqrt(len(dataloader.dataset)))
-
-    Tensor = torch.cuda.FloatTensor if torch.cuda.is_available() else torch.FloatTensor
-
-    # save the top 3 results (if available)
-    # targets labels and bounding boxes
-    num_keep = 3
-
-    all_target_label = np.zeros((result_size, result_size))
-    all_target_bb = np.zeros((result_size, result_size, 4))
-
-    # prediction results that have been sorted by conf
-    # object labels
-    all_pred_label_sorted_by_conf = np.zeros((result_size, result_size, num_keep))
-    # object bounding boxes
-    all_pred_bb_sorted_by_conf = np.zeros((result_size, result_size, 4*num_keep))
-    all_confidence_sorted_by_conf = np.zeros((result_size, result_size, num_keep))
-    all_iou_sorted_by_conf = np.zeros((result_size, result_size, num_keep))
-
-    # results that have been sorted by iou
-    # object labels
-    all_pred_label_sorted_by_iou = np.zeros((result_size, result_size, num_keep))
-    # object bounding boxes
-    all_pred_bb_sorted_by_iou = np.zeros((result_size, result_size, 4*num_keep))
-    all_confidence_sorted_by_iou = np.zeros((result_size, result_size, num_keep))
-    all_iou_sorted_by_iou = np.zeros((result_size, result_size, num_keep))
-
-    # results that have been sorted by conf*iou
-    # object labels
-    all_pred_label_sorted_by_conf_iou = np.zeros((result_size, result_size, num_keep))
-    # object bounding boxes
-    all_pred_bb_sorted_by_conf_iou = np.zeros((result_size, result_size, 4*num_keep))
-    all_confidence_sorted_by_conf_iou = np.zeros((result_size, result_size, num_keep))
-    all_iou_sorted_by_conf_iou = np.zeros((result_size, result_size, num_keep))
-
-    # results that have been sorted by conf*iou*precision
-    # object labels
-    all_pred_label_sorted_by_conf_iou_pr = np.zeros((result_size, result_size, num_keep))
-    # object bounding boxes
-    all_pred_bb_sorted_by_conf_iou_pr = np.zeros((result_size, result_size, 4*num_keep))
-    all_confidence_sorted_by_conf_iou_pr = np.zeros((result_size, result_size, num_keep))
-    all_iou_sorted_by_conf_iou_pr = np.zeros((result_size, result_size, num_keep))
-
-    # precision result
-    all_precision = np.zeros((result_size, result_size))
-    all_recall = np.zeros((result_size, result_size))
-    all_F_measure = np.zeros((result_size, result_size))
+    # dataset = datasets.CreateDataset(path, img_size=img_size, transform=EVALUATE_TRANSFORMS)
+    # dataloader = torch.utils.data.DataLoader(
+    #     dataset,
+    #     batch_size=batch_size,
+    #     shuffle=False,
+    #     num_workers=1,
+    #     collate_fn=dataset.collate_fn
+    # )
 
 
-    for batch_i, (path, imgs, targets) in enumerate(tqdm.tqdm(dataloader, desc="Detecting objects")):
-
-        # array index (needed when doing normal evaluation)
-        row = batch_i // result_size
-        col = batch_i % result_size
-
-        if targets is None:
-            continue
-
-        # when we are using pretrained model
-        if model_name == 'Pre-trained FasterRCNN':
-            for i in range(len(targets)):
-                targets[i, 1] = pytorch_names.index(custom_names[int(targets[i, 1]-1)]) + 1
-
-        # Extract labels to compute IOU
-        imgs = Variable(imgs.type(Tensor), requires_grad=False)
-
-        with torch.no_grad():
-            outputs_dict = model(imgs)
-
-        # since for single-test, batch size is kept at 1
-        outputs = []
-        for i in range(len(outputs_dict)):
-            image_pred = outputs_dict[i]
-            pred_boxes = image_pred['boxes'].cpu()
-            pred_labels = image_pred['labels'].cpu()
-            pred_confs = image_pred['scores'].cpu()
-
-            # transform output in the format of (x1, y1, x2, y2, conf, class_pred)
-            output = torch.zeros((len(pred_boxes), 6))
-            output[:, :4] = pred_boxes
-            output[:, 4] = pred_confs
-            output[:, 5] = pred_labels
-
-            outputs.append(output)
-
-        empty_output = False
-        if outputs != []:
-            # print(len(outputs[0]))
-            # get the predicted bounding boxes and its iou values of each object
-            cur_pred_label_sorted_by_conf, cur_pred_bb_sorted_by_conf, cur_confidence_sorted_by_conf, cur_iou_sorted_by_conf, \
-            cur_pred_label_sorted_by_iou, cur_pred_bb_sorted_by_iou, cur_confidence_sorted_by_iou, cur_iou_sorted_by_iou, \
-            cur_pred_label_sorted_by_conf_iou, cur_pred_bb_sorted_by_conf_iou, cur_confidence_sorted_by_conf_iou, cur_iou_sorted_by_conf_iou, \
-            cur_pred_label_sorted_by_conf_iou_pr, cur_pred_bb_sorted_by_conf_iou_pr, cur_confidence_sorted_by_conf_iou_pr, cur_iou_sorted_by_conf_iou_pr, \
-                cur_precision, cur_recall, cur_F_measure = nero_utilities.process_model_outputs(outputs, targets)
-            # print(cur_confidence_sorted_by_iou)
-            if len(cur_pred_label_sorted_by_conf) > 1:
-                raise Exception('Multi-object case has not been considered')
-
-            # when the output is not empty
-            if cur_pred_label_sorted_by_conf != []:
-                # target labels and bounding boxes
-                all_target_label[row, col] = targets.numpy()[0, 1]
-                all_target_bb[row, col, :] = targets.numpy()[0, 2:]
 
 
-                # for results sorted by conf
-                # extract label information from the highest-confidence result
-                # if len(cur_pred_label_sorted_by_conf[0]) < 3:
-                #     print('ahhhhh less than 3')
-                for i in range(min(len(cur_pred_label_sorted_by_conf[0]), num_keep)):
 
-
-                    # for results sorted by conf
-                    all_pred_label_sorted_by_conf[row, col, i] = cur_pred_label_sorted_by_conf[0][i]
-                    # extract bb information from the highest-confidence result
-                    all_pred_bb_sorted_by_conf[row, col, i*4:(i+1)*4] = cur_pred_bb_sorted_by_conf[0][i, :]
-                    # extract confidence from the highest-confidence result
-                    all_confidence_sorted_by_conf[row, col, i] = cur_confidence_sorted_by_conf[0][i]
-                    # extract iou from the highest-confidence result
-                    all_iou_sorted_by_conf[row, col, i] = cur_iou_sorted_by_conf[0][i]
-
-                    # for results sorted by iou
-                    # extract label information from the highest-confidence result
-                    all_pred_label_sorted_by_iou[row, col, i] = cur_pred_label_sorted_by_iou[0][i]
-                    # extract bb information from the highest-confidence result
-                    all_pred_bb_sorted_by_iou[row, col, i*4:(i+1)*4] = cur_pred_bb_sorted_by_iou[0][i, :]
-                    # extract confidence from the highest-confidence result
-                    all_confidence_sorted_by_iou[row, col, i] = cur_confidence_sorted_by_iou[0][i]
-                    # extract iou from the highest-confidence result
-                    all_iou_sorted_by_iou[row, col, i] = cur_iou_sorted_by_iou[0][i]
-
-                    # for results sorted by conf*iou
-                    # extract label information from the highest-confidence result
-                    all_pred_label_sorted_by_conf_iou[row, col, i] = cur_pred_label_sorted_by_conf_iou[0][i]
-                    # extract bb information from the highest-confidence result
-                    all_pred_bb_sorted_by_conf_iou[row, col, i*4:(i+1)*4] = cur_pred_bb_sorted_by_conf_iou[0][i, :]
-                    # extract confidence from the highest-confidence result
-                    all_confidence_sorted_by_conf_iou[row, col, i] = cur_confidence_sorted_by_conf_iou[0][i]
-                    # extract iou from the highest-confidence result
-                    all_iou_sorted_by_conf_iou[row, col, i] = cur_iou_sorted_by_conf_iou[0][i]
-
-                    # for results sorted by conf*iou*precision
-                    # extract label information from the highest-confidence result
-                    all_pred_label_sorted_by_conf_iou_pr[row, col, i] = cur_pred_label_sorted_by_conf_iou_pr[0][i]
-                    # extract bb information from the highest-confidence result
-                    all_pred_bb_sorted_by_conf_iou_pr[row, col, i*4:(i+1)*4] = cur_pred_bb_sorted_by_conf_iou_pr[0][i, :]
-                    # extract confidence from the highest-confidence result
-                    all_confidence_sorted_by_conf_iou_pr[row, col, i] = cur_confidence_sorted_by_conf_iou_pr[0][i]
-                    # extract iou from the highest-confidence result
-                    all_iou_sorted_by_conf_iou_pr[row, col, i] = cur_iou_sorted_by_conf_iou_pr[0][i]
-
-                    # precision
-                    all_precision[row, col] = cur_precision[0]
-                    all_recall[row, col] = cur_recall[0]
-                    all_F_measure[row, col] = cur_F_measure[0]
-            else:
-                empty_output = True
-        else:
-            empty_output = True
-
-        # if no model outputs
-        if empty_output:
-
-            all_target_label[row, col] = targets.numpy()[0, 1]
-            all_target_bb[row, col, :] = targets.numpy()[0, 2:]
-
-            # fill for the prediction values
-            # sorted by conf
-            # label-related
-            all_pred_label_sorted_by_conf[row, col, :] = -1
-            # bounding box related
-            all_pred_bb_sorted_by_conf[row, col, :] = -1
-            # prediction confidence
-            all_confidence_sorted_by_conf[row, col, :] = 0
-            # iou and custom quality
-            all_iou_sorted_by_conf[row, col, :] = 0
-
-            # sorted by iou
-            # label-related
-            all_pred_label_sorted_by_iou[row, col, :] = -1
-            # bounding box related
-            all_pred_bb_sorted_by_iou[row, col, :] = -1
-            # prediction confidence
-            all_confidence_sorted_by_iou[row, col, :] = 0
-            # iou and custom quality
-            all_iou_sorted_by_iou[row, col, :] = 0
-
-            # sorted by conf*iou
-            # label-related
-            all_pred_label_sorted_by_conf_iou[row, col, :] = -1
-            # bounding box related
-            all_pred_bb_sorted_by_conf_iou[row, col, :] = -1
-            # prediction confidence
-            all_confidence_sorted_by_conf_iou[row, col, :] = 0
-            # iou and custom quality
-            all_iou_sorted_by_conf_iou[row, col, :] = 0
-
-            # sorted by conf*iou*pr
-            # label-related
-            all_pred_label_sorted_by_conf_iou_pr[row, col, :] = -1
-            # bounding box related
-            all_pred_bb_sorted_by_conf_iou_pr[row, col, :] = -1
-            # prediction confidence
-            all_confidence_sorted_by_conf_iou_pr[row, col, :] = 0
-            # iou and custom quality
-            all_iou_sorted_by_conf_iou_pr[row, col, :] = 0
-
-            all_precision[row, col] = 0
-
-    return [all_target_label, all_target_bb,
-            all_pred_label_sorted_by_conf, all_pred_bb_sorted_by_conf, all_confidence_sorted_by_conf, all_iou_sorted_by_conf,
-            all_pred_label_sorted_by_iou, all_pred_bb_sorted_by_iou, all_confidence_sorted_by_iou, all_iou_sorted_by_iou,
-            all_pred_label_sorted_by_conf_iou, all_pred_bb_sorted_by_conf_iou, all_confidence_sorted_by_conf_iou, all_iou_sorted_by_conf_iou,
-            all_pred_label_sorted_by_conf_iou_pr, all_pred_bb_sorted_by_conf_iou_pr, all_confidence_sorted_by_conf_iou_pr, all_iou_sorted_by_conf_iou_pr,
-            all_precision, all_recall, all_F_measure]
 

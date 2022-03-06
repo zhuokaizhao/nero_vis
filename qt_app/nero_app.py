@@ -162,9 +162,9 @@ class UI_MainWindow(QWidget):
                 self.translation = False
 
                 # predefined model paths
-                # model_1_name = 'Custome-trained FasterRCNN'
+                self.model_1_name = 'Custome-trained FasterRCNN'
                 self.model_1_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'custom_trained', f'object_{self.jittering_level}-jittered', '*.pth'))[0]
-                # model_2_name = 'Pre-trained FasterRCNN'
+                self.model_2_name = 'Pre-trained FasterRCNN'
                 self.model_2_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'pre_trained', '*.pth'))[0]
                 # preload model
                 self.model_1 = nero_run_model.load_model(self.mode, 'custom_trained', self.model_1_path)
@@ -396,6 +396,10 @@ class UI_MainWindow(QWidget):
                 # load the image
                 self.loaded_image_pt = torch.from_numpy(np.asarray(Image.open(self.image_path)))[:, :, None]
                 self.loaded_image_name = self.image_path.split('/')[-1]
+                # keep a copy to represent the current (rotated) version of the original images
+                self.cur_image_pt = self.loaded_image_pt.clone()
+                # prepare MNIST image tensor for model purpose
+                self.cur_image_pt = nero_transform.prepare_mnist_image(self.cur_image_pt)
 
             elif self.mode == 'object_detection':
                 self.image_index = self.coco_classes.index(text.split(' ')[0])
@@ -411,16 +415,13 @@ class UI_MainWindow(QWidget):
                 self.loaded_image_pt = torch.from_numpy(np.asarray(Image.open(self.image_path).convert('RGB')))
                 self.loaded_image_name = self.image_path.split('/')[-1]
 
-            # keep a copy to represent the current (rotated) version of the original images
-            self.cur_image_pt = self.loaded_image_pt[self.center_y-128:self.center_y+128, self.center_x-128:self.center_x+128, :]
+                # take the cropped part of the entire input image
+                self.cur_image_pt = self.loaded_image_pt[self.center_y-128:self.center_y+128, self.center_x-128:self.center_x+128, :]
+
             # convert to QImage for display purpose
             self.cur_display_image = nero_utilities.tensor_to_qt_image(self.cur_image_pt)
             # resize the display QImage
             self.cur_display_image = self.cur_display_image.scaledToWidth(self.display_image_size)
-            # prepare image tensor for model purpose
-            if self.mode == 'digit_recognition':
-                self.cur_image_pt = nero_transform.prepare_mnist_image(self.cur_image_pt)
-
 
             # display the image
             self.display_image()
@@ -1025,20 +1026,29 @@ class UI_MainWindow(QWidget):
 
         elif self.mode == 'object_detection':
 
-            self.output_1 = nero_run_model.run_coco_once(self.model_1_name, self.model_1, self.cur_image_pt, self.original_coco_names, self.custom_coco_names, self.pytorch_coco_names)
+            self.output_1 = nero_run_model.run_coco_once(self.model_2_name,
+                                                            self.model_2,
+                                                            self.cropped_image_pt,
+                                                            self.original_coco_names,
+                                                            self.custom_coco_names,
+                                                            self.pytorch_coco_names,
+                                                            test_label=self.loaded_image_label)
             # self.output_2 = nero_run_model.run_coco_once(self.model_2, self.cur_image_pt)
 
-            print(len(self.output_1))
+            # print(len(self.output_1))
 
 
 
 
     # run model on all the available transformations on a single sample
     def run_model_all(self):
+
+        # quantity that is displayed in the individual NERO plot
+        self.all_quantities_1 = []
+        self.all_quantities_2 = []
+
         if self.mode == 'digit_recognition':
             self.all_angles = []
-            self.all_quantities_1 = []
-            self.all_quantities_2 = []
             # run all rotation test with 5 degree increment
             for self.cur_rotation_angle in range(0, 365, 5):
                 # print(f'\nRotated {self.cur_rotation_angle} degrees')
@@ -1073,37 +1083,47 @@ class UI_MainWindow(QWidget):
 
             # all the x and y translations
             # x translates on columns, y translates on rows
-            x_translation = list(range(-self.image_size//2, self.image_size//2, 7))
-            y_translation = list(range(-self.image_size//2, self.image_size//2, 7))
+            x_translation = list(range(-self.image_size//2, self.image_size//2))
+            y_translation = list(range(-self.image_size//2, self.image_size//2))
 
             for x_tran in x_translation:
                 for y_tran in y_translation:
-                    # re-display image for each rectangle drawn
-                    self.display_image()
-                    # since displayed image enlarges the actual image by 2
-                    # x_tran = 0
-                    # y_tran = 0
-                    # print(x_tran*2, y_tran*2)
-                    display_rect_width = self.display_image_size//2
-                    display_rect_height = self.display_image_size//2
-                    # displayed image has center at the center of the display
-                    # since the translation measures on the movement of object instead of the point of view, the sign is reversed
-                    rect_center_x = self.display_image_size//2 - x_tran*2
-                    rect_center_y = self.display_image_size//2 - y_tran*2
+                    x_tran = 0
+                    y_tran = 0
+                    # re-display image for each rectangle drawn every 8 steps
+                    if (x_tran+1)%8 == 0 and (y_tran+1)%8 == 0:
+                        self.display_image()
 
-                    # draw rectangle on the displayed image to indicate scanning process
-                    painter = QtGui.QPainter(self.image_pixmap)
-                    # set pen (used to draw outlines of shapes) and brush (draw the background of a shape)
-                    pen = QtGui.QPen()
-                    # draw the rectangle
-                    self.draw_rectangle(painter, pen, rect_center_x, rect_center_y, display_rect_width, display_rect_height)
-                    painter.end()
+                        display_rect_width = self.display_image_size//2
+                        display_rect_height = self.display_image_size//2
+                        # displayed image has center at the center of the display
+                        # since displayed image enlarges the actual image by 2
+                        # since the translation measures on the movement of object instead of the point of view, the sign is reversed
+                        rect_center_x = self.display_image_size//2 - x_tran*2
+                        rect_center_y = self.display_image_size//2 - y_tran*2
 
-                    # update pixmap with the label
-                    self.image_label.setPixmap(self.image_pixmap)
+                        # draw rectangle on the displayed image to indicate scanning process
+                        painter = QtGui.QPainter(self.image_pixmap)
+                        # set pen (used to draw outlines of shapes) and brush (draw the background of a shape)
+                        pen = QtGui.QPen()
+                        # draw the rectangle
+                        self.draw_rectangle(painter, pen, rect_center_x, rect_center_y, display_rect_width, display_rect_height)
+                        painter.end()
 
-                    # force repaint
-                    self.image_label.repaint()
+                        # update pixmap with the label
+                        self.image_label.setPixmap(self.image_pixmap)
+
+                        # force repaint
+                        self.image_label.repaint()
+
+                    # modify the underlying image tensor accordingly
+                    # take the cropped part of the entire input image
+                    cur_center_x = self.center_x - x_tran
+                    cur_center_y = self.center_y - y_tran
+                    self.cropped_image_pt = self.loaded_image_pt[cur_center_y-64:cur_center_y+64, cur_center_x-64:cur_center_x+64, :]
+                    self.run_model_once()
+
+                    exit()
 
 
 
