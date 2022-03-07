@@ -180,7 +180,7 @@ class UI_MainWindow(QWidget):
                 self.custom_coco_names = nero_utilities.load_coco_classes_file(self.custom_coco_names_path)
                 self.pytorch_coco_names = nero_utilities.load_coco_classes_file(self.pytorch_coco_names_path)
 
-                print(self.custom_coco_names)
+                print(f'Custom 5 classes: {self.custom_coco_names}')
 
                 # unique quantity of the result of current data
                 self.all_quantities_1 = []
@@ -406,10 +406,15 @@ class UI_MainWindow(QWidget):
                 self.image_path = self.single_images_paths[self.image_index]
                 self.label_path = self.image_path.replace('png', 'npy')
                 self.loaded_image_label = np.load(self.label_path)
+                # loaded image label is in original coco classes defined by original_coco_names
+                # convert to custom names
+                for i in range(len(self.loaded_image_label)):
+                    self.loaded_image_label[i, -1] = self.custom_coco_names.index(self.original_coco_names[int(self.loaded_image_label[i, -1])])
+
                 # the center of the bounding box is the center of cropped image
-                # x is column, y is row
-                self.center_x = int((self.loaded_image_label[0] + self.loaded_image_label[2]) // 2)
-                self.center_y = int((self.loaded_image_label[1] + self.loaded_image_label[3]) // 2)
+                # we know that we only have one object, x is column, y is row
+                self.center_x = int((self.loaded_image_label[0, 0] + self.loaded_image_label[0, 2]) // 2)
+                self.center_y = int((self.loaded_image_label[0, 1] + self.loaded_image_label[0, 3]) // 2)
 
                 # load the image
                 self.loaded_image_pt = torch.from_numpy(np.asarray(Image.open(self.image_path).convert('RGB')))
@@ -1126,9 +1131,11 @@ class UI_MainWindow(QWidget):
 
                 return bb_min_x, bb_min_y, bb_max_x, bb_max_y
 
-            self.cur_image_label = np.zeros(self.loaded_image_label.shape)
-            self.cur_image_label[:4] = compute_label(self.loaded_image_label[:4], x_min, y_min, (128, 128))
-            self.cur_image_label[4] = self.loaded_image_label[4]
+            self.cur_image_label = np.zeros((len(self.loaded_image_label), 6))
+            for i in range(len(self.cur_image_label)):
+                self.cur_image_label[i, 0] = i
+                self.cur_image_label[i, 1] = self.loaded_image_label[i, 4]
+                self.cur_image_label[i, 2:] = compute_label(self.loaded_image_label[i, :4], x_min, y_min, (128, 128))
 
             # sanity check on if image/label are correct
             sanity_check = False
@@ -1136,7 +1143,7 @@ class UI_MainWindow(QWidget):
                 sanity_path = f'/home/zhuokai/Desktop/UChicago/Research/nero_vis/qt_app/example_data/object_detection/sanity_{x_tran}_{y_tran}.png'
                 sanity_image = Image.fromarray(self.cropped_image_pt.numpy())
                 temp = ImageDraw.Draw(sanity_image)
-                temp.rectangle([(self.cur_image_label[0], self.cur_image_label[1]), (self.cur_image_label[2], self.cur_image_label[3])], outline='yellow')
+                temp.rectangle([(self.cur_image_label[0, 2], self.cur_image_label[0, 3]), (self.cur_image_label[0, 4], self.cur_image_label[0, 5])], outline='yellow')
                 sanity_image.save(sanity_path)
 
             # re-display image for each rectangle drawn every 8 steps
@@ -1161,10 +1168,10 @@ class UI_MainWindow(QWidget):
                 # draw rectangle on the displayed image to indicate scanning process
                 painter = QtGui.QPainter(self.image_pixmap)
                 # draw the ground truth label
-                gt_display_center_x = (self.cur_image_label[0] + self.cur_image_label[2]) // 2 * 2 + (rect_center_x - display_rect_width//2)
-                gt_display_center_y = (self.cur_image_label[1] + self.cur_image_label[3]) // 2 * 2 + (rect_center_y - display_rect_height//2)
-                gt_display_rect_width = (self.cur_image_label[2] - self.cur_image_label[0]) * 2
-                gt_display_rect_height = (self.cur_image_label[3] - self.cur_image_label[1]) * 2
+                gt_display_center_x = (self.cur_image_label[0, 2] + self.cur_image_label[0, 4]) // 2 * 2 + (rect_center_x - display_rect_width//2)
+                gt_display_center_y = (self.cur_image_label[0, 3] + self.cur_image_label[0, 5]) // 2 * 2 + (rect_center_y - display_rect_height//2)
+                gt_display_rect_width = (self.cur_image_label[0, 4] - self.cur_image_label[0, 2]) * 2
+                gt_display_rect_height = (self.cur_image_label[0, 5] - self.cur_image_label[0, 3]) * 2
                 self.draw_rectangle(painter, gt_display_center_x, gt_display_center_y, gt_display_rect_width, gt_display_rect_height, 'yellow')
                 painter.end()
 
@@ -1686,7 +1693,7 @@ class UI_MainWindow(QWidget):
             self.image_label.setPixmap(self.image_pixmap)
 
             # update the model output
-            if self.result_existed:
+            if self.single_result_existed:
 
                 self.run_model_once()
 

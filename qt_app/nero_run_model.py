@@ -85,13 +85,14 @@ def load_model(mode, network_model, model_dir):
             # replace the pre-trained head with a new one
             model.roi_heads.box_predictor = FastRCNNPredictor(in_features, num_classes+1)
             model.to(device)
+            model.load_state_dict(torch.load(model_dir, map_location=device))
 
         elif network_model == 'pre_trained':
-            # model = torchvision.models.detection.fasterrcnn_resnet50_fpn(pretrained=False,
-            #                                                                 min_size=image_size)
+            # model = torchvision.models.detection.fasterrcnn_resnet50_fpn(pretrained=True,
+            #                                                             min_size=image_size).to(device)
             model = models.Pre_Trained_FastRCNN().to(device)
+            model.load_state_dict(torch.load(model_dir, map_location=device))
 
-        model.load_state_dict(torch.load(model_dir, map_location=device))
 
     # set model in evaluation mode
     model.eval()
@@ -254,7 +255,7 @@ def process_model_outputs(outputs, targets, iou_thres=0.5, conf_thres=1e-4):
     all_recalls = []
     all_F_measure = []
 
-    # loop through each object
+    # loop through each proposed object
     for i in range(len(outputs)):
 
         if outputs[i] is None:
@@ -314,6 +315,62 @@ def process_model_outputs(outputs, targets, iou_thres=0.5, conf_thres=1e-4):
         all_recalls.append(recall)
         all_F_measure.append(F_measure)
 
+        # output = outputs[i]
+
+        # if output is None:
+        #     continue
+
+        # # output has to pass the conf threshold to filter out noisy predictions
+        # cur_object_outputs = []
+        # for j in range(len(output)):
+        #     # faster-rcnn output has format (x1, y1, x2, y2, conf, class_pred)
+        #     if output[j, 4] >= conf_thres:
+        #         cur_object_outputs.append(output[j])
+
+        # # convert to numpy array
+        # cur_object_outputs = np.array(cur_object_outputs)
+
+        # # all predicted labels and true label for the current object
+        # pred_labels = cur_object_outputs[:, -1]
+        # true_labels = targets[:, -1]
+
+        # # all predicted bounding boxes and true bb for the current object
+        # pred_boxes = cur_object_outputs[:, :4]
+        # true_boxes = targets[targets[:, 0] == i][:, 2:]
+        # cur_qualified_output = []
+        # num_true_positive = 0
+        # num_false_positive = 0
+
+        # # loop through all the proposed bounding boxes
+        # for j, pred_box in enumerate(pred_boxes):
+        #     # print(f'True label: {true_labels[i]}, Pred label: {pred_labels[j]}')
+        #     # if the label is predicted correctly
+        #     if pred_labels[j] == true_labels[i]:
+        #         # compute iou
+        #         cur_iou = bbox_iou(pred_box, true_boxes)
+        #         # if iou passed threshold
+        #         if cur_iou > iou_thres:
+        #             # save current output
+        #             cur_qualified_output.append(np.append(cur_object_outputs[j].numpy(), cur_iou))
+        #             num_true_positive += 1
+        #         else:
+        #             num_false_positive += 1
+        #     # if the label is wrong, mark as false positive
+        #     else:
+        #         num_false_positive += 1
+
+        # # Number of TP and FP is computed from all predictions (un-iou thresheld)
+        # # precision = TP / (TP + FP)
+        # precision = num_true_positive / (num_true_positive + num_false_positive + 1e-16)
+        # # Recall = TP / (TP + FN), where (TP + FN) is just the number of ground truths
+        # recall = num_true_positive / (len(true_boxes) + 1e-16)
+        # # F-measure = (2 * Precision * Recall) / (Precision + Recall)
+        # F_measure = (2 * precision * recall) / (precision + recall + 1e-16)
+
+        # all_precisions.append(precision)
+        # all_recalls.append(recall)
+        # all_F_measure.append(F_measure)
+
     return all_precisions, all_recalls, all_F_measure
 
 
@@ -348,18 +405,15 @@ def run_coco_once(model_name, model, test_image, original_names, custom_names, p
             test_image = test_image.to(device)
 
             # when we are using pretrained model and label is present
-            print(test_label)
-            print(model_name)
-            if model_name == 'Pre-trained FasterRCNN' and test_label:
+            if (model_name == 'Pre-trained FasterRCNN') and type(test_label) != type(None):
                 for i in range(len(test_label)):
-                    test_label[i, 1] = pytorch_names.index(custom_names[int(test_label[i, 1]-1)]) + 1
-            print(test_label)
+                    test_label[i, 1] = pytorch_names.index(custom_names[int(test_label[i, 1])])
+
             # run model inference
             outputs_dict = model(test_image)
             outputs = []
-            # model can propose multiple objects
+            # the model proposes multiple bounding boxes for each object
             for image_pred in outputs_dict:
-                # the model proposes multiple bounding boxes for each object
                 pred_boxes = image_pred['boxes'].cpu()
                 pred_labels = image_pred['labels'].cpu()
                 pred_confs = image_pred['scores'].cpu()
@@ -373,7 +427,7 @@ def run_coco_once(model_name, model, test_image, original_names, custom_names, p
                 outputs.append(output)
 
             if outputs != []:
-                cur_precision, cur_recall, cur_F_measure = process_model_outputs(outputs, test_label)
+                cur_precision, cur_recall, cur_F_measure = process_model_outputs(outputs, torch.from_numpy(test_label))
                 print(cur_precision)
             else:
                 cur_precision = [0]
