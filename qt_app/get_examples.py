@@ -1,5 +1,4 @@
 # the script extracts example data
-from genericpath import exists
 import os
 import torch
 import random
@@ -138,15 +137,15 @@ def main():
             cur_image_path = os.path.join(output_dir, f'{image_labels[i]}_{image_indices[i]}_{label_indices[i]}.png')
             cur_image.save(cur_image_path)
 
-            cur_label = np.zeros(5)
-            cur_label[:4] = cur_bounding_boxes[label_indices[i]]
-            cur_label[4] = cur_class_ids[label_indices[i]]
+            cur_label = np.zeros((1, 5))
+            cur_label[0, :4] = cur_bounding_boxes[label_indices[i]]
+            cur_label[0, 4] = cur_class_ids[label_indices[i]]
             cur_label_path = os.path.join(output_dir, f'{image_labels[i]}_{image_indices[i]}_{label_indices[i]}.npy')
             np.save(cur_label_path, cur_label)
 
             print(f'Chosen original image has been saved to {cur_image_path}')
 
-    print(f'{len(sample_indices)} {name} images have been selected and saved')
+    print(f'{len(image_indices)} {name} images have been selected and saved')
 
 
 if __name__ == '__main__':
