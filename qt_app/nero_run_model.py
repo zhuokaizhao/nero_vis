@@ -6,8 +6,10 @@ import tqdm
 import torch
 import torchvision
 import numpy as np
+from PIL import Image, ImageDraw
 from torch.autograd import Variable
 from torchvision import transforms
+import torch.nn.functional as F
 from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
 
 os.environ['CUDA_VISIBLE_DEVICES']='0'
@@ -22,7 +24,10 @@ import datasets
 import nero_utilities
 import nero_transform
 
-
+# helper function that resizes the image
+def resize(image, size):
+    image = F.interpolate(image.unsqueeze(0), size=size, mode="nearest").squeeze(0)
+    return image
 
 
 # Print iterations progress
@@ -86,18 +91,17 @@ def load_model(mode, network_model, model_dir):
             model.roi_heads.box_predictor = FastRCNNPredictor(in_features, num_classes+1)
             model.to(device)
             model.load_state_dict(torch.load(model_dir, map_location=device))
+            print(f'{network_model} loaded from {model_dir}')
 
         elif network_model == 'pre_trained':
-            # model = torchvision.models.detection.fasterrcnn_resnet50_fpn(pretrained=True,
-            #                                                             min_size=image_size).to(device)
-            model = models.Pre_Trained_FastRCNN().to(device)
-            model.load_state_dict(torch.load(model_dir, map_location=device))
+            model = torchvision.models.detection.fasterrcnn_resnet50_fpn(pretrained=True,
+                                                                        min_size=image_size).to(device)
+
+            print(f'{network_model} loaded')
 
 
     # set model in evaluation mode
     model.eval()
-
-    print(f'{network_model} loaded from {model_dir}')
 
     return model
 
@@ -269,10 +273,9 @@ def process_model_outputs(outputs, targets, iou_thres=0.5, conf_thres=1e-4):
             if output[j, 4] >= conf_thres:
                 cur_object_outputs.append(output[j].numpy())
 
+        # cur_object_outputs = outputs[i]
         cur_object_outputs = np.array(cur_object_outputs)
         cur_object_outputs = torch.from_numpy(cur_object_outputs)
-
-        # cur_object_outputs = outputs[i]
 
         # all predicted labels and true label for the current object
         pred_labels = cur_object_outputs[:, -1].numpy()
@@ -287,7 +290,6 @@ def process_model_outputs(outputs, targets, iou_thres=0.5, conf_thres=1e-4):
 
         # loop through all the proposed bounding boxes
         for j, pred_box in enumerate(pred_boxes):
-            # print(f'True label: {true_labels[i]}, Pred label: {pred_labels[j]}')
             # if the label is predicted correctly
             if pred_labels[j] == true_labels[i]:
                 # compute iou
@@ -315,14 +317,21 @@ def process_model_outputs(outputs, targets, iou_thres=0.5, conf_thres=1e-4):
         all_recalls.append(recall)
         all_F_measure.append(F_measure)
 
-    return all_precisions, all_recalls, all_F_measure
+    return cur_qualified_output, all_precisions, all_recalls, all_F_measure
 
 
 # run model on either on a single COCO image or a batch of COCO images
-def run_coco_once(model_name, model, test_image, original_names, custom_names, pytorch_names, test_label=None, batch_size=1):
+def run_coco_once(model_name, model, test_image, custom_names, pytorch_names, test_label=None, batch_size=1):
+    sanity_check = False
+    if sanity_check:
+        sanity_path = f'/home/zhuokai/Desktop/UChicago/Research/nero_vis/qt_app/example_data/object_detection/sanity_model.png'
+        sanity_image = Image.fromarray(test_image.numpy())
+        temp = ImageDraw.Draw(sanity_image)
+        temp.rectangle([(test_label[0, 2], test_label[0, 3]), (test_label[0, 4], test_label[0, 5])], outline='yellow')
+        sanity_image.save(sanity_path)
 
     # prepare input image shapes
-    # img_size = test_image.shape[0]
+    img_size = test_image.shape[0]
     if len(test_image.shape) == 3:
         # reformat input image from (height, width, channel) to (batch size, channel, height, width)
         test_image = test_image.permute((2, 0, 1))[None, :, :, :].float()
@@ -335,7 +344,7 @@ def run_coco_once(model_name, model, test_image, original_names, custom_names, p
     # basic settings for pytorch
     if torch.cuda.is_available():
         # device set up
-        device = torch.device('cuda:0')
+        device = torch.device('cuda')
         Tensor = torch.cuda.FloatTensor
     else:
         device = torch.device('cpu')
@@ -357,7 +366,8 @@ def run_coco_once(model_name, model, test_image, original_names, custom_names, p
             outputs_dict = model(test_image)
             outputs = []
             # the model proposes multiple bounding boxes for each object
-            for image_pred in outputs_dict:
+            for i in range(len(outputs_dict)):
+                image_pred = outputs_dict[i]
                 pred_boxes = image_pred['boxes'].cpu()
                 pred_labels = image_pred['labels'].cpu()
                 pred_confs = image_pred['scores'].cpu()
@@ -369,11 +379,11 @@ def run_coco_once(model_name, model, test_image, original_names, custom_names, p
                 output[:, 5] = pred_labels
 
                 outputs.append(output)
-
+            print(outputs)
             if outputs != []:
-                cur_precision, cur_recall, cur_F_measure = process_model_outputs(outputs, torch.from_numpy(test_label))
-                print(cur_precision)
+                cur_qualified_output, cur_precision, cur_recall, cur_F_measure = process_model_outputs(outputs, torch.from_numpy(test_label))
             else:
+                cur_qualified_output = [np.zeros(6)]
                 cur_precision = [0]
                 cur_recall = [0]
                 cur_F_measure = [0]
@@ -381,7 +391,7 @@ def run_coco_once(model_name, model, test_image, original_names, custom_names, p
             # batch_time_cost = batch_time_end - batch_time_start
             # print(f'Inference time: {batch_time_cost} seconds')
 
-            return cur_precision, cur_recall, cur_F_measure
+    return [cur_qualified_output, cur_precision, cur_recall, cur_F_measure]
 
 
 

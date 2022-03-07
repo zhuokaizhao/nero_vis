@@ -1,5 +1,9 @@
 import torch
 import warnings
+import numpy as np
+from PIL import Image
+from PIL import ImageFile
+import torch.nn.functional as F
 from torch.utils.data import Dataset
 
 # MNIST dataset for running in aggregate mode
@@ -29,8 +33,8 @@ class MnistDataset(torch.utils.data.Dataset):
 
 
 # COCO dataset class
-class CreateDataset(Dataset):
-    def __init__(self, list_path, img_size=256, transform=None):
+class COCODataset(Dataset):
+    def __init__(self, list_path, img_size=128, transform=None):
         with open(list_path, "r") as file:
             self.img_files = file.readlines()
 
@@ -91,7 +95,7 @@ class CreateDataset(Dataset):
         paths, imgs, bb_targets = list(zip(*batch))
 
         # Resize images to input shape (if needed)
-        imgs = torch.stack([resize(img, self.img_size) for img in imgs])
+        imgs = torch.stack([self.resize(img, self.img_size) for img in imgs])
 
         # Add sample index to targets
         for i, boxes in enumerate(bb_targets):
@@ -103,3 +107,8 @@ class CreateDataset(Dataset):
 
     def __len__(self):
         return len(self.img_files)
+
+    # helper function that resizes the image
+    def resize(self, image, size):
+        image = F.interpolate(image.unsqueeze(0), size=size, mode="nearest").squeeze(0)
+        return image

@@ -165,10 +165,10 @@ class UI_MainWindow(QWidget):
                 self.model_1_name = 'Custome-trained FasterRCNN'
                 self.model_1_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'custom_trained', f'object_{self.jittering_level}-jittered', '*.pth'))[0]
                 self.model_2_name = 'Pre-trained FasterRCNN'
-                self.model_2_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'pre_trained', '*.pth'))[0]
+                # self.model_2_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'pre_trained', '*.pth'))[0]
                 # preload model
                 self.model_1 = nero_run_model.load_model(self.mode, 'custom_trained', self.model_1_path)
-                self.model_2 = nero_run_model.load_model(self.mode, 'pre_trained', self.model_2_path)
+                self.model_2 = nero_run_model.load_model(self.mode, 'pre_trained', None)
 
                 # different class names (original COCO classes, custom 5-class and the one that pretrained PyTorch model uses)
                 self.original_coco_names_path = os.path.join(os.getcwd(), 'example_data', self.mode, 'coco.names')
@@ -417,7 +417,7 @@ class UI_MainWindow(QWidget):
                 self.center_y = int((self.loaded_image_label[0, 1] + self.loaded_image_label[0, 3]) // 2)
 
                 # load the image
-                self.loaded_image_pt = torch.from_numpy(np.asarray(Image.open(self.image_path).convert('RGB')))
+                self.loaded_image_pt = torch.from_numpy(np.array(Image.open(self.image_path).convert('RGB'), dtype=np.uint8))
                 self.loaded_image_name = self.image_path.split('/')[-1]
 
                 # take the cropped part of the entire input image
@@ -506,12 +506,14 @@ class UI_MainWindow(QWidget):
                     self.model_2_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'custom_trained', f'object_{self.jittering_level}-jittered', '*.pt'))[0]
                     # reload model
                     self.model_2 = nero_run_model.load_model(self.mode, 'custom_trained', self.model_2_path)
+                    print('Model 2 path:', self.model_2_path)
                 elif text == 'Pre-trained FasterRCNN':
-                    self.model_2_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'pre_trained', '*.pt'))[0]
+                    # self.model_2_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'pre_trained', '*.pt'))[0]
                     # reload model
-                    self.model_2 = nero_run_model.load_model(self.mode, 'pre_trained', self.model_2_path)
+                    self.model_2 = nero_run_model.load_model(self.mode, 'pre_trained', None)
+                    print('Model 2 path: Downloaded from PyTorch')
 
-            print('Model 2 path:', self.model_2_path)
+
 
         @QtCore.Slot()
         def jittering_menu_selection_changed(text):
@@ -1029,18 +1031,19 @@ class UI_MainWindow(QWidget):
             # display result
             self.display_mnist_single_result(mode=self.data_mode, type='bar', boundary_width=3)
 
-        elif self.mode == 'object_detection':
+        # elif self.mode == 'object_detection':
 
-            self.output_1 = nero_run_model.run_coco_once(self.model_2_name,
-                                                            self.model_2,
-                                                            self.cropped_image_pt,
-                                                            self.original_coco_names,
-                                                            self.custom_coco_names,
-                                                            self.pytorch_coco_names,
-                                                            test_label=self.cur_image_label)
+        #     self.output_1 = nero_run_model.run_coco_once(self.model_2_name,
+        #                                                     self.model_2,
+        #                                                     self.cropped_image_pt,
+        #                                                     self.original_coco_names,
+        #                                                     self.custom_coco_names,
+        #                                                     self.pytorch_coco_names,
+        #                                                     test_label=self.cur_image_label)
             # self.output_2 = nero_run_model.run_coco_once(self.model_2, self.cur_image_pt)
 
-            # print(len(self.output_1))
+            # display result
+            # self.display_mnist_single_result(mode=self.data_mode, type='bar', boundary_width=3)
 
 
 
@@ -1091,103 +1094,123 @@ class UI_MainWindow(QWidget):
             x_translation = list(range(-self.image_size//2, self.image_size//2))
             y_translation = list(range(-self.image_size//2, self.image_size//2))
 
-            # for x_tran in x_translation:
-            #     for y_tran in y_translation:
-            x_tran = 0
-            y_tran = 0
+            for x_tran in x_translation:
+                for y_tran in y_translation:
+                    # x_tran = -64
+                    # y_tran = -64
+                    # modify the underlying image tensor accordingly
+                    # take the cropped part of the entire input image
+                    cur_center_x = self.center_x - x_tran
+                    cur_center_y = self.center_y - y_tran
+                    x_min = cur_center_x - 64
+                    x_max = cur_center_x + 64
+                    y_min = cur_center_y - 64
+                    y_max = cur_center_y + 64
+                    # model takes image between [0, 1]
+                    self.cropped_image_pt = self.loaded_image_pt[y_min:y_max, x_min:x_max, :] / 255
 
-            # modify the underlying image tensor accordingly
-            # take the cropped part of the entire input image
-            cur_center_x = self.center_x - x_tran
-            cur_center_y = self.center_y - y_tran
-            x_min = cur_center_x - 64
-            x_max = cur_center_x + 64
-            y_min = cur_center_y - 64
-            y_max = cur_center_y + 64
-            self.cropped_image_pt = self.loaded_image_pt[y_min:y_max, x_min:x_max, :]
+                    # modify the label accordingly
+                    # helper function that computes labels for cut out images
+                    def compute_label(cur_bounding_box, x_min, y_min, image_size):
+                        # convert key object bounding box to be based on extracted image
+                        x_min_center_bb = cur_bounding_box[0] - x_min
+                        y_min_center_bb = cur_bounding_box[1] - y_min
+                        x_max_center_bb = cur_bounding_box[2] - x_min
+                        y_max_center_bb = cur_bounding_box[3] - y_min
 
-            # modify the label accordingly
-            # helper function that computes labels for cut out images
-            def compute_label(cur_bounding_box, x_min, y_min, image_size):
-                # convert key object bounding box to be based on extracted image
-                x_min_center_bb = cur_bounding_box[0] - x_min
-                y_min_center_bb = cur_bounding_box[1] - y_min
-                x_max_center_bb = cur_bounding_box[2] - x_min
-                y_max_center_bb = cur_bounding_box[3] - y_min
+                        # compute the center of the object in the extracted image
+                        object_center_x = (x_min_center_bb + x_max_center_bb) / 2
+                        object_center_y = (y_min_center_bb + y_max_center_bb) / 2
 
-                # compute the center of the object in the extracted image
-                object_center_x = (x_min_center_bb + x_max_center_bb) / 2
-                object_center_y = (y_min_center_bb + y_max_center_bb) / 2
+                        # compute the width and height of the real bounding box of this object
+                        original_bb_width = cur_bounding_box[2] - cur_bounding_box[0]
+                        original_bb_height = cur_bounding_box[3] - cur_bounding_box[1]
 
-                # compute the width and height of the real bounding box of this object
-                original_bb_width = cur_bounding_box[2] - cur_bounding_box[0]
-                original_bb_height = cur_bounding_box[3] - cur_bounding_box[1]
+                        # compute the range of the bounding box, do the clamping if go out of extracted image
+                        bb_min_x = max(0, object_center_x - original_bb_width/2)
+                        bb_max_x = min(image_size[1]-1, object_center_x + original_bb_width/2)
+                        bb_min_y = max(0, object_center_y - original_bb_height/2)
+                        bb_max_y = min(image_size[0]-1, object_center_y + original_bb_height/2)
 
-                # compute the range of the bounding box, do the clamping if go out of extracted image
-                bb_min_x = max(0, object_center_x - original_bb_width/2)
-                bb_max_x = min(image_size[1]-1, object_center_x + original_bb_width/2)
-                bb_min_y = max(0, object_center_y - original_bb_height/2)
-                bb_max_y = min(image_size[0]-1, object_center_y + original_bb_height/2)
+                        return bb_min_x, bb_min_y, bb_max_x, bb_max_y
 
-                return bb_min_x, bb_min_y, bb_max_x, bb_max_y
+                    self.cur_image_label = np.zeros((len(self.loaded_image_label), 6))
+                    for i in range(len(self.cur_image_label)):
+                        self.cur_image_label[i, 0] = i
+                        self.cur_image_label[i, 1] = self.loaded_image_label[i, 4]
+                        self.cur_image_label[i, 2:] = compute_label(self.loaded_image_label[i, :4], x_min, y_min, (128, 128))
 
-            self.cur_image_label = np.zeros((len(self.loaded_image_label), 6))
-            for i in range(len(self.cur_image_label)):
-                self.cur_image_label[i, 0] = i
-                self.cur_image_label[i, 1] = self.loaded_image_label[i, 4]
-                self.cur_image_label[i, 2:] = compute_label(self.loaded_image_label[i, :4], x_min, y_min, (128, 128))
+                    # sanity check on if image/label are correct
+                    sanity_check = False
+                    if sanity_check:
+                        sanity_path = f'/home/zhuokai/Desktop/UChicago/Research/nero_vis/qt_app/example_data/object_detection/sanity_{x_tran}_{y_tran}.png'
+                        sanity_image = Image.fromarray(self.cropped_image_pt.numpy())
+                        temp = ImageDraw.Draw(sanity_image)
+                        temp.rectangle([(self.cur_image_label[0, 2], self.cur_image_label[0, 3]), (self.cur_image_label[0, 4], self.cur_image_label[0, 5])], outline='yellow')
+                        sanity_image.save(sanity_path)
 
-            # sanity check on if image/label are correct
-            sanity_check = False
-            if sanity_check:
-                sanity_path = f'/home/zhuokai/Desktop/UChicago/Research/nero_vis/qt_app/example_data/object_detection/sanity_{x_tran}_{y_tran}.png'
-                sanity_image = Image.fromarray(self.cropped_image_pt.numpy())
-                temp = ImageDraw.Draw(sanity_image)
-                temp.rectangle([(self.cur_image_label[0, 2], self.cur_image_label[0, 3]), (self.cur_image_label[0, 4], self.cur_image_label[0, 5])], outline='yellow')
-                sanity_image.save(sanity_path)
+                    # re-display image for each rectangle drawn every 8 steps
+                    if (x_tran)%8 == 0 and (y_tran)%8 == 0:
+                        self.display_image()
 
-            # re-display image for each rectangle drawn every 8 steps
-            if (x_tran)%8 == 0 and (y_tran)%8 == 0:
-                self.display_image()
+                        display_rect_width = self.display_image_size//2
+                        display_rect_height = self.display_image_size//2
+                        # displayed image has center at the center of the display
+                        # since displayed image enlarges the actual image by 2
+                        # since the translation measures on the movement of object instead of the point of view, the sign is reversed
+                        rect_center_x = self.display_image_size//2 - x_tran*2
+                        rect_center_y = self.display_image_size//2 - y_tran*2
 
-                display_rect_width = self.display_image_size//2
-                display_rect_height = self.display_image_size//2
-                # displayed image has center at the center of the display
-                # since displayed image enlarges the actual image by 2
-                # since the translation measures on the movement of object instead of the point of view, the sign is reversed
-                rect_center_x = self.display_image_size//2 - x_tran*2
-                rect_center_y = self.display_image_size//2 - y_tran*2
+                        # draw rectangle on the displayed image to indicate scanning process
+                        painter = QtGui.QPainter(self.image_pixmap)
+                        # draw the rectangle
+                        self.draw_rectangle(painter, rect_center_x, rect_center_y, display_rect_width, display_rect_height, 'red')
+                        painter.end()
 
-                # draw rectangle on the displayed image to indicate scanning process
-                painter = QtGui.QPainter(self.image_pixmap)
-                # draw the rectangle
-                self.draw_rectangle(painter, rect_center_x, rect_center_y, display_rect_width, display_rect_height, 'red')
-                painter.end()
+                        # draw ground truth label on the display image
+                        # draw rectangle on the displayed image to indicate scanning process
+                        painter = QtGui.QPainter(self.image_pixmap)
+                        # draw the ground truth label
+                        gt_display_center_x = (self.cur_image_label[0, 2] + self.cur_image_label[0, 4]) // 2 * 2 + (rect_center_x - display_rect_width//2)
+                        gt_display_center_y = (self.cur_image_label[0, 3] + self.cur_image_label[0, 5]) // 2 * 2 + (rect_center_y - display_rect_height//2)
+                        gt_display_rect_width = (self.cur_image_label[0, 4] - self.cur_image_label[0, 2]) * 2
+                        gt_display_rect_height = (self.cur_image_label[0, 5] - self.cur_image_label[0, 3]) * 2
+                        self.draw_rectangle(painter, gt_display_center_x, gt_display_center_y, gt_display_rect_width, gt_display_rect_height, 'yellow')
+                        painter.end()
 
-                # draw ground truth label on the display image
-                # draw rectangle on the displayed image to indicate scanning process
-                painter = QtGui.QPainter(self.image_pixmap)
-                # draw the ground truth label
-                gt_display_center_x = (self.cur_image_label[0, 2] + self.cur_image_label[0, 4]) // 2 * 2 + (rect_center_x - display_rect_width//2)
-                gt_display_center_y = (self.cur_image_label[0, 3] + self.cur_image_label[0, 5]) // 2 * 2 + (rect_center_y - display_rect_height//2)
-                gt_display_rect_width = (self.cur_image_label[0, 4] - self.cur_image_label[0, 2]) * 2
-                gt_display_rect_height = (self.cur_image_label[0, 5] - self.cur_image_label[0, 3]) * 2
-                self.draw_rectangle(painter, gt_display_center_x, gt_display_center_y, gt_display_rect_width, gt_display_rect_height, 'yellow')
-                painter.end()
+                        # update pixmap with the label
+                        self.image_label.setPixmap(self.image_pixmap)
 
-                # update pixmap with the label
-                self.image_label.setPixmap(self.image_pixmap)
+                        # force repaint
+                        self.image_label.repaint()
 
-                # force repaint
-                self.image_label.repaint()
+                    # run the model
+                    # update the model output
+                    # self.output_1 = nero_run_model.run_coco_once(self.model_1_name,
+                    #                                                 self.model_1,
+                    #                                                 self.cropped_image_pt,
+                    #                                                 self.custom_coco_names,
+                    #                                                 self.pytorch_coco_names,
+                    #                                                 test_label=self.cur_image_label)
 
-            # run the model
-            self.run_model_once()
+                    self.output_2 = nero_run_model.run_coco_once(self.model_2_name,
+                                                                    self.model_2,
+                                                                    self.cropped_image_pt,
+                                                                    self.custom_coco_names,
+                                                                    self.pytorch_coco_names,
+                                                                    test_label=self.cur_image_label)
 
-            # exit()
+                    # plotting the quantity regarding the correct label
+                    quantity_2 = self.output_2[0]
+                    print(quantity_2)
+                    exit()
+                    # quantity_2 = self.output_2[self.loaded_image_label]
+
+                    # self.all_quantities_1.append(quantity_1)
+                    self.all_quantities_2.append(quantity_2)
 
 
-
+        print(self.all_quantities_2)
 
     def display_image(self):
 
