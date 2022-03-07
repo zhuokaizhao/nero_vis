@@ -349,6 +349,7 @@ def run_coco_once(model_name, model, test_image, original_names, custom_names, p
 
             # when we are using pretrained model and label is present
             print(test_label)
+            print(model_name)
             if model_name == 'Pre-trained FasterRCNN' and test_label:
                 for i in range(len(test_label)):
                     test_label[i, 1] = pytorch_names.index(custom_names[int(test_label[i, 1]-1)]) + 1

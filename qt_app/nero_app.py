@@ -6,7 +6,7 @@ import glob
 import time
 import torch
 import numpy as np
-from PIL import Image
+from PIL import Image, ImageDraw
 import pyqtgraph as pg
 from PySide6 import QtCore, QtWidgets, QtGui
 from PySide6.QtGui  import QPixmap, QFont
@@ -1090,31 +1090,6 @@ class UI_MainWindow(QWidget):
             #     for y_tran in y_translation:
             x_tran = 0
             y_tran = 0
-            # re-display image for each rectangle drawn every 8 steps
-            if (x_tran)%8 == 0 and (y_tran)%8 == 0:
-                self.display_image()
-
-                display_rect_width = self.display_image_size//2
-                display_rect_height = self.display_image_size//2
-                # displayed image has center at the center of the display
-                # since displayed image enlarges the actual image by 2
-                # since the translation measures on the movement of object instead of the point of view, the sign is reversed
-                rect_center_x = self.display_image_size//2 - x_tran*2
-                rect_center_y = self.display_image_size//2 - y_tran*2
-
-                # draw rectangle on the displayed image to indicate scanning process
-                painter = QtGui.QPainter(self.image_pixmap)
-                # set pen (used to draw outlines of shapes) and brush (draw the background of a shape)
-                pen = QtGui.QPen()
-                # draw the rectangle
-                self.draw_rectangle(painter, pen, rect_center_x, rect_center_y, display_rect_width, display_rect_height)
-                painter.end()
-
-                # update pixmap with the label
-                self.image_label.setPixmap(self.image_pixmap)
-
-                # force repaint
-                self.image_label.repaint()
 
             # modify the underlying image tensor accordingly
             # take the cropped part of the entire input image
@@ -1154,28 +1129,53 @@ class UI_MainWindow(QWidget):
             self.cur_image_label = np.zeros(self.loaded_image_label.shape)
             self.cur_image_label[:4] = compute_label(self.loaded_image_label[:4], x_min, y_min, (128, 128))
             self.cur_image_label[4] = self.loaded_image_label[4]
-            print(f'Original label: {self.loaded_image_label}\n Cur label: {self.cur_image_label}')
 
-            # draw ground truth label on the display image
-            # draw rectangle on the displayed image to indicate scanning process
-            painter = QtGui.QPainter(self.image_pixmap)
-            # set pen (used to draw outlines of shapes) and brush (draw the background of a shape)
-            pen = QtGui.QPen()
-            # draw the rectangle
-            gt_display_center_x = (self.cur_image_label[0] + self.cur_image_label[2]) // 2 + x_min
-            gt_display_center_y = (self.cur_image_label[1] + self.cur_image_label[3]) // 2 + y_min
-            gt_display_rect_width = (self.cur_image_label[2] - self.cur_image_label[0]) * 2
-            gt_display_rect_height = (self.cur_image_label[3] - self.cur_image_label[1]) * 2
-            self.draw_rectangle(painter, pen, gt_display_center_x, gt_display_center_y, gt_display_rect_width, gt_display_rect_height)
-            painter.end()
+            # sanity check on if image/label are correct
+            sanity_check = False
+            if sanity_check:
+                sanity_path = f'/home/zhuokai/Desktop/UChicago/Research/nero_vis/qt_app/example_data/object_detection/sanity_{x_tran}_{y_tran}.png'
+                sanity_image = Image.fromarray(self.cropped_image_pt.numpy())
+                temp = ImageDraw.Draw(sanity_image)
+                temp.rectangle([(self.cur_image_label[0], self.cur_image_label[1]), (self.cur_image_label[2], self.cur_image_label[3])], outline='yellow')
+                sanity_image.save(sanity_path)
 
-            # update pixmap with the label
-            self.image_label.setPixmap(self.image_pixmap)
+            # re-display image for each rectangle drawn every 8 steps
+            if (x_tran)%8 == 0 and (y_tran)%8 == 0:
+                self.display_image()
 
-            # force repaint
-            self.image_label.repaint()
+                display_rect_width = self.display_image_size//2
+                display_rect_height = self.display_image_size//2
+                # displayed image has center at the center of the display
+                # since displayed image enlarges the actual image by 2
+                # since the translation measures on the movement of object instead of the point of view, the sign is reversed
+                rect_center_x = self.display_image_size//2 - x_tran*2
+                rect_center_y = self.display_image_size//2 - y_tran*2
 
-            # self.run_model_once()
+                # draw rectangle on the displayed image to indicate scanning process
+                painter = QtGui.QPainter(self.image_pixmap)
+                # draw the rectangle
+                self.draw_rectangle(painter, rect_center_x, rect_center_y, display_rect_width, display_rect_height, 'red')
+                painter.end()
+
+                # draw ground truth label on the display image
+                # draw rectangle on the displayed image to indicate scanning process
+                painter = QtGui.QPainter(self.image_pixmap)
+                # draw the ground truth label
+                gt_display_center_x = (self.cur_image_label[0] + self.cur_image_label[2]) // 2 * 2 + (rect_center_x - display_rect_width//2)
+                gt_display_center_y = (self.cur_image_label[1] + self.cur_image_label[3]) // 2 * 2 + (rect_center_y - display_rect_height//2)
+                gt_display_rect_width = (self.cur_image_label[2] - self.cur_image_label[0]) * 2
+                gt_display_rect_height = (self.cur_image_label[3] - self.cur_image_label[1]) * 2
+                self.draw_rectangle(painter, gt_display_center_x, gt_display_center_y, gt_display_rect_width, gt_display_rect_height, 'yellow')
+                painter.end()
+
+                # update pixmap with the label
+                self.image_label.setPixmap(self.image_pixmap)
+
+                # force repaint
+                self.image_label.repaint()
+
+            # run the model
+            self.run_model_once()
 
             # exit()
 
@@ -1242,12 +1242,13 @@ class UI_MainWindow(QWidget):
 
 
     # draw a rectangle
-    def draw_rectangle(self, painter, pen, center_x, center_y, width, height, boundary_width=3):
+    def draw_rectangle(self, painter, center_x, center_y, width, height, color, boundary_width=3):
+        pen = QtGui.QPen()
         pen.setWidth(boundary_width)
-        pen.setColor(QtGui.QColor('red'))
+        pen.setColor(QtGui.QColor(color))
         painter.setPen(pen)
         # left, top, width, height for QRect
-        rectangle = QtCore.QRect(center_y-height//2, center_x-width//2, width, height)
+        rectangle = QtCore.QRect(center_x-width//2, center_y-height//2, width, height)
         painter.drawRect(rectangle)
 
 
