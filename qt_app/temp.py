@@ -42,8 +42,57 @@
 # win.close()
 
 
-import torch
-import models
+# import torch
+# import models
 
-model = models.Pre_Trained_FastRCNN()
-torch.save(model.state_dict(), '/home/zhuokai/Desktop/UChicago/Research/nero_vis/qt_app/example_models/object_detection/pre_trained/pretrained_fasterrcnn.pth')
+# model = models.Pre_Trained_FastRCNN()
+# torch.save(model.state_dict(), '/home/zhuokai/Desktop/UChicago/Research/nero_vis/qt_app/example_models/object_detection/pre_trained/pretrained_fasterrcnn.pth')
+
+import sys
+
+import numpy as np
+import pyqtgraph as pg
+from colour import Color
+from PySide6 import QtWidgets
+from pgcolorbar.colorlegend import ColorLegendItem
+
+#Sample array
+data = np.random.normal(size=(200, 200))
+data[40:80, 40:120] += 4
+data = pg.gaussianFilter(data, (15, 15))
+data += np.random.normal(size=(200, 200)) * 0.1
+
+app = QtWidgets.QApplication(sys.argv)
+
+window = pg.GraphicsLayoutWidget()
+
+blue, red = Color('blue'), Color('red')
+colors = blue.range_to(red, 256)
+colors_array = np.array([np.array(color.get_rgb()) * 255 for color in colors])
+look_up_table = colors_array.astype(np.uint8)
+
+image = pg.ImageItem()
+image.setOpts(axisOrder='row-major')  # 2021/01/19 Add
+image.setLookupTable(look_up_table)
+image.setImage(data)
+
+view_box = pg.ViewBox()
+view_box.setAspectLocked(lock=True)
+view_box.addItem(image)
+
+plot = pg.PlotItem(viewBox=view_box)
+
+# color_bar = ColorLegendItem(imageItem=image, showHistogram=True, label='sample')  # 2021/01/20 add label
+# color_bar.resetColorLevels()
+
+cm = pg.colormap.get('CET-L9')
+bar = pg.ColorBarItem( values= (0, 100), cmap=cm )
+bar.setImageItem( image, insert_in=plot )
+
+window.addItem(plot)
+# window.addColorBar( image, colorMap='viridis', values=(0, 1) )
+# window.addItem(color_bar)
+
+window.show()
+
+sys.exit(app.exec_())
