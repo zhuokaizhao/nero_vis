@@ -1032,7 +1032,7 @@ class UI_MainWindow(QWidget):
                                                             self.original_coco_names,
                                                             self.custom_coco_names,
                                                             self.pytorch_coco_names,
-                                                            test_label=self.loaded_image_label)
+                                                            test_label=self.cur_image_label)
             # self.output_2 = nero_run_model.run_coco_once(self.model_2, self.cur_image_pt)
 
             # print(len(self.output_1))
@@ -1086,44 +1086,98 @@ class UI_MainWindow(QWidget):
             x_translation = list(range(-self.image_size//2, self.image_size//2))
             y_translation = list(range(-self.image_size//2, self.image_size//2))
 
-            for x_tran in x_translation:
-                for y_tran in y_translation:
-                    x_tran = 0
-                    y_tran = 0
-                    # re-display image for each rectangle drawn every 8 steps
-                    if (x_tran+1)%8 == 0 and (y_tran+1)%8 == 0:
-                        self.display_image()
+            # for x_tran in x_translation:
+            #     for y_tran in y_translation:
+            x_tran = 0
+            y_tran = 0
+            # re-display image for each rectangle drawn every 8 steps
+            if (x_tran)%8 == 0 and (y_tran)%8 == 0:
+                self.display_image()
 
-                        display_rect_width = self.display_image_size//2
-                        display_rect_height = self.display_image_size//2
-                        # displayed image has center at the center of the display
-                        # since displayed image enlarges the actual image by 2
-                        # since the translation measures on the movement of object instead of the point of view, the sign is reversed
-                        rect_center_x = self.display_image_size//2 - x_tran*2
-                        rect_center_y = self.display_image_size//2 - y_tran*2
+                display_rect_width = self.display_image_size//2
+                display_rect_height = self.display_image_size//2
+                # displayed image has center at the center of the display
+                # since displayed image enlarges the actual image by 2
+                # since the translation measures on the movement of object instead of the point of view, the sign is reversed
+                rect_center_x = self.display_image_size//2 - x_tran*2
+                rect_center_y = self.display_image_size//2 - y_tran*2
 
-                        # draw rectangle on the displayed image to indicate scanning process
-                        painter = QtGui.QPainter(self.image_pixmap)
-                        # set pen (used to draw outlines of shapes) and brush (draw the background of a shape)
-                        pen = QtGui.QPen()
-                        # draw the rectangle
-                        self.draw_rectangle(painter, pen, rect_center_x, rect_center_y, display_rect_width, display_rect_height)
-                        painter.end()
+                # draw rectangle on the displayed image to indicate scanning process
+                painter = QtGui.QPainter(self.image_pixmap)
+                # set pen (used to draw outlines of shapes) and brush (draw the background of a shape)
+                pen = QtGui.QPen()
+                # draw the rectangle
+                self.draw_rectangle(painter, pen, rect_center_x, rect_center_y, display_rect_width, display_rect_height)
+                painter.end()
 
-                        # update pixmap with the label
-                        self.image_label.setPixmap(self.image_pixmap)
+                # update pixmap with the label
+                self.image_label.setPixmap(self.image_pixmap)
 
-                        # force repaint
-                        self.image_label.repaint()
+                # force repaint
+                self.image_label.repaint()
 
-                    # modify the underlying image tensor accordingly
-                    # take the cropped part of the entire input image
-                    cur_center_x = self.center_x - x_tran
-                    cur_center_y = self.center_y - y_tran
-                    self.cropped_image_pt = self.loaded_image_pt[cur_center_y-64:cur_center_y+64, cur_center_x-64:cur_center_x+64, :]
-                    self.run_model_once()
+            # modify the underlying image tensor accordingly
+            # take the cropped part of the entire input image
+            cur_center_x = self.center_x - x_tran
+            cur_center_y = self.center_y - y_tran
+            x_min = cur_center_x - 64
+            x_max = cur_center_x + 64
+            y_min = cur_center_y - 64
+            y_max = cur_center_y + 64
+            self.cropped_image_pt = self.loaded_image_pt[y_min:y_max, x_min:x_max, :]
 
-                    exit()
+            # modify the label accordingly
+            # helper function that computes labels for cut out images
+            def compute_label(cur_bounding_box, x_min, y_min, image_size):
+                # convert key object bounding box to be based on extracted image
+                x_min_center_bb = cur_bounding_box[0] - x_min
+                y_min_center_bb = cur_bounding_box[1] - y_min
+                x_max_center_bb = cur_bounding_box[2] - x_min
+                y_max_center_bb = cur_bounding_box[3] - y_min
+
+                # compute the center of the object in the extracted image
+                object_center_x = (x_min_center_bb + x_max_center_bb) / 2
+                object_center_y = (y_min_center_bb + y_max_center_bb) / 2
+
+                # compute the width and height of the real bounding box of this object
+                original_bb_width = cur_bounding_box[2] - cur_bounding_box[0]
+                original_bb_height = cur_bounding_box[3] - cur_bounding_box[1]
+
+                # compute the range of the bounding box, do the clamping if go out of extracted image
+                bb_min_x = max(0, object_center_x - original_bb_width/2)
+                bb_max_x = min(image_size[1]-1, object_center_x + original_bb_width/2)
+                bb_min_y = max(0, object_center_y - original_bb_height/2)
+                bb_max_y = min(image_size[0]-1, object_center_y + original_bb_height/2)
+
+                return bb_min_x, bb_min_y, bb_max_x, bb_max_y
+
+            self.cur_image_label = np.zeros(self.loaded_image_label.shape)
+            self.cur_image_label[:4] = compute_label(self.loaded_image_label[:4], x_min, y_min, (128, 128))
+            self.cur_image_label[4] = self.loaded_image_label[4]
+            print(f'Original label: {self.loaded_image_label}\n Cur label: {self.cur_image_label}')
+
+            # draw ground truth label on the display image
+            # draw rectangle on the displayed image to indicate scanning process
+            painter = QtGui.QPainter(self.image_pixmap)
+            # set pen (used to draw outlines of shapes) and brush (draw the background of a shape)
+            pen = QtGui.QPen()
+            # draw the rectangle
+            gt_display_center_x = (self.cur_image_label[0] + self.cur_image_label[2]) // 2 + x_min
+            gt_display_center_y = (self.cur_image_label[1] + self.cur_image_label[3]) // 2 + y_min
+            gt_display_rect_width = (self.cur_image_label[2] - self.cur_image_label[0]) * 2
+            gt_display_rect_height = (self.cur_image_label[3] - self.cur_image_label[1]) * 2
+            self.draw_rectangle(painter, pen, gt_display_center_x, gt_display_center_y, gt_display_rect_width, gt_display_rect_height)
+            painter.end()
+
+            # update pixmap with the label
+            self.image_label.setPixmap(self.image_pixmap)
+
+            # force repaint
+            self.image_label.repaint()
+
+            # self.run_model_once()
+
+            # exit()
 
 
 

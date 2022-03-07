@@ -348,10 +348,11 @@ def run_coco_once(model_name, model, test_image, original_names, custom_names, p
             test_image = test_image.to(device)
 
             # when we are using pretrained model and label is present
+            print(test_label)
             if model_name == 'Pre-trained FasterRCNN' and test_label:
                 for i in range(len(test_label)):
                     test_label[i, 1] = pytorch_names.index(custom_names[int(test_label[i, 1]-1)]) + 1
-
+            print(test_label)
             # run model inference
             outputs_dict = model(test_image)
             outputs = []
@@ -372,6 +373,7 @@ def run_coco_once(model_name, model, test_image, original_names, custom_names, p
 
             if outputs != []:
                 cur_precision, cur_recall, cur_F_measure = process_model_outputs(outputs, test_label)
+                print(cur_precision)
             else:
                 cur_precision = [0]
                 cur_recall = [0]
