@@ -1091,11 +1091,11 @@ class UI_MainWindow(QWidget):
 
             # all the x and y translations
             # x translates on columns, y translates on rows
-            x_translation = list(range(-self.image_size//2, self.image_size//2))
-            y_translation = list(range(-self.image_size//2, self.image_size//2))
+            x_translation = list(range(-self.image_size//2, self.image_size//2+1, 8))
+            y_translation = list(range(-self.image_size//2, self.image_size//2+1, 8))
 
-            for x_tran in x_translation:
-                for y_tran in y_translation:
+            for y_tran in y_translation:
+                for x_tran in x_translation:
                     # x_tran = -64
                     # y_tran = -64
                     # modify the underlying image tensor accordingly
@@ -1202,8 +1202,8 @@ class UI_MainWindow(QWidget):
 
                     # plotting the quantity regarding the correct label
                     quantity_2 = self.output_2[0]
-                    print(quantity_2)
-                    exit()
+                    # print(quantity_2)
+                    # exit()
                     # quantity_2 = self.output_2[self.loaded_image_label]
 
                     # self.all_quantities_1.append(quantity_1)

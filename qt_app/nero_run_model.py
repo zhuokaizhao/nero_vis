@@ -331,7 +331,6 @@ def run_coco_once(model_name, model, test_image, custom_names, pytorch_names, te
         sanity_image.save(sanity_path)
 
     # prepare input image shapes
-    img_size = test_image.shape[0]
     if len(test_image.shape) == 3:
         # reformat input image from (height, width, channel) to (batch size, channel, height, width)
         test_image = test_image.permute((2, 0, 1))[None, :, :, :].float()
@@ -379,7 +378,7 @@ def run_coco_once(model_name, model, test_image, custom_names, pytorch_names, te
                 output[:, 5] = pred_labels
 
                 outputs.append(output)
-            print(outputs)
+            # print(outputs)
             if outputs != []:
                 cur_qualified_output, cur_precision, cur_recall, cur_F_measure = process_model_outputs(outputs, torch.from_numpy(test_label))
             else:
