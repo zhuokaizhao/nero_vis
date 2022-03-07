@@ -315,62 +315,6 @@ def process_model_outputs(outputs, targets, iou_thres=0.5, conf_thres=1e-4):
         all_recalls.append(recall)
         all_F_measure.append(F_measure)
 
-        # output = outputs[i]
-
-        # if output is None:
-        #     continue
-
-        # # output has to pass the conf threshold to filter out noisy predictions
-        # cur_object_outputs = []
-        # for j in range(len(output)):
-        #     # faster-rcnn output has format (x1, y1, x2, y2, conf, class_pred)
-        #     if output[j, 4] >= conf_thres:
-        #         cur_object_outputs.append(output[j])
-
-        # # convert to numpy array
-        # cur_object_outputs = np.array(cur_object_outputs)
-
-        # # all predicted labels and true label for the current object
-        # pred_labels = cur_object_outputs[:, -1]
-        # true_labels = targets[:, -1]
-
-        # # all predicted bounding boxes and true bb for the current object
-        # pred_boxes = cur_object_outputs[:, :4]
-        # true_boxes = targets[targets[:, 0] == i][:, 2:]
-        # cur_qualified_output = []
-        # num_true_positive = 0
-        # num_false_positive = 0
-
-        # # loop through all the proposed bounding boxes
-        # for j, pred_box in enumerate(pred_boxes):
-        #     # print(f'True label: {true_labels[i]}, Pred label: {pred_labels[j]}')
-        #     # if the label is predicted correctly
-        #     if pred_labels[j] == true_labels[i]:
-        #         # compute iou
-        #         cur_iou = bbox_iou(pred_box, true_boxes)
-        #         # if iou passed threshold
-        #         if cur_iou > iou_thres:
-        #             # save current output
-        #             cur_qualified_output.append(np.append(cur_object_outputs[j].numpy(), cur_iou))
-        #             num_true_positive += 1
-        #         else:
-        #             num_false_positive += 1
-        #     # if the label is wrong, mark as false positive
-        #     else:
-        #         num_false_positive += 1
-
-        # # Number of TP and FP is computed from all predictions (un-iou thresheld)
-        # # precision = TP / (TP + FP)
-        # precision = num_true_positive / (num_true_positive + num_false_positive + 1e-16)
-        # # Recall = TP / (TP + FN), where (TP + FN) is just the number of ground truths
-        # recall = num_true_positive / (len(true_boxes) + 1e-16)
-        # # F-measure = (2 * Precision * Recall) / (Precision + Recall)
-        # F_measure = (2 * precision * recall) / (precision + recall + 1e-16)
-
-        # all_precisions.append(precision)
-        # all_recalls.append(recall)
-        # all_F_measure.append(F_measure)
-
     return all_precisions, all_recalls, all_F_measure
 
 
