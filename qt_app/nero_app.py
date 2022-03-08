@@ -881,7 +881,6 @@ class UI_MainWindow(QWidget):
                 self.single_result_existed = True
 
 
-
             # run pca of all images on the selected digit
             # each image has tensor with length being the number of rotations
             cur_digit_indices = []
@@ -1029,7 +1028,7 @@ class UI_MainWindow(QWidget):
             self.output_2 = nero_run_model.run_mnist_once(self.model_2, self.cur_image_pt)
 
             # display result
-            self.display_mnist_single_result(mode=self.data_mode, type='bar', boundary_width=3)
+            self.display_mnist_single_result(type='bar', boundary_width=3)
 
         # elif self.mode == 'object_detection':
 
@@ -1085,17 +1084,19 @@ class UI_MainWindow(QWidget):
                 self.all_quantities_2.append(quantity_2)
 
             # display result
-            self.display_mnist_single_result(mode=self.data_mode, type='polar', boundary_width=3)
+            self.display_mnist_single_result(type='polar', boundary_width=3)
 
         elif self.mode == 'object_detection':
 
             # all the x and y translations
             # x translates on columns, y translates on rows
-            x_translation = list(range(-self.image_size//2, self.image_size//2+1, 8))
-            y_translation = list(range(-self.image_size//2, self.image_size//2+1, 8))
+            x_translation = list(range(-self.image_size//2, self.image_size//2, 8))
+            y_translation = list(range(-self.image_size//2, self.image_size//2, 8))
+            self.all_translations = []
 
             for y_tran in y_translation:
                 for x_tran in x_translation:
+                    self.all_translations.append((x_tran, y_tran))
                     # x_tran = -64
                     # y_tran = -64
                     # modify the underlying image tensor accordingly
@@ -1150,7 +1151,7 @@ class UI_MainWindow(QWidget):
                         sanity_image.save(sanity_path)
 
                     # re-display image for each rectangle drawn every 8 steps
-                    if (x_tran)%8 == 0 and (y_tran)%8 == 0:
+                    if (x_tran)%2 == 0 and (y_tran)%2 == 0:
                         self.display_image()
 
                         display_rect_width = self.display_image_size//2
@@ -1201,16 +1202,19 @@ class UI_MainWindow(QWidget):
                                                                     test_label=self.cur_image_label)
 
                     # plotting the quantity regarding the correct label
-                    quantity_2 = self.output_2[0]
-                    # print(quantity_2)
-                    # exit()
-                    # quantity_2 = self.output_2[self.loaded_image_label]
+                    quantity_2 = self.output_2[0][0][0]
 
                     # self.all_quantities_1.append(quantity_1)
                     self.all_quantities_2.append(quantity_2)
 
 
-        print(self.all_quantities_2)
+            # display the individual NERO plot
+            num_x_translations = len(x_translation)
+            num_y_translations = len(y_translation)
+            self.all_quantities_2 = np.array(self.all_quantities_2).reshape((num_y_translations, num_x_translations, 7))
+
+            self.display_coco_single_result(type='heatmap', boundary_width=3)
+
 
     def display_image(self):
 
@@ -1322,6 +1326,58 @@ class UI_MainWindow(QWidget):
         self.polar_plot.addItem(self.circle_2)
 
 
+    # draw heatmap
+    def draw_heatmaps(self):
+        # helper function on drawing individual heatmap
+        def draw_individual_heatmap(data, range=(0, 1)):
+            # actuall heatmap
+            heatmap = pg.ImageItem()
+            heatmap.setOpts(axisOrder='row-major')
+            # heatmap_2.setLookupTable(look_up_table)
+            heatmap.setImage(data)
+
+            # create view box to contain the heatmap
+            view_box = pg.ViewBox()
+            view_box.setAspectLocked(lock=True)
+            view_box.addItem(heatmap)
+
+            plot = pg.PlotItem(viewBox=view_box)
+            plot.vb.setLimits(xMin=-64, xMax=63, yMin=-64, yMax=63)
+            plot.getAxis('bottom').setLabel('Translation in x')
+            plot.getAxis('left').setLabel('Translation in y')
+
+            # create colorbar
+            color_map = pg.colormap.get('CET-L9')
+            color_bar = pg.ColorBarItem(values= range, colorMap=color_map)
+            color_bar.setImageItem(heatmap, insert_in=plot)
+
+            return plot
+
+        # check if the data is in shape (128, 128)
+        # if self.cur_plot_quantity_1.shape != (128, 128):
+        #     # reshape by duplicating
+        #     data_1 = np.tile(self.cur_plot_quantity_1, (128//self.cur_plot_quantity_1.shape[0], 128//self.cur_plot_quantity_1.shape[1]))
+        # else:
+        #     data_1 = self.cur_plot_quantity_1
+
+        if self.cur_plot_quantity_2.shape != (128, 128):
+            # reshape by duplicating
+            data_2 = np.tile(self.cur_plot_quantity_2, (128//self.cur_plot_quantity_2.shape[0], 128//self.cur_plot_quantity_2.shape[1]))
+        else:
+            data_2 = self.cur_plot_quantity_2
+
+        # heatmap view
+        self.heatmap_view_2 = pg.GraphicsLayoutWidget()
+        heatmap_plot_2 = draw_individual_heatmap(data_2)
+        # disable moving around
+        heatmap_plot_2.setMouseEnabled(x=False, y=False)
+
+        # add to view
+        self.heatmap_view_2.addItem(heatmap_plot_2)
+
+        # add to general layout
+        self.single_result_layout.addWidget(self.heatmap_view_2, 0, 2)
+
     # display MNIST aggregated results
     def display_mnist_aggregate_result(self):
 
@@ -1394,10 +1450,10 @@ class UI_MainWindow(QWidget):
 
 
     # display MNIST single results
-    def display_mnist_single_result(self, mode, type, boundary_width):
+    def display_mnist_single_result(self, type, boundary_width):
 
         # aggregate mode does not draw arrow
-        if mode == 'single':
+        if self.data_mode == 'single':
             # draw arrow
             # add a new label for result if no result has existed
             if not self.single_result_existed:
@@ -1475,9 +1531,9 @@ class UI_MainWindow(QWidget):
             self.bar_plot.addItem(graph_2)
             # disable moving around
             self.bar_plot.setMouseEnabled(x=False, y=False)
-            if mode == 'single':
+            if self.data_mode == 'single':
                 self.single_result_layout.addWidget(self.bar_plot, 0, 2)
-            elif mode == 'aggregate':
+            elif self.data_mode == 'aggregate':
                 self.single_result_layout.addWidget(self.bar_plot, 0, 0)
 
         elif type == 'polar':
@@ -1688,6 +1744,78 @@ class UI_MainWindow(QWidget):
 
         else:
             raise Exception('Unsupported display mode')
+
+
+    # display COCO single results
+    def display_coco_single_result(self, type, boundary_width):
+        # aggregate mode does not draw arrow
+        if self.data_mode == 'single':
+            # draw arrow
+            # add a new label for result if no result has existed
+            if not self.single_result_existed:
+                self.arrow_label = QLabel(self)
+                self.arrow_label.setAlignment(QtCore.Qt.AlignCenter)
+                self.arrow_label.setWordWrap(True)
+                self.arrow_label.setTextFormat(QtGui.Qt.AutoText)
+                self.single_result_existed = True
+
+            arrow_pixmap = QPixmap(100, 50)
+            arrow_pixmap.fill(QtCore.Qt.white)
+            painter = QtGui.QPainter(arrow_pixmap)
+            # set pen (used to draw outlines of shapes) and brush (draw the background of a shape)
+            pen = QtGui.QPen()
+            # draw arrow to indicate feeding
+            self.draw_arrow(painter, pen, 100, 50, boundary_width)
+
+            # add to the label and layout
+            self.arrow_label.setPixmap(arrow_pixmap)
+            self.single_result_layout.addWidget(self.arrow_label, 0, 1)
+            painter.end()
+
+        # draw result using heatmaps
+        if type == 'heatmap':
+            @QtCore.Slot()
+            def heatmap_quantity_changed(text):
+                print('Plotting:', text, 'on heatmap')
+                self.quantity_name = text
+
+                if text == 'Confidence*IOU':
+                    # self.cur_plot_quantity_1 = self.all_quantities_1[:, :, 4] * self.all_quantities_1[:, :, 6]
+                    self.cur_plot_quantity_2 = self.all_quantities_2[:, :, 4] * self.all_quantities_2[:, :, 6]
+                elif text == 'Confidence':
+                    # self.cur_plot_quantity_1 = self.all_quantities_1[:, :, 4]
+                    self.cur_plot_quantity_2 = self.all_quantities_2[:, :, 4]
+                elif text == 'IOU':
+                    # self.cur_plot_quantity_1 = self.all_quantities_1[:, :, 6]
+                    self.cur_plot_quantity_2 = self.all_quantities_2[:, :, 6]
+
+                # re-display the heatmap
+                self.draw_heatmaps(self.heatmap_plot_2, self.cur_plot_quantity_2)
+
+            # drop down menu on selection which quantity to plot
+            quantity_menu = QtWidgets.QComboBox()
+            quantity_menu.setMinimumSize(QtCore.QSize(250, 50))
+            quantity_menu.setStyleSheet('font-size: 18px')
+            quantity_menu.setEditable(True)
+            quantity_menu.lineEdit().setReadOnly(True)
+            quantity_menu.lineEdit().setAlignment(QtCore.Qt.AlignCenter)
+
+            quantity_menu.addItem('Confidence*IOU')
+            quantity_menu.addItem('Confidence')
+            quantity_menu.addItem('IOU')
+            # self.quantity_menu.setCurrentIndex(0)
+            quantity_menu.setCurrentText('Confidence*IOU')
+
+            # connect the drop down menu with actions
+            quantity_menu.currentTextChanged.connect(heatmap_quantity_changed)
+            self.single_result_layout.addWidget(quantity_menu, 0, 2)
+
+            # define default plotting quantity
+            # self.cur_plot_quantity_1 = self.all_quantities_1[:, :, 4] * self.all_quantities_1[:, :, 6]
+            self.cur_plot_quantity_2 = self.all_quantities_2[:, :, 4] * self.all_quantities_2[:, :, 6]
+
+            # draw the heatmap
+            self.draw_heatmaps()
 
 
     def mouseMoveEvent(self, event):

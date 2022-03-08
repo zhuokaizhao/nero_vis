@@ -72,7 +72,7 @@ colors_array = np.array([np.array(color.get_rgb()) * 255 for color in colors])
 look_up_table = colors_array.astype(np.uint8)
 
 image = pg.ImageItem()
-image.setOpts(axisOrder='row-major')  # 2021/01/19 Add
+image.setOpts(axisOrder='row-major')
 image.setLookupTable(look_up_table)
 image.setImage(data)
 

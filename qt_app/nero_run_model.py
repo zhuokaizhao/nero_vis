@@ -255,6 +255,9 @@ def process_model_outputs(outputs, targets, iou_thres=0.5, conf_thres=1e-4):
         return iou
 
     # get all the outputs (the model proposes multiple bounding boxes for each object)
+    all_qualitied_outputs = []
+    all_top_confidences = []
+    all_top_iou = []
     all_precisions = []
     all_recalls = []
     all_F_measure = []
@@ -267,15 +270,15 @@ def process_model_outputs(outputs, targets, iou_thres=0.5, conf_thres=1e-4):
 
         # output has to pass the conf threshold to filter out noisy predictions
         # faster-rcnn output has format (x1, y1, x2, y2, conf, class_pred)
+        # output is ordered by confidence
         output = outputs[i]
         cur_object_outputs = []
         for j in range(len(output)):
             if output[j, 4] >= conf_thres:
                 cur_object_outputs.append(output[j].numpy())
 
-        # cur_object_outputs = outputs[i]
-        cur_object_outputs = np.array(cur_object_outputs)
-        cur_object_outputs = torch.from_numpy(cur_object_outputs)
+        # convert conf-qualified results to tensor
+        cur_object_outputs = torch.from_numpy(np.array(cur_object_outputs))
 
         # all predicted labels and true label for the current object
         pred_labels = cur_object_outputs[:, -1].numpy()
@@ -284,7 +287,7 @@ def process_model_outputs(outputs, targets, iou_thres=0.5, conf_thres=1e-4):
         # all predicted bounding boxes and true bb for the current object
         pred_boxes = cur_object_outputs[:, :4]
         true_boxes = targets[targets[:, 0] == i][:, 2:]
-        cur_qualified_output = []
+        qualified_output = []
         num_true_positive = 0
         num_false_positive = 0
 
@@ -297,7 +300,7 @@ def process_model_outputs(outputs, targets, iou_thres=0.5, conf_thres=1e-4):
                 # if iou passed threshold
                 if cur_iou > iou_thres:
                     # save current output
-                    cur_qualified_output.append(np.append(cur_object_outputs[j].numpy(), cur_iou))
+                    qualified_output.append(np.append(cur_object_outputs[j].numpy(), cur_iou))
                     num_true_positive += 1
                 else:
                     num_false_positive += 1
@@ -313,11 +316,12 @@ def process_model_outputs(outputs, targets, iou_thres=0.5, conf_thres=1e-4):
         # F-measure = (2 * Precision * Recall) / (Precision + Recall)
         F_measure = (2 * precision * recall) / (precision + recall + 1e-16)
 
+        all_qualitied_outputs.append(qualified_output)
         all_precisions.append(precision)
         all_recalls.append(recall)
         all_F_measure.append(F_measure)
 
-    return cur_qualified_output, all_precisions, all_recalls, all_F_measure
+    return all_qualitied_outputs, all_precisions, all_recalls, all_F_measure
 
 
 # run model on either on a single COCO image or a batch of COCO images
@@ -359,7 +363,7 @@ def run_coco_once(model_name, model, test_image, custom_names, pytorch_names, te
             # when we are using pretrained model and label is present
             if (model_name == 'Pre-trained FasterRCNN') and type(test_label) != type(None):
                 for i in range(len(test_label)):
-                    test_label[i, 1] = pytorch_names.index(custom_names[int(test_label[i, 1])])
+                    test_label[i, 1] = pytorch_names.index(custom_names[int(test_label[i, 1])]) + 1
 
             # run model inference
             outputs_dict = model(test_image)
