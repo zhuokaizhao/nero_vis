@@ -163,8 +163,7 @@ def single_test_evaluate(model_type, model, path, iou_thres, conf_thres, nms_thr
         all_acceptable_iou = []
 
     for batch_i, (path, imgs, targets) in enumerate(tqdm.tqdm(dataloader, desc="Detecting objects")):
-        print(imgs)
-        exit()
+
         # array index (needed when doing normal evaluation)
         if not lite_data:
             row = batch_i // result_size
@@ -206,8 +205,7 @@ def single_test_evaluate(model_type, model, path, iou_thres, conf_thres, nms_thr
             output[:, 5] = pred_labels
 
             outputs.append(output)
-        print(path, outputs)
-        exit()
+
         empty_output = False
         if outputs != []:
             # print(len(outputs[0]))

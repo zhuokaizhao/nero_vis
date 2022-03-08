@@ -1155,8 +1155,10 @@ class UI_MainWindow(QWidget):
 
                     self.cur_image_label = np.zeros((len(self.loaded_image_label), 6))
                     for i in range(len(self.cur_image_label)):
+                        # object index
                         self.cur_image_label[i, 0] = i
-                        self.cur_image_label[i, 1] = self.loaded_image_label[i, 4]
+                        # since PyTorch FasterRCNN has 0 as background
+                        self.cur_image_label[i, 1] = self.loaded_image_label[i, 4] + 1
                         self.cur_image_label[i, 2:] = compute_label(self.loaded_image_label[i, :4], x_min, y_min, (128, 128))
 
                     # sanity check on if image/label are correct

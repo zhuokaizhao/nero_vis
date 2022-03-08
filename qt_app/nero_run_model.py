@@ -255,9 +255,7 @@ def process_model_outputs(outputs, targets, iou_thres=0.5, conf_thres=1e-4):
         return iou
 
     # get all the outputs (the model proposes multiple bounding boxes for each object)
-    all_qualitied_outputs = []
-    all_top_confidences = []
-    all_top_iou = []
+    all_qualified_outputs = []
     all_precisions = []
     all_recalls = []
     all_F_measure = []
@@ -316,12 +314,12 @@ def process_model_outputs(outputs, targets, iou_thres=0.5, conf_thres=1e-4):
         # F-measure = (2 * Precision * Recall) / (Precision + Recall)
         F_measure = (2 * precision * recall) / (precision + recall + 1e-16)
 
-        all_qualitied_outputs.append(qualified_output)
+        all_qualified_outputs.append(qualified_output)
         all_precisions.append(precision)
         all_recalls.append(recall)
         all_F_measure.append(F_measure)
 
-    return all_qualitied_outputs, all_precisions, all_recalls, all_F_measure
+    return all_qualified_outputs, all_precisions, all_recalls, all_F_measure
 
 
 # run model on either on a single COCO image or a batch of COCO images
@@ -363,7 +361,7 @@ def run_coco_once(model_name, model, test_image, custom_names, pytorch_names, te
             # when we are using pretrained model and label is present
             if (model_name == 'Pre-trained FasterRCNN') and type(test_label) != type(None):
                 for i in range(len(test_label)):
-                    test_label[i, 1] = pytorch_names.index(custom_names[int(test_label[i, 1])]) + 1
+                    test_label[i, 1] = pytorch_names.index(custom_names[int(test_label[i, 1]-1)]) + 1
 
             # run model inference
             outputs_dict = model(test_image)
