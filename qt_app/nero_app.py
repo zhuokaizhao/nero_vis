@@ -1222,15 +1222,8 @@ class UI_MainWindow(QWidget):
                                                                     test_label=self.cur_image_label)
 
                     # plotting the quantity regarding the correct label
-                    if self.output_1[0][0]:
-                        quantity_1 = self.output_1[0][0][0]
-                    else:
-                        quantity_1 = np.zeros(7)
-
-                    if self.output_2[0][0]:
-                        quantity_2 = self.output_2[0][0][0]
-                    else:
-                        quantity_2 = np.zeros(7)
+                    quantity_1 = self.output_1[0][0][0]
+                    quantity_2 = self.output_2[0][0][0]
 
                     self.all_quantities_1.append(quantity_1)
                     self.all_quantities_2.append(quantity_2)
@@ -1350,11 +1343,11 @@ class UI_MainWindow(QWidget):
 
         # draw bounding boxes on the enlarged view
         # box from model 1
-        bounding_boxes_1 = self.output_1[0][:][:4]
+        bounding_boxes_1 = self.output_1[0]
         # box from model 2
-        bounding_boxes_2 = self.output_2[0][:][:4]
-        print(bounding_boxes_1)
-        print(bounding_boxes_2)
+        bounding_boxes_2 = self.output_2[0]
+        # print(bounding_boxes_1)
+        # print(bounding_boxes_2)
 
 
 

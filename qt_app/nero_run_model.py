@@ -227,7 +227,7 @@ def run_mnist_once(model, test_image, test_label=None, batch_size=None, rotate_a
 
 
 # helper function on processing coco model output
-def process_model_outputs(outputs, targets, iou_thres=0.5, conf_thres=0):
+def process_model_outputs(outputs, targets, iou_thres=0.5, conf_thres=1e-4):
 
     def bbox_iou(box1, box2):
         """
@@ -292,14 +292,15 @@ def process_model_outputs(outputs, targets, iou_thres=0.5, conf_thres=0):
 
         # loop through all the proposed bounding boxes
         for j, pred_box in enumerate(pred_boxes):
+            # compute iou
+            cur_iou = bbox_iou(pred_box.unsqueeze(0), true_boxes)
+            # even it might be wrong, we want the output
+            qualified_output.append(np.append(cur_object_outputs[j].numpy(), cur_iou))
+
             # if the label is predicted correctly
             if pred_labels[j] == true_labels[i]:
-                # compute iou
-                cur_iou = bbox_iou(pred_box.unsqueeze(0), true_boxes)
                 # if iou passed threshold
                 if cur_iou > iou_thres:
-                    # save current output
-                    qualified_output.append(np.append(cur_object_outputs[j].numpy(), cur_iou))
                     num_true_positive += 1
                 else:
                     num_false_positive += 1
@@ -307,6 +308,8 @@ def process_model_outputs(outputs, targets, iou_thres=0.5, conf_thres=0):
             else:
                 num_false_positive += 1
 
+        # make to numpy array
+        qualified_output = np.array(qualified_output)
         # Number of TP and FP is computed from all predictions (un-iou thresheld)
         # precision = TP / (TP + FP)
         precision = num_true_positive / (num_true_positive + num_false_positive + 1e-16)
@@ -319,6 +322,11 @@ def process_model_outputs(outputs, targets, iou_thres=0.5, conf_thres=0):
         all_precisions.append(precision)
         all_recalls.append(recall)
         all_F_measure.append(F_measure)
+
+    all_qualified_outputs = np.array(all_qualified_outputs)
+    all_precisions = np.array(all_precisions)
+    all_recalls = np.array(all_recalls)
+    all_F_measure = np.array(all_F_measure)
 
     return all_qualified_outputs, all_precisions, all_recalls, all_F_measure
 
@@ -399,10 +407,11 @@ def run_coco_once(model_name, model, test_image, custom_names, pytorch_names, te
             if outputs != []:
                 cur_qualified_output, cur_precision, cur_recall, cur_F_measure = process_model_outputs(outputs, torch.from_numpy(test_label))
             else:
-                cur_qualified_output = [[np.zeros(6)]]
-                cur_precision = [0]
-                cur_recall = [0]
-                cur_F_measure = [0]
+                # no qualified output
+                cur_qualified_output = np.zeros(7)
+                cur_precision = np.zeros(1)
+                cur_recall = np.zeros(1)
+                cur_F_measure = np.zeros(1)
             # batch_time_end = time.time()
             # batch_time_cost = batch_time_end - batch_time_start
             # print(f'Inference time: {batch_time_cost} seconds')
