@@ -1190,14 +1190,14 @@ class UI_MainWindow(QWidget):
 
                         # draw ground truth label on the display image
                         # draw rectangle on the displayed image to indicate scanning process
-                        painter = QtGui.QPainter(self.image_pixmap)
-                        # draw the ground truth label
-                        gt_display_center_x = (self.cur_image_label[0, 2] + self.cur_image_label[0, 4]) // 2 * 2 + (rect_center_x - display_rect_width//2)
-                        gt_display_center_y = (self.cur_image_label[0, 3] + self.cur_image_label[0, 5]) // 2 * 2 + (rect_center_y - display_rect_height//2)
-                        gt_display_rect_width = (self.cur_image_label[0, 4] - self.cur_image_label[0, 2]) * 2
-                        gt_display_rect_height = (self.cur_image_label[0, 5] - self.cur_image_label[0, 3]) * 2
-                        self.draw_rectangle(painter, gt_display_center_x, gt_display_center_y, gt_display_rect_width, gt_display_rect_height, 'yellow')
-                        painter.end()
+                        # painter = QtGui.QPainter(self.image_pixmap)
+                        # # draw the ground truth label
+                        # gt_display_center_x = (self.cur_image_label[0, 2] + self.cur_image_label[0, 4]) // 2 * 2 + (rect_center_x - display_rect_width//2)
+                        # gt_display_center_y = (self.cur_image_label[0, 3] + self.cur_image_label[0, 5]) // 2 * 2 + (rect_center_y - display_rect_height//2)
+                        # gt_display_rect_width = (self.cur_image_label[0, 4] - self.cur_image_label[0, 2]) * 2
+                        # gt_display_rect_height = (self.cur_image_label[0, 5] - self.cur_image_label[0, 3]) * 2
+                        # self.draw_rectangle(painter, gt_display_center_x, gt_display_center_y, gt_display_rect_width, gt_display_rect_height, 'yellow')
+                        # painter.end()
 
                         # update pixmap with the label
                         self.image_label.setPixmap(self.image_pixmap)
@@ -1244,51 +1244,6 @@ class UI_MainWindow(QWidget):
 
             # display the individual NERO plot
             self.display_coco_single_result(type='heatmap', boundary_width=3)
-
-
-    def display_image(self):
-
-        # single image case
-        # prepare a pixmap for the image
-        self.image_pixmap = QPixmap(self.cur_display_image)
-
-        # add a new label for loaded image if no imager has existed
-        if not self.image_existed:
-            self.image_label = QLabel(self)
-            self.image_label.setAlignment(QtCore.Qt.AlignCenter)
-            self.image_existed = True
-
-        # put pixmap in the label
-        self.image_label.setPixmap(self.image_pixmap)
-        self.image_label.setContentsMargins(0, 0, 0, 0)
-
-        # pixel mouse over for object detection mode
-        if self.mode == 'object_detection':
-            def getPixel(event):
-                x = event.pos().x()
-                y = event.pos().y()
-                # c = self.image_label.pixel(x, y)  # color code (integer): 3235912
-                # # depending on what kind of value you like (arbitary examples)
-                # c_qobj = QtGui.QColor(c)  # color object
-                # c_rgb = QtGui.QColor(c).getRgb()  # 8bit RGBA: (255, 23, 0, 255)
-                # c_rgbf = QtGui.QColor(c).getRgbf()  # RGBA float: (1.0, 0.3123, 0.0, 1.0)
-
-                print(x, y)
-                return x, y
-
-            self.image_label.mousePressEvent = getPixel
-
-        # name of the image
-        self.name_label = QLabel(self.loaded_image_name)
-        self.name_label.setAlignment(QtCore.Qt.AlignCenter)
-
-        # add this image to the layout
-        if self.data_mode == 'single':
-            self.single_result_layout.addWidget(self.image_label, 0, 0)
-            self.single_result_layout.addWidget(self.name_label, 1, 0)
-        elif self.data_mode == 'aggregate':
-            self.single_result_layout.addWidget(self.image_label, 0, 2)
-            self.single_result_layout.addWidget(self.name_label, 1, 2)
 
 
     # draw an arrow, used between input image(s) and model outputs
@@ -1375,6 +1330,96 @@ class UI_MainWindow(QWidget):
         self.detailed_image_label.setContentsMargins(0, 0, 0, 0)
 
         self.single_result_layout.addWidget(self.detailed_image_label, 0, 3)
+
+
+
+    def display_image(self):
+
+        # single image case
+        # prepare a pixmap for the image
+        self.image_pixmap = QPixmap(self.cur_display_image)
+
+        # add a new label for loaded image if no imager has existed
+        if not self.image_existed:
+            self.image_label = QLabel(self)
+            self.image_label.setAlignment(QtCore.Qt.AlignCenter)
+            self.image_existed = True
+
+        # put pixmap in the label
+        self.image_label.setPixmap(self.image_pixmap)
+        # set label to the size of pixmap so that when clicked it is wrt image
+        self.image_label.setFixedSize(self.image_pixmap.size())
+        self.image_label.setContentsMargins(0, 0, 0, 0)
+
+        # pixel mouse over for object detection mode
+        if self.mode == 'object_detection':
+            def getPixel(event):
+                x = event.pos().x()
+                y = event.pos().y()
+
+                # when the click selection is valid and model has been run before
+                if self.single_result_existed:
+
+                    # re-display
+                    self.display_image()
+
+                    # draw the new FOV rectangle
+                    # restrict x and y value
+                    if x + 128 >= 512:
+                        x = 512-128
+                    elif x - 128 < 0:
+                        x = 128
+
+                    if y + 128 >= 512:
+                        y = 512-128
+                    elif y - 128 < 0:
+                        y = 128
+
+                    # width and height of the rectangle
+                    display_rect_width = self.display_image_size//2
+                    display_rect_height = self.display_image_size//2
+
+                    # draw rectangle on the displayed image to indicate scanning process
+                    painter = QtGui.QPainter(self.image_pixmap)
+                    # draw the rectangle
+                    self.draw_rectangle(painter, x, y, display_rect_width, display_rect_height, 'red')
+                    painter.end()
+
+                    # update pixmap with the label
+                    self.image_label.setPixmap(self.image_pixmap)
+
+                    # force repaint
+                    self.image_label.repaint()
+
+                    # redisplay model output
+                    # how much the clicked point is away from the image center
+                    x_dist = (x - 255)//2
+                    y_dist = (y - 255)//2
+
+                    # compute rectangle center wrt to the original image
+                    cur_center_x = self.center_x + x_dist
+                    cur_center_y = self.center_y + y_dist
+                    self.x_min = cur_center_x - 64
+                    self.x_max = cur_center_x + 64
+                    self.y_min = cur_center_y - 64
+                    self.y_max = cur_center_y + 64
+
+                    self.draw_model_output()
+
+
+            self.image_label.mousePressEvent = getPixel
+
+        # name of the image
+        self.name_label = QLabel(self.loaded_image_name)
+        self.name_label.setAlignment(QtCore.Qt.AlignCenter)
+
+        # add this image to the layout
+        if self.data_mode == 'single':
+            self.single_result_layout.addWidget(self.image_label, 0, 0)
+            self.single_result_layout.addWidget(self.name_label, 1, 0)
+        elif self.data_mode == 'aggregate':
+            self.single_result_layout.addWidget(self.image_label, 0, 2)
+            self.single_result_layout.addWidget(self.name_label, 1, 2)
 
 
     # draw heatmap
@@ -1819,7 +1864,6 @@ class UI_MainWindow(QWidget):
                 self.arrow_label.setAlignment(QtCore.Qt.AlignCenter)
                 self.arrow_label.setWordWrap(True)
                 self.arrow_label.setTextFormat(QtGui.Qt.AutoText)
-                self.single_result_existed = True
 
             arrow_pixmap = QPixmap(100, 50)
             arrow_pixmap.fill(QtCore.Qt.white)
@@ -1835,9 +1879,9 @@ class UI_MainWindow(QWidget):
             painter.end()
 
         # plot current field-of-view's detailed prediction results
-        self.single_result_existed = True
         self.draw_model_output()
 
+        self.single_result_existed = True
 
         # draw result using heatmaps
         if type == 'heatmap':
