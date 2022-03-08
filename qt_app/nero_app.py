@@ -1343,12 +1343,22 @@ class UI_MainWindow(QWidget):
 
         # draw bounding boxes on the enlarged view
         # box from model 1
-        bounding_boxes_1 = self.output_1[0]
-        # box from model 2
-        bounding_boxes_2 = self.output_2[0]
-        # print(bounding_boxes_1)
-        # print(bounding_boxes_2)
+        bounding_boxes_1 = self.output_1[0][0][:, :4]
+        print(bounding_boxes_1)
 
+        painter = QtGui.QPainter(self.detailed_image_pixmap)
+        for i in range(len(bounding_boxes_1)):
+            center_x_1 = (bounding_boxes_1[i, 0] + bounding_boxes_1[i, 2]) // 2
+            center_y_1 = (bounding_boxes_1[i, 1] + bounding_boxes_1[i, 3]) // 2
+            display_rect_width = self.display_image_size//2
+            display_rect_height = self.display_image_size//2
+
+            self.draw_rectangle(painter, center_x_1*2, center_y_1*2, display_rect_width, display_rect_height, 'blue')
+
+        painter.end()
+
+        # box from model 2
+        bounding_boxes_2 = self.output_2[0][0][:, :4]
 
 
     def display_image(self):
