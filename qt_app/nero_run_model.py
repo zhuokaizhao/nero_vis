@@ -227,7 +227,7 @@ def run_mnist_once(model, test_image, test_label=None, batch_size=None, rotate_a
 
 
 # helper function on processing coco model output
-def process_model_outputs(outputs, targets, iou_thres=0.5, conf_thres=1e-4):
+def process_model_outputs(outputs, targets, iou_thres=0.5, conf_thres=0):
 
     def bbox_iou(box1, box2):
         """
@@ -276,6 +276,7 @@ def process_model_outputs(outputs, targets, iou_thres=0.5, conf_thres=1e-4):
                 cur_object_outputs.append(output[j].numpy())
 
         # convert conf-qualified results to tensor
+        # if cur_object_outputs:
         cur_object_outputs = torch.from_numpy(np.array(cur_object_outputs))
 
         # all predicted labels and true label for the current object
@@ -324,6 +325,7 @@ def process_model_outputs(outputs, targets, iou_thres=0.5, conf_thres=1e-4):
 
 # run model on either on a single COCO image or a batch of COCO images
 def run_coco_once(model_name, model, test_image, custom_names, pytorch_names, test_label=None, batch_size=1):
+
     sanity_check = False
     if sanity_check:
         sanity_path = f'/home/zhuokai/Desktop/UChicago/Research/nero_vis/qt_app/example_data/object_detection/sanity_model.png'
@@ -358,11 +360,6 @@ def run_coco_once(model_name, model, test_image, custom_names, pytorch_names, te
             # prepare current batch's testing data
             test_image = test_image.to(device)
 
-            # when we are using pretrained model and label is present
-            if (model_name == 'Pre-trained FasterRCNN') and type(test_label) != type(None):
-                for i in range(len(test_label)):
-                    test_label[i, 1] = pytorch_names.index(custom_names[int(test_label[i, 1]-1)]) + 1
-
             # run model inference
             outputs_dict = model(test_image)
             outputs = []
@@ -373,14 +370,32 @@ def run_coco_once(model_name, model, test_image, custom_names, pytorch_names, te
                 pred_labels = image_pred['labels'].cpu()
                 pred_confs = image_pred['scores'].cpu()
 
-                # transform output in the format of (x1, y1, x2, y2, conf, class_pred)
-                output = torch.zeros((len(pred_boxes), 6))
-                output[:, :4] = pred_boxes
-                output[:, 4] = pred_confs
-                output[:, 5] = pred_labels
+                # when we are using pretrained model and ground truth label is present
+                if (model_name == 'Pre-trained FasterRCNN') and type(test_label) != type(None):
+                    valid_indices = []
+                    for j in range(len(pred_labels)):
+                        if pytorch_names[int(pred_labels[j]-1)] in custom_names:
+                            valid_indices.append(j)
+                            pred_labels[j] = custom_names.index(pytorch_names[int(pred_labels[j]-1)]) + 1
+                        else:
+                            continue
+
+                    # transform output in the format of (x1, y1, x2, y2, conf, class_pred)
+                    output = torch.zeros((len(valid_indices), 6))
+                    output[:, :4] = pred_boxes[valid_indices]
+                    output[:, 4] = pred_confs[valid_indices]
+                    output[:, 5] = pred_labels[valid_indices]
+
+                else:
+                    # transform output in the format of (x1, y1, x2, y2, conf, class_pred)
+                    output = torch.zeros((len(pred_boxes), 6))
+                    output[:, :4] = pred_boxes
+                    output[:, 4] = pred_confs
+                    output[:, 5] = pred_labels
+
 
                 outputs.append(output)
-            # print(outputs)
+
             if outputs != []:
                 cur_qualified_output, cur_precision, cur_recall, cur_F_measure = process_model_outputs(outputs, torch.from_numpy(test_label))
             else:

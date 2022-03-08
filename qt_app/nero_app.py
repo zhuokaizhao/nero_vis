@@ -1331,6 +1331,31 @@ class UI_MainWindow(QWidget):
 
         self.single_result_layout.addWidget(self.detailed_image_label, 0, 3)
 
+        # run model with the cropped view
+        self.cropped_image_pt = self.loaded_image_pt[self.y_min:self.y_max, self.x_min:self.x_max, :] / 255
+
+        self.output_1 = nero_run_model.run_coco_once(self.model_1_name,
+                                                        self.model_1,
+                                                        self.cropped_image_pt,
+                                                        self.custom_coco_names,
+                                                        self.pytorch_coco_names,
+                                                        test_label=self.cur_image_label)
+
+        self.output_2 = nero_run_model.run_coco_once(self.model_2_name,
+                                                        self.model_2,
+                                                        self.cropped_image_pt,
+                                                        self.custom_coco_names,
+                                                        self.pytorch_coco_names,
+                                                        test_label=self.cur_image_label)
+
+        # draw bounding boxes on the enlarged view
+        # box from model 1
+        bounding_boxes_1 = self.output_1[0][:][:4]
+        # box from model 2
+        bounding_boxes_2 = self.output_2[0][:][:4]
+        print(bounding_boxes_1)
+        print(bounding_boxes_2)
+
 
 
     def display_image(self):
