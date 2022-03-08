@@ -1351,18 +1351,24 @@ class UI_MainWindow(QWidget):
 
         # box from model 1
         bounding_boxes_1 = self.output_1[0][0][:, :4]
-
-        # painter = QtGui.QPainter(self.detailed_image_pixmap)
-        for i in range(len(bounding_boxes_1)):
+        for i in range(1):
             center_x_1 = (bounding_boxes_1[i, 0] + bounding_boxes_1[i, 2]) // 2 * 4
             center_y_1 = (bounding_boxes_1[i, 1] + bounding_boxes_1[i, 3]) // 2 * 4
-            model_1_display_rect_width = (bounding_boxes_1[i, 2] - bounding_boxes_1[i, 0]) * 4
+            model_1_display_rect_width = (bounding_boxes_1[i, 2] - bounding_boxes_1[i, 0]) *4
             model_1_display_rect_height = (bounding_boxes_1[i, 3] - bounding_boxes_1[i, 1]) * 4
 
-            self.draw_rectangle(painter, center_x_1*2, center_y_1*2, model_1_display_rect_width, model_1_display_rect_height, 'blue')
+            self.draw_rectangle(painter, center_x_1, center_y_1, model_1_display_rect_width, model_1_display_rect_height, 'blue')
 
         # box from model 2
         bounding_boxes_2 = self.output_2[0][0][:, :4]
+        for i in range(1):
+            center_x_2 = (bounding_boxes_2[i, 0] + bounding_boxes_2[i, 2]) // 2 * 4
+            center_y_2 = (bounding_boxes_2[i, 1] + bounding_boxes_2[i, 3]) // 2 * 4
+            model_2_display_rect_width = (bounding_boxes_2[i, 2] - bounding_boxes_2[i, 0]) * 4
+            model_2_display_rect_height = (bounding_boxes_2[i, 3] - bounding_boxes_2[i, 1]) * 4
+
+            self.draw_rectangle(painter, center_x_2, center_y_2, model_2_display_rect_width, model_2_display_rect_height, 'green')
+
         painter.end()
 
         # update pixmap with the label
