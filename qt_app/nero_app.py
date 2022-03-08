@@ -55,6 +55,7 @@ class UI_MainWindow(QWidget):
         # initialize control panel on mode selection
         self.init_mode_control_layout()
         self.image_existed = False
+        self.data_existed = False
         self.run_button_existed = False
         self.aggregate_result_existed = False
         self.single_result_existed = False
@@ -78,6 +79,25 @@ class UI_MainWindow(QWidget):
             layout.deleteLater()
 
 
+    # helper function on cleaning up things when switching modes
+    def switch_mode_cleanup(self):
+        if self.previous_mode:
+            print(f'Cleaned {self.previous_mode} control layout')
+            self.clear_layout(self.load_menu_layout)
+        if self.run_button_existed:
+            print(f'Cleaned previous run button')
+            self.clear_layout(self.run_button_layout)
+            self.run_button_existed = False
+        if self.data_existed:
+            print(f'Cleaned {self.previous_mode} aggregate_result_layout')
+            self.clear_layout(self.aggregate_result_layout)
+            self.data_existed = False
+        if self.image_existed:
+            print(f'Cleaned {self.previous_mode} single_result_layout')
+            self.clear_layout(self.single_result_layout)
+            self.image_existed = False
+
+
     def init_mode_control_layout(self):
         # three radio buttons that define the mode
         @QtCore.Slot()
@@ -88,15 +108,7 @@ class UI_MainWindow(QWidget):
 
             if self.previous_mode != self.mode or not self.previous_mode:
                 # clear previous mode's layout
-                if self.previous_mode:
-                    print(f'Cleaned {self.previous_mode} control layout')
-                    self.clear_layout(self.load_menu_layout)
-                if self.aggregate_result_existed:
-                    print(f'Cleaned {self.previous_mode} aggregate_result_layout')
-                    self.clear_layout(self.aggregate_result_layout)
-                if self.image_existed:
-                    print(f'Cleaned {self.previous_mode} single_result_layout')
-                    self.clear_layout(self.single_result_layout)
+                self.switch_mode_cleanup()
 
                 self.init_load_layout()
 
@@ -142,15 +154,7 @@ class UI_MainWindow(QWidget):
             # below layouts depend on mode selection
             if self.previous_mode != self.mode or not self.previous_mode:
                 # clear previous mode's layout
-                if self.previous_mode:
-                    print(f'Cleaned {self.previous_mode} control layout')
-                    self.clear_layout(self.load_menu_layout)
-                if self.aggregate_result_existed:
-                    print(f'Cleaned {self.previous_mode} aggregate_result_layout')
-                    self.clear_layout(self.aggregate_result_layout)
-                if self.image_existed:
-                    print(f'Cleaned {self.previous_mode} single_result_layout')
-                    self.clear_layout(self.single_result_layout)
+                self.switch_mode_cleanup()
 
                 self.init_load_layout()
 
@@ -399,8 +403,6 @@ class UI_MainWindow(QWidget):
                 self.loaded_image_name = self.image_path.split('/')[-1]
                 # keep a copy to represent the current (rotated) version of the original images
                 self.cur_image_pt = self.loaded_image_pt.clone()
-                # prepare MNIST image tensor for model purpose
-                self.cur_image_pt = nero_transform.prepare_mnist_image(self.cur_image_pt)
 
             elif self.mode == 'object_detection':
                 self.image_index = self.coco_classes.index(text.split(' ')[0])
@@ -428,6 +430,10 @@ class UI_MainWindow(QWidget):
             self.cur_display_image = nero_utilities.tensor_to_qt_image(self.cur_image_pt)
             # resize the display QImage
             self.cur_display_image = self.cur_display_image.scaledToWidth(self.display_image_size)
+
+            # prepare MNIST image tensor for model purpose
+            if self.mode == 'digit_recognition':
+                self.cur_image_pt = nero_transform.prepare_mnist_image(self.cur_image_pt)
 
             # display the image
             self.display_image()
