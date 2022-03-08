@@ -1062,7 +1062,29 @@ class UI_MainWindow(QWidget):
             # display result
             # self.display_mnist_single_result(mode=self.data_mode, type='bar', boundary_width=3)
 
+    # helper function that computes labels for cut out images
+    def compute_label(self, cur_bounding_box, x_min, y_min, image_size):
+        # convert key object bounding box to be based on extracted image
+        x_min_center_bb = cur_bounding_box[0] - x_min
+        y_min_center_bb = cur_bounding_box[1] - y_min
+        x_max_center_bb = cur_bounding_box[2] - x_min
+        y_max_center_bb = cur_bounding_box[3] - y_min
 
+        # compute the center of the object in the extracted image
+        object_center_x = (x_min_center_bb + x_max_center_bb) / 2
+        object_center_y = (y_min_center_bb + y_max_center_bb) / 2
+
+        # compute the width and height of the real bounding box of this object
+        original_bb_width = cur_bounding_box[2] - cur_bounding_box[0]
+        original_bb_height = cur_bounding_box[3] - cur_bounding_box[1]
+
+        # compute the range of the bounding box, do the clamping if go out of extracted image
+        bb_min_x = max(0, object_center_x - original_bb_width/2)
+        bb_max_x = min(image_size[1]-1, object_center_x + original_bb_width/2)
+        bb_min_y = max(0, object_center_y - original_bb_height/2)
+        bb_max_y = min(image_size[0]-1, object_center_y + original_bb_height/2)
+
+        return bb_min_x, bb_min_y, bb_max_x, bb_max_y
 
 
     # run model on all the available transformations on a single sample
@@ -1128,38 +1150,14 @@ class UI_MainWindow(QWidget):
                     # model takes image between [0, 1]
                     self.cropped_image_pt = self.loaded_image_pt[self.y_min:self.y_max, self.x_min:self.x_max, :] / 255
 
-                    # modify the label accordingly
-                    # helper function that computes labels for cut out images
-                    def compute_label(cur_bounding_box, x_min, y_min, image_size):
-                        # convert key object bounding box to be based on extracted image
-                        x_min_center_bb = cur_bounding_box[0] - x_min
-                        y_min_center_bb = cur_bounding_box[1] - y_min
-                        x_max_center_bb = cur_bounding_box[2] - x_min
-                        y_max_center_bb = cur_bounding_box[3] - y_min
-
-                        # compute the center of the object in the extracted image
-                        object_center_x = (x_min_center_bb + x_max_center_bb) / 2
-                        object_center_y = (y_min_center_bb + y_max_center_bb) / 2
-
-                        # compute the width and height of the real bounding box of this object
-                        original_bb_width = cur_bounding_box[2] - cur_bounding_box[0]
-                        original_bb_height = cur_bounding_box[3] - cur_bounding_box[1]
-
-                        # compute the range of the bounding box, do the clamping if go out of extracted image
-                        bb_min_x = max(0, object_center_x - original_bb_width/2)
-                        bb_max_x = min(image_size[1]-1, object_center_x + original_bb_width/2)
-                        bb_min_y = max(0, object_center_y - original_bb_height/2)
-                        bb_max_y = min(image_size[0]-1, object_center_y + original_bb_height/2)
-
-                        return bb_min_x, bb_min_y, bb_max_x, bb_max_y
-
                     self.cur_image_label = np.zeros((len(self.loaded_image_label), 6))
                     for i in range(len(self.cur_image_label)):
                         # object index
                         self.cur_image_label[i, 0] = i
                         # since PyTorch FasterRCNN has 0 as background
                         self.cur_image_label[i, 1] = self.loaded_image_label[i, 4] + 1
-                        self.cur_image_label[i, 2:] = compute_label(self.loaded_image_label[i, :4], self.x_min, self.y_min, (128, 128))
+                        # modify the label accordingly
+                        self.cur_image_label[i, 2:] = self.compute_label(self.loaded_image_label[i, :4], self.x_min, self.y_min, (128, 128))
 
                     # sanity check on if image/label are correct
                     sanity_check = False
@@ -1342,23 +1340,36 @@ class UI_MainWindow(QWidget):
                                                         test_label=self.cur_image_label)
 
         # draw bounding boxes on the enlarged view
+        # draw ground truth
+        painter = QtGui.QPainter(self.detailed_image_pixmap)
+        # draw the ground truth label
+        gt_display_center_x = (self.cur_image_label[0, 2] + self.cur_image_label[0, 4]) // 2 * 4
+        gt_display_center_y = (self.cur_image_label[0, 3] + self.cur_image_label[0, 5]) // 2 * 4
+        gt_display_rect_width = (self.cur_image_label[0, 4] - self.cur_image_label[0, 2]) * 4
+        gt_display_rect_height = (self.cur_image_label[0, 5] - self.cur_image_label[0, 3]) * 4
+        self.draw_rectangle(painter, gt_display_center_x, gt_display_center_y, gt_display_rect_width, gt_display_rect_height, 'yellow')
+
         # box from model 1
         bounding_boxes_1 = self.output_1[0][0][:, :4]
-        print(bounding_boxes_1)
 
-        painter = QtGui.QPainter(self.detailed_image_pixmap)
+        # painter = QtGui.QPainter(self.detailed_image_pixmap)
         for i in range(len(bounding_boxes_1)):
-            center_x_1 = (bounding_boxes_1[i, 0] + bounding_boxes_1[i, 2]) // 2
-            center_y_1 = (bounding_boxes_1[i, 1] + bounding_boxes_1[i, 3]) // 2
-            display_rect_width = self.display_image_size//2
-            display_rect_height = self.display_image_size//2
+            center_x_1 = (bounding_boxes_1[i, 0] + bounding_boxes_1[i, 2]) // 2 * 4
+            center_y_1 = (bounding_boxes_1[i, 1] + bounding_boxes_1[i, 3]) // 2 * 4
+            model_1_display_rect_width = (bounding_boxes_1[i, 2] - bounding_boxes_1[i, 0]) * 4
+            model_1_display_rect_height = (bounding_boxes_1[i, 3] - bounding_boxes_1[i, 1]) * 4
 
-            self.draw_rectangle(painter, center_x_1*2, center_y_1*2, display_rect_width, display_rect_height, 'blue')
-
-        painter.end()
+            self.draw_rectangle(painter, center_x_1*2, center_y_1*2, model_1_display_rect_width, model_1_display_rect_height, 'blue')
 
         # box from model 2
         bounding_boxes_2 = self.output_2[0][0][:, :4]
+        painter.end()
+
+        # update pixmap with the label
+        self.detailed_image_label.setPixmap(self.detailed_image_pixmap)
+
+        # force repaint
+        self.detailed_image_label.repaint()
 
 
     def display_image(self):
@@ -1431,6 +1442,15 @@ class UI_MainWindow(QWidget):
                     self.x_max = cur_center_x + 64
                     self.y_min = cur_center_y - 64
                     self.y_max = cur_center_y + 64
+
+                    # compute the ground truth label of the cropped image
+                    self.cur_image_label = np.zeros((len(self.loaded_image_label), 6))
+                    for i in range(len(self.cur_image_label)):
+                        # object index
+                        self.cur_image_label[i, 0] = i
+                        # since PyTorch FasterRCNN has 0 as background
+                        self.cur_image_label[i, 1] = self.loaded_image_label[i, 4] + 1
+                        self.cur_image_label[i, 2:] = self.compute_label(self.loaded_image_label[i, :4], self.x_min, self.y_min, (128, 128))
 
                     self.draw_model_output()
 
