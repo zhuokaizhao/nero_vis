@@ -162,13 +162,14 @@ class UI_MainWindow(QWidget):
                 self.translation = False
 
                 # predefined model paths
-                self.model_1_name = 'Custome-trained FasterRCNN'
+                self.model_1_name = 'Custom-trained FasterRCNN'
                 self.model_1_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'custom_trained', f'object_{self.jittering_level}-jittered', '*.pth'))[0]
+                # pre-trained model does not need model path
                 self.model_2_name = 'Pre-trained FasterRCNN'
-                # self.model_2_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'pre_trained', '*.pth'))[0]
+                self.model_2_path = None
                 # preload model
                 self.model_1 = nero_run_model.load_model(self.mode, 'custom_trained', self.model_1_path)
-                self.model_2 = nero_run_model.load_model(self.mode, 'pre_trained', None)
+                self.model_2 = nero_run_model.load_model(self.mode, 'pre_trained', self.model_2_path)
 
                 # different class names (original COCO classes, custom 5-class and the one that pretrained PyTorch model uses)
                 self.original_coco_names_path = os.path.join(os.getcwd(), 'example_data', self.mode, 'coco.names')
@@ -502,8 +503,8 @@ class UI_MainWindow(QWidget):
                     self.model_2 = nero_run_model.load_model('aug_eqv', self.model_2_path)
 
             elif self.mode == 'object_detection':
-                if text == 'Custome-trained FasterRCNN':
-                    self.model_2_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'custom_trained', f'object_{self.jittering_level}-jittered', '*.pt'))[0]
+                if text == 'Custom-trained FasterRCNN':
+                    self.model_2_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'custom_trained', f'object_{self.jittering_level}-jittered', '*.pth'))[0]
                     # reload model
                     self.model_2 = nero_run_model.load_model(self.mode, 'custom_trained', self.model_2_path)
                     print('Model 2 path:', self.model_2_path)
@@ -518,7 +519,18 @@ class UI_MainWindow(QWidget):
         @QtCore.Slot()
         def jittering_menu_selection_changed(text):
             print('Jittering level:', text)
-            self.jittering_level = int(text.split('%')[0])
+            if self.jittering_level != int(text.split('%')[0]):
+                self.jittering_level = int(text.split('%')[0])
+                # reload non-pretrained model
+                if self.model_1_name == 'Custom-trained FasterRCNN':
+                    self.model_1_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'custom_trained', f'object_{self.jittering_level}-jittered', '*.pth'))[0]
+                    self.model_1 = nero_run_model.load_model(self.mode, 'custom_trained', self.model_1_path)
+                    print('Model 1 reloaded')
+
+                if self.model_2_name == 'Custom-trained FasterRCNN':
+                    self.model_2_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'custom_trained', f'object_{self.jittering_level}-jittered', '*.pth'))[0]
+                    self.model_2 = nero_run_model.load_model(self.mode, 'custom_trained', self.model_2_path)
+                    print('Model 2 reloaded')
 
         # function used as model icon
         def draw_circle(painter, center_x, center_y, radius, color):
@@ -639,7 +651,7 @@ class UI_MainWindow(QWidget):
 
             # add items
             # jittering_menu.addItem('Jittering level')
-            for i in range(0, 100, 33):
+            for i in [0, 20, 40, 60, 80, 100]:
                 jittering_menu.addItem(f'{i}%')
 
             # default selection is 0 percent jittering
@@ -1187,12 +1199,12 @@ class UI_MainWindow(QWidget):
 
                     # run the model
                     # update the model output
-                    # self.output_1 = nero_run_model.run_coco_once(self.model_1_name,
-                    #                                                 self.model_1,
-                    #                                                 self.cropped_image_pt,
-                    #                                                 self.custom_coco_names,
-                    #                                                 self.pytorch_coco_names,
-                    #                                                 test_label=self.cur_image_label)
+                    self.output_1 = nero_run_model.run_coco_once(self.model_1_name,
+                                                                    self.model_1,
+                                                                    self.cropped_image_pt,
+                                                                    self.custom_coco_names,
+                                                                    self.pytorch_coco_names,
+                                                                    test_label=self.cur_image_label)
 
                     self.output_2 = nero_run_model.run_coco_once(self.model_2_name,
                                                                     self.model_2,
@@ -1202,17 +1214,27 @@ class UI_MainWindow(QWidget):
                                                                     test_label=self.cur_image_label)
 
                     # plotting the quantity regarding the correct label
-                    quantity_2 = self.output_2[0][0][0]
+                    if self.output_1[0][0]:
+                        quantity_1 = self.output_1[0][0][0]
+                    else:
+                        quantity_1 = np.zeros(7)
 
-                    # self.all_quantities_1.append(quantity_1)
+                    if self.output_2[0][0]:
+                        quantity_2 = self.output_2[0][0][0]
+                    else:
+                        quantity_2 = np.zeros(7)
+
+                    self.all_quantities_1.append(quantity_1)
                     self.all_quantities_2.append(quantity_2)
 
 
             # display the individual NERO plot
             num_x_translations = len(x_translation)
             num_y_translations = len(y_translation)
+            self.all_quantities_1 = np.array(self.all_quantities_1).reshape((num_y_translations, num_x_translations, 7))
             self.all_quantities_2 = np.array(self.all_quantities_2).reshape((num_y_translations, num_x_translations, 7))
 
+            # display the individual NERO plot
             self.display_coco_single_result(type='heatmap', boundary_width=3)
 
 
@@ -1333,7 +1355,6 @@ class UI_MainWindow(QWidget):
             # actuall heatmap
             heatmap = pg.ImageItem()
             heatmap.setOpts(axisOrder='row-major')
-            # heatmap_2.setLookupTable(look_up_table)
             heatmap.setImage(data)
 
             # create view box to contain the heatmap
@@ -1342,7 +1363,7 @@ class UI_MainWindow(QWidget):
             view_box.addItem(heatmap)
 
             plot = pg.PlotItem(viewBox=view_box)
-            plot.vb.setLimits(xMin=-64, xMax=63, yMin=-64, yMax=63)
+            # plot.vb.setLimits(xMin=-64, xMax=63, yMin=-64, yMax=63)
             plot.getAxis('bottom').setLabel('Translation in x')
             plot.getAxis('left').setLabel('Translation in y')
 
@@ -1354,29 +1375,41 @@ class UI_MainWindow(QWidget):
             return plot
 
         # check if the data is in shape (128, 128)
-        # if self.cur_plot_quantity_1.shape != (128, 128):
-        #     # reshape by duplicating
-        #     data_1 = np.tile(self.cur_plot_quantity_1, (128//self.cur_plot_quantity_1.shape[0], 128//self.cur_plot_quantity_1.shape[1]))
-        # else:
-        #     data_1 = self.cur_plot_quantity_1
+        if self.cur_plot_quantity_1.shape != (128, 128):
+            # repeat in row
+            temp = np.repeat(self.cur_plot_quantity_1, 128//self.cur_plot_quantity_1.shape[1], axis=0)
+            # repeat in column
+            data_1 = np.repeat(temp, 128//self.cur_plot_quantity_1.shape[0], axis=1)
+        else:
+            data_1 = self.cur_plot_quantity_1
 
         if self.cur_plot_quantity_2.shape != (128, 128):
-            # reshape by duplicating
-            data_2 = np.tile(self.cur_plot_quantity_2, (128//self.cur_plot_quantity_2.shape[0], 128//self.cur_plot_quantity_2.shape[1]))
+            # repeat in row
+            temp = np.repeat(self.cur_plot_quantity_2, 128//self.cur_plot_quantity_2.shape[1], axis=0)
+            # repeat in column
+            data_2 = np.repeat(temp, 128//self.cur_plot_quantity_2.shape[0], axis=1)
         else:
             data_2 = self.cur_plot_quantity_2
 
         # heatmap view
-        self.heatmap_view_2 = pg.GraphicsLayoutWidget()
+        self.heatmap_view_1 = pg.GraphicsLayoutWidget(title='Model 1')
+        self.heatmap_view_1.setFixedSize(600, 600)
+        self.heatmap_view_2 = pg.GraphicsLayoutWidget(title='Model 2')
+        self.heatmap_view_2.setFixedSize(600, 600)
+        heatmap_plot_1 = draw_individual_heatmap(data_1)
         heatmap_plot_2 = draw_individual_heatmap(data_2)
         # disable moving around
+        heatmap_plot_1.setMouseEnabled(x=False, y=False)
         heatmap_plot_2.setMouseEnabled(x=False, y=False)
 
         # add to view
+        self.heatmap_view_1.addItem(heatmap_plot_1)
         self.heatmap_view_2.addItem(heatmap_plot_2)
 
         # add to general layout
-        self.single_result_layout.addWidget(self.heatmap_view_2, 0, 2)
+        self.single_result_layout.addWidget(self.heatmap_view_1, 0, 3)
+        self.single_result_layout.addWidget(self.heatmap_view_2, 0, 4)
+
 
     # display MNIST aggregated results
     def display_mnist_aggregate_result(self):
@@ -1780,17 +1813,17 @@ class UI_MainWindow(QWidget):
                 self.quantity_name = text
 
                 if text == 'Confidence*IOU':
-                    # self.cur_plot_quantity_1 = self.all_quantities_1[:, :, 4] * self.all_quantities_1[:, :, 6]
+                    self.cur_plot_quantity_1 = self.all_quantities_1[:, :, 4] * self.all_quantities_1[:, :, 6]
                     self.cur_plot_quantity_2 = self.all_quantities_2[:, :, 4] * self.all_quantities_2[:, :, 6]
                 elif text == 'Confidence':
-                    # self.cur_plot_quantity_1 = self.all_quantities_1[:, :, 4]
+                    self.cur_plot_quantity_1 = self.all_quantities_1[:, :, 4]
                     self.cur_plot_quantity_2 = self.all_quantities_2[:, :, 4]
                 elif text == 'IOU':
-                    # self.cur_plot_quantity_1 = self.all_quantities_1[:, :, 6]
+                    self.cur_plot_quantity_1 = self.all_quantities_1[:, :, 6]
                     self.cur_plot_quantity_2 = self.all_quantities_2[:, :, 6]
 
                 # re-display the heatmap
-                self.draw_heatmaps(self.heatmap_plot_2, self.cur_plot_quantity_2)
+                self.draw_heatmaps()
 
             # drop down menu on selection which quantity to plot
             quantity_menu = QtWidgets.QComboBox()
@@ -1811,7 +1844,7 @@ class UI_MainWindow(QWidget):
             self.single_result_layout.addWidget(quantity_menu, 0, 2)
 
             # define default plotting quantity
-            # self.cur_plot_quantity_1 = self.all_quantities_1[:, :, 4] * self.all_quantities_1[:, :, 6]
+            self.cur_plot_quantity_1 = self.all_quantities_1[:, :, 4] * self.all_quantities_1[:, :, 6]
             self.cur_plot_quantity_2 = self.all_quantities_2[:, :, 4] * self.all_quantities_2[:, :, 6]
 
             # draw the heatmap

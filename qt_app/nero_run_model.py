@@ -97,7 +97,7 @@ def load_model(mode, network_model, model_dir):
             model = torchvision.models.detection.fasterrcnn_resnet50_fpn(pretrained=True,
                                                                         min_size=image_size).to(device)
 
-            print(f'{network_model} loaded')
+            print(f'{network_model} loaded from PyTorch')
 
 
     # set model in evaluation mode
@@ -386,7 +386,7 @@ def run_coco_once(model_name, model, test_image, custom_names, pytorch_names, te
             if outputs != []:
                 cur_qualified_output, cur_precision, cur_recall, cur_F_measure = process_model_outputs(outputs, torch.from_numpy(test_label))
             else:
-                cur_qualified_output = [np.zeros(6)]
+                cur_qualified_output = [[np.zeros(6)]]
                 cur_precision = [0]
                 cur_recall = [0]
                 cur_F_measure = [0]
