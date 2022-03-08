@@ -1121,12 +1121,12 @@ class UI_MainWindow(QWidget):
                     # take the cropped part of the entire input image
                     cur_center_x = self.center_x - x_tran
                     cur_center_y = self.center_y - y_tran
-                    x_min = cur_center_x - 64
-                    x_max = cur_center_x + 64
-                    y_min = cur_center_y - 64
-                    y_max = cur_center_y + 64
+                    self.x_min = cur_center_x - 64
+                    self.x_max = cur_center_x + 64
+                    self.y_min = cur_center_y - 64
+                    self.y_max = cur_center_y + 64
                     # model takes image between [0, 1]
-                    self.cropped_image_pt = self.loaded_image_pt[y_min:y_max, x_min:x_max, :] / 255
+                    self.cropped_image_pt = self.loaded_image_pt[self.y_min:self.y_max, self.x_min:self.x_max, :] / 255
 
                     # modify the label accordingly
                     # helper function that computes labels for cut out images
@@ -1159,7 +1159,7 @@ class UI_MainWindow(QWidget):
                         self.cur_image_label[i, 0] = i
                         # since PyTorch FasterRCNN has 0 as background
                         self.cur_image_label[i, 1] = self.loaded_image_label[i, 4] + 1
-                        self.cur_image_label[i, 2:] = compute_label(self.loaded_image_label[i, :4], x_min, y_min, (128, 128))
+                        self.cur_image_label[i, 2:] = compute_label(self.loaded_image_label[i, :4], self.x_min, self.y_min, (128, 128))
 
                     # sanity check on if image/label are correct
                     sanity_check = False
@@ -1356,6 +1356,27 @@ class UI_MainWindow(QWidget):
         self.polar_plot.addItem(self.circle_2)
 
 
+    # draw detailed look of COCO models output on cropped regions
+    def draw_model_output(self):
+
+        # convert and resize to QImage for display purpose
+        self.detailed_display_image = nero_utilities.tensor_to_qt_image(self.loaded_image_pt[self.y_min:self.y_max, self.x_min:self.x_max, :]).scaledToWidth(self.display_image_size)
+
+        # prepare a pixmap for the image
+        self.detailed_image_pixmap = QPixmap(self.detailed_display_image)
+
+        # add a new label for loaded image if no imager has existed
+        if not self.single_result_existed:
+            self.detailed_image_label = QLabel(self)
+            self.detailed_image_label.setAlignment(QtCore.Qt.AlignCenter)
+
+        # put pixmap in the label
+        self.detailed_image_label.setPixmap(self.detailed_image_pixmap)
+        self.detailed_image_label.setContentsMargins(0, 0, 0, 0)
+
+        self.single_result_layout.addWidget(self.detailed_image_label, 0, 3)
+
+
     # draw heatmap
     def draw_heatmaps(self):
         # helper function on drawing individual heatmap
@@ -1415,8 +1436,8 @@ class UI_MainWindow(QWidget):
         self.heatmap_view_2.addItem(heatmap_plot_2)
 
         # add to general layout
-        self.single_result_layout.addWidget(self.heatmap_view_1, 0, 3)
-        self.single_result_layout.addWidget(self.heatmap_view_2, 0, 4)
+        self.single_result_layout.addWidget(self.heatmap_view_1, 0, 4)
+        self.single_result_layout.addWidget(self.heatmap_view_2, 0, 5)
 
 
     # display MNIST aggregated results
@@ -1812,6 +1833,11 @@ class UI_MainWindow(QWidget):
             self.arrow_label.setPixmap(arrow_pixmap)
             self.single_result_layout.addWidget(self.arrow_label, 0, 1)
             painter.end()
+
+        # plot current field-of-view's detailed prediction results
+        self.single_result_existed = True
+        self.draw_model_output()
+
 
         # draw result using heatmaps
         if type == 'heatmap':
