@@ -1399,8 +1399,8 @@ class UI_MainWindow(QWidget):
         # pixel mouse over for object detection mode
         if self.mode == 'object_detection':
             def getPixel(event):
-                x = event.pos().x()
-                y = event.pos().y()
+                x = int(event.position().x())
+                y = int(event.position().y())
 
                 # when the click selection is valid and model has been run before
                 if self.single_result_existed:
@@ -1953,6 +1953,17 @@ class UI_MainWindow(QWidget):
                 elif text == 'IOU':
                     self.cur_plot_quantity_1 = self.all_quantities_1[:, :, 6]
                     self.cur_plot_quantity_2 = self.all_quantities_2[:, :, 6]
+                elif text == 'Translation Match %':
+                    # for each position, compute its bounding box center, which is (63, 63)
+                    percent_x_1 = ((self.all_quantities_1[:, :, 0] + self.all_quantities_1[:, :, 2]) / 2 - 63) / 63
+                    percent_y_1 = ((self.all_quantities_1[:, :, 1] + self.all_quantities_1[:, :, 3]) / 2 - 63) / 63
+                    self.cur_plot_quantity_1 = (percent_x_1 + percent_y_1) / 2
+
+                    percent_x_2 = ((self.all_quantities_2[:, :, 0] + self.all_quantities_2[:, :, 2]) / 2 - 63) / 63
+                    percent_y_2 = ((self.all_quantities_2[:, :, 1] + self.all_quantities_2[:, :, 3]) / 2 - 63) / 63
+                    self.cur_plot_quantity_2 = (percent_x_2 + percent_y_2) / 2
+
+
 
                 # re-display the heatmap
                 self.draw_heatmaps()
@@ -1968,6 +1979,7 @@ class UI_MainWindow(QWidget):
             quantity_menu.addItem('Confidence*IOU')
             quantity_menu.addItem('Confidence')
             quantity_menu.addItem('IOU')
+            quantity_menu.addItem('Translation Match %')
             # self.quantity_menu.setCurrentIndex(0)
             quantity_menu.setCurrentText('Confidence*IOU')
 
