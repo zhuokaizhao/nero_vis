@@ -1346,7 +1346,7 @@ class UI_MainWindow(QWidget):
         self.detailed_image_label.setPixmap(self.detailed_image_pixmap)
         self.detailed_image_label.setContentsMargins(0, 0, 0, 0)
 
-        self.single_result_layout.addWidget(self.detailed_image_label, 0, 3)
+        self.single_result_layout.addWidget(self.detailed_image_label, 1, 2)
 
         # run model with the cropped view
         self.cropped_image_pt = self.loaded_image_pt[self.y_min:self.y_max, self.x_min:self.x_max, :] / 255
@@ -1499,8 +1499,8 @@ class UI_MainWindow(QWidget):
 
         # add this image to the layout
         if self.data_mode == 'single':
-            self.single_result_layout.addWidget(self.image_label, 0, 0)
-            self.single_result_layout.addWidget(self.name_label, 1, 0)
+            self.single_result_layout.addWidget(self.image_label, 1, 0)
+            self.single_result_layout.addWidget(self.name_label, 2, 0)
         elif self.data_mode == 'aggregate':
             self.single_result_layout.addWidget(self.image_label, 0, 2)
             self.single_result_layout.addWidget(self.name_label, 1, 2)
@@ -1594,8 +1594,8 @@ class UI_MainWindow(QWidget):
         self.heatmap_view_2.addItem(heatmap_plot_2)
 
         # add to general layout
-        self.single_result_layout.addWidget(self.heatmap_view_1, 0, 4)
-        self.single_result_layout.addWidget(self.heatmap_view_2, 0, 5)
+        self.single_result_layout.addWidget(self.heatmap_view_1, 1, 3)
+        self.single_result_layout.addWidget(self.heatmap_view_2, 1, 4)
 
 
     # display MNIST aggregated results
@@ -1968,6 +1968,9 @@ class UI_MainWindow(QWidget):
 
     # display COCO single results
     def display_coco_single_result(self, type, boundary_width):
+        # move the model drop down menu to display place
+
+
         # aggregate mode does not draw arrow
         if self.data_mode == 'single':
             # draw arrow
@@ -1988,7 +1991,7 @@ class UI_MainWindow(QWidget):
 
             # add to the label and layout
             self.arrow_label.setPixmap(arrow_pixmap)
-            self.single_result_layout.addWidget(self.arrow_label, 0, 1)
+            self.single_result_layout.addWidget(self.arrow_label, 1, 1)
             painter.end()
 
         # plot current field-of-view's detailed prediction results
@@ -2055,7 +2058,7 @@ class UI_MainWindow(QWidget):
 
             # drop down menu on selection which quantity to plot
             quantity_menu = QtWidgets.QComboBox()
-            quantity_menu.setMinimumSize(QtCore.QSize(250, 50))
+            quantity_menu.setFixedSize(QtCore.QSize(250, 50))
             quantity_menu.setStyleSheet('font-size: 18px')
             quantity_menu.setEditable(True)
             quantity_menu.lineEdit().setReadOnly(True)
