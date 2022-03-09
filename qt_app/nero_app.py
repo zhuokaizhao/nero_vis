@@ -692,30 +692,30 @@ class UI_MainWindow(QWidget):
         # spacer item
         # self.mode_control_layout.addSpacing(30)
 
-        model_1_menu = QtWidgets.QComboBox()
-        model_1_menu.setMinimumSize(QtCore.QSize(250, 50))
-        model_1_menu.setStyleSheet('font-size: 18px')
+        self.model_1_menu = QtWidgets.QComboBox()
+        self.model_1_menu.setFixedSize(QtCore.QSize(300, 50))
+        self.model_1_menu.setStyleSheet('font-size: 18px')
         if self.mode == 'digit_recognition':
-            model_1_menu.addItem(model_1_icon, 'Simple model')
-            model_1_menu.addItem(model_1_icon, 'Simple model with E2CNN')
-            model_1_menu.addItem(model_1_icon, 'Simple model with DA')
-            model_1_menu.setCurrentText('Simple model')
+            self.model_1_menu.addItem(model_1_icon, 'Simple model')
+            self.model_1_menu.addItem(model_1_icon, 'Simple model with E2CNN')
+            self.model_1_menu.addItem(model_1_icon, 'Simple model with DA')
+            self.model_1_menu.setCurrentText('Simple model')
         elif self.mode == 'object_detection':
-            model_1_menu.addItem(model_1_icon, 'FasterRCNN (0% jittering)')
-            model_1_menu.addItem(model_1_icon, 'FasterRCNN (20% jittering)')
-            model_1_menu.addItem(model_1_icon, 'FasterRCNN (40% jittering)')
-            model_1_menu.addItem(model_1_icon, 'FasterRCNN (60% jittering)')
-            model_1_menu.addItem(model_1_icon, 'FasterRCNN (80% jittering)')
-            model_1_menu.addItem(model_1_icon, 'FasterRCNN (100% jittering)')
-            model_1_menu.addItem(model_1_icon, 'FasterRCNN (Pre-trained)')
-            model_1_menu.setCurrentText('Custom-trained FasterRCNN')
+            self.model_1_menu.addItem(model_1_icon, 'FasterRCNN (0% jittering)')
+            self.model_1_menu.addItem(model_1_icon, 'FasterRCNN (20% jittering)')
+            self.model_1_menu.addItem(model_1_icon, 'FasterRCNN (40% jittering)')
+            self.model_1_menu.addItem(model_1_icon, 'FasterRCNN (60% jittering)')
+            self.model_1_menu.addItem(model_1_icon, 'FasterRCNN (80% jittering)')
+            self.model_1_menu.addItem(model_1_icon, 'FasterRCNN (100% jittering)')
+            self.model_1_menu.addItem(model_1_icon, 'FasterRCNN (Pre-trained)')
+            self.model_1_menu.setCurrentText('Custom-trained FasterRCNN')
 
         # connect the drop down menu with actions
-        model_1_menu.currentTextChanged.connect(model_1_selection_changed)
-        model_1_menu.setEditable(True)
-        model_1_menu.lineEdit().setReadOnly(True)
-        model_1_menu.lineEdit().setAlignment(QtCore.Qt.AlignCenter)
-        self.load_menu_layout.addWidget(model_1_menu, 2, 3)
+        self.model_1_menu.currentTextChanged.connect(model_1_selection_changed)
+        self.model_1_menu.setEditable(True)
+        self.model_1_menu.lineEdit().setReadOnly(True)
+        self.model_1_menu.lineEdit().setAlignment(QtCore.Qt.AlignCenter)
+        self.load_menu_layout.addWidget(self.model_1_menu, 2, 3)
 
         # model 2
         # graphic representation
@@ -730,31 +730,31 @@ class UI_MainWindow(QWidget):
         # spacer item
         # self.mode_control_layout.addSpacing(30)
 
-        model_2_menu = QtWidgets.QComboBox()
-        model_2_menu.setMinimumSize(QtCore.QSize(250, 50))
-        model_2_menu.setStyleSheet('font-size: 18px')
-        model_2_menu.setEditable(True)
-        model_2_menu.lineEdit().setReadOnly(True)
-        model_2_menu.lineEdit().setAlignment(QtCore.Qt.AlignCenter)
+        self.model_2_menu = QtWidgets.QComboBox()
+        self.model_2_menu.setFixedSize(QtCore.QSize(300, 50))
+        self.model_2_menu.setStyleSheet('font-size: 18px')
+        self.model_2_menu.setEditable(True)
+        self.model_2_menu.lineEdit().setReadOnly(True)
+        self.model_2_menu.lineEdit().setAlignment(QtCore.Qt.AlignCenter)
         if self.mode == 'digit_recognition':
-            model_2_menu.addItem(model_2_icon, 'Simple model')
-            model_2_menu.addItem(model_2_icon, 'Simple model with E2CNN')
-            model_2_menu.addItem(model_2_icon, 'Simple model with DA')
+            self.model_2_menu.addItem(model_2_icon, 'Simple model')
+            self.model_2_menu.addItem(model_2_icon, 'Simple model with E2CNN')
+            self.model_2_menu.addItem(model_2_icon, 'Simple model with DA')
             # model_2_menu.setCurrentText('Simple model with E2CNN')
-            model_2_menu.setCurrentText('Simple model with DA')
+            self.model_2_menu.setCurrentText('Simple model with DA')
         elif self.mode == 'object_detection':
-            model_2_menu.addItem(model_2_icon, 'FasterRCNN (0% jittering)')
-            model_2_menu.addItem(model_2_icon, 'FasterRCNN (20% jittering)')
-            model_2_menu.addItem(model_2_icon, 'FasterRCNN (40% jittering)')
-            model_2_menu.addItem(model_2_icon, 'FasterRCNN (60% jittering)')
-            model_2_menu.addItem(model_2_icon, 'FasterRCNN (80% jittering)')
-            model_2_menu.addItem(model_2_icon, 'FasterRCNN (100% jittering)')
-            model_2_menu.addItem(model_2_icon, 'FasterRCNN (Pre-trained)')
-            model_2_menu.setCurrentText('Pre-trained FasterRCNN')
+            self.model_2_menu.addItem(model_2_icon, 'FasterRCNN (0% jittering)')
+            self.model_2_menu.addItem(model_2_icon, 'FasterRCNN (20% jittering)')
+            self.model_2_menu.addItem(model_2_icon, 'FasterRCNN (40% jittering)')
+            self.model_2_menu.addItem(model_2_icon, 'FasterRCNN (60% jittering)')
+            self.model_2_menu.addItem(model_2_icon, 'FasterRCNN (80% jittering)')
+            self.model_2_menu.addItem(model_2_icon, 'FasterRCNN (100% jittering)')
+            self.model_2_menu.addItem(model_2_icon, 'FasterRCNN (Pre-trained)')
+            self.model_2_menu.setCurrentText('Pre-trained FasterRCNN')
 
         # connect the drop down menu with actions
-        model_2_menu.currentTextChanged.connect(model_2_selection_changed)
-        self.load_menu_layout.addWidget(model_2_menu, 3, 3)
+        self.model_2_menu.currentTextChanged.connect(model_2_selection_changed)
+        self.load_menu_layout.addWidget(self.model_2_menu, 3, 3)
 
         # add this layout to the general layout
         self.layout.addLayout(self.load_menu_layout, 0, 1)
@@ -1346,7 +1346,7 @@ class UI_MainWindow(QWidget):
         self.detailed_image_label.setPixmap(self.detailed_image_pixmap)
         self.detailed_image_label.setContentsMargins(0, 0, 0, 0)
 
-        self.single_result_layout.addWidget(self.detailed_image_label, 1, 2)
+        self.single_result_layout.addWidget(self.detailed_image_label, 1, 2, 1, 2)
 
         # run model with the cropped view
         self.cropped_image_pt = self.loaded_image_pt[self.y_min:self.y_max, self.x_min:self.x_max, :] / 255
@@ -1594,8 +1594,8 @@ class UI_MainWindow(QWidget):
         self.heatmap_view_2.addItem(heatmap_plot_2)
 
         # add to general layout
-        self.single_result_layout.addWidget(self.heatmap_view_1, 1, 3)
-        self.single_result_layout.addWidget(self.heatmap_view_2, 1, 4)
+        self.single_result_layout.addWidget(self.heatmap_view_1, 1, 4, 1, 1)
+        self.single_result_layout.addWidget(self.heatmap_view_2, 1, 5, 1, 1)
 
 
     # display MNIST aggregated results
@@ -1693,7 +1693,7 @@ class UI_MainWindow(QWidget):
 
             # add to the label and layout
             self.arrow_label.setPixmap(arrow_pixmap)
-            self.single_result_layout.addWidget(self.arrow_label, 0, 1)
+            self.single_result_layout.addWidget(self.arrow_label, 1, 1)
             painter.end()
 
         # draw result using bar plot
@@ -1752,7 +1752,7 @@ class UI_MainWindow(QWidget):
             # disable moving around
             self.bar_plot.setMouseEnabled(x=False, y=False)
             if self.data_mode == 'single':
-                self.single_result_layout.addWidget(self.bar_plot, 0, 2)
+                self.single_result_layout.addWidget(self.bar_plot, 1, 2)
             elif self.data_mode == 'aggregate':
                 self.single_result_layout.addWidget(self.bar_plot, 0, 0)
 
@@ -1960,7 +1960,7 @@ class UI_MainWindow(QWidget):
             self.polar_plot.setMouseEnabled(x=False, y=False)
 
             # add the plot view to the layout
-            self.single_result_layout.addWidget(polar_view, 0, 3)
+            self.single_result_layout.addWidget(polar_view, 1, 3)
 
         else:
             raise Exception('Unsupported display mode')
@@ -1993,6 +1993,10 @@ class UI_MainWindow(QWidget):
             self.arrow_label.setPixmap(arrow_pixmap)
             self.single_result_layout.addWidget(self.arrow_label, 1, 1)
             painter.end()
+
+        # move the model menu on top of the enlarged plot
+        self.single_result_layout.addWidget(self.model_1_menu, 0, 2, 1, 1)
+        self.single_result_layout.addWidget(self.model_2_menu, 0, 3, 1, 1)
 
         # plot current field-of-view's detailed prediction results
         self.draw_model_output()
@@ -2058,7 +2062,7 @@ class UI_MainWindow(QWidget):
 
             # drop down menu on selection which quantity to plot
             quantity_menu = QtWidgets.QComboBox()
-            quantity_menu.setFixedSize(QtCore.QSize(250, 50))
+            quantity_menu.setFixedSize(QtCore.QSize(300, 50))
             quantity_menu.setStyleSheet('font-size: 18px')
             quantity_menu.setEditable(True)
             quantity_menu.lineEdit().setReadOnly(True)
@@ -2073,7 +2077,7 @@ class UI_MainWindow(QWidget):
 
             # connect the drop down menu with actions
             quantity_menu.currentTextChanged.connect(heatmap_quantity_changed)
-            self.single_result_layout.addWidget(quantity_menu, 0, 2)
+            self.single_result_layout.addWidget(quantity_menu, 0, 5, 1, 2)
 
             # define default plotting quantity
             self.cur_plot_quantity_1 = self.all_quantities_1[:, :, 4] * self.all_quantities_1[:, :, 6]
