@@ -730,7 +730,7 @@ class UI_MainWindow(QWidget):
         model_2_icon.fill(QtCore.Qt.white)
         # draw model representation
         painter = QtGui.QPainter(model_2_icon)
-        draw_circle(painter, 12, 12, 10, 'Green')
+        draw_circle(painter, 12, 12, 10, 'magenta')
 
         # spacer item
         # self.mode_control_layout.addSpacing(30)
@@ -871,11 +871,11 @@ class UI_MainWindow(QWidget):
 
                 # only allow clicking one point at a time
                 # save the old brush
-                if points[0].brush() == pg.mkBrush(0, 0, 255, 150):
-                    self.old_brush = pg.mkBrush(0, 0, 255, 150)
+                if points[0].brush() == pg.mkBrushQtGui.QColor('blue'):
+                    self.old_brush = pg.mkBrushQtGui.QColor('blue')
 
-                elif points[0].brush() == pg.mkBrush(0, 255, 0, 150):
-                    self.old_brush = pg.mkBrush(0, 255, 0, 150)
+                elif points[0].brush() == pg.mkBrushQtGui.QColor('magenta'):
+                    self.old_brush = pg.mkBrushQtGui.QColor('magenta')
 
                 # create new brush
                 new_brush = pg.mkBrush(255, 0, 0, 255)
@@ -957,12 +957,12 @@ class UI_MainWindow(QWidget):
                 low_dim_point_1 = [{'pos': (low_dim_1[i, 0], low_dim_1[i, 1]),
                                     'size': 0.05,
                                     'pen': {'color': 'w', 'width': 0.1},
-                                    'brush': (0, 0, 255, 150)}]
+                                    'brush': QtGui.QColor('blue')}]
 
                 low_dim_point_2 = [{'pos': (low_dim_2[i, 0], low_dim_2[i, 1]),
                                     'size': 0.05,
                                     'pen': {'color': 'w', 'width': 0.1},
-                                    'brush': (0, 255, 0, 150)}]
+                                    'brush': QtGui.QColor('magenta')}]
 
                 # add points to the item
                 self.low_dim_scatter_item.addPoints(low_dim_point_1, name=str(index))
@@ -1340,7 +1340,7 @@ class UI_MainWindow(QWidget):
         cur_quantity_1_y = self.output_1[self.loaded_image_label] * np.sin(self.cur_rotation_angle/180*np.pi)
         # plot a circle item
         self.circle_1 = pg.QtGui.QGraphicsEllipseItem(cur_quantity_1_x-r/2, cur_quantity_1_y-r/2, r, r)
-        self.circle_1.setPen(pg.mkPen('blue', width=10))
+        self.circle_1.setPen(pg.mkPen('blue', width=5))
         self.polar_plot.addItem(self.circle_1)
 
         # transform to x and y coordinate
@@ -1348,7 +1348,7 @@ class UI_MainWindow(QWidget):
         cur_quantity_2_y = self.output_2[self.loaded_image_label] * np.sin(self.cur_rotation_angle/180*np.pi)
         # plot a circle item
         self.circle_2 = pg.QtGui.QGraphicsEllipseItem(cur_quantity_2_x-r/2, cur_quantity_2_y-r/2, r, r)
-        self.circle_2.setPen(pg.mkPen('green', width=10))
+        self.circle_2.setPen(pg.mkPen('magenta', width=5))
         self.polar_plot.addItem(self.circle_2)
 
 
@@ -1406,7 +1406,7 @@ class UI_MainWindow(QWidget):
             model_2_display_rect_width = (bounding_boxes_2[i, 2] - bounding_boxes_2[i, 0]) * 4
             model_2_display_rect_height = (bounding_boxes_2[i, 3] - bounding_boxes_2[i, 1]) * 4
 
-            self.draw_rectangle(painter, center_x_2, center_y_2, model_2_display_rect_width, model_2_display_rect_height, 'green')
+            self.draw_rectangle(painter, center_x_2, center_y_2, model_2_display_rect_width, model_2_display_rect_height, 'magenta')
 
         painter.end()
 
@@ -1702,7 +1702,7 @@ class UI_MainWindow(QWidget):
             all_points_1.append({'pos': (x_1, y_1),
                                 'size': 0.05,
                                 'pen': {'color': 'w', 'width': 0.1},
-                                'brush': (0, 0, 255, 150)})
+                                'brush': QtGui.QColor('blue')})
 
             # model 2 quantity
             if self.digit_selection == -1:
@@ -1717,11 +1717,11 @@ class UI_MainWindow(QWidget):
             all_points_2.append({'pos': (x_2, y_2),
                                 'size': 0.05,
                                 'pen': {'color': 'w', 'width': 0.1},
-                                'brush': (0, 255, 0, 150)})
+                                'brush': QtGui.QColor('magenta')})
 
         # draw lines to better show shape
         line_1 = self.aggregate_polar_plot.plot(all_x_1, all_y_1, pen = QtGui.QPen(QtGui.Qt.blue, 0.03))
-        line_2 = self.aggregate_polar_plot.plot(all_x_2, all_y_2, pen = QtGui.QPen(QtGui.Qt.green, 0.03))
+        line_2 = self.aggregate_polar_plot.plot(all_x_2, all_y_2, pen = QtGui.QPen(QtGui.Qt.magenta, 0.03))
 
         # add points to the item
         self.aggregate_scatter_items.addPoints(all_points_1)
@@ -1774,7 +1774,7 @@ class UI_MainWindow(QWidget):
                     if self.opts['brush'] == 'blue':
                         cur_class = int(self.opts.get('x0')[0] + 0.2)
                         cur_value = self.opts.get('height')
-                    elif self.opts['brush'] == 'green':
+                    elif self.opts['brush'] == 'magenta':
                         cur_class = int(self.opts.get('x0')[0] - 0.2)
                         cur_value = self.opts.get('height')
 
@@ -1809,13 +1809,13 @@ class UI_MainWindow(QWidget):
             #                                      x0=[i+0.2],
             #                                      height=self.output_2[i],
             #                                      width=0.4,
-            #                                      brush='green')
+            #                                      brush='magenta')
 
             #     self.bar_plot.addItem(cur_graph_1)
             #     self.bar_plot.addItem(cur_graph_2)
 
             graph_1 = pg.BarGraphItem(x=np.arange(len(self.output_1))-0.2, height = list(self.output_1), width = 0.4, brush ='blue')
-            graph_2 = pg.BarGraphItem(x=np.arange(len(self.output_1))+0.2, height = list(self.output_2), width = 0.4, brush ='green')
+            graph_2 = pg.BarGraphItem(x=np.arange(len(self.output_1))+0.2, height = list(self.output_2), width = 0.4, brush ='magenta')
             self.bar_plot.addItem(graph_1)
             self.bar_plot.addItem(graph_2)
             # disable moving around
@@ -1859,16 +1859,16 @@ class UI_MainWindow(QWidget):
                 self.image_label.setPixmap(self.image_pixmap)
 
                 # update the model output
-                if self.result_existed:
+                if self.single_result_existed:
                     self.run_model_once()
 
                 # only allow clicking one point at a time
                 # save the old brush
-                if points[0].brush() == pg.mkBrush(0, 0, 255, 150):
-                    self.old_brush = pg.mkBrush(0, 0, 255, 150)
+                if points[0].brush() == pg.mkBrush(QtGui.QColor('blue')):
+                    self.old_brush = pg.mkBrush(QtGui.QColor('blue'))
 
-                elif points[0].brush() == pg.mkBrush(0, 255, 0, 150):
-                    self.old_brush = pg.mkBrush(0, 255, 0, 150)
+                elif points[0].brush() == pg.mkBrush(QtGui.QColor('magenta')):
+                    self.old_brush = pg.mkBrush(QtGui.QColor('magenta'))
 
                 # create new brush
                 new_brush = pg.mkBrush(255, 0, 0, 255)
@@ -1905,7 +1905,7 @@ class UI_MainWindow(QWidget):
                 all_points_1.append({'pos': (x_1, y_1),
                                     'size': 0.05,
                                     'pen': {'color': 'w', 'width': 0.1},
-                                    'brush': (0, 0, 255, 150)})
+                                    'brush': QtGui.QColor('blue')})
 
                 # model 2 quantity
                 cur_quantity_2 = self.all_quantities_2[i]
@@ -1917,11 +1917,11 @@ class UI_MainWindow(QWidget):
                 all_points_2.append({'pos': (x_2, y_2),
                                     'size': 0.05,
                                     'pen': {'color': 'w', 'width': 0.1},
-                                    'brush': (0, 255, 0, 150)})
+                                    'brush': QtGui.QColor('magenta')})
 
             # draw lines to better show shape
             line_1 = self.polar_plot.plot(all_x_1, all_y_1, pen = QtGui.QPen(QtGui.Qt.blue, 0.03))
-            line_2 = self.polar_plot.plot(all_x_2, all_y_2, pen = QtGui.QPen(QtGui.Qt.green, 0.03))
+            line_2 = self.polar_plot.plot(all_x_2, all_y_2, pen = QtGui.QPen(QtGui.QColor('magenta'), 0.03))
 
             # add points to the item
             self.scatter_items.addPoints(all_points_1)
@@ -1929,53 +1929,12 @@ class UI_MainWindow(QWidget):
 
             # add points to the plot
             self.polar_plot.addItem(self.scatter_items)
-            # connect click events on scatter items
-            self.scatter_items.sigClicked.connect(clicked)
+            # connect click events on scatter items (disabled)
+            # self.scatter_items.sigClicked.connect(clicked)
 
             # used for clicking on the polar plot
             def polar_mouse_clicked(event):
                 self.polar_clicked = not self.polar_clicked
-                self.polar_plot.scene().items(event.scenePos())
-                # check if the click is within the polar plot
-                if self.polar_plot.sceneBoundingRect().contains(event._scenePos):
-                    self.mouse_pos_on_polar = self.polar_plot.vb.mapSceneToView(event._scenePos)
-                    x_pos = self.mouse_pos_on_polar.x()
-                    y_pos = self.mouse_pos_on_polar.y()
-
-                    # convert mouse click position to polar coordinate (we care about angle only)
-                    self.cur_rotation_angle = np.arctan2(y_pos, x_pos) / np.pi * 180
-
-                    # update the current image's angle and rotate the display image
-                    # rotate the image tensor
-                    self.cur_image_pt = nero_transform.rotate_mnist_image(self.loaded_image_pt, self.cur_rotation_angle)
-                    # self.image_pixmap = self.image_pixmap.transformed(QtGui.QTransform().rotate(angle), QtCore.Qt.SmoothTransformation)
-                    # convert image tensor to qt image and resize for display
-                    self.cur_display_image = nero_utilities.tensor_to_qt_image(self.cur_image_pt).scaledToWidth(self.display_image_size)
-                    # prepare image tensor for model purpose
-                    self.cur_image_pt = nero_transform.prepare_mnist_image(self.cur_image_pt)
-                    # update the pixmap and label
-                    self.image_pixmap = QPixmap(self.cur_display_image)
-                    self.image_label.setPixmap(self.image_pixmap)
-
-                    # update the model output
-                    if self.result_existed:
-                        self.run_model_once()
-
-                    # remove old line
-                    if self.cur_line:
-                        self.polar_plot.removeItem(self.cur_line)
-                        self.polar_plot.removeItem(self.circle_1)
-                        self.polar_plot.removeItem(self.circle_2)
-
-                    # draw a line that represents current angle of rotation
-                    cur_x = 1 * np.cos(self.cur_rotation_angle/180*np.pi)
-                    cur_y = 1 * np.sin(self.cur_rotation_angle/180*np.pi)
-                    line_x = [0, cur_x]
-                    line_y = [0, cur_y]
-                    self.cur_line = self.polar_plot.plot(line_x, line_y, pen = QtGui.QPen(QtGui.Qt.red, 0.01))
-
-                    # display current results on the line
-                    self.draw_circle_on_polar()
 
             def polar_mouse_moved(event):
                 # check if the click is within the polar plot
@@ -2000,7 +1959,7 @@ class UI_MainWindow(QWidget):
                     self.image_label.setPixmap(self.image_pixmap)
 
                     # update the model output
-                    if self.result_existed:
+                    if self.single_result_existed:
                         self.run_model_once()
 
                     # remove old line and circle
@@ -2014,11 +1973,10 @@ class UI_MainWindow(QWidget):
                     cur_y = 1 * np.sin(self.cur_rotation_angle/180*np.pi)
                     line_x = [0, cur_x]
                     line_y = [0, cur_y]
-                    self.cur_line = self.polar_plot.plot(line_x, line_y, pen = QtGui.QPen(QtGui.Qt.red, 0.01))
+                    self.cur_line = self.polar_plot.plot(line_x, line_y, pen = QtGui.QPen(QtGui.Qt.green, 0.02))
 
                     # display current results on the line
                     self.draw_circle_on_polar()
-
 
             self.polar_clicked = False
             self.polar_plot.scene().sigMouseClicked.connect(polar_mouse_clicked)
@@ -2197,7 +2155,7 @@ class UI_MainWindow(QWidget):
                 cur_y = 1 * np.sin(self.cur_rotation_angle/180*np.pi)
                 line_x = [0, cur_x]
                 line_y = [0, cur_y]
-                self.cur_line = self.polar_plot.plot(line_x, line_y, pen = QtGui.QPen(QtGui.Qt.red, 0.01))
+                self.cur_line = self.polar_plot.plot(line_x, line_y, pen = QtGui.QPen(QtGui.Qt.green, 0.02))
 
                 # display current results on the line
                 self.draw_circle_on_polar()
