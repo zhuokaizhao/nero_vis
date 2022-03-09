@@ -167,7 +167,7 @@ class UI_MainWindow(QWidget):
 
                 # predefined model paths
                 self.model_1_name = 'Custom-trained FasterRCNN'
-                self.model_1_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'custom_trained', f'object_{self.jittering_level}-jittered', '*.pth'))[0]
+                self.model_1_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'custom_trained', f'object_0-jittered', '*.pth'))[0]
                 # pre-trained model does not need model path
                 self.model_2_name = 'Pre-trained FasterRCNN'
                 self.model_2_path = None
@@ -478,16 +478,41 @@ class UI_MainWindow(QWidget):
                     self.model_1 = nero_run_model.load_model(self.mode, 'aug-eqv', self.model_1_path)
 
             elif self.mode == 'object_detection':
-                if text == 'Custom-trained FasterRCNN':
-                    self.model_1_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'non_eqv', '*.pt'))[0]
+                if text == 'FasterRCNN (0% jittering)':
+                    self.model_1_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'custom_trained', f'object_0-jittered', '*.pth'))[0]
                     # reload model
-                    self.model_1 = nero_run_model.load_model(self.mode, 'non-eqv', self.model_1_path)
-                elif text == 'Pre-trained FasterRCNN':
-                    self.model_1_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'rot_eqv', '*.pt'))[0]
+                    self.model_1 = nero_run_model.load_model(self.mode, 'custom_trained', self.model_1_path)
+                    print('Model 1 path:', self.model_1_path)
+                elif text == 'FasterRCNN (20% jittering)':
+                    self.model_1_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'custom_trained', f'object_20-jittered', '*.pth'))[0]
                     # reload model
-                    self.model_1 = nero_run_model.load_model(self.mode, 'rot-eqv', self.model_1_path)
+                    self.model_1 = nero_run_model.load_model(self.mode, 'custom_trained', self.model_1_path)
+                    print('Model 1 path:', self.model_1_path)
+                elif text == 'FasterRCNN (40% jittering)':
+                    self.model_1_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'custom_trained', f'object_40-jittered', '*.pth'))[0]
+                    # reload model
+                    self.model_1 = nero_run_model.load_model(self.mode, 'custom_trained', self.model_1_path)
+                    print('Model 1 path:', self.model_1_path)
+                elif text == 'FasterRCNN (60% jittering)':
+                    self.model_1_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'custom_trained', f'object_60-jittered', '*.pth'))[0]
+                    # reload model
+                    self.model_1 = nero_run_model.load_model(self.mode, 'custom_trained', self.model_1_path)
+                    print('Model 1 path:', self.model_1_path)
+                elif text == 'FasterRCNN (80% jittering)':
+                    self.model_1_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'custom_trained', f'object_80-jittered', '*.pth'))[0]
+                    # reload model
+                    self.model_1 = nero_run_model.load_model(self.mode, 'custom_trained', self.model_1_path)
+                    print('Model 1 path:', self.model_1_path)
+                elif text == 'FasterRCNN (100% jittering)':
+                    self.model_1_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'custom_trained', f'object_100-jittered', '*.pth'))[0]
+                    # reload model
+                    self.model_1 = nero_run_model.load_model(self.mode, 'custom_trained', self.model_1_path)
+                    print('Model 1 path:', self.model_1_path)
+                elif text == 'FasterRCNN (Pre-trained)':
+                    self.model_1_path = None
+                    self.model_1 = nero_run_model.load_model(self.mode, 'pre_trained', self.model_1_path)
+                    print('Model 1 path: Downloaded from PyTorch')
 
-            print('Model 1 path:', self.model_1_path)
 
         @QtCore.Slot()
         def model_2_selection_changed(text):
@@ -509,34 +534,41 @@ class UI_MainWindow(QWidget):
                     self.model_2 = nero_run_model.load_model('aug_eqv', self.model_2_path)
 
             elif self.mode == 'object_detection':
-                if text == 'Custom-trained FasterRCNN':
-                    self.model_2_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'custom_trained', f'object_{self.jittering_level}-jittered', '*.pth'))[0]
+                if text == 'FasterRCNN (0% jittering)':
+                    self.model_2_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'custom_trained', f'object_0-jittered', '*.pth'))[0]
                     # reload model
                     self.model_2 = nero_run_model.load_model(self.mode, 'custom_trained', self.model_2_path)
                     print('Model 2 path:', self.model_2_path)
-                elif text == 'Pre-trained FasterRCNN':
-                    # self.model_2_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'pre_trained', '*.pt'))[0]
+                elif text == 'FasterRCNN (20% jittering)':
+                    self.model_2_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'custom_trained', f'object_20-jittered', '*.pth'))[0]
                     # reload model
-                    self.model_2 = nero_run_model.load_model(self.mode, 'pre_trained', None)
+                    self.model_2 = nero_run_model.load_model(self.mode, 'custom_trained', self.model_2_path)
+                    print('Model 2 path:', self.model_2_path)
+                elif text == 'FasterRCNN (40% jittering)':
+                    self.model_2_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'custom_trained', f'object_40-jittered', '*.pth'))[0]
+                    # reload model
+                    self.model_2 = nero_run_model.load_model(self.mode, 'custom_trained', self.model_2_path)
+                    print('Model 2 path:', self.model_2_path)
+                elif text == 'FasterRCNN (60% jittering)':
+                    self.model_2_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'custom_trained', f'object_60-jittered', '*.pth'))[0]
+                    # reload model
+                    self.model_2 = nero_run_model.load_model(self.mode, 'custom_trained', self.model_2_path)
+                    print('Model 2 path:', self.model_2_path)
+                elif text == 'FasterRCNN (80% jittering)':
+                    self.model_2_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'custom_trained', f'object_80-jittered', '*.pth'))[0]
+                    # reload model
+                    self.model_2 = nero_run_model.load_model(self.mode, 'custom_trained', self.model_2_path)
+                    print('Model 2 path:', self.model_2_path)
+                elif text == 'FasterRCNN (100% jittering)':
+                    self.model_2_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'custom_trained', f'object_100-jittered', '*.pth'))[0]
+                    # reload model
+                    self.model_2 = nero_run_model.load_model(self.mode, 'custom_trained', self.model_2_path)
+                    print('Model 2 path:', self.model_2_path)
+                elif text == 'FasterRCNN (Pre-trained)':
+                    self.model_2_path = None
+                    self.model_2 = nero_run_model.load_model(self.mode, 'pre_trained', self.model_2_path)
                     print('Model 2 path: Downloaded from PyTorch')
 
-
-
-        @QtCore.Slot()
-        def jittering_menu_selection_changed(text):
-            print('Jittering level:', text)
-            if self.jittering_level != int(text.split('%')[0]):
-                self.jittering_level = int(text.split('%')[0])
-                # reload non-pretrained model
-                if self.model_1_name == 'Custom-trained FasterRCNN':
-                    self.model_1_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'custom_trained', f'object_{self.jittering_level}-jittered', '*.pth'))[0]
-                    self.model_1 = nero_run_model.load_model(self.mode, 'custom_trained', self.model_1_path)
-                    print('Model 1 reloaded')
-
-                if self.model_2_name == 'Custom-trained FasterRCNN':
-                    self.model_2_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'custom_trained', f'object_{self.jittering_level}-jittered', '*.pth'))[0]
-                    self.model_2 = nero_run_model.load_model(self.mode, 'custom_trained', self.model_2_path)
-                    print('Model 2 reloaded')
 
         # function used as model icon
         def draw_circle(painter, center_x, center_y, radius, color):
@@ -647,26 +679,26 @@ class UI_MainWindow(QWidget):
         self.image_existed = False
 
         # add jittering level selection for the object detection mode
-        if self.mode == 'object_detection':
-            jittering_menu = QtWidgets.QComboBox()
-            jittering_menu.setMinimumSize(QtCore.QSize(250, 50))
-            jittering_menu.setStyleSheet('font-size: 18px')
-            jittering_menu.setEditable(True)
-            jittering_menu.lineEdit().setReadOnly(True)
-            jittering_menu.lineEdit().setAlignment(QtCore.Qt.AlignCenter)
+        # if self.mode == 'object_detection':
+        #     jittering_menu = QtWidgets.QComboBox()
+        #     jittering_menu.setMinimumSize(QtCore.QSize(250, 50))
+        #     jittering_menu.setStyleSheet('font-size: 18px')
+        #     jittering_menu.setEditable(True)
+        #     jittering_menu.lineEdit().setReadOnly(True)
+        #     jittering_menu.lineEdit().setAlignment(QtCore.Qt.AlignCenter)
 
-            # add items
-            # jittering_menu.addItem('Jittering level')
-            for i in [0, 20, 40, 60, 80, 100]:
-                jittering_menu.addItem(f'{i}%')
+        #     # add items
+        #     # jittering_menu.addItem('Jittering level')
+        #     for i in [0, 20, 40, 60, 80, 100]:
+        #         jittering_menu.addItem(f'{i}%')
 
-            # default selection is 0 percent jittering
-            self.jittering_level = 0
-            self.image_menu.setCurrentIndex(0)
-            # connect the drop down menu with actions
-            jittering_menu.currentTextChanged.connect(jittering_menu_selection_changed)
+        #     # default selection is 0 percent jittering
+        #     self.jittering_level = 0
+        #     self.image_menu.setCurrentIndex(0)
+        #     # connect the drop down menu with actions
+        #     jittering_menu.currentTextChanged.connect(jittering_menu_selection_changed)
 
-            self.load_menu_layout.addWidget(jittering_menu, 2, 3)
+        #     self.load_menu_layout.addWidget(jittering_menu, 2, 3)
 
         # load models choices
         # model 1
@@ -691,8 +723,13 @@ class UI_MainWindow(QWidget):
             model_1_menu.addItem(model_1_icon, 'Simple model with DA')
             model_1_menu.setCurrentText('Simple model')
         elif self.mode == 'object_detection':
-            model_1_menu.addItem(model_1_icon, 'Custom-trained FasterRCNN')
-            model_1_menu.addItem(model_1_icon, 'Pre-trained FasterRCNN')
+            model_1_menu.addItem(model_1_icon, 'FasterRCNN (0% jittering)')
+            model_1_menu.addItem(model_1_icon, 'FasterRCNN (20% jittering)')
+            model_1_menu.addItem(model_1_icon, 'FasterRCNN (40% jittering)')
+            model_1_menu.addItem(model_1_icon, 'FasterRCNN (60% jittering)')
+            model_1_menu.addItem(model_1_icon, 'FasterRCNN (80% jittering)')
+            model_1_menu.addItem(model_1_icon, 'FasterRCNN (100% jittering)')
+            model_1_menu.addItem(model_1_icon, 'FasterRCNN (Pre-trained)')
             model_1_menu.setCurrentText('Custom-trained FasterRCNN')
 
         # connect the drop down menu with actions
@@ -700,10 +737,7 @@ class UI_MainWindow(QWidget):
         model_1_menu.setEditable(True)
         model_1_menu.lineEdit().setReadOnly(True)
         model_1_menu.lineEdit().setAlignment(QtCore.Qt.AlignCenter)
-        if self.mode == 'digit_recognition':
-            self.load_menu_layout.addWidget(model_1_menu, 2, 3)
-        elif self.mode == 'object_detection':
-            self.load_menu_layout.addWidget(model_1_menu, 3, 3)
+        self.load_menu_layout.addWidget(model_1_menu, 2, 3)
 
         # model 2
         # graphic representation
@@ -731,17 +765,18 @@ class UI_MainWindow(QWidget):
             # model_2_menu.setCurrentText('Simple model with E2CNN')
             model_2_menu.setCurrentText('Simple model with DA')
         elif self.mode == 'object_detection':
-            model_2_menu.addItem(model_2_icon, 'Custom-trained FasterRCNN')
-            model_2_menu.addItem(model_2_icon, 'Pre-trained FasterRCNN')
+            model_2_menu.addItem(model_2_icon, 'FasterRCNN (0% jittering)')
+            model_2_menu.addItem(model_2_icon, 'FasterRCNN (20% jittering)')
+            model_2_menu.addItem(model_2_icon, 'FasterRCNN (40% jittering)')
+            model_2_menu.addItem(model_2_icon, 'FasterRCNN (60% jittering)')
+            model_2_menu.addItem(model_2_icon, 'FasterRCNN (80% jittering)')
+            model_2_menu.addItem(model_2_icon, 'FasterRCNN (100% jittering)')
+            model_2_menu.addItem(model_2_icon, 'FasterRCNN (Pre-trained)')
             model_2_menu.setCurrentText('Pre-trained FasterRCNN')
 
         # connect the drop down menu with actions
         model_2_menu.currentTextChanged.connect(model_2_selection_changed)
-        if self.mode == 'digit_recognition':
-            self.load_menu_layout.addWidget(model_2_menu, 3, 3)
-        elif self.mode == 'object_detection':
-            self.load_menu_layout.addWidget(model_2_menu, 4, 3)
-
+        self.load_menu_layout.addWidget(model_2_menu, 3, 3)
 
         # add this layout to the general layout
         self.layout.addLayout(self.load_menu_layout, 0, 1)
@@ -1230,6 +1265,7 @@ class UI_MainWindow(QWidget):
             # display the individual NERO plot
             num_x_translations = len(x_translation)
             num_y_translations = len(y_translation)
+            self.all_translations = np.array(self.all_translations).reshape((num_x_translations, num_y_translations, 2))
             self.all_quantities_1 = np.array(self.all_quantities_1).reshape((num_y_translations, num_x_translations, 7))
             self.all_quantities_2 = np.array(self.all_quantities_2).reshape((num_y_translations, num_x_translations, 7))
 
@@ -1954,14 +1990,40 @@ class UI_MainWindow(QWidget):
                     self.cur_plot_quantity_1 = self.all_quantities_1[:, :, 6]
                     self.cur_plot_quantity_2 = self.all_quantities_2[:, :, 6]
                 elif text == 'Translation Match %':
+                    self.cur_plot_quantity_1 = np.zeros((self.all_quantities_1.shape[0], self.all_quantities_1.shape[1]))
+                    self.cur_plot_quantity_2 = np.zeros((self.all_quantities_2.shape[0], self.all_quantities_2.shape[1]))
                     # for each position, compute its bounding box center, which is (63, 63)
-                    percent_x_1 = ((self.all_quantities_1[:, :, 0] + self.all_quantities_1[:, :, 2]) / 2 - 63) / 63
-                    percent_y_1 = ((self.all_quantities_1[:, :, 1] + self.all_quantities_1[:, :, 3]) / 2 - 63) / 63
-                    self.cur_plot_quantity_1 = (percent_x_1 + percent_y_1) / 2
+                    # x_ratio = int(128 // self.all_quantities_1.shape[0])
+                    # y_ratio = int(128 // self.all_quantities_1.shape[1])
+                    for i in range(self.all_quantities_1.shape[0]):
+                        for j in range(self.all_quantities_1.shape[1]):
+                            # correct translation amount
+                            x_tran = self.all_translations[i, j, 0]
+                            y_tran = self.all_translations[i, j, 1]
 
-                    percent_x_2 = ((self.all_quantities_2[:, :, 0] + self.all_quantities_2[:, :, 2]) / 2 - 63) / 63
-                    percent_y_2 = ((self.all_quantities_2[:, :, 1] + self.all_quantities_2[:, :, 3]) / 2 - 63) / 63
-                    self.cur_plot_quantity_2 = (percent_x_2 + percent_y_2) / 2
+                            # current bounding box center from model 1 and 2
+                            cur_center_x_1 = (self.all_quantities_1[i, j, 0] + self.all_quantities_1[i, j, 2]) / 2
+                            cur_center_y_1 = (self.all_quantities_1[i, j, 1] + self.all_quantities_1[i, j, 3]) / 2
+                            cur_center_x_2 = (self.all_quantities_2[i, j, 0] + self.all_quantities_2[i, j, 2]) / 2
+                            cur_center_y_2 = (self.all_quantities_2[i, j, 1] + self.all_quantities_2[i, j, 3]) / 2
+
+                            # model output translation
+                            x_tran_model_1 = cur_center_x_1 - 63
+                            y_tran_model_1 = cur_center_y_1 - 63
+                            x_tran_model_2 = cur_center_x_2 - 63
+                            y_tran_model_2 = cur_center_y_2 - 63
+
+                            # compute percentage
+                            sign = 1
+                            print(x_tran_model_1, y_tran_model_1, x_tran, y_tran)
+                            if x_tran_model_1 * x_tran < 0 or y_tran_model_1 * y_tran < 0:
+                                sign = -1
+                                self.cur_plot_quantity_1[i, j] = sign * np.sqrt(x_tran_model_1**2 + y_tran_model_1**2) / np.sqrt(x_tran**2 + y_tran**2)
+
+                            sign = 1
+                            if x_tran_model_2 * x_tran or y_tran_model_2 * y_tran < 0 < 0:
+                                sign = -1
+                                self.cur_plot_quantity_2[i, j] = sign * np.sqrt(x_tran_model_2**2 + y_tran_model_2**2) / np.sqrt(x_tran**2 + y_tran**2)
 
 
 
