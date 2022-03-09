@@ -1280,14 +1280,16 @@ class UI_MainWindow(QWidget):
 
 
     # draw a rectangle
-    def draw_rectangle(self, painter, center_x, center_y, width, height, color=None, fill=None, boundary_width=5, label=None):
+    def draw_rectangle(self, painter, center_x, center_y, width, height, color=None, alpha=255, fill=None, boundary_width=5, label=None):
         # left, top, width, height for QRect
         rectangle = QtCore.QRect(center_x-width//2, center_y-height//2, width, height)
 
         if color:
             pen = QtGui.QPen()
             pen.setWidth(boundary_width)
-            pen.setColor(QtGui.QColor(color))
+            pen_color = QtGui.QColor(color)
+            pen_color.setAlpha(alpha)
+            pen.setColor(pen_color)
             painter.setPen(pen)
             painter.drawRect(rectangle)
 
@@ -1386,27 +1388,31 @@ class UI_MainWindow(QWidget):
         gt_display_center_y = (self.cur_image_label[0, 3] + self.cur_image_label[0, 5]) // 2 * 4
         gt_display_rect_width = (self.cur_image_label[0, 4] - self.cur_image_label[0, 2]) * 4
         gt_display_rect_height = (self.cur_image_label[0, 5] - self.cur_image_label[0, 3]) * 4
-        self.draw_rectangle(painter, gt_display_center_x, gt_display_center_y, gt_display_rect_width, gt_display_rect_height, 'yellow', label='Ground Truth')
+        self.draw_rectangle(painter, gt_display_center_x, gt_display_center_y, gt_display_rect_width, gt_display_rect_height, color='yellow', alpha=166, label='Ground Truth')
 
         # box from model 1
         bounding_boxes_1 = self.output_1[0][0][:, :4]
-        for i in range(1):
+        # showing a maximum of 3 bounding boxes
+        num_boxes_1 = min(3, len(bounding_boxes_1))
+        for i in range(num_boxes_1):
             center_x_1 = (bounding_boxes_1[i, 0] + bounding_boxes_1[i, 2]) // 2 * 4
             center_y_1 = (bounding_boxes_1[i, 1] + bounding_boxes_1[i, 3]) // 2 * 4
             model_1_display_rect_width = (bounding_boxes_1[i, 2] - bounding_boxes_1[i, 0]) *4
             model_1_display_rect_height = (bounding_boxes_1[i, 3] - bounding_boxes_1[i, 1]) * 4
 
-            self.draw_rectangle(painter, center_x_1, center_y_1, model_1_display_rect_width, model_1_display_rect_height, 'blue')
+            self.draw_rectangle(painter, center_x_1, center_y_1, model_1_display_rect_width, model_1_display_rect_height, 'blue', alpha=166, label=f'Prediction {i+1}')
 
         # box from model 2
         bounding_boxes_2 = self.output_2[0][0][:, :4]
-        for i in range(1):
+        # showing a maximum of 3 bounding boxes
+        num_boxes_2 = min(3, len(bounding_boxes_2))
+        for i in range(num_boxes_2):
             center_x_2 = (bounding_boxes_2[i, 0] + bounding_boxes_2[i, 2]) // 2 * 4
             center_y_2 = (bounding_boxes_2[i, 1] + bounding_boxes_2[i, 3]) // 2 * 4
             model_2_display_rect_width = (bounding_boxes_2[i, 2] - bounding_boxes_2[i, 0]) * 4
             model_2_display_rect_height = (bounding_boxes_2[i, 3] - bounding_boxes_2[i, 1]) * 4
 
-            self.draw_rectangle(painter, center_x_2, center_y_2, model_2_display_rect_width, model_2_display_rect_height, 'magenta')
+            self.draw_rectangle(painter, center_x_2, center_y_2, model_2_display_rect_width, model_2_display_rect_height, 'magenta', alpha=166, label=f'Prediction {i+1}')
 
         painter.end()
 

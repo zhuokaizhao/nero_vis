@@ -227,7 +227,7 @@ def run_mnist_once(model, test_image, test_label=None, batch_size=None, rotate_a
 
 
 # helper function on processing coco model output
-def process_model_outputs(outputs, targets, iou_thres=0.5, conf_thres=1e-4):
+def process_model_outputs(outputs, targets, iou_thres=0.5, conf_thres=0):
 
     def bbox_iou(box1, box2):
         """
