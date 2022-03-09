@@ -166,10 +166,10 @@ class UI_MainWindow(QWidget):
                 self.translation = False
 
                 # predefined model paths
-                self.model_1_name = 'Custom-trained FasterRCNN'
+                self.model_1_name = 'FasterRCNN (0% jittering)'
                 self.model_1_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'custom_trained', f'object_0-jittered', '*.pth'))[0]
                 # pre-trained model does not need model path
-                self.model_2_name = 'Pre-trained FasterRCNN'
+                self.model_2_name = 'FasterRCNN (Pre-trained)'
                 self.model_2_path = None
                 # preload model
                 self.model_1 = nero_run_model.load_model(self.mode, 'custom_trained', self.model_1_path)
@@ -1542,7 +1542,7 @@ class UI_MainWindow(QWidget):
     # draw heatmap
     def draw_heatmaps(self):
         # helper function on drawing individual heatmap
-        def draw_individual_heatmap(data, range=(0, 1)):
+        def draw_individual_heatmap(data, title, range=(0, 1)):
             # actuall heatmap
             heatmap = pg.ImageItem()
             heatmap.setOpts(axisOrder='row-major')
@@ -1553,17 +1553,41 @@ class UI_MainWindow(QWidget):
             view_box.setAspectLocked(lock=True)
             view_box.addItem(heatmap)
 
-            plot = pg.PlotItem(viewBox=view_box)
-            # plot.vb.setLimits(xMin=-64, xMax=63, yMin=-64, yMax=63)
-            plot.getAxis('bottom').setLabel('Translation in x')
-            plot.getAxis('left').setLabel('Translation in y')
+            heatmap_plot = pg.PlotItem(viewBox=view_box, title=title)
+            # # plot.vb.setLimits(xMin=-64, xMax=63, yMin=-64, yMax=63)
+            heatmap_plot.getAxis('bottom').setLabel('Translation in x')
+            heatmap_plot.getAxis('left').setLabel('Translation in y')
+            # disable being able to move plot around
+            heatmap_plot.setMouseEnabled(x=False, y=False)
 
             # create colorbar
-            color_map = pg.colormap.get('CET-L9')
+            color_map = pg.colormap.get('viridis')
             color_bar = pg.ColorBarItem(values= range, colorMap=color_map)
-            color_bar.setImageItem(heatmap, insert_in=plot)
+            color_bar.setImageItem(heatmap, insert_in=heatmap_plot)
 
-            return plot
+            return heatmap_plot
+
+        # helper function for clicking inside the heatmap
+        def heatmap_mouse_clicked(event, heatmap_plot):
+            self.heatmap_clicked = not self.heatmap_clicked
+            heatmap_plot.scene().items(event.scenePos())
+            # check if the click is within the polar plot
+            if heatmap_plot.sceneBoundingRect().contains(event._scenePos):
+                mouse_pos_on_heatmap = self.polar_plot.vb.mapSceneToView(event._scenePos)
+                x_pos = mouse_pos_on_heatmap.x()
+                y_pos = mouse_pos_on_heatmap.y()
+
+                print(x_pos, y_pos)
+
+                # update the model output
+                # if self.result_existed:
+                #     self.run_model_once()
+
+                # remove old point
+                # if self.cur_line:
+                #     heatmap_plot.removeItem(self.cur_point)
+
+                # draw a point(rect) that represents current selection of location
 
         # check if the data is in shape (128, 128)
         if self.cur_plot_quantity_1.shape != (128, 128):
@@ -1587,15 +1611,14 @@ class UI_MainWindow(QWidget):
         self.heatmap_view_1.setFixedSize(600, 600)
         self.heatmap_view_2 = pg.GraphicsLayoutWidget(title='Model 2')
         self.heatmap_view_2.setFixedSize(600, 600)
-        heatmap_plot_1 = draw_individual_heatmap(data_1)
-        heatmap_plot_2 = draw_individual_heatmap(data_2)
-        # disable moving around
-        heatmap_plot_1.setMouseEnabled(x=False, y=False)
-        heatmap_plot_2.setMouseEnabled(x=False, y=False)
+        self.heatmap_plot_1 = draw_individual_heatmap(data_1, title=self.model_1_name)
+        self.heatmap_plot_2 = draw_individual_heatmap(data_2, title=self.model_2_name)
+        # self.view_box_1.scene().sigMouseClicked.connect(heatmap_mouse_clicked(self.view_box_1))
+        # self.view_box_2.scene().sigMouseClicked.connect(heatmap_mouse_clicked(self.view_box_2))
 
         # add to view
-        self.heatmap_view_1.addItem(heatmap_plot_1)
-        self.heatmap_view_2.addItem(heatmap_plot_2)
+        self.heatmap_view_1.addItem(self.heatmap_plot_1)
+        self.heatmap_view_2.addItem(self.heatmap_plot_2)
 
         # add to general layout
         self.single_result_layout.addWidget(self.heatmap_view_1, 1, 4, 1, 1)
@@ -1762,7 +1785,7 @@ class UI_MainWindow(QWidget):
 
         elif type == 'polar':
 
-            # helper function for clicking inside polar plot
+            # helper function for clicking inside demension reduced scatter plot
             def clicked(item, points):
                 # clear manual mode line
                 if self.cur_line:
