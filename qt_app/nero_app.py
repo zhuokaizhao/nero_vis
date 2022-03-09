@@ -1360,14 +1360,14 @@ class UI_MainWindow(QWidget):
         # convert and resize to QImage for display purpose
         self.detailed_display_image = nero_utilities.tensor_to_qt_image(self.loaded_image_pt[self.y_min:self.y_max, self.x_min:self.x_max, :]).scaledToWidth(self.display_image_size)
 
-        # prepare a pixmap for the image
-        self.detailed_image_pixmap = QPixmap(self.detailed_display_image)
-
         # add a new label for loaded image if no imager has existed
         if not self.single_result_existed:
             self.detailed_image_label = QLabel(self)
+            self.detailed_image_label.setFixedSize(self.display_image_size, self.display_image_size)
             self.detailed_image_label.setAlignment(QtCore.Qt.AlignCenter)
 
+        # prepare a pixmap for the image
+        self.detailed_image_pixmap = QPixmap(self.detailed_display_image)
         # put pixmap in the label
         self.detailed_image_label.setPixmap(self.detailed_image_pixmap)
         self.detailed_image_label.setContentsMargins(0, 0, 0, 0)
@@ -1419,8 +1419,44 @@ class UI_MainWindow(QWidget):
         # update pixmap with the label
         self.detailed_image_label.setPixmap(self.detailed_image_pixmap)
 
-        # force repaint
+        # force repaint on the image
         self.detailed_image_label.repaint()
+
+
+        # detailed information showed beneath the image
+        # add a new label for text
+        if not self.single_result_existed:
+            self.detailed_text_label = QLabel(self)
+            self.detailed_text_label.setFixedSize(self.display_image_size, 100)
+            self.detailed_text_label.setAlignment(QtCore.Qt.AlignTop)
+
+        # prepare a pixmap for the text box
+        self.detailed_text_pixmap = QPixmap(QtCore.QSize(self.display_image_size, 100))
+        # left, top, width, height for QRect
+        text_box = QtCore.QRect(0, self.display_image_size, self.display_image_size, 100)
+
+        text_painter = QtGui.QPainter(self.detailed_text_pixmap)
+        # text box background area
+        brush = QtGui.QBrush()
+        brush.setStyle(QtCore.Qt.SolidPattern)
+        brush.setColor('white')
+        text_painter.fillRect(text_box, brush)
+        # black text
+        pen = QtGui.QPen()
+        pen.setColor(QtGui.QColor('black'))
+        text_painter.setPen(pen)
+        text_painter.drawText(text_box, QtGui.Qt.AlignCenter, 'Detailed information 1\n Detailed information 2')
+
+        text_painter.end()
+
+        # update pixmap with the label
+        self.detailed_text_label.setPixmap(self.detailed_text_pixmap)
+        self.single_result_layout.addWidget(self.detailed_text_label, 2, 2, 1, 2)
+
+        # force repaint on the text
+        self.detailed_text_label.repaint()
+
+
 
 
     def display_image(self):
