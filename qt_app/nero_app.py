@@ -161,6 +161,7 @@ class UI_MainWindow(QWidget):
                 # analyze and display COCO image size
                 self.image_size = 128
                 self.display_image_size = 512
+                self.display_to_real_ratio = self.display_image_size // self.image_size
                 # image (input data) modification mode
                 self.rotation = False
                 self.translation = False
@@ -1149,12 +1150,18 @@ class UI_MainWindow(QWidget):
 
             # all the x and y translations
             # x translates on columns, y translates on rows
-            x_translation = list(range(-self.image_size//2, self.image_size//2, 8))
-            y_translation = list(range(-self.image_size//2, self.image_size//2, 8))
+            self.x_translation = list(range(-self.image_size//2, self.image_size//2, 8))
+            self.y_translation = list(range(-self.image_size//2, self.image_size//2, 8))
             self.all_translations = []
 
-            for y_tran in y_translation:
-                for x_tran in x_translation:
+            for y_tran in self.y_translation:
+                for x_tran in self.x_translation:
+                    # translation amout
+                    # cur_x_tran and cur_y_tran are used to draw points on the heatmap to indicate translation amount
+                    self.cur_x_tran = x_tran - self.x_translation[0]
+                    # y axis needs to be converted from image axis to heatmap axis
+                    self.cur_y_tran = -y_tran - self.y_translation[0]
+                    # all_translations are for book keeping
                     self.all_translations.append((x_tran, y_tran))
                     # modify the underlying image tensor accordingly
                     # take the cropped part of the entire input image
@@ -1248,8 +1255,8 @@ class UI_MainWindow(QWidget):
 
 
             # display the individual NERO plot
-            num_x_translations = len(x_translation)
-            num_y_translations = len(y_translation)
+            num_x_translations = len(self.x_translation)
+            num_y_translations = len(self.y_translation)
             self.all_translations = np.array(self.all_translations).reshape((num_x_translations, num_y_translations, 2))
             self.all_quantities_1 = np.array(self.all_quantities_1).reshape((num_y_translations, num_x_translations, 7))
             self.all_quantities_2 = np.array(self.all_quantities_2).reshape((num_y_translations, num_x_translations, 7))
@@ -1490,6 +1497,12 @@ class UI_MainWindow(QWidget):
 
                         self.draw_model_output()
 
+                        # show corresponding translation amount on the heatmap
+                        # translation amout for plotting in heatmap
+                        self.cur_x_tran = -x_dist - self.x_translation[0]
+                        self.cur_y_tran = y_dist - self.y_translation[0]
+                        self.draw_heatmaps()
+
             def end_moving(event):
                 self.moving_pov = False
 
@@ -1548,15 +1561,31 @@ class UI_MainWindow(QWidget):
             heatmap.setOpts(axisOrder='row-major')
             heatmap.setImage(data)
 
+            # small indicator on where the translation is at
+            scatter_item = pg.ScatterPlotItem(pxMode=False)
+            scatter_point = []
+
+            scatter_point.append({'pos': (self.cur_x_tran, self.cur_y_tran),
+                                    'size': 5,
+                                    'pen': {'color': 'red', 'width': 0.1},
+                                    'brush': (255, 0, 0, 255)})
+            # draw lines to better show shape
+            # line_1 = self.aggregate_polar_plot.plot(all_x_1, all_y_1, pen = QtGui.QPen(QtGui.Qt.blue, 0.03))
+
+            # add points to the item
+            scatter_item.addPoints(scatter_point)
+
             # create view box to contain the heatmap
             view_box = pg.ViewBox()
             view_box.setAspectLocked(lock=True)
             view_box.addItem(heatmap)
+            view_box.addItem(scatter_item)
 
             heatmap_plot = pg.PlotItem(viewBox=view_box, title=title)
-            # # plot.vb.setLimits(xMin=-64, xMax=63, yMin=-64, yMax=63)
             heatmap_plot.getAxis('bottom').setLabel('Translation in x')
+            heatmap_plot.getAxis('bottom').setStyle(tickLength=0, showValues=False)
             heatmap_plot.getAxis('left').setLabel('Translation in y')
+            heatmap_plot.getAxis('left').setStyle(tickLength=0, showValues=False)
             # disable being able to move plot around
             heatmap_plot.setMouseEnabled(x=False, y=False)
 
