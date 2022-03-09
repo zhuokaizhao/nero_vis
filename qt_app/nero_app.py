@@ -1340,7 +1340,7 @@ class UI_MainWindow(QWidget):
         cur_quantity_1_y = self.output_1[self.loaded_image_label] * np.sin(self.cur_rotation_angle/180*np.pi)
         # plot a circle item
         self.circle_1 = pg.QtGui.QGraphicsEllipseItem(cur_quantity_1_x-r/2, cur_quantity_1_y-r/2, r, r)
-        self.circle_1.setPen(pg.mkPen('blue', width=5))
+        self.circle_1.setPen(pg.mkPen('blue', width=7))
         self.polar_plot.addItem(self.circle_1)
 
         # transform to x and y coordinate
@@ -1348,7 +1348,7 @@ class UI_MainWindow(QWidget):
         cur_quantity_2_y = self.output_2[self.loaded_image_label] * np.sin(self.cur_rotation_angle/180*np.pi)
         # plot a circle item
         self.circle_2 = pg.QtGui.QGraphicsEllipseItem(cur_quantity_2_x-r/2, cur_quantity_2_y-r/2, r, r)
-        self.circle_2.setPen(pg.mkPen('magenta', width=5))
+        self.circle_2.setPen(pg.mkPen('magenta', width=7))
         self.polar_plot.addItem(self.circle_2)
 
 
