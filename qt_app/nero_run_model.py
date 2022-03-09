@@ -381,7 +381,7 @@ def run_coco_once(model_name, model, test_image, custom_names, pytorch_names, te
                 pred_confs = image_pred['scores'].cpu()
 
                 # when we are using pretrained model and ground truth label is present
-                if (model_name == 'Pre-trained FasterRCNN') and type(test_label) != type(None):
+                if (model_name == 'FasterRCNN (Pre-trained)') and type(test_label) != type(None):
                     valid_indices = []
                     for j in range(len(pred_labels)):
                         if pytorch_names[int(pred_labels[j]-1)] in custom_names:
@@ -395,7 +395,6 @@ def run_coco_once(model_name, model, test_image, custom_names, pytorch_names, te
                     output[:, :4] = pred_boxes[valid_indices]
                     output[:, 4] = pred_confs[valid_indices]
                     output[:, 5] = pred_labels[valid_indices]
-
                 else:
                     # transform output in the format of (x1, y1, x2, y2, conf, class_pred)
                     output = torch.zeros((len(pred_boxes), 6))
