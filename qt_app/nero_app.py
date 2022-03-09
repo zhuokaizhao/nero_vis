@@ -1083,19 +1083,21 @@ class UI_MainWindow(QWidget):
             # display result
             self.display_mnist_single_result(type='bar', boundary_width=3)
 
-        # elif self.mode == 'object_detection':
+        elif self.mode == 'object_detection':
+            self.output_1 = nero_run_model.run_coco_once(self.model_1_name,
+                                                            self.model_1,
+                                                            self.cropped_image_pt,
+                                                            self.custom_coco_names,
+                                                            self.pytorch_coco_names,
+                                                            test_label=self.cur_image_label)
 
-        #     self.output_1 = nero_run_model.run_coco_once(self.model_2_name,
-        #                                                     self.model_2,
-        #                                                     self.cropped_image_pt,
-        #                                                     self.original_coco_names,
-        #                                                     self.custom_coco_names,
-        #                                                     self.pytorch_coco_names,
-        #                                                     test_label=self.cur_image_label)
-            # self.output_2 = nero_run_model.run_coco_once(self.model_2, self.cur_image_pt)
+            self.output_2 = nero_run_model.run_coco_once(self.model_2_name,
+                                                            self.model_2,
+                                                            self.cropped_image_pt,
+                                                            self.custom_coco_names,
+                                                            self.pytorch_coco_names,
+                                                            test_label=self.cur_image_label)
 
-            # display result
-            # self.display_mnist_single_result(mode=self.data_mode, type='bar', boundary_width=3)
 
     # helper function that computes labels for cut out images
     def compute_label(self, cur_bounding_box, x_min, y_min, image_size):
@@ -1172,8 +1174,6 @@ class UI_MainWindow(QWidget):
             for y_tran in y_translation:
                 for x_tran in x_translation:
                     self.all_translations.append((x_tran, y_tran))
-                    # x_tran = -64
-                    # y_tran = -64
                     # modify the underlying image tensor accordingly
                     # take the cropped part of the entire input image
                     cur_center_x = self.center_x - x_tran
@@ -1215,10 +1215,36 @@ class UI_MainWindow(QWidget):
                         rect_center_x = self.display_image_size//2 - x_tran*2
                         rect_center_y = self.display_image_size//2 - y_tran*2
 
-                        # draw rectangle on the displayed image to indicate scanning process
+                        # draw rectangles on the displayed image to indicate scanning process
                         painter = QtGui.QPainter(self.image_pixmap)
-                        # draw the rectangle
-                        self.draw_rectangle(painter, rect_center_x, rect_center_y, display_rect_width, display_rect_height, 'red')
+                        # draw the rectangles
+                        cover_color = QtGui.QColor(65, 65, 65, 225)
+                        # top
+                        top_rect_center_x = (0 + self.display_image_size) // 2
+                        top_rect_center_y = (0 + rect_center_y - display_rect_height//2) // 2
+                        top_display_rect_width = self.display_image_size
+                        top_display_rect_height = top_rect_center_y * 2
+                        self.draw_rectangle(painter, top_rect_center_x, top_rect_center_y, top_display_rect_width, top_display_rect_height, fill=cover_color)
+                        # bottom
+                        bottom_rect_center_x = (0 + self.display_image_size) // 2
+                        bottom_rect_center_y = (rect_center_y + display_rect_height//2 + self.display_image_size) // 2
+                        bottom_display_rect_width = self.display_image_size
+                        bottom_display_rect_height = (self.display_image_size-bottom_rect_center_y) * 2
+                        self.draw_rectangle(painter, bottom_rect_center_x, bottom_rect_center_y, bottom_display_rect_width, bottom_display_rect_height, fill=cover_color)
+                        # left
+                        left_rect_center_x = (0 + rect_center_x - display_rect_width//2) // 2
+                        left_rect_center_y = rect_center_y
+                        left_display_rect_width = rect_center_x - display_rect_width//2
+                        left_display_rect_height = self.display_image_size-top_display_rect_height-bottom_display_rect_height
+                        self.draw_rectangle(painter, left_rect_center_x, left_rect_center_y, left_display_rect_width, left_display_rect_height, fill=cover_color)
+                        # right
+                        right_rect_center_x = (rect_center_x + display_rect_width//2 + self.display_image_size) // 2
+                        right_rect_center_y = rect_center_y
+                        right_display_rect_width = self.display_image_size - (rect_center_x + display_rect_width//2)
+                        right_display_rect_height = self.display_image_size-top_display_rect_height-bottom_display_rect_height
+                        self.draw_rectangle(painter, right_rect_center_x, right_rect_center_y, right_display_rect_width, right_display_rect_height, fill=cover_color)
+
+                        # end the painter
                         painter.end()
 
                         # draw ground truth label on the display image
@@ -1288,14 +1314,23 @@ class UI_MainWindow(QWidget):
 
 
     # draw a rectangle
-    def draw_rectangle(self, painter, center_x, center_y, width, height, color, boundary_width=3):
-        pen = QtGui.QPen()
-        pen.setWidth(boundary_width)
-        pen.setColor(QtGui.QColor(color))
-        painter.setPen(pen)
+    def draw_rectangle(self, painter, center_x, center_y, width, height, color=None, fill=None, boundary_width=3):
         # left, top, width, height for QRect
         rectangle = QtCore.QRect(center_x-width//2, center_y-height//2, width, height)
-        painter.drawRect(rectangle)
+
+        if color:
+            pen = QtGui.QPen()
+            pen.setWidth(boundary_width)
+            pen.setColor(QtGui.QColor(color))
+            painter.setPen(pen)
+            painter.drawRect(rectangle)
+
+        if fill:
+            brush = QtGui.QBrush()
+            brush.setColor(fill)
+            brush.setStyle(QtCore.Qt.SolidPattern)
+            # painter.setBrush(brush)
+            painter.fillRect(rectangle, brush)
 
 
     # draw a polar plot
@@ -1361,19 +1396,8 @@ class UI_MainWindow(QWidget):
         # run model with the cropped view
         self.cropped_image_pt = self.loaded_image_pt[self.y_min:self.y_max, self.x_min:self.x_max, :] / 255
 
-        self.output_1 = nero_run_model.run_coco_once(self.model_1_name,
-                                                        self.model_1,
-                                                        self.cropped_image_pt,
-                                                        self.custom_coco_names,
-                                                        self.pytorch_coco_names,
-                                                        test_label=self.cur_image_label)
-
-        self.output_2 = nero_run_model.run_coco_once(self.model_2_name,
-                                                        self.model_2,
-                                                        self.cropped_image_pt,
-                                                        self.custom_coco_names,
-                                                        self.pytorch_coco_names,
-                                                        test_label=self.cur_image_label)
+        # run models on current selected output
+        self.run_model_once()
 
         # draw bounding boxes on the enlarged view
         # draw ground truth
@@ -1434,7 +1458,7 @@ class UI_MainWindow(QWidget):
 
         # pixel mouse over for object detection mode
         if self.mode == 'object_detection':
-            def getPixel(event):
+            def update_model_pov(event):
                 x = int(event.position().x())
                 y = int(event.position().y())
 
@@ -1497,7 +1521,7 @@ class UI_MainWindow(QWidget):
                     self.draw_model_output()
 
 
-            self.image_label.mousePressEvent = getPixel
+            self.image_label.mousePressEvent = update_model_pov
 
         # name of the image
         self.name_label = QLabel(self.loaded_image_name)
