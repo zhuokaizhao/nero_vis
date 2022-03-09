@@ -1219,30 +1219,7 @@ class UI_MainWindow(QWidget):
                         painter = QtGui.QPainter(self.image_pixmap)
                         # draw the rectangles
                         cover_color = QtGui.QColor(65, 65, 65, 225)
-                        # top
-                        top_rect_center_x = (0 + self.display_image_size) // 2
-                        top_rect_center_y = (0 + rect_center_y - display_rect_height//2) // 2
-                        top_display_rect_width = self.display_image_size
-                        top_display_rect_height = top_rect_center_y * 2
-                        self.draw_rectangle(painter, top_rect_center_x, top_rect_center_y, top_display_rect_width, top_display_rect_height, fill=cover_color)
-                        # bottom
-                        bottom_rect_center_x = (0 + self.display_image_size) // 2
-                        bottom_rect_center_y = (rect_center_y + display_rect_height//2 + self.display_image_size) // 2
-                        bottom_display_rect_width = self.display_image_size
-                        bottom_display_rect_height = (self.display_image_size-bottom_rect_center_y) * 2
-                        self.draw_rectangle(painter, bottom_rect_center_x, bottom_rect_center_y, bottom_display_rect_width, bottom_display_rect_height, fill=cover_color)
-                        # left
-                        left_rect_center_x = (0 + rect_center_x - display_rect_width//2) // 2
-                        left_rect_center_y = rect_center_y
-                        left_display_rect_width = rect_center_x - display_rect_width//2
-                        left_display_rect_height = self.display_image_size-top_display_rect_height-bottom_display_rect_height
-                        self.draw_rectangle(painter, left_rect_center_x, left_rect_center_y, left_display_rect_width, left_display_rect_height, fill=cover_color)
-                        # right
-                        right_rect_center_x = (rect_center_x + display_rect_width//2 + self.display_image_size) // 2
-                        right_rect_center_y = rect_center_y
-                        right_display_rect_width = self.display_image_size - (rect_center_x + display_rect_width//2)
-                        right_display_rect_height = self.display_image_size-top_display_rect_height-bottom_display_rect_height
-                        self.draw_rectangle(painter, right_rect_center_x, right_rect_center_y, right_display_rect_width, right_display_rect_height, fill=cover_color)
+                        self.draw_fov_mask(painter, rect_center_x, rect_center_y, display_rect_width, display_rect_height, cover_color)
 
                         # end the painter
                         painter.end()
@@ -1458,70 +1435,79 @@ class UI_MainWindow(QWidget):
 
         # pixel mouse over for object detection mode
         if self.mode == 'object_detection':
+            def start_moving(event):
+                self.moving_pov = True
+
             def update_model_pov(event):
-                x = int(event.position().x())
-                y = int(event.position().y())
+                if self.moving_pov:
+                    rect_center_x = int(event.position().x())
+                    rect_center_y = int(event.position().y())
 
-                # when the click selection is valid and model has been run before
-                if self.single_result_existed:
+                    # when the click selection is valid and model has been run before
+                    if self.single_result_existed:
 
-                    # re-display
-                    self.display_image()
+                        # re-display
+                        self.display_image()
 
-                    # draw the new FOV rectangle
-                    # restrict x and y value
-                    if x + 128 >= 512:
-                        x = 512-128
-                    elif x - 128 < 0:
-                        x = 128
+                        # draw the new FOV rectangle
+                        # restrict x and y value
+                        if rect_center_x + 128 >= 512:
+                            rect_center_x = 512-128
+                        elif rect_center_x - 128 < 0:
+                            rect_center_x = 128
 
-                    if y + 128 >= 512:
-                        y = 512-128
-                    elif y - 128 < 0:
-                        y = 128
+                        if rect_center_y + 128 >= 512:
+                            rect_center_y = 512-128
+                        elif rect_center_y - 128 < 0:
+                            rect_center_y = 128
 
-                    # width and height of the rectangle
-                    display_rect_width = self.display_image_size//2
-                    display_rect_height = self.display_image_size//2
+                        # width and height of the rectangle
+                        display_rect_width = self.display_image_size//2
+                        display_rect_height = self.display_image_size//2
 
-                    # draw rectangle on the displayed image to indicate scanning process
-                    painter = QtGui.QPainter(self.image_pixmap)
-                    # draw the rectangle
-                    self.draw_rectangle(painter, x, y, display_rect_width, display_rect_height, 'red')
-                    painter.end()
+                        # draw rectangle on the displayed image to indicate scanning process
+                        painter = QtGui.QPainter(self.image_pixmap)
+                        # draw the rectangles
+                        cover_color = QtGui.QColor(65, 65, 65, 225)
+                        self.draw_fov_mask(painter, rect_center_x, rect_center_y, display_rect_width, display_rect_height, cover_color)
+                        painter.end()
 
-                    # update pixmap with the label
-                    self.image_label.setPixmap(self.image_pixmap)
+                        # update pixmap with the label
+                        self.image_label.setPixmap(self.image_pixmap)
 
-                    # force repaint
-                    self.image_label.repaint()
+                        # force repaint
+                        self.image_label.repaint()
 
-                    # redisplay model output
-                    # how much the clicked point is away from the image center
-                    x_dist = (x - 255)//2
-                    y_dist = (y - 255)//2
+                        # redisplay model output
+                        # how much the clicked point is away from the image center
+                        x_dist = (rect_center_x - 255)//2
+                        y_dist = (rect_center_y - 255)//2
 
-                    # compute rectangle center wrt to the original image
-                    cur_center_x = self.center_x + x_dist
-                    cur_center_y = self.center_y + y_dist
-                    self.x_min = cur_center_x - 64
-                    self.x_max = cur_center_x + 64
-                    self.y_min = cur_center_y - 64
-                    self.y_max = cur_center_y + 64
+                        # compute rectangle center wrt to the original image
+                        cur_center_x = self.center_x + x_dist
+                        cur_center_y = self.center_y + y_dist
+                        self.x_min = cur_center_x - 64
+                        self.x_max = cur_center_x + 64
+                        self.y_min = cur_center_y - 64
+                        self.y_max = cur_center_y + 64
 
-                    # compute the ground truth label of the cropped image
-                    self.cur_image_label = np.zeros((len(self.loaded_image_label), 6))
-                    for i in range(len(self.cur_image_label)):
-                        # object index
-                        self.cur_image_label[i, 0] = i
-                        # since PyTorch FasterRCNN has 0 as background
-                        self.cur_image_label[i, 1] = self.loaded_image_label[i, 4] + 1
-                        self.cur_image_label[i, 2:] = self.compute_label(self.loaded_image_label[i, :4], self.x_min, self.y_min, (128, 128))
+                        # compute the ground truth label of the cropped image
+                        self.cur_image_label = np.zeros((len(self.loaded_image_label), 6))
+                        for i in range(len(self.cur_image_label)):
+                            # object index
+                            self.cur_image_label[i, 0] = i
+                            # since PyTorch FasterRCNN has 0 as background
+                            self.cur_image_label[i, 1] = self.loaded_image_label[i, 4] + 1
+                            self.cur_image_label[i, 2:] = self.compute_label(self.loaded_image_label[i, :4], self.x_min, self.y_min, (128, 128))
 
-                    self.draw_model_output()
+                        self.draw_model_output()
 
+            def end_moving(event):
+                self.moving_pov = False
 
-            self.image_label.mousePressEvent = update_model_pov
+            self.image_label.mousePressEvent = start_moving
+            self.image_label.mouseMoveEvent = update_model_pov
+            self.image_label.mouseReleaseEvent = end_moving
 
         # name of the image
         self.name_label = QLabel(self.loaded_image_name)
@@ -1534,6 +1520,35 @@ class UI_MainWindow(QWidget):
         elif self.data_mode == 'aggregate':
             self.single_result_layout.addWidget(self.image_label, 0, 2)
             self.single_result_layout.addWidget(self.name_label, 1, 2)
+
+
+    # helper function on drawing mask on input COCO image (to highlight the current FOV)
+    def draw_fov_mask(self, painter, rect_center_x, rect_center_y, display_rect_width, display_rect_height, cover_color):
+        # draw the rectangles
+        # top
+        top_rect_center_x = (0 + self.display_image_size) / 2
+        top_rect_center_y = (0 + rect_center_y - display_rect_height/2) / 2
+        top_display_rect_width = self.display_image_size
+        top_display_rect_height = top_rect_center_y * 2
+        self.draw_rectangle(painter, top_rect_center_x, top_rect_center_y, top_display_rect_width, top_display_rect_height, fill=cover_color)
+        # bottom
+        bottom_rect_center_x = (0 + self.display_image_size) / 2
+        bottom_rect_center_y = (rect_center_y + display_rect_height/2 + self.display_image_size) / 2
+        bottom_display_rect_width = self.display_image_size
+        bottom_display_rect_height = (self.display_image_size-bottom_rect_center_y) * 2
+        self.draw_rectangle(painter, bottom_rect_center_x, bottom_rect_center_y, bottom_display_rect_width, bottom_display_rect_height, fill=cover_color)
+        # left
+        left_rect_center_x = (0 + rect_center_x - display_rect_width/2) / 2
+        left_rect_center_y = rect_center_y
+        left_display_rect_width = rect_center_x - display_rect_width/2
+        left_display_rect_height = self.display_image_size-top_display_rect_height-bottom_display_rect_height
+        self.draw_rectangle(painter, left_rect_center_x, left_rect_center_y, left_display_rect_width, left_display_rect_height, fill=cover_color)
+        # right
+        right_rect_center_x = (rect_center_x + display_rect_width/2 + self.display_image_size) / 2
+        right_rect_center_y = rect_center_y
+        right_display_rect_width = self.display_image_size - (rect_center_x + display_rect_width/2)
+        right_display_rect_height = self.display_image_size-top_display_rect_height-bottom_display_rect_height
+        self.draw_rectangle(painter, right_rect_center_x, right_rect_center_y, right_display_rect_width, right_display_rect_height, fill=cover_color)
 
 
     # draw heatmap

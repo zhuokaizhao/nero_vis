@@ -318,6 +318,8 @@ def process_model_outputs(outputs, targets, iou_thres=0.5, conf_thres=1e-4):
         # F-measure = (2 * Precision * Recall) / (Precision + Recall)
         F_measure = (2 * precision * recall) / (precision + recall + 1e-16)
 
+        # rank all outputs based on IOU
+        qualified_output = sorted(qualified_output, key=lambda x: x[-1])[::-1]
         all_qualified_outputs.append(qualified_output)
         all_precisions.append(precision)
         all_recalls.append(recall)
@@ -400,7 +402,6 @@ def run_coco_once(model_name, model, test_image, custom_names, pytorch_names, te
                     output[:, :4] = pred_boxes
                     output[:, 4] = pred_confs
                     output[:, 5] = pred_labels
-
 
                 outputs.append(output)
 
