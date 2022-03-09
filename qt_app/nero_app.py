@@ -386,11 +386,15 @@ class UI_MainWindow(QWidget):
                 self.aggregate_result_existed = False
                 self.data_existed = False
             if self.image_existed:
+                # move model selection menus back to load menu
+                self.load_menu_layout.addWidget(self.model_1_menu, 2, 3)
+                self.load_menu_layout.addWidget(self.model_2_menu, 3, 3)
                 self.clear_layout(self.single_result_layout)
                 self.single_result_existed = False
                 self.image_existed = False
 
             self.data_mode = 'single'
+
             self.init_single_result_layout()
 
             print('Loaded image:', text)
