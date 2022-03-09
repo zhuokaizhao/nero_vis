@@ -678,28 +678,6 @@ class UI_MainWindow(QWidget):
         self.data_existed = False
         self.image_existed = False
 
-        # add jittering level selection for the object detection mode
-        # if self.mode == 'object_detection':
-        #     jittering_menu = QtWidgets.QComboBox()
-        #     jittering_menu.setMinimumSize(QtCore.QSize(250, 50))
-        #     jittering_menu.setStyleSheet('font-size: 18px')
-        #     jittering_menu.setEditable(True)
-        #     jittering_menu.lineEdit().setReadOnly(True)
-        #     jittering_menu.lineEdit().setAlignment(QtCore.Qt.AlignCenter)
-
-        #     # add items
-        #     # jittering_menu.addItem('Jittering level')
-        #     for i in [0, 20, 40, 60, 80, 100]:
-        #         jittering_menu.addItem(f'{i}%')
-
-        #     # default selection is 0 percent jittering
-        #     self.jittering_level = 0
-        #     self.image_menu.setCurrentIndex(0)
-        #     # connect the drop down menu with actions
-        #     jittering_menu.currentTextChanged.connect(jittering_menu_selection_changed)
-
-        #     self.load_menu_layout.addWidget(jittering_menu, 2, 3)
-
         # load models choices
         # model 1
         # graphic representation
@@ -1226,14 +1204,14 @@ class UI_MainWindow(QWidget):
 
                         # draw ground truth label on the display image
                         # draw rectangle on the displayed image to indicate scanning process
-                        # painter = QtGui.QPainter(self.image_pixmap)
-                        # # draw the ground truth label
-                        # gt_display_center_x = (self.cur_image_label[0, 2] + self.cur_image_label[0, 4]) // 2 * 2 + (rect_center_x - display_rect_width//2)
-                        # gt_display_center_y = (self.cur_image_label[0, 3] + self.cur_image_label[0, 5]) // 2 * 2 + (rect_center_y - display_rect_height//2)
-                        # gt_display_rect_width = (self.cur_image_label[0, 4] - self.cur_image_label[0, 2]) * 2
-                        # gt_display_rect_height = (self.cur_image_label[0, 5] - self.cur_image_label[0, 3]) * 2
-                        # self.draw_rectangle(painter, gt_display_center_x, gt_display_center_y, gt_display_rect_width, gt_display_rect_height, 'yellow')
-                        # painter.end()
+                        painter = QtGui.QPainter(self.image_pixmap)
+                        # draw the ground truth label
+                        gt_display_center_x = (self.cur_image_label[0, 2] + self.cur_image_label[0, 4]) // 2 * 2 + (rect_center_x - display_rect_width//2)
+                        gt_display_center_y = (self.cur_image_label[0, 3] + self.cur_image_label[0, 5]) // 2 * 2 + (rect_center_y - display_rect_height//2)
+                        gt_display_rect_width = (self.cur_image_label[0, 4] - self.cur_image_label[0, 2]) * 2
+                        gt_display_rect_height = (self.cur_image_label[0, 5] - self.cur_image_label[0, 3]) * 2
+                        self.draw_rectangle(painter, gt_display_center_x, gt_display_center_y, gt_display_rect_width, gt_display_rect_height, color='yellow')
+                        painter.end()
 
                         # update pixmap with the label
                         self.image_label.setPixmap(self.image_pixmap)
@@ -1470,6 +1448,12 @@ class UI_MainWindow(QWidget):
                         # draw the rectangles
                         cover_color = QtGui.QColor(65, 65, 65, 225)
                         self.draw_fov_mask(painter, rect_center_x, rect_center_y, display_rect_width, display_rect_height, cover_color)
+                        # draw the ground truth label
+                        gt_display_center_x = (self.cur_image_label[0, 2] + self.cur_image_label[0, 4]) // 2 * 2 + (rect_center_x - display_rect_width//2)
+                        gt_display_center_y = (self.cur_image_label[0, 3] + self.cur_image_label[0, 5]) // 2 * 2 + (rect_center_y - display_rect_height//2)
+                        gt_display_rect_width = (self.cur_image_label[0, 4] - self.cur_image_label[0, 2]) * 2
+                        gt_display_rect_height = (self.cur_image_label[0, 5] - self.cur_image_label[0, 3]) * 2
+                        self.draw_rectangle(painter, gt_display_center_x, gt_display_center_y, gt_display_rect_width, gt_display_rect_height, color='yellow')
                         painter.end()
 
                         # update pixmap with the label
