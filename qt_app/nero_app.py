@@ -21,7 +21,7 @@ import nero_run_model
 pg.setConfigOptions(antialias=True, background='w')
 # use pyside gpu acceleration if gpu detected
 if torch.cuda.is_available():
-    pg.setConfigOption('useCupy', True)
+    # pg.setConfigOption('useCupy', True)
     os.environ['CUDA_VISIBLE_DEVICES']='0'
 else:
     pg.setConfigOption('useCupy', False)
@@ -1546,6 +1546,7 @@ class UI_MainWindow(QWidget):
 
         # name of the image
         self.name_label = QLabel(self.loaded_image_name)
+        self.name_label.setContentsMargins(0, 0, 0, 0)
         self.name_label.setAlignment(QtCore.Qt.AlignCenter)
 
         # add this image to the layout
@@ -2067,10 +2068,10 @@ class UI_MainWindow(QWidget):
                 elif text == 'IOU':
                     self.cur_plot_quantity_1 = self.all_quantities_1[:, :, 6]
                     self.cur_plot_quantity_2 = self.all_quantities_2[:, :, 6]
-                elif text == 'Translation Match %':
+                elif text == 'Consensus':
                     self.cur_plot_quantity_1 = np.zeros((self.all_quantities_1.shape[0], self.all_quantities_1.shape[1]))
                     self.cur_plot_quantity_2 = np.zeros((self.all_quantities_2.shape[0], self.all_quantities_2.shape[1]))
-                    # for each position, compute its bounding box center, which is (63, 63)
+                    # for each position, compute its bounding box center
                     # x_ratio = int(128 // self.all_quantities_1.shape[0])
                     # y_ratio = int(128 // self.all_quantities_1.shape[1])
                     for i in range(self.all_quantities_1.shape[0]):
@@ -2092,18 +2093,12 @@ class UI_MainWindow(QWidget):
                             y_tran_model_2 = cur_center_y_2 - 63
 
                             # compute percentage
-                            sign = 1
-                            print(x_tran_model_1, y_tran_model_1, x_tran, y_tran)
-                            if x_tran_model_1 * x_tran < 0 or y_tran_model_1 * y_tran < 0:
-                                sign = -1
-                                self.cur_plot_quantity_1[i, j] = sign * np.sqrt(x_tran_model_1**2 + y_tran_model_1**2) / np.sqrt(x_tran**2 + y_tran**2)
-
-                            sign = 1
-                            if x_tran_model_2 * x_tran or y_tran_model_2 * y_tran < 0 < 0:
-                                sign = -1
-                                self.cur_plot_quantity_2[i, j] = sign * np.sqrt(x_tran_model_2**2 + y_tran_model_2**2) / np.sqrt(x_tran**2 + y_tran**2)
-
-
+                            if np.sqrt(x_tran**2 + y_tran**2) == 0:
+                                self.cur_plot_quantity_1[i, j] = 1
+                                self.cur_plot_quantity_2[i, j] = 1
+                            else:
+                                self.cur_plot_quantity_1[i, j] = 1 - np.sqrt((x_tran_model_1-x_tran)**2 + (y_tran_model_1-y_tran)**2) / np.sqrt(x_tran**2 + y_tran**2)
+                                self.cur_plot_quantity_2[i, j] = 1 - np.sqrt((x_tran_model_2-x_tran)**2 + (y_tran_model_2-y_tran)**2) / np.sqrt(x_tran**2 + y_tran**2)
 
                 # re-display the heatmap
                 self.draw_heatmaps()
@@ -2119,7 +2114,7 @@ class UI_MainWindow(QWidget):
             quantity_menu.addItem('Confidence*IOU')
             quantity_menu.addItem('Confidence')
             quantity_menu.addItem('IOU')
-            quantity_menu.addItem('Translation Match %')
+            quantity_menu.addItem('Consensus')
             # self.quantity_menu.setCurrentIndex(0)
             quantity_menu.setCurrentText('Confidence*IOU')
 
