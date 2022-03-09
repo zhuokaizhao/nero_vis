@@ -1221,7 +1221,7 @@ class UI_MainWindow(QWidget):
                         gt_display_center_y = (self.cur_image_label[0, 3] + self.cur_image_label[0, 5]) // 2 * 2 + (rect_center_y - display_rect_height//2)
                         gt_display_rect_width = (self.cur_image_label[0, 4] - self.cur_image_label[0, 2]) * 2
                         gt_display_rect_height = (self.cur_image_label[0, 5] - self.cur_image_label[0, 3]) * 2
-                        self.draw_rectangle(painter, gt_display_center_x, gt_display_center_y, gt_display_rect_width, gt_display_rect_height, color='yellow')
+                        self.draw_rectangle(painter, gt_display_center_x, gt_display_center_y, gt_display_rect_width, gt_display_rect_height, color='yellow', label='Ground Truth')
                         painter.end()
 
                         # update pixmap with the label
@@ -1280,7 +1280,7 @@ class UI_MainWindow(QWidget):
 
 
     # draw a rectangle
-    def draw_rectangle(self, painter, center_x, center_y, width, height, color=None, fill=None, boundary_width=3):
+    def draw_rectangle(self, painter, center_x, center_y, width, height, color=None, fill=None, boundary_width=5, label=None):
         # left, top, width, height for QRect
         rectangle = QtCore.QRect(center_x-width//2, center_y-height//2, width, height)
 
@@ -1297,6 +1297,19 @@ class UI_MainWindow(QWidget):
             brush.setStyle(QtCore.Qt.SolidPattern)
             # painter.setBrush(brush)
             painter.fillRect(rectangle, brush)
+
+        if label:
+            # label background area
+            text_rect = QtCore.QRect(center_x-width//2, center_y-height//2-20, 100, 20)
+            brush = QtGui.QBrush()
+            brush.setStyle(QtCore.Qt.SolidPattern)
+            brush.setColor(color)
+            painter.fillRect(text_rect, brush)
+            # black text
+            pen = QtGui.QPen()
+            pen.setColor(QtGui.QColor('black'))
+            painter.setPen(pen)
+            painter.drawText(text_rect, QtGui.Qt.AlignCenter, label)
 
 
     # draw a polar plot
@@ -1373,7 +1386,7 @@ class UI_MainWindow(QWidget):
         gt_display_center_y = (self.cur_image_label[0, 3] + self.cur_image_label[0, 5]) // 2 * 4
         gt_display_rect_width = (self.cur_image_label[0, 4] - self.cur_image_label[0, 2]) * 4
         gt_display_rect_height = (self.cur_image_label[0, 5] - self.cur_image_label[0, 3]) * 4
-        self.draw_rectangle(painter, gt_display_center_x, gt_display_center_y, gt_display_rect_width, gt_display_rect_height, 'yellow')
+        self.draw_rectangle(painter, gt_display_center_x, gt_display_center_y, gt_display_rect_width, gt_display_rect_height, 'yellow', label='Ground Truth')
 
         # box from model 1
         bounding_boxes_1 = self.output_1[0][0][:, :4]
@@ -1464,7 +1477,7 @@ class UI_MainWindow(QWidget):
                         gt_display_center_y = (self.cur_image_label[0, 3] + self.cur_image_label[0, 5]) // 2 * 2 + (rect_center_y - display_rect_height//2)
                         gt_display_rect_width = (self.cur_image_label[0, 4] - self.cur_image_label[0, 2]) * 2
                         gt_display_rect_height = (self.cur_image_label[0, 5] - self.cur_image_label[0, 3]) * 2
-                        self.draw_rectangle(painter, gt_display_center_x, gt_display_center_y, gt_display_rect_width, gt_display_rect_height, color='yellow')
+                        self.draw_rectangle(painter, gt_display_center_x, gt_display_center_y, gt_display_rect_width, gt_display_rect_height, color='yellow', label='Ground Truth')
                         painter.end()
 
                         # update pixmap with the label
