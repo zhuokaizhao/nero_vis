@@ -165,7 +165,8 @@ class UI_MainWindow(QWidget):
                 self.image_size = 128
                 # image size that is used for display
                 self.display_image_size = 256
-                self.display_to_real_ratio = self.display_image_size // self.image_size
+                # heatmap and detailed image plot size
+                self.plot_size = 256
                 # image (input data) modification mode
                 self.rotation = False
                 self.translation = False
@@ -1367,7 +1368,7 @@ class UI_MainWindow(QWidget):
 
             # add a new label for loadeds image
             detailed_image_label = QLabel(self)
-            detailed_image_label.setFixedSize(500, 500)
+            detailed_image_label.setFixedSize(self.plot_size, self.plot_size)
             detailed_image_label.setContentsMargins(0, 0, 0, 0)
             detailed_image_label.setAlignment(QtCore.Qt.AlignCenter)
 
@@ -1375,10 +1376,10 @@ class UI_MainWindow(QWidget):
             # draw ground truth
             painter = QtGui.QPainter(detailed_image_pixmap)
             # draw the ground truth label
-            gt_display_center_x = (self.cur_image_label[0, 2] + self.cur_image_label[0, 4]) // 2 * 4
-            gt_display_center_y = (self.cur_image_label[0, 3] + self.cur_image_label[0, 5]) // 2 * 4
-            gt_display_rect_width = (self.cur_image_label[0, 4] - self.cur_image_label[0, 2]) * 4
-            gt_display_rect_height = (self.cur_image_label[0, 5] - self.cur_image_label[0, 3]) * 4
+            gt_display_center_x = (self.cur_image_label[0, 2] + self.cur_image_label[0, 4]) // 2 * (self.plot_size/self.image_size)
+            gt_display_center_y = (self.cur_image_label[0, 3] + self.cur_image_label[0, 5]) // 2 * (self.plot_size/self.image_size)
+            gt_display_rect_width = (self.cur_image_label[0, 4] - self.cur_image_label[0, 2]) * (self.plot_size/self.image_size)
+            gt_display_rect_height = (self.cur_image_label[0, 5] - self.cur_image_label[0, 3]) * (self.plot_size/self.image_size)
             self.draw_rectangle(painter, gt_display_center_x, gt_display_center_y, gt_display_rect_width, gt_display_rect_height, color='yellow', alpha=166, label='Ground Truth')
 
             # box from model 1
@@ -1388,10 +1389,10 @@ class UI_MainWindow(QWidget):
             # showing a maximum of 3 bounding boxes
             num_boxes_1 = min(3, len(bounding_boxes))
             for i in range(num_boxes_1):
-                center_x = (bounding_boxes[i, 0] + bounding_boxes[i, 2]) // 2 * 4
-                center_y = (bounding_boxes[i, 1] + bounding_boxes[i, 3]) // 2 * 4
-                model_display_rect_width = (bounding_boxes[i, 2] - bounding_boxes[i, 0]) *4
-                model_display_rect_height = (bounding_boxes[i, 3] - bounding_boxes[i, 1]) * 4
+                center_x = (bounding_boxes[i, 0] + bounding_boxes[i, 2]) // 2 * (self.plot_size/self.image_size)
+                center_y = (bounding_boxes[i, 1] + bounding_boxes[i, 3]) // 2 * (self.plot_size/self.image_size)
+                model_display_rect_width = (bounding_boxes[i, 2] - bounding_boxes[i, 0]) * (self.plot_size/self.image_size)
+                model_display_rect_height = (bounding_boxes[i, 3] - bounding_boxes[i, 1]) * (self.plot_size/self.image_size)
 
                 # compute alpha value based on confidence
                 cur_alpha = nero_utilities.lerp(confidences[i], 0, 1, 255/4, 255)
@@ -1411,7 +1412,7 @@ class UI_MainWindow(QWidget):
             # detailed information showed beneath the image
             # add a new label for text
             detailed_text_label = QLabel(self)
-            detailed_text_label.setFixedSize(self.display_image_size, 200)
+            detailed_text_label.setFixedSize(self.plot_size, 100)
             detailed_text_label.setContentsMargins(0, 0, 0, 0)
             detailed_text_label.setAlignment(QtCore.Qt.AlignTop)
 
@@ -1425,21 +1426,22 @@ class UI_MainWindow(QWidget):
 
             return detailed_image_label, detailed_text_label
 
+        # size of the enlarged image
         # convert and resize current selected FOV to QImage for display purpose
-        self.detailed_display_image = nero_utilities.tensor_to_qt_image(self.loaded_image_pt[self.y_min:self.y_max, self.x_min:self.x_max, :]).scaledToWidth(self.display_image_size)
+        self.detailed_display_image = nero_utilities.tensor_to_qt_image(self.loaded_image_pt[self.y_min:self.y_max, self.x_min:self.x_max, :]).scaledToWidth(self.plot_size)
         # run model with the cropped view
         self.cropped_image_pt = self.loaded_image_pt[self.y_min:self.y_max, self.x_min:self.x_max, :] / 255
         self.run_model_once()
 
         # display for model 1
         self.detailed_image_label_1, self.detailed_text_label_1 = draw_detailed_plot(self.detailed_display_image, self.output_1, 'blue')
-        self.single_result_layout.addWidget(self.detailed_image_label_1, 2, 2)
-        self.single_result_layout.addWidget(self.detailed_text_label_1, 3, 2)
+        self.single_result_layout.addWidget(self.detailed_image_label_1, 3, 2)
+        self.single_result_layout.addWidget(self.detailed_text_label_1, 4, 2)
 
         # display for model 1
         self.detailed_image_label_2, self.detailed_text_label_2 = draw_detailed_plot(self.detailed_display_image, self.output_2, 'magenta')
-        self.single_result_layout.addWidget(self.detailed_image_label_2, 2, 3)
-        self.single_result_layout.addWidget(self.detailed_text_label_2, 3, 3)
+        self.single_result_layout.addWidget(self.detailed_image_label_2, 3, 3)
+        self.single_result_layout.addWidget(self.detailed_text_label_2, 4, 3)
 
 
     def display_image(self):
@@ -1497,11 +1499,12 @@ class UI_MainWindow(QWidget):
                         # draw the rectangles
                         cover_color = QtGui.QColor(65, 65, 65, 225)
                         self.draw_fov_mask(painter, rect_center_x, rect_center_y, display_rect_width, display_rect_height, cover_color)
+
                         # draw the ground truth label
-                        gt_display_center_x = (self.cur_image_label[0, 2] + self.cur_image_label[0, 4]) // 2 * 2 + (rect_center_x - display_rect_width//2)
-                        gt_display_center_y = (self.cur_image_label[0, 3] + self.cur_image_label[0, 5]) // 2 * 2 + (rect_center_y - display_rect_height//2)
-                        gt_display_rect_width = (self.cur_image_label[0, 4] - self.cur_image_label[0, 2]) * 2
-                        gt_display_rect_height = (self.cur_image_label[0, 5] - self.cur_image_label[0, 3]) * 2
+                        gt_display_center_x = (self.cur_image_label[0, 2] + self.cur_image_label[0, 4]) // 2 * (self.display_image_size//self.uncropped_image_size) + (rect_center_x - display_rect_width//2)
+                        gt_display_center_y = (self.cur_image_label[0, 3] + self.cur_image_label[0, 5]) // 2 * (self.display_image_size//self.uncropped_image_size) + (rect_center_y - display_rect_height//2)
+                        gt_display_rect_width = (self.cur_image_label[0, 4] - self.cur_image_label[0, 2]) * (self.display_image_size//self.uncropped_image_size)
+                        gt_display_rect_height = (self.cur_image_label[0, 5] - self.cur_image_label[0, 3]) * (self.display_image_size//self.uncropped_image_size)
                         self.draw_rectangle(painter, gt_display_center_x, gt_display_center_y, gt_display_rect_width, gt_display_rect_height, color='yellow', label='Ground Truth')
                         painter.end()
 
@@ -1513,16 +1516,16 @@ class UI_MainWindow(QWidget):
 
                         # redisplay model output
                         # how much the clicked point is away from the image center
-                        x_dist = (rect_center_x - self.display_image_size//2)//2
-                        y_dist = (rect_center_y - self.display_image_size//2)//2
+                        x_dist = (rect_center_x - self.display_image_size/2) / (self.display_image_size/self.uncropped_image_size)
+                        y_dist = (rect_center_y - self.display_image_size/2) / (self.display_image_size/self.uncropped_image_size)
 
                         # compute rectangle center wrt to the original image
                         cur_center_x = self.center_x + x_dist
                         cur_center_y = self.center_y + y_dist
-                        self.x_min = cur_center_x - display_rect_width//2
-                        self.x_max = cur_center_x + display_rect_width//2
-                        self.y_min = cur_center_y - display_rect_height//2
-                        self.y_max = cur_center_y + display_rect_height//2
+                        self.x_min = int(cur_center_x - display_rect_width/2)
+                        self.x_max = int(cur_center_x + display_rect_width/2)
+                        self.y_min = int(cur_center_y - display_rect_height/2)
+                        self.y_max = int(cur_center_y + display_rect_height/2)
 
                         # compute the ground truth label of the cropped image
                         self.cur_image_label = np.zeros((len(self.loaded_image_label), 6))
@@ -1549,17 +1552,17 @@ class UI_MainWindow(QWidget):
             self.image_label.mouseReleaseEvent = end_moving
 
         # name of the image
-        self.name_label = QLabel(self.loaded_image_name)
-        self.name_label.setContentsMargins(0, 0, 0, 0)
-        self.name_label.setAlignment(QtCore.Qt.AlignCenter)
+        # self.name_label = QLabel(self.loaded_image_name)
+        # self.name_label.setContentsMargins(0, 0, 0, 0)
+        # self.name_label.setAlignment(QtCore.Qt.AlignCenter)
 
         # add this image to the layout
         if self.data_mode == 'single':
             self.single_result_layout.addWidget(self.image_label, 1, 0)
-            self.single_result_layout.addWidget(self.name_label, 2, 0)
+            # self.single_result_layout.addWidget(self.name_label, 2, 0)
         elif self.data_mode == 'aggregate':
             self.single_result_layout.addWidget(self.image_label, 0, 2)
-            self.single_result_layout.addWidget(self.name_label, 1, 2)
+            # self.single_result_layout.addWidget(self.name_label, 1, 2)
 
 
     # helper function on drawing mask on input COCO image (to highlight the current FOV)
@@ -1594,7 +1597,7 @@ class UI_MainWindow(QWidget):
     # draw heatmap
     def draw_heatmaps(self):
         # helper function on drawing individual heatmap
-        def draw_individual_heatmap(data, title, range=(0, 1)):
+        def draw_individual_heatmap(data, title=None, range=(0, 1)):
             # actuall heatmap
             heatmap = pg.ImageItem()
             heatmap.setOpts(axisOrder='row-major')
@@ -1673,12 +1676,12 @@ class UI_MainWindow(QWidget):
             data_2 = self.cur_plot_quantity_2
 
         # heatmap view
-        self.heatmap_view_1 = pg.GraphicsLayoutWidget(title='Model 1')
-        self.heatmap_view_1.setFixedSize(500, 500)
-        self.heatmap_view_2 = pg.GraphicsLayoutWidget(title='Model 2')
-        self.heatmap_view_2.setFixedSize(500, 500)
-        self.heatmap_plot_1 = draw_individual_heatmap(data_1, title=self.model_1_name)
-        self.heatmap_plot_2 = draw_individual_heatmap(data_2, title=self.model_2_name)
+        self.heatmap_view_1 = pg.GraphicsLayoutWidget()
+        self.heatmap_view_1.setFixedSize(self.plot_size*1.7, self.plot_size*1.7)
+        self.heatmap_view_2 = pg.GraphicsLayoutWidget()
+        self.heatmap_view_2.setFixedSize(self.plot_size*1.7, self.plot_size*1.7)
+        self.heatmap_plot_1 = draw_individual_heatmap(data_1)
+        self.heatmap_plot_2 = draw_individual_heatmap(data_2)
         # self.view_box_1.scene().sigMouseClicked.connect(heatmap_mouse_clicked(self.view_box_1))
         # self.view_box_2.scene().sigMouseClicked.connect(heatmap_mouse_clicked(self.view_box_2))
 
@@ -2087,10 +2090,10 @@ class UI_MainWindow(QWidget):
                             cur_center_y_2 = (self.all_quantities_2[i, j, 1] + self.all_quantities_2[i, j, 3]) / 2
 
                             # model output translation
-                            x_tran_model_1 = cur_center_x_1 - 63
-                            y_tran_model_1 = cur_center_y_1 - 63
-                            x_tran_model_2 = cur_center_x_2 - 63
-                            y_tran_model_2 = cur_center_y_2 - 63
+                            x_tran_model_1 = cur_center_x_1 - self.image_size//2 - 1
+                            y_tran_model_1 = cur_center_y_1 - self.image_size//2 - 1
+                            x_tran_model_2 = cur_center_x_2 - self.image_size//2 - 1
+                            y_tran_model_2 = cur_center_y_2 - self.image_size//2 - 1
 
                             # compute percentage
                             if np.sqrt(x_tran**2 + y_tran**2) == 0:
