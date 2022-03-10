@@ -112,8 +112,9 @@ class UI_MainWindow(QWidget):
 
                 self.init_load_layout()
 
-                # analyze and display mnist image size
+                # image size that is fed into the model
                 self.image_size = 29
+                # image size that is used for display
                 self.display_image_size = 150
                 # image (input data) modification mode
                 self.rotation = True
@@ -158,9 +159,12 @@ class UI_MainWindow(QWidget):
 
                 self.init_load_layout()
 
-                # analyze and display COCO image size
+                # uncropped image size
+                self.uncropped_image_size = 256
+                # image (cropped) size that is fed into the model
                 self.image_size = 128
-                self.display_image_size = 512
+                # image size that is used for display
+                self.display_image_size = 256
                 self.display_to_real_ratio = self.display_image_size // self.image_size
                 # image (input data) modification mode
                 self.rotation = False
@@ -428,8 +432,8 @@ class UI_MainWindow(QWidget):
                 self.loaded_image_pt = torch.from_numpy(np.array(Image.open(self.image_path).convert('RGB'), dtype=np.uint8))
                 self.loaded_image_name = self.image_path.split('/')[-1]
 
-                # take the cropped part of the entire input image
-                self.cur_image_pt = self.loaded_image_pt[self.center_y-128:self.center_y+128, self.center_x-128:self.center_x+128, :]
+                # take the cropped part of the entire input image to put in display image
+                self.cur_image_pt = self.loaded_image_pt[self.center_y-self.display_image_size//2:self.center_y+self.display_image_size//2, self.center_x-self.display_image_size//2:self.center_x+self.display_image_size//2, :]
 
             # convert to QImage for display purpose
             self.cur_display_image = nero_utilities.tensor_to_qt_image(self.cur_image_pt)
@@ -1167,10 +1171,10 @@ class UI_MainWindow(QWidget):
                     # take the cropped part of the entire input image
                     cur_center_x = self.center_x - x_tran
                     cur_center_y = self.center_y - y_tran
-                    self.x_min = cur_center_x - 64
-                    self.x_max = cur_center_x + 64
-                    self.y_min = cur_center_y - 64
-                    self.y_max = cur_center_y + 64
+                    self.x_min = cur_center_x - self.image_size//2
+                    self.x_max = cur_center_x + self.image_size//2
+                    self.y_min = cur_center_y - self.image_size//2
+                    self.y_max = cur_center_y + self.image_size//2
                     # model takes image between [0, 1]
                     self.cropped_image_pt = self.loaded_image_pt[self.y_min:self.y_max, self.x_min:self.x_max, :] / 255
 
@@ -1181,7 +1185,7 @@ class UI_MainWindow(QWidget):
                         # since PyTorch FasterRCNN has 0 as background
                         self.cur_image_label[i, 1] = self.loaded_image_label[i, 4] + 1
                         # modify the label accordingly
-                        self.cur_image_label[i, 2:] = self.compute_label(self.loaded_image_label[i, :4], self.x_min, self.y_min, (128, 128))
+                        self.cur_image_label[i, 2:] = self.compute_label(self.loaded_image_label[i, :4], self.x_min, self.y_min, (self.image_size, self.image_size))
 
                     # sanity check on if image/label are correct
                     sanity_check = False
@@ -1196,13 +1200,11 @@ class UI_MainWindow(QWidget):
                     if (x_tran)%2 == 0 and (y_tran)%2 == 0:
                         self.display_image()
 
-                        display_rect_width = self.display_image_size//2
-                        display_rect_height = self.display_image_size//2
-                        # displayed image has center at the center of the display
-                        # since displayed image enlarges the actual image by 2
+                        display_rect_width = self.display_image_size/2
+                        display_rect_height = self.display_image_size/2
                         # since the translation measures on the movement of object instead of the point of view, the sign is reversed
-                        rect_center_x = self.display_image_size//2 - x_tran*2
-                        rect_center_y = self.display_image_size//2 - y_tran*2
+                        rect_center_x = self.display_image_size/2 - x_tran * (self.display_image_size//self.uncropped_image_size)
+                        rect_center_y = self.display_image_size/2 - y_tran * (self.display_image_size//self.uncropped_image_size)
 
                         # draw rectangles on the displayed image to indicate scanning process
                         painter = QtGui.QPainter(self.image_pixmap)
@@ -1217,10 +1219,10 @@ class UI_MainWindow(QWidget):
                         # draw rectangle on the displayed image to indicate scanning process
                         painter = QtGui.QPainter(self.image_pixmap)
                         # draw the ground truth label
-                        gt_display_center_x = (self.cur_image_label[0, 2] + self.cur_image_label[0, 4]) // 2 * 2 + (rect_center_x - display_rect_width//2)
-                        gt_display_center_y = (self.cur_image_label[0, 3] + self.cur_image_label[0, 5]) // 2 * 2 + (rect_center_y - display_rect_height//2)
-                        gt_display_rect_width = (self.cur_image_label[0, 4] - self.cur_image_label[0, 2]) * 2
-                        gt_display_rect_height = (self.cur_image_label[0, 5] - self.cur_image_label[0, 3]) * 2
+                        gt_display_center_x = (self.cur_image_label[0, 2] + self.cur_image_label[0, 4]) / 2 * (self.image_size/display_rect_width) + (rect_center_x - display_rect_width/2)
+                        gt_display_center_y = (self.cur_image_label[0, 3] + self.cur_image_label[0, 5]) / 2 * (self.image_size/display_rect_height) + (rect_center_y - display_rect_height/2)
+                        gt_display_rect_width = (self.cur_image_label[0, 4] - self.cur_image_label[0, 2]) * (self.image_size//display_rect_width)
+                        gt_display_rect_height = (self.cur_image_label[0, 5] - self.cur_image_label[0, 3]) * (self.image_size//display_rect_height)
                         self.draw_rectangle(painter, gt_display_center_x, gt_display_center_y, gt_display_rect_width, gt_display_rect_height, color='yellow', label='Ground Truth')
                         painter.end()
 
@@ -1365,7 +1367,7 @@ class UI_MainWindow(QWidget):
 
             # add a new label for loadeds image
             detailed_image_label = QLabel(self)
-            detailed_image_label.setFixedSize(self.display_image_size, self.display_image_size)
+            detailed_image_label.setFixedSize(500, 500)
             detailed_image_label.setContentsMargins(0, 0, 0, 0)
             detailed_image_label.setAlignment(QtCore.Qt.AlignCenter)
 
@@ -1392,7 +1394,7 @@ class UI_MainWindow(QWidget):
                 model_display_rect_height = (bounding_boxes[i, 3] - bounding_boxes[i, 1]) * 4
 
                 # compute alpha value based on confidence
-                cur_alpha = nero_utilities.lerp(confidences[i], 0, 1, 64, 255)
+                cur_alpha = nero_utilities.lerp(confidences[i], 0, 1, 255/4, 255)
                 # compute boundary width based on IOU
                 cur_boundary_width = nero_utilities.lerp(ious[i], 0, 1, 2, 5)
 
@@ -1475,20 +1477,20 @@ class UI_MainWindow(QWidget):
                         self.display_image()
 
                         # draw the new FOV rectangle
-                        # restrict x and y value
-                        if rect_center_x + 128 >= 512:
-                            rect_center_x = 512-128
-                        elif rect_center_x - 128 < 0:
-                            rect_center_x = 128
-
-                        if rect_center_y + 128 >= 512:
-                            rect_center_y = 512-128
-                        elif rect_center_y - 128 < 0:
-                            rect_center_y = 128
-
                         # width and height of the rectangle
                         display_rect_width = self.display_image_size//2
                         display_rect_height = self.display_image_size//2
+
+                        # restrict x and y value
+                        if rect_center_x + display_rect_width//2 >= self.display_image_size:
+                            rect_center_x = self.display_image_size - display_rect_width//2
+                        elif rect_center_x - display_rect_width//2 < 0:
+                            rect_center_x = display_rect_width//2
+
+                        if rect_center_y + display_rect_height//2 >= self.display_image_size:
+                            rect_center_y = self.display_image_size - display_rect_height//2
+                        elif rect_center_y - display_rect_height//2 < 0:
+                            rect_center_y = display_rect_height//2
 
                         # draw rectangle on the displayed image to indicate scanning process
                         painter = QtGui.QPainter(self.image_pixmap)
@@ -1511,16 +1513,16 @@ class UI_MainWindow(QWidget):
 
                         # redisplay model output
                         # how much the clicked point is away from the image center
-                        x_dist = (rect_center_x - 255)//2
-                        y_dist = (rect_center_y - 255)//2
+                        x_dist = (rect_center_x - self.display_image_size//2)//2
+                        y_dist = (rect_center_y - self.display_image_size//2)//2
 
                         # compute rectangle center wrt to the original image
                         cur_center_x = self.center_x + x_dist
                         cur_center_y = self.center_y + y_dist
-                        self.x_min = cur_center_x - 64
-                        self.x_max = cur_center_x + 64
-                        self.y_min = cur_center_y - 64
-                        self.y_max = cur_center_y + 64
+                        self.x_min = cur_center_x - display_rect_width//2
+                        self.x_max = cur_center_x + display_rect_width//2
+                        self.y_min = cur_center_y - display_rect_height//2
+                        self.y_max = cur_center_y + display_rect_height//2
 
                         # compute the ground truth label of the cropped image
                         self.cur_image_label = np.zeros((len(self.loaded_image_label), 6))
@@ -1529,7 +1531,7 @@ class UI_MainWindow(QWidget):
                             self.cur_image_label[i, 0] = i
                             # since PyTorch FasterRCNN has 0 as background
                             self.cur_image_label[i, 1] = self.loaded_image_label[i, 4] + 1
-                            self.cur_image_label[i, 2:] = self.compute_label(self.loaded_image_label[i, :4], self.x_min, self.y_min, (128, 128))
+                            self.cur_image_label[i, 2:] = self.compute_label(self.loaded_image_label[i, :4], self.x_min, self.y_min, (self.image_size, self.image_size))
 
                         self.draw_model_output()
 
@@ -1606,8 +1608,6 @@ class UI_MainWindow(QWidget):
                                     'size': 5,
                                     'pen': {'color': 'red', 'width': 0.1},
                                     'brush': (255, 0, 0, 255)})
-            # draw lines to better show shape
-            # line_1 = self.aggregate_polar_plot.plot(all_x_1, all_y_1, pen = QtGui.QPen(QtGui.Qt.blue, 0.03))
 
             # add points to the item
             scatter_item.addPoints(scatter_point)
@@ -1655,28 +1655,28 @@ class UI_MainWindow(QWidget):
 
                 # draw a point(rect) that represents current selection of location
 
-        # check if the data is in shape (128, 128)
-        if self.cur_plot_quantity_1.shape != (128, 128):
+        # check if the data is in shape (self.image_size, self.image_size)
+        if self.cur_plot_quantity_1.shape != (self.image_size, self.image_size):
             # repeat in row
-            temp = np.repeat(self.cur_plot_quantity_1, 128//self.cur_plot_quantity_1.shape[1], axis=0)
+            temp = np.repeat(self.cur_plot_quantity_1, self.image_size/self.cur_plot_quantity_1.shape[1], axis=0)
             # repeat in column
-            data_1 = np.repeat(temp, 128//self.cur_plot_quantity_1.shape[0], axis=1)
+            data_1 = np.repeat(temp, self.image_size/self.cur_plot_quantity_1.shape[0], axis=1)
         else:
             data_1 = self.cur_plot_quantity_1
 
-        if self.cur_plot_quantity_2.shape != (128, 128):
+        if self.cur_plot_quantity_2.shape != (self.image_size, self.image_size):
             # repeat in row
-            temp = np.repeat(self.cur_plot_quantity_2, 128//self.cur_plot_quantity_2.shape[1], axis=0)
+            temp = np.repeat(self.cur_plot_quantity_2, self.image_size/self.cur_plot_quantity_2.shape[1], axis=0)
             # repeat in column
-            data_2 = np.repeat(temp, 128//self.cur_plot_quantity_2.shape[0], axis=1)
+            data_2 = np.repeat(temp, self.image_size/self.cur_plot_quantity_2.shape[0], axis=1)
         else:
             data_2 = self.cur_plot_quantity_2
 
         # heatmap view
         self.heatmap_view_1 = pg.GraphicsLayoutWidget(title='Model 1')
-        self.heatmap_view_1.setFixedSize(600, 600)
+        self.heatmap_view_1.setFixedSize(500, 500)
         self.heatmap_view_2 = pg.GraphicsLayoutWidget(title='Model 2')
-        self.heatmap_view_2.setFixedSize(600, 600)
+        self.heatmap_view_2.setFixedSize(500, 500)
         self.heatmap_plot_1 = draw_individual_heatmap(data_1, title=self.model_1_name)
         self.heatmap_plot_2 = draw_individual_heatmap(data_2, title=self.model_2_name)
         # self.view_box_1.scene().sigMouseClicked.connect(heatmap_mouse_clicked(self.view_box_1))
@@ -2072,8 +2072,8 @@ class UI_MainWindow(QWidget):
                     self.cur_plot_quantity_1 = np.zeros((self.all_quantities_1.shape[0], self.all_quantities_1.shape[1]))
                     self.cur_plot_quantity_2 = np.zeros((self.all_quantities_2.shape[0], self.all_quantities_2.shape[1]))
                     # for each position, compute its bounding box center
-                    # x_ratio = int(128 // self.all_quantities_1.shape[0])
-                    # y_ratio = int(128 // self.all_quantities_1.shape[1])
+                    # x_ratio = int(self.image_size // self.all_quantities_1.shape[0])
+                    # y_ratio = int(self.image_size // self.all_quantities_1.shape[1])
                     for i in range(self.all_quantities_1.shape[0]):
                         for j in range(self.all_quantities_1.shape[1]):
                             # correct translation amount
