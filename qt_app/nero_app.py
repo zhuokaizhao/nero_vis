@@ -166,7 +166,7 @@ class UI_MainWindow(QWidget):
                 # image size that is used for display
                 self.display_image_size = 256
                 # heatmap and detailed image plot size
-                self.plot_size = 256
+                self.plot_size = 384
                 # image (input data) modification mode
                 self.rotation = False
                 self.translation = False
@@ -794,6 +794,7 @@ class UI_MainWindow(QWidget):
         # loaded images and model result layout
         self.single_result_layout = QtWidgets.QGridLayout()
         self.single_result_layout.setContentsMargins(30, 50, 30, 50)
+        # self.single_result_layout.setContentsMargins(0, 0, 0, 0)
 
         # add to general layout
         if self.data_mode == 'single':
@@ -1368,8 +1369,9 @@ class UI_MainWindow(QWidget):
 
             # add a new label for loadeds image
             detailed_image_label = QLabel(self)
-            detailed_image_label.setFixedSize(self.plot_size, self.plot_size)
-            detailed_image_label.setContentsMargins(0, 0, 0, 0)
+            detailed_image_label.setFixedSize(self.plot_size+20, self.plot_size)
+            # left top right bottom
+            detailed_image_label.setContentsMargins(20, 0, 0, 0)
             detailed_image_label.setAlignment(QtCore.Qt.AlignCenter)
 
             # draw bounding boxes on the enlarged view
@@ -1413,8 +1415,11 @@ class UI_MainWindow(QWidget):
             # add a new label for text
             detailed_text_label = QLabel(self)
             detailed_text_label.setFixedSize(self.plot_size, 100)
-            detailed_text_label.setContentsMargins(0, 0, 0, 0)
+            # left top right bottom
+            detailed_text_label.setContentsMargins(20, 0, 0, 0)
             detailed_text_label.setAlignment(QtCore.Qt.AlignTop)
+            # font and size
+            detailed_text_label.setFont(QFont('Helvetica', 14))
 
             # display_text = f'Ground Truth: {self.custom_coco_names[int(self.loaded_image_label[0][4])]}\n'
             display_text = ''
@@ -1436,9 +1441,12 @@ class UI_MainWindow(QWidget):
         # display for model 1
         self.detailed_image_label_1, self.detailed_text_label_1 = draw_detailed_plot(self.detailed_display_image, self.output_1, 'blue')
         self.single_result_layout.addWidget(self.detailed_image_label_1, 3, 2)
+        # spacer item between image and text
+        image_text_spacer = QtWidgets.QSpacerItem(self.plot_size, 10, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
+        self.single_result_layout.addItem(image_text_spacer, 4, 2)
         self.single_result_layout.addWidget(self.detailed_text_label_1, 4, 2)
 
-        # display for model 1
+        # display for model 2
         self.detailed_image_label_2, self.detailed_text_label_2 = draw_detailed_plot(self.detailed_display_image, self.output_2, 'magenta')
         self.single_result_layout.addWidget(self.detailed_image_label_2, 3, 3)
         self.single_result_layout.addWidget(self.detailed_text_label_2, 4, 3)
@@ -1677,9 +1685,13 @@ class UI_MainWindow(QWidget):
 
         # heatmap view
         self.heatmap_view_1 = pg.GraphicsLayoutWidget()
-        self.heatmap_view_1.setFixedSize(self.plot_size*1.7, self.plot_size*1.7)
+        # left top right bottom
+        self.heatmap_view_1.ci.layout.setContentsMargins(0, 20, 0, 70)
+        self.heatmap_view_1.setFixedSize(self.plot_size*1.2, self.plot_size*1.2)
         self.heatmap_view_2 = pg.GraphicsLayoutWidget()
-        self.heatmap_view_2.setFixedSize(self.plot_size*1.7, self.plot_size*1.7)
+        # left top right bottom
+        self.heatmap_view_2.ci.layout.setContentsMargins(0, 20, 0, 70)
+        self.heatmap_view_2.setFixedSize(self.plot_size*1.2, self.plot_size*1.2)
         self.heatmap_plot_1 = draw_individual_heatmap(data_1)
         self.heatmap_plot_2 = draw_individual_heatmap(data_2)
         # self.view_box_1.scene().sigMouseClicked.connect(heatmap_mouse_clicked(self.view_box_1))
@@ -2108,11 +2120,11 @@ class UI_MainWindow(QWidget):
 
             # drop down menu on selection which quantity to plot
             quantity_menu = QtWidgets.QComboBox()
-            quantity_menu.setFixedSize(QtCore.QSize(300, 50))
+            quantity_menu.setFixedSize(QtCore.QSize(200, 50))
             quantity_menu.setStyleSheet('font-size: 18px')
             quantity_menu.setEditable(True)
             quantity_menu.lineEdit().setReadOnly(True)
-            quantity_menu.lineEdit().setAlignment(QtCore.Qt.AlignCenter)
+            quantity_menu.lineEdit().setAlignment(QtCore.Qt.AlignLeft)
 
             quantity_menu.addItem('Confidence*IOU')
             quantity_menu.addItem('Confidence')
