@@ -259,7 +259,7 @@ def process_model_outputs(outputs, targets, iou_thres=0.5, conf_thres=0):
     all_precisions = []
     all_recalls = []
     all_F_measure = []
-
+    # print(outputs)
     # loop through each proposed object
     for i in range(len(outputs)):
 
@@ -379,43 +379,48 @@ def run_coco_once(model_name, model, test_image, custom_names, pytorch_names, te
                 pred_boxes = image_pred['boxes'].cpu()
                 pred_labels = image_pred['labels'].cpu()
                 pred_confs = image_pred['scores'].cpu()
+                # print(pred_boxes)
+                if len(pred_boxes) != 0:
+                    # when we are using pretrained model and ground truth label is present
+                    if (model_name == 'FasterRCNN (Pre-trained)') and type(test_label) != type(None):
+                        valid_indices = []
+                        for j in range(len(pred_labels)):
+                            if pytorch_names[int(pred_labels[j]-1)] in custom_names:
+                                valid_indices.append(j)
+                                pred_labels[j] = custom_names.index(pytorch_names[int(pred_labels[j]-1)]) + 1
+                            else:
+                                continue
 
-                # when we are using pretrained model and ground truth label is present
-                if (model_name == 'FasterRCNN (Pre-trained)') and type(test_label) != type(None):
-                    valid_indices = []
-                    for j in range(len(pred_labels)):
-                        if pytorch_names[int(pred_labels[j]-1)] in custom_names:
-                            valid_indices.append(j)
-                            pred_labels[j] = custom_names.index(pytorch_names[int(pred_labels[j]-1)]) + 1
-                        else:
-                            continue
+                        # transform output in the format of (x1, y1, x2, y2, conf, class_pred)
+                        output = torch.zeros((len(valid_indices), 6))
+                        output[:, :4] = pred_boxes[valid_indices]
+                        output[:, 4] = pred_confs[valid_indices]
+                        output[:, 5] = pred_labels[valid_indices]
+                    else:
+                        # transform output in the format of (x1, y1, x2, y2, conf, class_pred)
+                        output = torch.zeros((len(pred_boxes), 6))
+                        output[:, :4] = pred_boxes
+                        output[:, 4] = pred_confs
+                        output[:, 5] = pred_labels
 
-                    # transform output in the format of (x1, y1, x2, y2, conf, class_pred)
-                    output = torch.zeros((len(valid_indices), 6))
-                    output[:, :4] = pred_boxes[valid_indices]
-                    output[:, 4] = pred_confs[valid_indices]
-                    output[:, 5] = pred_labels[valid_indices]
-                else:
-                    # transform output in the format of (x1, y1, x2, y2, conf, class_pred)
-                    output = torch.zeros((len(pred_boxes), 6))
-                    output[:, :4] = pred_boxes
-                    output[:, 4] = pred_confs
-                    output[:, 5] = pred_labels
-
-                outputs.append(output)
+                    outputs.append(output)
 
             if outputs != []:
                 cur_qualified_output, cur_precision, cur_recall, cur_F_measure = process_model_outputs(outputs, torch.from_numpy(test_label))
+                # print(cur_qualified_output.shape)
+                # print(cur_precision.shape)
+                # exit()
             else:
+                # print('empty')
                 # no qualified output
-                cur_qualified_output = np.zeros(7)
-                cur_precision = np.zeros(1)
-                cur_recall = np.zeros(1)
-                cur_F_measure = np.zeros(1)
+                cur_qualified_output = [torch.zeros((1, 1, 7))]
+                cur_precision = [torch.zeros(1)]
+                cur_recall = [torch.zeros(1)]
+                cur_F_measure = [torch.zeros(1)]
             # batch_time_end = time.time()
             # batch_time_cost = batch_time_end - batch_time_start
             # print(f'Inference time: {batch_time_cost} seconds')
-
+    # print(cur_qualified_output)
     return [cur_qualified_output, cur_precision, cur_recall, cur_F_measure]
 
 

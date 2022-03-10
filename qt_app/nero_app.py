@@ -1249,11 +1249,13 @@ class UI_MainWindow(QWidget):
                     # plotting the quantity regarding the correct label
                     quantity_1 = self.output_1[0][0][0]
                     quantity_2 = self.output_2[0][0][0]
+                    # print(quantity_1)
 
                     self.all_quantities_1.append(quantity_1)
                     self.all_quantities_2.append(quantity_2)
 
-
+            # print(np.array(self.all_quantities_1).shape)
+            # print(np.array(self.all_quantities_2).shape)
             # display the individual NERO plot
             num_x_translations = len(self.x_translation)
             num_y_translations = len(self.y_translation)
@@ -1356,86 +1358,86 @@ class UI_MainWindow(QWidget):
 
     # draw detailed look of COCO models output on cropped regions
     def draw_model_output(self):
+        def draw_detailed_plot(detailed_display_image, model_output, color):
 
-        # convert and resize to QImage for display purpose
+            # prepare a pixmap for the image
+            detailed_image_pixmap = QPixmap(detailed_display_image)
+
+            # add a new label for loadeds image
+            detailed_image_label = QLabel(self)
+            detailed_image_label.setFixedSize(self.display_image_size, self.display_image_size)
+            detailed_image_label.setContentsMargins(0, 0, 0, 0)
+            detailed_image_label.setAlignment(QtCore.Qt.AlignCenter)
+
+            # draw bounding boxes on the enlarged view
+            # draw ground truth
+            painter = QtGui.QPainter(detailed_image_pixmap)
+            # draw the ground truth label
+            gt_display_center_x = (self.cur_image_label[0, 2] + self.cur_image_label[0, 4]) // 2 * 4
+            gt_display_center_y = (self.cur_image_label[0, 3] + self.cur_image_label[0, 5]) // 2 * 4
+            gt_display_rect_width = (self.cur_image_label[0, 4] - self.cur_image_label[0, 2]) * 4
+            gt_display_rect_height = (self.cur_image_label[0, 5] - self.cur_image_label[0, 3]) * 4
+            self.draw_rectangle(painter, gt_display_center_x, gt_display_center_y, gt_display_rect_width, gt_display_rect_height, color='yellow', alpha=166, label='Ground Truth')
+
+            # box from model 1
+            bounding_boxes = model_output[0][0][:, :4]
+            confidences = model_output[0][0][:, 4]
+            ious = model_output[0][0][:, 6]
+            # showing a maximum of 3 bounding boxes
+            num_boxes_1 = min(3, len(bounding_boxes))
+            for i in range(num_boxes_1):
+                center_x = (bounding_boxes[i, 0] + bounding_boxes[i, 2]) // 2 * 4
+                center_y = (bounding_boxes[i, 1] + bounding_boxes[i, 3]) // 2 * 4
+                model_display_rect_width = (bounding_boxes[i, 2] - bounding_boxes[i, 0]) *4
+                model_display_rect_height = (bounding_boxes[i, 3] - bounding_boxes[i, 1]) * 4
+
+                # compute alpha value based on confidence
+                cur_alpha = nero_utilities.lerp(confidences[i], 0, 1, 64, 255)
+                # compute boundary width based on IOU
+                cur_boundary_width = nero_utilities.lerp(ious[i], 0, 1, 2, 5)
+
+                self.draw_rectangle(painter, center_x, center_y, model_display_rect_width, model_display_rect_height, color, alpha=cur_alpha, boundary_width=cur_boundary_width, label=f'Prediction {i+1}')
+
+            painter.end()
+
+            # put pixmap in the label
+            detailed_image_label.setPixmap(detailed_image_pixmap)
+
+            # force repaint
+            detailed_image_label.repaint()
+
+            # detailed information showed beneath the image
+            # add a new label for text
+            detailed_text_label = QLabel(self)
+            detailed_text_label.setFixedSize(self.display_image_size, 200)
+            detailed_text_label.setContentsMargins(0, 0, 0, 0)
+            detailed_text_label.setAlignment(QtCore.Qt.AlignTop)
+
+            # display_text = f'Ground Truth: {self.custom_coco_names[int(self.loaded_image_label[0][4])]}\n'
+            display_text = ''
+            for i in range(num_boxes_1):
+                display_text += f'Prediction {i+1}: {self.custom_coco_names[int(model_output[0][0][i, 5]-1)]}, Conf: {model_output[0][0][i, 4]:.3f}, IOU: {model_output[0][0][i, 6]:.3f}\n'
+            display_text += '\n'
+
+            detailed_text_label.setText(display_text)
+
+            return detailed_image_label, detailed_text_label
+
+        # convert and resize current selected FOV to QImage for display purpose
         self.detailed_display_image = nero_utilities.tensor_to_qt_image(self.loaded_image_pt[self.y_min:self.y_max, self.x_min:self.x_max, :]).scaledToWidth(self.display_image_size)
-
-        # add a new label for loaded image if no imager has existed
-        if not self.single_result_existed:
-            self.detailed_image_label = QLabel(self)
-            self.detailed_image_label.setFixedSize(self.display_image_size, self.display_image_size)
-            self.detailed_image_label.setContentsMargins(0, 0, 0, 0)
-            self.detailed_image_label.setAlignment(QtCore.Qt.AlignCenter)
-
-        # prepare a pixmap for the image
-        self.detailed_image_pixmap = QPixmap(self.detailed_display_image)
-
         # run model with the cropped view
         self.cropped_image_pt = self.loaded_image_pt[self.y_min:self.y_max, self.x_min:self.x_max, :] / 255
-
-        # run models on current selected output
         self.run_model_once()
 
-        # draw bounding boxes on the enlarged view
-        # draw ground truth
-        painter = QtGui.QPainter(self.detailed_image_pixmap)
-        # draw the ground truth label
-        gt_display_center_x = (self.cur_image_label[0, 2] + self.cur_image_label[0, 4]) // 2 * 4
-        gt_display_center_y = (self.cur_image_label[0, 3] + self.cur_image_label[0, 5]) // 2 * 4
-        gt_display_rect_width = (self.cur_image_label[0, 4] - self.cur_image_label[0, 2]) * 4
-        gt_display_rect_height = (self.cur_image_label[0, 5] - self.cur_image_label[0, 3]) * 4
-        self.draw_rectangle(painter, gt_display_center_x, gt_display_center_y, gt_display_rect_width, gt_display_rect_height, color='yellow', alpha=166, label='Ground Truth')
+        # display for model 1
+        self.detailed_image_label_1, self.detailed_text_label_1 = draw_detailed_plot(self.detailed_display_image, self.output_1, 'blue')
+        self.single_result_layout.addWidget(self.detailed_image_label_1, 2, 2)
+        self.single_result_layout.addWidget(self.detailed_text_label_1, 3, 2)
 
-        # box from model 1
-        bounding_boxes_1 = self.output_1[0][0][:, :4]
-        # showing a maximum of 3 bounding boxes
-        num_boxes_1 = min(3, len(bounding_boxes_1))
-        for i in range(num_boxes_1):
-            center_x_1 = (bounding_boxes_1[i, 0] + bounding_boxes_1[i, 2]) // 2 * 4
-            center_y_1 = (bounding_boxes_1[i, 1] + bounding_boxes_1[i, 3]) // 2 * 4
-            model_1_display_rect_width = (bounding_boxes_1[i, 2] - bounding_boxes_1[i, 0]) *4
-            model_1_display_rect_height = (bounding_boxes_1[i, 3] - bounding_boxes_1[i, 1]) * 4
-
-            self.draw_rectangle(painter, center_x_1, center_y_1, model_1_display_rect_width, model_1_display_rect_height, 'blue', alpha=166, label=f'Prediction {i+1}')
-
-        # box from model 2
-        bounding_boxes_2 = self.output_2[0][0][:, :4]
-        # showing a maximum of 3 bounding boxes
-        num_boxes_2 = min(3, len(bounding_boxes_2))
-        for i in range(num_boxes_2):
-            center_x_2 = (bounding_boxes_2[i, 0] + bounding_boxes_2[i, 2]) // 2 * 4
-            center_y_2 = (bounding_boxes_2[i, 1] + bounding_boxes_2[i, 3]) // 2 * 4
-            model_2_display_rect_width = (bounding_boxes_2[i, 2] - bounding_boxes_2[i, 0]) * 4
-            model_2_display_rect_height = (bounding_boxes_2[i, 3] - bounding_boxes_2[i, 1]) * 4
-
-            self.draw_rectangle(painter, center_x_2, center_y_2, model_2_display_rect_width, model_2_display_rect_height, 'magenta', alpha=166, label=f'Prediction {i+1}')
-
-        painter.end()
-
-        # put pixmap in the label
-        self.detailed_image_label.setPixmap(self.detailed_image_pixmap)
-        self.single_result_layout.addWidget(self.detailed_image_label, 1, 2, 1, 2)
-
-        # force repaint
-        self.detailed_image_label.repaint()
-
-        # detailed information showed beneath the image
-        # add a new label for text
-        if not self.single_result_existed:
-            self.detailed_text_label = QLabel(self)
-            self.detailed_text_label.setFixedSize(self.display_image_size, 200)
-            self.detailed_text_label.setContentsMargins(0, 0, 0, 0)
-            self.detailed_text_label.setAlignment(QtCore.Qt.AlignTop)
-
-        display_text = f'Ground Truth: {self.custom_coco_names[int(self.loaded_image_label[0][4])]}\n'
-        for i in range(num_boxes_1):
-            display_text += f'{self.model_1_name} Prediction {i+1}: {self.custom_coco_names[int(self.output_1[0][0][i, 5]-1)]}, Conf: {self.output_1[0][0][i, 4]:.3f}, IOU: {self.output_1[0][0][i, 6]:.3f}\n'
-        display_text += '\n'
-        for i in range(num_boxes_2):
-            display_text += f'{self.model_2_name} Prediction {i+1}: {self.custom_coco_names[int(self.output_2[0][0][i, 5]-1)]}, Conf: {self.output_2[0][0][i, 4]:.3f}, IOU: {self.output_2[0][0][i, 6]:.3f}\n'
-
-        self.detailed_text_label.setText(display_text)
-        self.single_result_layout.addWidget(self.detailed_text_label, 2, 2, 1, 2)
+        # display for model 1
+        self.detailed_image_label_2, self.detailed_text_label_2 = draw_detailed_plot(self.detailed_display_image, self.output_2, 'magenta')
+        self.single_result_layout.addWidget(self.detailed_image_label_2, 2, 3)
+        self.single_result_layout.addWidget(self.detailed_text_label_2, 3, 3)
 
 
     def display_image(self):
@@ -1685,8 +1687,8 @@ class UI_MainWindow(QWidget):
         self.heatmap_view_2.addItem(self.heatmap_plot_2)
 
         # add to general layout
-        self.single_result_layout.addWidget(self.heatmap_view_1, 1, 4, 1, 1)
-        self.single_result_layout.addWidget(self.heatmap_view_2, 1, 5, 1, 1)
+        self.single_result_layout.addWidget(self.heatmap_view_1, 1, 2)
+        self.single_result_layout.addWidget(self.heatmap_view_2, 1, 3)
 
 
     # display MNIST aggregated results
@@ -2017,8 +2019,6 @@ class UI_MainWindow(QWidget):
 
     # display COCO single results
     def display_coco_single_result(self, type, boundary_width):
-        # move the model drop down menu to display place
-
 
         # aggregate mode does not draw arrow
         if self.data_mode == 'single':
@@ -2043,7 +2043,7 @@ class UI_MainWindow(QWidget):
             self.single_result_layout.addWidget(self.arrow_label, 1, 1)
             painter.end()
 
-        # move the model menu on top of the enlarged plot
+        # move the model menu on top of the each individual NERO plot
         self.single_result_layout.addWidget(self.model_1_menu, 0, 2, 1, 1)
         self.single_result_layout.addWidget(self.model_2_menu, 0, 3, 1, 1)
 
