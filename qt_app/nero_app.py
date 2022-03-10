@@ -1483,8 +1483,10 @@ class UI_MainWindow(QWidget):
                     # when the click selection is valid and model has been run before
                     if self.single_result_existed:
 
-                        # re-display
-                        self.display_image()
+                        # re-load clean image
+                        # self.display_image()
+                        self.image_pixmap = QPixmap(self.cur_display_image)
+                        self.image_label.setPixmap(self.image_pixmap)
 
                         # draw the new FOV rectangle
                         # width and height of the rectangle
@@ -1508,11 +1510,26 @@ class UI_MainWindow(QWidget):
                         cover_color = QtGui.QColor(65, 65, 65, 225)
                         self.draw_fov_mask(painter, rect_center_x, rect_center_y, display_rect_width, display_rect_height, cover_color)
 
+                        # how much the clicked point is away from the image center
+                        x_dist = (rect_center_x - self.display_image_size/2) / (self.display_image_size/self.uncropped_image_size)
+                        y_dist = (rect_center_y - self.display_image_size/2) / (self.display_image_size/self.uncropped_image_size)
+                        # compute rectangle center wrt to the original image
+                        cur_center_x = self.center_x + x_dist
+                        cur_center_y = self.center_y + y_dist
+                        self.x_min = int(cur_center_x - display_rect_width/2)
+                        self.x_max = int(cur_center_x + display_rect_width/2)
+                        self.y_min = int(cur_center_y - display_rect_height/2)
+                        self.y_max = int(cur_center_y + display_rect_height/2)
+
+                        # re-compute the ground truth label bounding boxes of the cropped image
+                        for i in range(len(self.cur_image_label)):
+                            self.cur_image_label[i, 2:] = self.compute_label(self.loaded_image_label[i, :4], self.x_min, self.y_min, (self.image_size, self.image_size))
+
                         # draw the ground truth label
-                        gt_display_center_x = (self.cur_image_label[0, 2] + self.cur_image_label[0, 4]) // 2 * (self.display_image_size//self.uncropped_image_size) + (rect_center_x - display_rect_width//2)
-                        gt_display_center_y = (self.cur_image_label[0, 3] + self.cur_image_label[0, 5]) // 2 * (self.display_image_size//self.uncropped_image_size) + (rect_center_y - display_rect_height//2)
-                        gt_display_rect_width = (self.cur_image_label[0, 4] - self.cur_image_label[0, 2]) * (self.display_image_size//self.uncropped_image_size)
-                        gt_display_rect_height = (self.cur_image_label[0, 5] - self.cur_image_label[0, 3]) * (self.display_image_size//self.uncropped_image_size)
+                        gt_display_center_x = (self.cur_image_label[0, 2] + self.cur_image_label[0, 4]) / 2 * (self.display_image_size/self.uncropped_image_size) + (rect_center_x - display_rect_width/2)
+                        gt_display_center_y = (self.cur_image_label[0, 3] + self.cur_image_label[0, 5]) / 2 * (self.display_image_size/self.uncropped_image_size) + (rect_center_y - display_rect_height/2)
+                        gt_display_rect_width = (self.cur_image_label[0, 4] - self.cur_image_label[0, 2]) * (self.display_image_size/self.uncropped_image_size)
+                        gt_display_rect_height = (self.cur_image_label[0, 5] - self.cur_image_label[0, 3]) * (self.display_image_size/self.uncropped_image_size)
                         self.draw_rectangle(painter, gt_display_center_x, gt_display_center_y, gt_display_rect_width, gt_display_rect_height, color='yellow', label='Ground Truth')
                         painter.end()
 
@@ -1523,27 +1540,6 @@ class UI_MainWindow(QWidget):
                         self.image_label.repaint()
 
                         # redisplay model output
-                        # how much the clicked point is away from the image center
-                        x_dist = (rect_center_x - self.display_image_size/2) / (self.display_image_size/self.uncropped_image_size)
-                        y_dist = (rect_center_y - self.display_image_size/2) / (self.display_image_size/self.uncropped_image_size)
-
-                        # compute rectangle center wrt to the original image
-                        cur_center_x = self.center_x + x_dist
-                        cur_center_y = self.center_y + y_dist
-                        self.x_min = int(cur_center_x - display_rect_width/2)
-                        self.x_max = int(cur_center_x + display_rect_width/2)
-                        self.y_min = int(cur_center_y - display_rect_height/2)
-                        self.y_max = int(cur_center_y + display_rect_height/2)
-
-                        # compute the ground truth label of the cropped image
-                        self.cur_image_label = np.zeros((len(self.loaded_image_label), 6))
-                        for i in range(len(self.cur_image_label)):
-                            # object index
-                            self.cur_image_label[i, 0] = i
-                            # since PyTorch FasterRCNN has 0 as background
-                            self.cur_image_label[i, 1] = self.loaded_image_label[i, 4] + 1
-                            self.cur_image_label[i, 2:] = self.compute_label(self.loaded_image_label[i, :4], self.x_min, self.y_min, (self.image_size, self.image_size))
-
                         self.draw_model_output()
 
                         # show corresponding translation amount on the heatmap
