@@ -606,6 +606,15 @@ class UI_MainWindow(QWidget):
                     self.model_1 = nero_run_model.load_model(self.mode, 'pre_trained', self.model_1_path)
                     print('Model 1 path: Downloaded from PyTorch')
 
+                # when loaded data is available, just show the result without clicking the button
+                if self.use_cache:
+                    if self.data_mode == 'aggregate':
+                        self.run_model_aggregated()
+                        self.aggregate_result_existed = True
+
+                    elif self.data_mode == 'single':
+                        self.run_model_all()
+                        self.single_result_existed = True
 
         @QtCore.Slot()
         def model_2_selection_changed(text):
