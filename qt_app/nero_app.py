@@ -1355,6 +1355,9 @@ class UI_MainWindow(QWidget):
 
     # draw a rectangle
     def draw_rectangle(self, painter, center_x, center_y, width, height, color=None, alpha=255, fill=None, boundary_width=5, label=None):
+        if center_x == 0 and center_y == 0 and width == 0 and height == 0:
+            return
+
         # left, top, width, height for QRect
         rectangle = QtCore.QRect(center_x-width//2, center_y-height//2, width, height)
 
@@ -1482,7 +1485,7 @@ class UI_MainWindow(QWidget):
             # detailed information showed beneath the image
             # add a new label for text
             detailed_text_label = QLabel(self)
-            detailed_text_label.setFixedSize(self.plot_size, 100)
+            detailed_text_label.setFixedSize(self.plot_size+20, 100)
             # left top right bottom
             detailed_text_label.setContentsMargins(20, 0, 0, 0)
             detailed_text_label.setAlignment(QtCore.Qt.AlignTop)

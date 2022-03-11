@@ -411,10 +411,10 @@ def run_coco_once(model_name, model, test_image, custom_names, pytorch_names, te
             else:
                 # print('empty')
                 # no qualified output
-                cur_qualified_output = torch.zeros((1, 1, 7))
-                cur_precision = torch.zeros(1)
-                cur_recall = torch.zeros(1)
-                cur_F_measure = torch.zeros(1)
+                cur_qualified_output = np.zeros((1, 1, 7))
+                cur_precision = np.zeros(1)
+                cur_recall = np.zeros(1)
+                cur_F_measure = np.zeros(1)
             # batch_time_end = time.time()
             # batch_time_cost = batch_time_end - batch_time_start
             # print(f'Inference time: {batch_time_cost} seconds')
