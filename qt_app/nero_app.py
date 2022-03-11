@@ -392,16 +392,22 @@ class UI_MainWindow(QWidget):
                 self.run_button_layout = QtWidgets.QGridLayout()
                 self.layout.addLayout(self.run_button_layout, 2, 0, 1, 2)
 
-                self.run_button = QtWidgets.QPushButton('Analyze model with aggregated dataset')
+                self.run_button = QtWidgets.QPushButton('Analyze model')
                 self.run_button.setStyleSheet('font-size: 18px')
-                run_button_size = QtCore.QSize(500, 50)
-                self.run_button.setMinimumSize(run_button_size)
+                self.run_button.setMinimumSize(QtCore.QSize(500, 50))
                 self.run_button_layout.addWidget(self.run_button)
                 self.run_button.clicked.connect(self.run_button_clicked)
 
+                # instead of running, we can also load results from cache
+                self.use_cache_checkbox = QtWidgets.QCheckBox('Use previously computed result')
+                self.use_cache_checkbox.setStyleSheet('font-size: 18px')
+                self.use_cache_checkbox.setMinimumSize(QtCore.QSize(500, 50))
+                self.use_cache_checkbox.stateChanged.connect(self.run_cache_checkbox_clicked)
+                self.run_button_layout.addWidget(self.use_cache_checkbox)
+
                 self.run_button_existed = True
             else:
-                self.run_button.setText('Analyze model with aggregated dataset')
+                self.run_button.setText('Analyze model')
 
         # load single image drop-down menu
         @QtCore.Slot()
@@ -424,6 +430,9 @@ class UI_MainWindow(QWidget):
                 self.clear_layout(self.single_result_layout)
                 self.single_result_existed = False
                 self.image_existed = False
+
+            # reset loading from pre-computed result
+            self.use_cache = False
 
             self.data_mode = 'single'
 
@@ -479,28 +488,26 @@ class UI_MainWindow(QWidget):
             if not self.run_button_existed:
                 # run button
                 # buttons layout for run model
-                self.run_button_layout = QtWidgets.QHBoxLayout()
+                self.run_button_layout = QtWidgets.QVBoxLayout()
                 self.layout.addLayout(self.run_button_layout, 3, 0, 1, 2)
 
-                self.run_button_text = 'Analyze model (compute realtime)'
+                self.run_button_text = 'Analyze model'
                 self.run_button = QtWidgets.QPushButton(self.run_button_text)
                 self.run_button.setStyleSheet('font-size: 18px')
-                self.run_button.setFixedSize(QtCore.QSize(400, 50))
+                self.run_button.setMinimumSize(QtCore.QSize(500, 50))
                 self.run_button.clicked.connect(self.run_button_clicked)
                 self.run_button_layout.addWidget(self.run_button)
 
                 # instead of running, we can also load results from cache
-                self.run_cache_button_text = 'Analyze model (computed results)'
-                self.run_cache_button = QtWidgets.QPushButton(self.run_cache_button_text)
-                self.run_cache_button.setStyleSheet('font-size: 18px')
-                self.run_cache_button.setFixedSize(QtCore.QSize(400, 50))
-                self.run_cache_button.clicked.connect(self.run_cache_button_clicked)
-                self.run_button_layout.addWidget(self.run_cache_button)
+                self.use_cache_checkbox = QtWidgets.QCheckBox('Use previously computed result')
+                self.use_cache_checkbox.setStyleSheet('font-size: 18px')
+                self.use_cache_checkbox.setMinimumSize(QtCore.QSize(500, 50))
+                self.use_cache_checkbox.stateChanged.connect(self.run_cache_checkbox_clicked)
+                self.run_button_layout.addWidget(self.use_cache_checkbox)
 
                 self.run_button_existed = True
             else:
                 self.run_button.setText(self.run_button_text)
-                self.run_cache_button.setText(self.run_cache_button_text)
 
         # two drop down menus that let user choose models
         @QtCore.Slot()
@@ -866,25 +873,11 @@ class UI_MainWindow(QWidget):
 
 
     @QtCore.Slot()
-    def run_cache_button_clicked(self):
-        self.use_cache = True
-
-        if self.data_mode == 'aggregate':
-            self.run_model_aggregated()
-            self.aggregate_result_existed = True
-
-        elif self.data_mode == 'single':
-            if self.mode == 'digit_recognition':
-                # run model once and display results
-                self.run_model_once()
-                # run model all and display results (Individual NERO plot)
-                self.run_model_all()
-
-            elif self.mode == 'object_detection':
-                # run model all and display results (Individual NERO plot)
-                self.run_model_all()
-
-            self.single_result_existed = True
+    def run_cache_checkbox_clicked(self, state):
+        if state == QtCore.Qt.Checked:
+            self.use_cache = True
+        else:
+            self.use_cache = False
 
 
     # initialize digit selection control drop down menu
@@ -2128,6 +2121,10 @@ class UI_MainWindow(QWidget):
         self.single_result_layout.addWidget(self.model_1_menu, 0, 2, 1, 1)
         self.single_result_layout.addWidget(self.model_2_menu, 0, 3, 1, 1)
 
+        # move run button below the displayed image
+        self.single_result_layout.addWidget(self.run_button, 2, 0)
+        self.single_result_layout.addWidget(self.use_cache_checkbox, 3, 0)
+
         # plot current field-of-view's detailed prediction results
         self.draw_model_output()
 
@@ -2201,7 +2198,7 @@ class UI_MainWindow(QWidget):
 
             # connect the drop down menu with actions
             quantity_menu.currentTextChanged.connect(heatmap_quantity_changed)
-            self.single_result_layout.addWidget(quantity_menu, 0, 5, 1, 2)
+            self.single_result_layout.addWidget(quantity_menu, 0, 0)
 
             # define default plotting quantity
             self.cur_plot_quantity_1 = self.all_quantities_1[:, :, 4] * self.all_quantities_1[:, :, 6]
