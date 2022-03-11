@@ -2,6 +2,7 @@
 from dataclasses import dataclass
 import os
 import sys
+from sympy import EX
 import torch
 import torchvision
 import numpy as np
@@ -219,7 +220,7 @@ def process_model_outputs(outputs, targets, iou_thres=0.5, conf_thres=0):
     all_precisions = []
     all_recalls = []
     all_F_measure = []
-    # loop through each proposed object
+    # loop through model's outputs on each image sample
     for i in range(len(outputs)):
 
         if outputs[i] is None:
@@ -227,7 +228,7 @@ def process_model_outputs(outputs, targets, iou_thres=0.5, conf_thres=0):
 
         # output has to pass the conf threshold to filter out noisy predictions
         # faster-rcnn output has format (x1, y1, x2, y2, conf, class_pred)
-        # output is ordered by confidence
+        # output is ordered by confidence from the model by default
         output = outputs[i]
         cur_object_outputs = []
         for j in range(len(output)):
@@ -256,7 +257,7 @@ def process_model_outputs(outputs, targets, iou_thres=0.5, conf_thres=0):
             qualified_output.append(np.append(cur_object_outputs[j].numpy(), cur_iou))
 
             # if the label is predicted correctly
-            if pred_labels[j] == true_labels[i]:
+            if pred_labels[j] == true_labels[0]:
                 # if iou passed threshold
                 if cur_iou > iou_thres:
                     num_true_positive += 1
@@ -291,8 +292,47 @@ def process_model_outputs(outputs, targets, iou_thres=0.5, conf_thres=0):
     return all_qualified_outputs, all_precisions, all_recalls, all_F_measure
 
 
+# filter/modify the model outputs by supported classes
+def clean_model_outputs(model_name, outputs_dict, test_label, original_names, desired_names):
+    outputs = []
+    # actually outputs_dict has length 1 because it is single image mode
+    for i in range(len(outputs_dict)):
+        image_pred = outputs_dict[i]
+        pred_boxes = image_pred['boxes'].cpu()
+        pred_labels = image_pred['labels'].cpu()
+        pred_confs = image_pred['scores'].cpu()
+        # the model proposes multiple bounding boxes for each object
+        if len(pred_boxes) != 0:
+            # when we are using pretrained model and ground truth label is present
+            if (model_name == 'FasterRCNN (Pre-trained)') and type(test_label) != type(None):
+                valid_indices = []
+                for j in range(len(pred_labels)):
+                    if original_names[int(pred_labels[j]-1)] in desired_names:
+                        valid_indices.append(j)
+                        pred_labels[j] = desired_names.index(original_names[int(pred_labels[j]-1)]) + 1
+                    else:
+                        continue
+
+                if len(valid_indices) != 0:
+                    # transform output in the format of (x1, y1, x2, y2, conf, class_pred)
+                    output = torch.zeros((len(valid_indices), 6))
+                    output[:, :4] = pred_boxes[valid_indices]
+                    output[:, 4] = pred_confs[valid_indices]
+                    output[:, 5] = pred_labels[valid_indices]
+                    outputs.append(output)
+            else:
+                # transform output in the format of (x1, y1, x2, y2, conf, class_pred)
+                output = torch.zeros((len(pred_boxes), 6))
+                output[:, :4] = pred_boxes
+                output[:, 4] = pred_confs
+                output[:, 5] = pred_labels
+
+                outputs.append(output)
+
+    return outputs
+
 # run model on either a single COCO image or a batch of COCO images
-def run_coco_once(mode, model_name, model, test_image, custom_names, pytorch_names, test_label=None, batch_size=1, x_tran=None, y_tran=None):
+def run_coco_once(mode, model_name, model, test_image, custom_names, pytorch_names, test_label=None, batch_size=1, x_tran=None, y_tran=None, coco_names=None):
 
     # basic settings for pytorch
     if torch.cuda.is_available():
@@ -314,40 +354,7 @@ def run_coco_once(mode, model_name, model, test_image, custom_names, pytorch_nam
 
             # run model inference
             outputs_dict = model(test_image)
-            outputs = []
-            # the model proposes multiple bounding boxes for each object
-            for i in range(len(outputs_dict)):
-                image_pred = outputs_dict[i]
-                pred_boxes = image_pred['boxes'].cpu()
-                pred_labels = image_pred['labels'].cpu()
-                pred_confs = image_pred['scores'].cpu()
-                # print(pred_boxes)
-                if len(pred_boxes) != 0:
-                    # when we are using pretrained model and ground truth label is present
-                    if (model_name == 'FasterRCNN (Pre-trained)') and type(test_label) != type(None):
-                        valid_indices = []
-                        for j in range(len(pred_labels)):
-                            if pytorch_names[int(pred_labels[j]-1)] in custom_names:
-                                valid_indices.append(j)
-                                pred_labels[j] = custom_names.index(pytorch_names[int(pred_labels[j]-1)]) + 1
-                            else:
-                                continue
-
-                        if len(valid_indices) != 0:
-                            # transform output in the format of (x1, y1, x2, y2, conf, class_pred)
-                            output = torch.zeros((len(valid_indices), 6))
-                            output[:, :4] = pred_boxes[valid_indices]
-                            output[:, 4] = pred_confs[valid_indices]
-                            output[:, 5] = pred_labels[valid_indices]
-                            outputs.append(output)
-                    else:
-                        # transform output in the format of (x1, y1, x2, y2, conf, class_pred)
-                        output = torch.zeros((len(pred_boxes), 6))
-                        output[:, :4] = pred_boxes
-                        output[:, 4] = pred_confs
-                        output[:, 5] = pred_labels
-
-                        outputs.append(output)
+            outputs = clean_model_outputs(model_name, outputs_dict, test_label, pytorch_names, custom_names)
 
             if outputs != []:
                 cur_qualified_output, cur_precision, cur_recall, cur_F_measure = process_model_outputs(outputs, torch.from_numpy(test_label))
@@ -358,13 +365,20 @@ def run_coco_once(mode, model_name, model, test_image, custom_names, pytorch_nam
                 cur_recall = np.zeros(1)
                 cur_F_measure = np.zeros(1)
 
-            return [cur_qualified_output, cur_precision, cur_recall, cur_F_measure]
-
     # multiple image (batch) mode
     elif mode == 'aggregate':
+        if not coco_names:
+            raise Exception('Needs coco_names for aggregate mode')
+
+        # in this mode test_label needs to be None
+        if test_label:
+            raise Exception(f'{mode} mode requires NO test_label input as they are loaded via dataloader')
+
         img_size = 128
         # transforms that are to apply on loaded images
+        # since in this mode images are loaded from original COCO, their labels are based on original coco labels, not custom
         AGGREGATE_TRANSFORMS = transforms.Compose([nero_transform.FixedJittering(img_size, x_tran, y_tran),
+                                                    nero_transform.ConvertLabel(coco_names, custom_names),
                                                     nero_transform.ToTensor()])
 
         # in aggregate mode test_image is a path that includes paths of all the images
@@ -380,41 +394,36 @@ def run_coco_once(mode, model_name, model, test_image, custom_names, pytorch_nam
             collate_fn=dataset.collate_fn
         )
 
-        Tensor = torch.cuda.FloatTensor if torch.cuda.is_available() else torch.FloatTensor
+        all_qualified_output = []
+        all_precision = []
+        all_recall = []
+        all_F_measure = []
 
-        # all the class labels ground truth
-        labels = []
-        # List of tuples (TP, confs, pred)
-        sample_metrics = []
-        all_losses = []
-        for batch_i, (_, imgs, targets) in enumerate(dataloader):
+        for batch_i, (_, test_images, test_labels) in enumerate(dataloader):
 
-            if targets is None:
+            if test_labels is None:
                 continue
 
-            print(batch_i, imgs.shape, targets.shape)
-            exit()
+            with torch.no_grad():
+                test_images = test_images.to(device)
+                outputs_dict = model(test_images)
 
+                # outputs = nero_utilities.non_max_suppression(output_dict, conf_thres=0, nms_thres=0.4)
+                outputs = clean_model_outputs(model_name, outputs_dict, test_label, pytorch_names, custom_names)
 
+                if outputs != []:
+                    cur_qualified_output, cur_precision, cur_recall, cur_F_measure = process_model_outputs(outputs, test_labels)
+                else:
+                    # no qualified output
+                    cur_qualified_output = np.zeros((1, 1, 7))
+                    cur_precision = np.zeros(1)
+                    cur_recall = np.zeros(1)
+                    cur_F_measure = np.zeros(1)
 
+                print(cur_qualified_output.shape)
+                print(cur_precision.shape)
+                print(cur_precision.shape)
+                print(cur_F_measure.shape)
+                exit()
 
-
-
-    # create dataloader to take care of classes conversion, etc
-    # EVALUATE_TRANSFORMS = transforms.Compose([nero_transform.ConvertLabel(original_names, custom_names),
-    #                                         nero_transform.ToTensor()])
-
-    # dataset = datasets.CreateDataset(path, img_size=img_size, transform=EVALUATE_TRANSFORMS)
-    # dataloader = torch.utils.data.DataLoader(
-    #     dataset,
-    #     batch_size=batch_size,
-    #     shuffle=False,
-    #     num_workers=1,
-    #     collate_fn=dataset.collate_fn
-    # )
-
-
-
-
-
-
+    return [cur_qualified_output, cur_precision, cur_recall, cur_F_measure]

@@ -1184,7 +1184,8 @@ class UI_MainWindow(QWidget):
                                                                                                                     self.pytorch_coco_names,
                                                                                                                     batch_size=self.batch_size,
                                                                                                                     x_tran=x_tran,
-                                                                                                                    y_tran=y_tran)
+                                                                                                                    y_tran=y_tran,
+                                                                                                                    coco_names=self.original_coco_names)
 
                     print(cur_qualified_output.shape)
                     print(cur_precision.shape)
@@ -1197,7 +1198,8 @@ class UI_MainWindow(QWidget):
                                                                                                                     self.pytorch_coco_names,
                                                                                                                     batch_size=self.batch_size,
                                                                                                                     x_tran=x_tran,
-                                                                                                                    y_tran=y_tran)
+                                                                                                                    y_tran=y_tran,
+                                                                                                                    coco_names=self.original_coco_names)
 
                     # append to results
                     # self.all_avg_accuracy_1[i] = avg_accuracy_1

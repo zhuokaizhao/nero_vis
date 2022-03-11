@@ -35,9 +35,9 @@ class MnistDataset(torch.utils.data.Dataset):
 # COCO dataset class
 class COCODataset(Dataset):
     def __init__(self, list_path, img_size=128, transform=None):
-        with open(list_path, "r") as file:
-            self.img_files = file.readlines()
-
+        # with open(list_path, "r") as file:
+        #     self.img_files = file.readlines()
+        self.img_files = list_path
         # get label path from image path
         self.label_files = [
             path.replace("images", "labels").replace(".png", ".txt").replace(".jpg", ".txt")

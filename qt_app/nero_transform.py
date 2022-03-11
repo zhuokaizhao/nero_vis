@@ -216,6 +216,27 @@ class FixedJittering(object):
         return label_path, extracted_img, processed_labels
 
 
+# convert object classes from coco to custom class labels
+class ConvertLabel(object):
+    def __init__(self, coco_classes, desired_classes):
+
+        self.coco_classes = coco_classes
+        self.desired_classes = desired_classes
+
+    def __call__(self, data):
+
+        label_path, img, labels = data
+
+        # convert key id from COCO classes to custom desired classes
+        for i, cur_label in enumerate(labels):
+            # 0 is always background for pytorch faster-rcnn
+            cur_id = cur_label[0].astype(int)
+            key_id_custom = int(self.desired_classes.index(self.coco_classes[cur_id]) + 1)
+            labels[i, 0] = key_id_custom
+
+        return label_path, img, labels
+
+
 # convert both images and bounding boxes to PyTorch tensors (used in aggregate case)
 class ToTensor(object):
     def __init__(self, ):
