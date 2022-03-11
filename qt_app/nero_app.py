@@ -420,6 +420,13 @@ class UI_MainWindow(QWidget):
             self.aggregate_image_menu.setCurrentIndex(0)
             # clear previous result layout
             if self.data_existed:
+                # move model selection menus back to load menu
+                self.load_menu_layout.addWidget(self.model_1_menu, 2, 3)
+                self.load_menu_layout.addWidget(self.model_2_menu, 3, 3)
+                # move run button back to run button layout
+                self.run_button_layout.addWidget(self.run_button)
+                self.run_button_layout.addWidget(self.use_cache_checkbox)
+                # clear result layout
                 self.clear_layout(self.aggregate_result_layout)
                 self.aggregate_result_existed = False
                 self.data_existed = False
@@ -427,6 +434,10 @@ class UI_MainWindow(QWidget):
                 # move model selection menus back to load menu
                 self.load_menu_layout.addWidget(self.model_1_menu, 2, 3)
                 self.load_menu_layout.addWidget(self.model_2_menu, 3, 3)
+                # move run button back to run button layout
+                self.run_button_layout.addWidget(self.run_button)
+                self.run_button_layout.addWidget(self.use_cache_checkbox)
+                # clear result layout
                 self.clear_layout(self.single_result_layout)
                 self.single_result_existed = False
                 self.image_existed = False
@@ -1319,14 +1330,9 @@ class UI_MainWindow(QWidget):
                     self.all_quantities_1[y, x] = quantity_1
                     self.all_quantities_2[y, x] = quantity_2
 
-                # save to cache
-                self.save_to_cache(name=f'{self.data_mode}_{self.model_1_cache_name}_{self.image_index}', content=self.all_quantities_1)
-                self.save_to_cache(name=f'{self.data_mode}_{self.model_2_cache_name}_{self.image_index}', content=self.all_quantities_2)
-
-            # display the individual NERO plot
-            # self.all_translations = np.array(self.all_translations).reshape((num_x_translations, num_y_translations, 2))
-            # self.all_quantities_1 = np.array(self.all_quantities_1).reshape((num_y_translations, num_x_translations, 7))
-            # self.all_quantities_2 = np.array(self.all_quantities_2).reshape((num_y_translations, num_x_translations, 7))
+            # save to cache
+            self.save_to_cache(name=f'{self.data_mode}_{self.model_1_cache_name}_{self.image_index}', content=self.all_quantities_1)
+            self.save_to_cache(name=f'{self.data_mode}_{self.model_2_cache_name}_{self.image_index}', content=self.all_quantities_2)
 
             # display the individual NERO plot
             self.display_coco_single_result(type='heatmap', boundary_width=3)
