@@ -58,27 +58,6 @@ def load_classes(path):
     return names
 
 
-# convert label file from coco original classes to target classes
-class ConvertLabel(object):
-    def __init__(self, original_classes, desired_classes):
-
-        self.original_classes = original_classes
-        self.desired_classes = desired_classes
-
-    def __call__(self, data):
-
-        label_path, img, labels = data
-
-        # convert key id from COCO classes to custom desired classes
-        for i, cur_label in enumerate(labels):
-            # 0 is always background for pytorch faster-rcnn
-            cur_id = cur_label[0].astype(int)
-            key_id_custom = int(self.desired_classes.index(self.coco_classes[cur_id]) + 1)
-            labels[i, 0] = key_id_custom
-
-        return label_path, img, labels
-
-
 # perform jittering with a specific x_tran and y_tran during the aggregate test phase
 class FixedJittering(object):
     def __init__(self, img_size, x_tran, y_tran):

@@ -1160,36 +1160,43 @@ class UI_MainWindow(QWidget):
             self.all_avg_quantity_per_class_1 = np.zeros((len(self.y_translation), len(self.x_translation), len(self.custom_coco_names)))
             self.all_avg_quantity_per_class_2 = np.zeros((len(self.y_translation), len(self.x_translation), len(self.custom_coco_names)))
             # output of each sample for all translations, has shape (num_y_trans, num_x_trans, num_samples, num_samples, 7)
-            self.all_outputs_1 = np.zeros((len(self.y_translation), len(self.x_translation), len(self.cur_images_pt), 7))
-            self.all_outputs_2 = np.zeros((len(self.y_translation), len(self.x_translation), len(self.cur_images_pt), 7))
+            self.all_outputs_1 = np.zeros((len(self.y_translation), len(self.x_translation), len(self.all_images_paths), 7))
+            self.all_outputs_2 = np.zeros((len(self.y_translation), len(self.x_translation), len(self.all_images_paths), 7))
 
             # for all the loaded images
             for y, y_tran in enumerate(self.y_translation):
                 for x, x_tran in enumerate(self.x_translation):
-                    print(f'\nAggregate mode: Rotated {self.cur_rotation_angle} degrees')
-                    # self.all_angles.append(self.cur_rotation_angle)
 
                     cur_qualified_output, cur_precision, cur_recall, cur_F_measure = nero_run_model.run_coco_once('aggregate',
+                                                                                                                    self.model_1_name,
                                                                                                                     self.model_1,
-                                                                                                                    self.cur_images_pt,
-                                                                                                                    self.loaded_images_labels,
+                                                                                                                    self.all_images_paths,
+                                                                                                                    self.custom_coco_names,
+                                                                                                                    self.pytorch_coco_names,
                                                                                                                     batch_size=self.batch_size,
-                                                                                                                    rotate_angle=self.cur_rotation_angle)
+                                                                                                                    x_tran=x_tran,
+                                                                                                                    y_tran=y_tran)
 
+                    print(cur_qualified_output.shape)
+                    print(cur_precision.shape)
+                    exit()
                     cur_qualified_output, cur_precision, cur_recall, cur_F_measure = nero_run_model.run_coco_once('aggregate',
+                                                                                                                    self.model_2_name,
                                                                                                                     self.model_2,
-                                                                                                                    self.cur_images_pt,
-                                                                                                                    self.loaded_images_labels,
+                                                                                                                    self.all_images_paths,
+                                                                                                                    self.custom_coco_names,
+                                                                                                                    self.pytorch_coco_names,
                                                                                                                     batch_size=self.batch_size,
-                                                                                                                    rotate_angle=self.cur_rotation_angle)
+                                                                                                                    x_tran=x_tran,
+                                                                                                                    y_tran=y_tran)
 
                     # append to results
-                    self.all_avg_accuracy_1[i] = avg_accuracy_1
-                    self.all_avg_accuracy_2[i] = avg_accuracy_2
-                    self.all_avg_accuracy_per_digit_1[i] = avg_accuracy_per_digit_1
-                    self.all_avg_accuracy_per_digit_2[i] = avg_accuracy_per_digit_2
-                    self.all_outputs_1[i] = output_1
-                    self.all_outputs_2[i] = output_2
+                    # self.all_avg_accuracy_1[i] = avg_accuracy_1
+                    # self.all_avg_accuracy_2[i] = avg_accuracy_2
+                    # self.all_avg_accuracy_per_digit_1[i] = avg_accuracy_per_digit_1
+                    # self.all_avg_accuracy_per_digit_2[i] = avg_accuracy_per_digit_2
+                    # self.all_outputs_1[i] = output_1
+                    # self.all_outputs_2[i] = output_2
 
             # initialize digit selection control
             self.init_aggregate_polar_control()

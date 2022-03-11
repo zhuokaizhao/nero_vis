@@ -363,14 +363,9 @@ def run_coco_once(mode, model_name, model, test_image, custom_names, pytorch_nam
     # multiple image (batch) mode
     elif mode == 'aggregate':
         img_size = 128
-        # different transforms based on if we are evaluating with pre-trained model
-        if (model_name == 'FasterRCNN (Pre-trained)'):
-            AGGREGATE_TRANSFORMS = transforms.Compose([nero_transform.FixedJittering(img_size, x_tran, y_tran),
-                                                        nero_transform.ConvertLabel(pytorch_names, custom_names),
-                                                        nero_transform.ToTensor()])
-        else:
-            AGGREGATE_TRANSFORMS = transforms.Compose([nero_transform.FixedJittering(img_size, x_tran, y_tran),
-                                                        nero_transform.ToTensor()])
+        # transforms that are to apply on loaded images
+        AGGREGATE_TRANSFORMS = transforms.Compose([nero_transform.FixedJittering(img_size, x_tran, y_tran),
+                                                    nero_transform.ToTensor()])
 
         # in aggregate mode test_image is a path that includes paths of all the images
         dataset = datasets.COCODataset(list_path=test_image,
@@ -397,7 +392,8 @@ def run_coco_once(mode, model_name, model, test_image, custom_names, pytorch_nam
             if targets is None:
                 continue
 
-
+            print(batch_i, imgs.shape, targets.shape)
+            exit()
 
 
 
