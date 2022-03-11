@@ -64,7 +64,11 @@ class UI_MainWindow(QWidget):
 
         # load/initialize program cache
         self.use_cache = False
-        self.cache_path = os.path.join(os.getcwd(), 'nero_cache.npz')
+        cache_dir = os.path.join(os.getcwd(), 'cache')
+        if not os.path.isdir(cache_dir):
+            os.mkdir(cache_dir)
+
+        self.cache_path = os.path.join(cache_dir, 'nero_cache.npz')
         # if not exist, creat one
         if not os.path.isfile(self.cache_path):
             np.savez(self.cache_path)
@@ -78,6 +82,7 @@ class UI_MainWindow(QWidget):
         if name in self.cache.keys():
             return self.cache[name]
         else:
+            print(f'No precomputed result named {name}')
             return None
         # return getattr(self.cache, name)
 
@@ -441,9 +446,6 @@ class UI_MainWindow(QWidget):
                 self.clear_layout(self.single_result_layout)
                 self.single_result_existed = False
                 self.image_existed = False
-
-            # reset loading from pre-computed result
-            self.use_cache = False
 
             self.data_mode = 'single'
 
@@ -1217,19 +1219,20 @@ class UI_MainWindow(QWidget):
 
         elif self.mode == 'object_detection':
 
-            if self.use_cache:
-                self.all_quantities_1 = self.load_from_cache(name=f'{self.data_mode}_{self.model_1_cache_name}_{self.image_index}')
-                self.all_quantities_2 = self.load_from_cache(name=f'{self.data_mode}_{self.model_2_cache_name}_{self.image_index}')
-
             # all the x and y translations
             # x translates on columns, y translates on rows
-            self.x_translation = list(range(-self.image_size//2, self.image_size//2, 8))
-            self.y_translation = list(range(-self.image_size//2, self.image_size//2, 8))
+            self.x_translation = list(range(-self.image_size//2, self.image_size//2, 1))
+            self.y_translation = list(range(-self.image_size//2, self.image_size//2, 1))
             num_x_translations = len(self.x_translation)
             num_y_translations = len(self.y_translation)
             self.all_translations = np.zeros((num_y_translations, num_x_translations, 2))
-            self.all_quantities_1 = np.zeros((num_y_translations, num_x_translations, 7))
-            self.all_quantities_2 = np.zeros((num_y_translations, num_x_translations, 7))
+
+            if self.use_cache:
+                self.all_quantities_1 = self.load_from_cache(name=f'{self.data_mode}_{self.model_1_cache_name}_{self.image_index}')
+                self.all_quantities_2 = self.load_from_cache(name=f'{self.data_mode}_{self.model_2_cache_name}_{self.image_index}')
+            else:
+                self.all_quantities_1 = np.zeros((num_y_translations, num_x_translations, 7))
+                self.all_quantities_2 = np.zeros((num_y_translations, num_x_translations, 7))
 
             for y, y_tran in enumerate(self.y_translation):
                 for x, x_tran in enumerate(self.x_translation):
