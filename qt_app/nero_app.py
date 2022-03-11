@@ -201,7 +201,7 @@ class UI_MainWindow(QWidget):
                 # image size that is used for display
                 self.display_image_size = 256
                 # heatmap and detailed image plot size
-                self.plot_size = 384
+                self.plot_size = 320
                 # image (input data) modification mode
                 self.rotation = False
                 self.translation = False
@@ -302,6 +302,7 @@ class UI_MainWindow(QWidget):
 
         # create label to contain the texts
         self.mode_label = QLabel(self)
+        self.mode_label.setContentsMargins(0, 0, 0, 0)
         self.mode_label.setFixedSize(QtCore.QSize(150, 30))
         self.mode_label.setAlignment(QtCore.Qt.AlignLeft)
         self.mode_label.setWordWrap(True)
@@ -680,6 +681,7 @@ class UI_MainWindow(QWidget):
 
         # create label to contain the texts
         self.model_label = QLabel(self)
+        self.model_label.setContentsMargins(0, 0, 0, 0)
         self.model_label.setFixedSize(QtCore.QSize(300, 30))
         self.model_label.setAlignment(QtCore.Qt.AlignLeft)
         self.model_label.setWordWrap(True)
@@ -764,6 +766,7 @@ class UI_MainWindow(QWidget):
         # model 1
         # graphic representation
         self.model_1_label = QLabel(self)
+        self.model_1_label.setContentsMargins(0, 0, 0, 0)
         self.model_1_label.setAlignment(QtCore.Qt.AlignCenter)
         model_1_icon = QPixmap(25, 25)
         model_1_icon.fill(QtCore.Qt.white)
@@ -802,6 +805,7 @@ class UI_MainWindow(QWidget):
         # model 2
         # graphic representation
         self.model_2_label = QLabel(self)
+        self.model_2_label.setContentsMargins(0, 0, 0, 0)
         self.model_2_label.setAlignment(QtCore.Qt.AlignCenter)
         model_2_icon = QPixmap(25, 25)
         model_2_icon.fill(QtCore.Qt.white)
@@ -1271,6 +1275,9 @@ class UI_MainWindow(QWidget):
                         # modify the label accordingly
                         self.cur_image_label[i, 2:] = self.compute_label(self.loaded_image_label[i, :4], self.x_min, self.y_min, (self.image_size, self.image_size))
 
+                    if self.use_cache:
+                        continue
+
                     # sanity check on if image/label are correct
                     sanity_check = False
                     if sanity_check:
@@ -1287,8 +1294,8 @@ class UI_MainWindow(QWidget):
                         display_rect_width = self.display_image_size/2
                         display_rect_height = self.display_image_size/2
                         # since the translation measures on the movement of object instead of the point of view, the sign is reversed
-                        rect_center_x = self.display_image_size/2 - x_tran * (self.display_image_size//self.uncropped_image_size)
-                        rect_center_y = self.display_image_size/2 - y_tran * (self.display_image_size//self.uncropped_image_size)
+                        rect_center_x = self.display_image_size/2 - x_tran * (self.display_image_size/self.uncropped_image_size)
+                        rect_center_y = self.display_image_size/2 - y_tran * (self.display_image_size/self.uncropped_image_size)
 
                         # draw rectangles on the displayed image to indicate scanning process
                         painter = QtGui.QPainter(self.image_pixmap)
@@ -1303,10 +1310,10 @@ class UI_MainWindow(QWidget):
                         # draw rectangle on the displayed image to indicate scanning process
                         painter = QtGui.QPainter(self.image_pixmap)
                         # draw the ground truth label
-                        gt_display_center_x = (self.cur_image_label[0, 2] + self.cur_image_label[0, 4]) / 2 * (self.image_size/display_rect_width) + (rect_center_x - display_rect_width/2)
-                        gt_display_center_y = (self.cur_image_label[0, 3] + self.cur_image_label[0, 5]) / 2 * (self.image_size/display_rect_height) + (rect_center_y - display_rect_height/2)
-                        gt_display_rect_width = (self.cur_image_label[0, 4] - self.cur_image_label[0, 2]) * (self.image_size//display_rect_width)
-                        gt_display_rect_height = (self.cur_image_label[0, 5] - self.cur_image_label[0, 3]) * (self.image_size//display_rect_height)
+                        gt_display_center_x = (self.cur_image_label[0, 2] + self.cur_image_label[0, 4]) / 2 * (display_rect_width/self.image_size) + (rect_center_x - display_rect_width/2)
+                        gt_display_center_y = (self.cur_image_label[0, 3] + self.cur_image_label[0, 5]) / 2 * (display_rect_height/self.image_size) + (rect_center_y - display_rect_height/2)
+                        gt_display_rect_width = (self.cur_image_label[0, 4] - self.cur_image_label[0, 2]) * (display_rect_width/self.image_size)
+                        gt_display_rect_height = (self.cur_image_label[0, 5] - self.cur_image_label[0, 3]) * (display_rect_height/self.image_size)
                         self.draw_rectangle(painter, gt_display_center_x, gt_display_center_y, gt_display_rect_width, gt_display_rect_height, color='yellow', label='Ground Truth')
                         painter.end()
 
@@ -1317,8 +1324,6 @@ class UI_MainWindow(QWidget):
                         self.image_label.repaint()
 
                     # run the model
-                    if self.use_cache:
-                        continue
                     # update the model output
                     self.output_1 = nero_run_model.run_coco_once(self.model_1_name,
                                                                     self.model_1,
@@ -1340,9 +1345,45 @@ class UI_MainWindow(QWidget):
                     self.all_quantities_1[y, x] = quantity_1
                     self.all_quantities_2[y, x] = quantity_2
 
+            # display as the final x_tran, y_tran
+            if self.use_cache:
+                self.display_image()
+                display_rect_width = self.display_image_size/2
+                display_rect_height = self.display_image_size/2
+                # since the translation measures on the movement of object instead of the point of view, the sign is reversed
+                rect_center_x = self.display_image_size/2 - x_tran * (self.display_image_size/self.uncropped_image_size)
+                rect_center_y = self.display_image_size/2 - y_tran * (self.display_image_size/self.uncropped_image_size)
+
+                # draw rectangles on the displayed image to indicate scanning process
+                painter = QtGui.QPainter(self.image_pixmap)
+                # draw the rectangles
+                cover_color = QtGui.QColor(65, 65, 65, 225)
+                self.draw_fov_mask(painter, rect_center_x, rect_center_y, display_rect_width, display_rect_height, cover_color)
+
+                # end the painter
+                painter.end()
+
+                # draw ground truth label on the display image
+                # draw rectangle on the displayed image to indicate scanning process
+                painter = QtGui.QPainter(self.image_pixmap)
+                # draw the ground truth label
+                gt_display_center_x = (self.cur_image_label[0, 2] + self.cur_image_label[0, 4]) / 2 * (display_rect_width/self.image_size) + (rect_center_x - display_rect_width/2)
+                gt_display_center_y = (self.cur_image_label[0, 3] + self.cur_image_label[0, 5]) / 2 * (display_rect_height/self.image_size) + (rect_center_y - display_rect_height/2)
+                gt_display_rect_width = (self.cur_image_label[0, 4] - self.cur_image_label[0, 2]) * (display_rect_width/self.image_size)
+                gt_display_rect_height = (self.cur_image_label[0, 5] - self.cur_image_label[0, 3]) * (display_rect_height/self.image_size)
+                self.draw_rectangle(painter, gt_display_center_x, gt_display_center_y, gt_display_rect_width, gt_display_rect_height, color='yellow', label='Ground Truth')
+                painter.end()
+
+                # update pixmap with the label
+                self.image_label.setPixmap(self.image_pixmap)
+
+                # force repaint
+                self.image_label.repaint()
+
             # save to cache
-            self.save_to_cache(name=f'{self.data_mode}_{self.model_1_cache_name}_{self.image_index}', content=self.all_quantities_1)
-            self.save_to_cache(name=f'{self.data_mode}_{self.model_2_cache_name}_{self.image_index}', content=self.all_quantities_2)
+            else:
+                self.save_to_cache(name=f'{self.data_mode}_{self.model_1_cache_name}_{self.image_index}', content=self.all_quantities_1)
+                self.save_to_cache(name=f'{self.data_mode}_{self.model_2_cache_name}_{self.image_index}', content=self.all_quantities_2)
 
             # display the individual NERO plot
             self.display_coco_single_result(type='heatmap', boundary_width=3)
@@ -1499,7 +1540,7 @@ class UI_MainWindow(QWidget):
             detailed_text_label.setContentsMargins(20, 0, 0, 0)
             detailed_text_label.setAlignment(QtCore.Qt.AlignTop)
             # font and size
-            detailed_text_label.setFont(QFont('Helvetica', 14))
+            detailed_text_label.setFont(QFont('Helvetica', 12))
 
             # display_text = f'Ground Truth: {self.custom_coco_names[int(self.loaded_image_label[0][4])]}\n'
             display_text = ''
@@ -1618,17 +1659,24 @@ class UI_MainWindow(QWidget):
                         # force repaint
                         self.image_label.repaint()
 
-                        # redisplay model output
-                        self.draw_model_output()
-
                         # show corresponding translation amount on the heatmap
                         # translation amout for plotting in heatmap
                         self.cur_x_tran = -x_dist - self.x_translation[0]
                         self.cur_y_tran = y_dist - self.y_translation[0]
                         self.draw_heatmaps()
 
+                        # run inference only when in the realtime mode
+                        if self.realtime_inference:
+                            # redisplay model output
+                            self.draw_model_output()
+
+
             def end_moving(event):
                 self.moving_pov = False
+                # when not realtime-inferencing, run once after stop moving
+                if not self.realtime_inference:
+                    # redisplay model output
+                    self.draw_model_output()
 
             self.image_label.mousePressEvent = start_moving
             self.image_label.mouseMoveEvent = update_model_pov
@@ -1761,12 +1809,12 @@ class UI_MainWindow(QWidget):
         # heatmap view
         self.heatmap_view_1 = pg.GraphicsLayoutWidget()
         # left top right bottom
-        self.heatmap_view_1.ci.layout.setContentsMargins(0, 20, 0, 70)
-        self.heatmap_view_1.setFixedSize(self.plot_size*1.2, self.plot_size*1.2)
+        self.heatmap_view_1.ci.layout.setContentsMargins(0, 20, 0, 0)
+        self.heatmap_view_1.setFixedSize(self.plot_size*1.3, self.plot_size*1.3)
         self.heatmap_view_2 = pg.GraphicsLayoutWidget()
         # left top right bottom
-        self.heatmap_view_2.ci.layout.setContentsMargins(0, 20, 0, 70)
-        self.heatmap_view_2.setFixedSize(self.plot_size*1.2, self.plot_size*1.2)
+        self.heatmap_view_2.ci.layout.setContentsMargins(0, 20, 0, 0)
+        self.heatmap_view_2.setFixedSize(self.plot_size*1.3, self.plot_size*1.3)
         self.heatmap_plot_1 = draw_individual_heatmap(data_1)
         self.heatmap_plot_2 = draw_individual_heatmap(data_2)
         # self.view_box_1.scene().sigMouseClicked.connect(heatmap_mouse_clicked(self.view_box_1))
@@ -1861,6 +1909,7 @@ class UI_MainWindow(QWidget):
             # add a new label for result if no result has existed
             if not self.single_result_existed:
                 self.arrow_label = QLabel(self)
+                self.arrow_label.setContentsMargins(0, 0, 0, 0)
                 self.arrow_label.setAlignment(QtCore.Qt.AlignCenter)
                 self.arrow_label.setWordWrap(True)
                 self.arrow_label.setTextFormat(QtGui.Qt.AutoText)
@@ -2116,6 +2165,7 @@ class UI_MainWindow(QWidget):
             # add a new label for result if no result has existed
             if not self.single_result_existed:
                 self.arrow_label = QLabel(self)
+                self.arrow_label.setContentsMargins(0, 0, 0, 0)
                 self.arrow_label.setAlignment(QtCore.Qt.AlignCenter)
                 self.arrow_label.setWordWrap(True)
                 self.arrow_label.setTextFormat(QtGui.Qt.AutoText)
@@ -2234,7 +2284,7 @@ class UI_MainWindow(QWidget):
                 self.realtime_inference_checkbox.setChecked(True)
             else:
                 self.realtime_inference_checkbox.setChecked(False)
-            self.plot_control_layout.addWidget(self.use_cache_checkbox)
+            self.plot_control_layout.addWidget(self.realtime_inference_checkbox)
 
             # add plot control layout to general layout
             self.single_result_layout.addLayout(self.plot_control_layout, 0, 0)
