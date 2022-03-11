@@ -836,7 +836,7 @@ class UI_MainWindow(QWidget):
             self.model_2_menu.addItem(model_2_icon, 'FasterRCNN (80% jittering)')
             self.model_2_menu.addItem(model_2_icon, 'FasterRCNN (100% jittering)')
             self.model_2_menu.addItem(model_2_icon, 'FasterRCNN (Pre-trained)')
-            self.model_2_menu.setCurrentText('Pre-trained FasterRCNN')
+            self.model_2_menu.setCurrentText('FasterRCNN (Pre-trained)')
 
         # connect the drop down menu with actions
         self.model_2_menu.currentTextChanged.connect(model_2_selection_changed)
