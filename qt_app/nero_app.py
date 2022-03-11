@@ -156,6 +156,8 @@ class UI_MainWindow(QWidget):
                 self.translation = False
                 # rotation angles
                 self.cur_rotation_angle = 0
+                # rotation step for evaluation
+                self.rotation_step = 5
 
                 # preload model 1
                 self.model_1_name = 'Simple model'
@@ -205,6 +207,8 @@ class UI_MainWindow(QWidget):
                 # image (input data) modification mode
                 self.rotation = False
                 self.translation = False
+                # translation step when evaluating
+                self.translation_step = 4
 
                 # predefined model paths
                 self.model_1_name = 'FasterRCNN (0% jittering)'
@@ -655,15 +659,12 @@ class UI_MainWindow(QWidget):
 
         # function used as model icon
         def draw_circle(painter, center_x, center_y, radius, color):
-            # optional
+            # set up brush and pen
             painter.setRenderHint(QtGui.QPainter.Antialiasing)
-            # make a white drawing background
             painter.setBrush(QtGui.QColor(color))
-            # draw red circles
             painter.setPen(QtGui.QColor(color))
             center = QtCore.QPoint(center_x, center_y)
-            # optionally fill each circle yellow
-            painter.setBrush(QtGui.QColor(color))
+            # draw the circle
             painter.drawEllipse(center, radius, radius)
             painter.end()
 
@@ -1199,7 +1200,7 @@ class UI_MainWindow(QWidget):
         if self.mode == 'digit_recognition':
             self.all_angles = []
             # run all rotation test with 5 degree increment
-            for self.cur_rotation_angle in range(0, 365, 5):
+            for self.cur_rotation_angle in range(0, 360+self.rotation_step, self.rotation_step):
                 # print(f'\nRotated {self.cur_rotation_angle} degrees')
                 self.all_angles.append(self.cur_rotation_angle)
                 # rotate the image tensor
@@ -1232,8 +1233,8 @@ class UI_MainWindow(QWidget):
 
             # all the x and y translations
             # x translates on columns, y translates on rows
-            self.x_translation = list(range(-self.image_size//2, self.image_size//2, 1))
-            self.y_translation = list(range(-self.image_size//2, self.image_size//2, 1))
+            self.x_translation = list(range(-self.image_size//2, self.image_size//2, self.translation_step))
+            self.y_translation = list(range(-self.image_size//2, self.image_size//2, self.translation_step))
             num_x_translations = len(self.x_translation)
             num_y_translations = len(self.y_translation)
             self.all_translations = np.zeros((num_y_translations, num_x_translations, 2))
@@ -1739,7 +1740,7 @@ class UI_MainWindow(QWidget):
             scatter_point = []
 
             scatter_point.append({'pos': (self.cur_x_tran, self.cur_y_tran),
-                                    'size': 5,
+                                    'size': 3,
                                     'pen': {'color': 'red', 'width': 0.1},
                                     'brush': (255, 0, 0, 255)})
 
