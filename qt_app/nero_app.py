@@ -1138,6 +1138,53 @@ class UI_MainWindow(QWidget):
             # display the result
             self.display_mnist_aggregate_result()
 
+        elif self.mode == 'object_detection':
+            # all the translations in x and y applied to the aggregated dataset
+            self.x_translation = list(range(-self.image_size//2, self.image_size//2, self.translation_step))
+            self.y_translation = list(range(-self.image_size//2, self.image_size//2, self.translation_step))
+            # average plotted quantity over all classes with all rotations, has shape (num_y_trans, num_x_trans, 1)
+            self.all_avg_quantity_1 = np.zeros((len(self.y_translation), len(self.x_translation), 1))
+            self.all_avg_quantity_2 = np.zeros((len(self.y_translation), len(self.x_translation), 1))
+            # average plotted accuracies of each class under all rotations, has shape (num_y_trans, num_x_trans, num_classes)
+            self.all_avg_quantity_per_class_1 = np.zeros((len(self.y_translation), len(self.x_translation), len(self.custom_coco_names)))
+            self.all_avg_quantity_per_class_2 = np.zeros((len(self.y_translation), len(self.x_translation), len(self.custom_coco_names)))
+            # output of each sample for all translations, has shape (num_y_trans, num_x_trans, num_samples, num_samples, 7)
+            self.all_outputs_1 = np.zeros((len(self.y_translation), len(self.x_translation), len(self.cur_images_pt), 7))
+            self.all_outputs_2 = np.zeros((len(self.y_translation), len(self.x_translation), len(self.cur_images_pt), 7))
+
+            # for all the loaded images
+            for y, y_tran in enumerate(self.y_translation):
+                for x, x_tran in enumerate(self.x_translation):
+                    print(f'\nAggregate mode: Rotated {self.cur_rotation_angle} degrees')
+                    # self.all_angles.append(self.cur_rotation_angle)
+
+                    avg_accuracy_1, avg_accuracy_per_digit_1, output_1 = nero_run_model.run_coco_once(self.model_1,
+                                                                                            self.cur_images_pt,
+                                                                                            self.loaded_images_labels,
+                                                                                            batch_size=self.batch_size,
+                                                                                            rotate_angle=self.cur_rotation_angle)
+
+                    avg_accuracy_2, avg_accuracy_per_digit_2, output_2 = nero_run_model.run_coco_once(self.model_2,
+                                                                                            self.cur_images_pt,
+                                                                                            self.loaded_images_labels,
+                                                                                            batch_size=self.batch_size,
+                                                                                            rotate_angle=self.cur_rotation_angle)
+
+                    # append to results
+                    self.all_avg_accuracy_1[i] = avg_accuracy_1
+                    self.all_avg_accuracy_2[i] = avg_accuracy_2
+                    self.all_avg_accuracy_per_digit_1[i] = avg_accuracy_per_digit_1
+                    self.all_avg_accuracy_per_digit_2[i] = avg_accuracy_per_digit_2
+                    self.all_outputs_1[i] = output_1
+                    self.all_outputs_2[i] = output_2
+
+            # initialize digit selection control
+            self.init_aggregate_polar_control()
+
+            # display the result
+            self.display_mnist_aggregate_result()
+
+
 
     # run model on a single test sample with no transfomations
     def run_model_once(self):
@@ -2155,6 +2202,11 @@ class UI_MainWindow(QWidget):
 
         else:
             raise Exception('Unsupported display mode')
+
+
+    # display COCO aggregate results
+    def display_coco_aggregate_result(self):
+        return None
 
 
     # display COCO single results

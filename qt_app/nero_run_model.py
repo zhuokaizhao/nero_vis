@@ -1,4 +1,5 @@
 # the script gets called by nero_app when running the model
+from dataclasses import dataclass
 import os
 import sys
 import torch
@@ -290,26 +291,8 @@ def process_model_outputs(outputs, targets, iou_thres=0.5, conf_thres=0):
     return all_qualified_outputs, all_precisions, all_recalls, all_F_measure
 
 
-# run model on either on a single COCO image or a batch of COCO images
-def run_coco_once(model_name, model, test_image, custom_names, pytorch_names, test_label=None, batch_size=1):
-
-    sanity_check = False
-    if sanity_check:
-        sanity_path = f'/home/zhuokai/Desktop/UChicago/Research/nero_vis/qt_app/example_data/object_detection/sanity_model.png'
-        sanity_image = Image.fromarray(test_image.numpy())
-        temp = ImageDraw.Draw(sanity_image)
-        temp.rectangle([(test_label[0, 2], test_label[0, 3]), (test_label[0, 4], test_label[0, 5])], outline='yellow')
-        sanity_image.save(sanity_path)
-
-    # prepare input image shapes
-    if len(test_image.shape) == 3:
-        # reformat input image from (height, width, channel) to (batch size, channel, height, width)
-        test_image = test_image.permute((2, 0, 1))[None, :, :, :].float()
-    elif len(test_image.shape) == 4:
-        # reformat input image from (batch_size, height, width, channel) to (batch_size, batch size, channel, height, width)
-        test_image = test_image.permute((0, 3, 1, 2)).float()
-    else:
-        raise Exception('Wrong input image shape')
+# run model on either a single COCO image or a batch of COCO images
+def run_coco_once(mode, model_name, model, test_image, custom_names, pytorch_names, test_label=None, batch_size=1, x_tran=None, y_tran=None):
 
     # basic settings for pytorch
     if torch.cuda.is_available():
@@ -320,9 +303,12 @@ def run_coco_once(model_name, model, test_image, custom_names, pytorch_names, te
         device = torch.device('cpu')
         Tensor = torch.FloatTensor
 
-    with torch.no_grad():
-        # single image mode
-        if test_image.shape[0] == 1:
+    # prepare input image shapes
+    if mode == 'single':
+        # reformat input image from (height, width, channel) to (batch size, channel, height, width)
+        test_image = test_image.permute((2, 0, 1))[None, :, :, :].float()
+        with torch.no_grad():
+            # single image mode
             # prepare current batch's testing data
             test_image = test_image.to(device)
 
@@ -372,7 +358,47 @@ def run_coco_once(model_name, model, test_image, custom_names, pytorch_names, te
                 cur_recall = np.zeros(1)
                 cur_F_measure = np.zeros(1)
 
-    return [cur_qualified_output, cur_precision, cur_recall, cur_F_measure]
+            return [cur_qualified_output, cur_precision, cur_recall, cur_F_measure]
+
+    # multiple image (batch) mode
+    elif mode == 'aggregate':
+        img_size = 128
+        # different transforms based on if we are evaluating with pre-trained model
+        if (model_name == 'FasterRCNN (Pre-trained)'):
+            AGGREGATE_TRANSFORMS = transforms.Compose([nero_transform.FixedJittering(img_size, x_tran, y_tran),
+                                                        nero_transform.ConvertLabel(pytorch_names, custom_names),
+                                                        nero_transform.ToTensor()])
+        else:
+            AGGREGATE_TRANSFORMS = transforms.Compose([nero_transform.FixedJittering(img_size, x_tran, y_tran),
+                                                        nero_transform.ToTensor()])
+
+        # in aggregate mode test_image is a path that includes paths of all the images
+        dataset = datasets.COCODataset(list_path=test_image,
+                                        img_size=img_size,
+                                        transform=AGGREGATE_TRANSFORMS)
+
+        dataloader = torch.utils.data.DataLoader(
+            dataset,
+            batch_size=batch_size,
+            shuffle=False,
+            num_workers=8,
+            collate_fn=dataset.collate_fn
+        )
+
+        Tensor = torch.cuda.FloatTensor if torch.cuda.is_available() else torch.FloatTensor
+
+        # all the class labels ground truth
+        labels = []
+        # List of tuples (TP, confs, pred)
+        sample_metrics = []
+        all_losses = []
+        for batch_i, (_, imgs, targets) in enumerate(dataloader):
+
+            if targets is None:
+                continue
+
+
+
 
 
 
