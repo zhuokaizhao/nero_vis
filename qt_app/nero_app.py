@@ -69,7 +69,7 @@ class UI_MainWindow(QWidget):
         if not os.path.isfile(self.cache_path):
             np.savez(self.cache_path)
 
-        self.cache = dict(np.load(self.cache_path))
+        self.cache = dict(np.load(self.cache_path, allow_pickle=True))
 
 
     # helper functions on managing the database
@@ -1221,17 +1221,21 @@ class UI_MainWindow(QWidget):
             # x translates on columns, y translates on rows
             self.x_translation = list(range(-self.image_size//2, self.image_size//2, 8))
             self.y_translation = list(range(-self.image_size//2, self.image_size//2, 8))
-            self.all_translations = []
+            num_x_translations = len(self.x_translation)
+            num_y_translations = len(self.y_translation)
+            self.all_translations = np.zeros((num_y_translations, num_x_translations, 2))
+            self.all_quantities_1 = np.zeros((num_y_translations, num_x_translations, 7))
+            self.all_quantities_2 = np.zeros((num_y_translations, num_x_translations, 7))
 
-            for y_tran in self.y_translation:
-                for x_tran in self.x_translation:
+            for y, y_tran in enumerate(self.y_translation):
+                for x, x_tran in enumerate(self.x_translation):
                     # translation amout
                     # cur_x_tran and cur_y_tran are used to draw points on the heatmap to indicate translation amount
                     self.cur_x_tran = x_tran - self.x_translation[0]
                     # y axis needs to be converted from image axis to heatmap axis
                     self.cur_y_tran = -y_tran - self.y_translation[0]
                     # all_translations are for book keeping
-                    self.all_translations.append((x_tran, y_tran))
+                    self.all_translations[y, x] = [x_tran, y_tran]
 
                     # modify the underlying image tensor accordingly
                     # take the cropped part of the entire input image
@@ -1319,23 +1323,17 @@ class UI_MainWindow(QWidget):
                     # plotting the quantity regarding the correct label
                     quantity_1 = self.output_1[0][0][0]
                     quantity_2 = self.output_2[0][0][0]
-                    # print(quantity_1)
-
-                    self.all_quantities_1.append(quantity_1)
-                    self.all_quantities_2.append(quantity_2)
+                    self.all_quantities_1[y, x] = quantity_1
+                    self.all_quantities_2[y, x] = quantity_2
 
                 # save to cache
                 self.save_to_cache(name=f'{self.data_mode}_{self.model_1_cache_name}_{self.image_index}', content=self.all_quantities_1)
                 self.save_to_cache(name=f'{self.data_mode}_{self.model_2_cache_name}_{self.image_index}', content=self.all_quantities_2)
 
-            # print(np.array(self.all_quantities_1).shape)
-            # print(np.array(self.all_quantities_2).shape)
             # display the individual NERO plot
-            num_x_translations = len(self.x_translation)
-            num_y_translations = len(self.y_translation)
-            self.all_translations = np.array(self.all_translations).reshape((num_x_translations, num_y_translations, 2))
-            self.all_quantities_1 = np.array(self.all_quantities_1).reshape((num_y_translations, num_x_translations, 7))
-            self.all_quantities_2 = np.array(self.all_quantities_2).reshape((num_y_translations, num_x_translations, 7))
+            # self.all_translations = np.array(self.all_translations).reshape((num_x_translations, num_y_translations, 2))
+            # self.all_quantities_1 = np.array(self.all_quantities_1).reshape((num_y_translations, num_x_translations, 7))
+            # self.all_quantities_2 = np.array(self.all_quantities_2).reshape((num_y_translations, num_x_translations, 7))
 
             # display the individual NERO plot
             self.display_coco_single_result(type='heatmap', boundary_width=3)

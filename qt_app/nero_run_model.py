@@ -259,7 +259,6 @@ def process_model_outputs(outputs, targets, iou_thres=0.5, conf_thres=0):
     all_precisions = []
     all_recalls = []
     all_F_measure = []
-    # print(outputs)
     # loop through each proposed object
     for i in range(len(outputs)):
 
@@ -391,11 +390,13 @@ def run_coco_once(model_name, model, test_image, custom_names, pytorch_names, te
                             else:
                                 continue
 
-                        # transform output in the format of (x1, y1, x2, y2, conf, class_pred)
-                        output = torch.zeros((len(valid_indices), 6))
-                        output[:, :4] = pred_boxes[valid_indices]
-                        output[:, 4] = pred_confs[valid_indices]
-                        output[:, 5] = pred_labels[valid_indices]
+                        if len(valid_indices) != 0:
+                            # transform output in the format of (x1, y1, x2, y2, conf, class_pred)
+                            output = torch.zeros((len(valid_indices), 6))
+                            output[:, :4] = pred_boxes[valid_indices]
+                            output[:, 4] = pred_confs[valid_indices]
+                            output[:, 5] = pred_labels[valid_indices]
+                            outputs.append(output)
                     else:
                         # transform output in the format of (x1, y1, x2, y2, conf, class_pred)
                         output = torch.zeros((len(pred_boxes), 6))
@@ -403,20 +404,17 @@ def run_coco_once(model_name, model, test_image, custom_names, pytorch_names, te
                         output[:, 4] = pred_confs
                         output[:, 5] = pred_labels
 
-                    outputs.append(output)
+                        outputs.append(output)
 
             if outputs != []:
                 cur_qualified_output, cur_precision, cur_recall, cur_F_measure = process_model_outputs(outputs, torch.from_numpy(test_label))
-                # print(cur_qualified_output.shape)
-                # print(cur_precision.shape)
-                # exit()
             else:
                 # print('empty')
                 # no qualified output
-                cur_qualified_output = [torch.zeros((1, 1, 7))]
-                cur_precision = [torch.zeros(1)]
-                cur_recall = [torch.zeros(1)]
-                cur_F_measure = [torch.zeros(1)]
+                cur_qualified_output = torch.zeros((1, 1, 7))
+                cur_precision = torch.zeros(1)
+                cur_recall = torch.zeros(1)
+                cur_F_measure = torch.zeros(1)
             # batch_time_end = time.time()
             # batch_time_cost = batch_time_end - batch_time_start
             # print(f'Inference time: {batch_time_cost} seconds')
