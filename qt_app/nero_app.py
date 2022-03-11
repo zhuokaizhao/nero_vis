@@ -75,6 +75,12 @@ class UI_MainWindow(QWidget):
 
         self.cache = dict(np.load(self.cache_path, allow_pickle=True))
 
+        # if we are doing real-time inference when dragging the field of view
+        if torch.cuda.is_available():
+            self.realtime_inference = True
+        else:
+            self.realtime_inference = False
+
 
     # helper functions on managing the database
     def load_from_cache(self, name):
@@ -407,7 +413,7 @@ class UI_MainWindow(QWidget):
                 self.use_cache_checkbox = QtWidgets.QCheckBox('Use previously computed result')
                 self.use_cache_checkbox.setStyleSheet('font-size: 18px')
                 self.use_cache_checkbox.setMinimumSize(QtCore.QSize(500, 50))
-                self.use_cache_checkbox.stateChanged.connect(self.run_cache_checkbox_clicked)
+                self.use_cache_checkbox.stateChanged.connect(run_cache_checkbox_clicked)
                 self.run_button_layout.addWidget(self.use_cache_checkbox)
 
                 self.run_button_existed = True
@@ -515,12 +521,21 @@ class UI_MainWindow(QWidget):
                 self.use_cache_checkbox = QtWidgets.QCheckBox('Use previously computed result')
                 self.use_cache_checkbox.setStyleSheet('font-size: 18px')
                 self.use_cache_checkbox.setMinimumSize(QtCore.QSize(500, 50))
-                self.use_cache_checkbox.stateChanged.connect(self.run_cache_checkbox_clicked)
+                self.use_cache_checkbox.stateChanged.connect(run_cache_checkbox_clicked)
                 self.run_button_layout.addWidget(self.use_cache_checkbox)
 
                 self.run_button_existed = True
             else:
                 self.run_button.setText(self.run_button_text)
+
+
+        @QtCore.Slot()
+        def run_cache_checkbox_clicked(state):
+            if state == QtCore.Qt.Checked:
+                self.use_cache = True
+            else:
+                self.use_cache = False
+
 
         # two drop down menus that let user choose models
         @QtCore.Slot()
@@ -883,14 +898,6 @@ class UI_MainWindow(QWidget):
                 self.run_model_all()
 
             self.single_result_existed = True
-
-
-    @QtCore.Slot()
-    def run_cache_checkbox_clicked(self, state):
-        if state == QtCore.Qt.Checked:
-            self.use_cache = True
-        else:
-            self.use_cache = False
 
 
     # initialize digit selection control drop down menu
@@ -2142,6 +2149,13 @@ class UI_MainWindow(QWidget):
         # draw result using heatmaps
         if type == 'heatmap':
             @QtCore.Slot()
+            def realtime_inference_checkbox_clicked(state):
+                if state == QtCore.Qt.Checked:
+                    self.realtime_inference = True
+                else:
+                    self.realtime_inference = False
+
+            @QtCore.Slot()
             def heatmap_quantity_changed(text):
                 print('Plotting:', text, 'on heatmap')
                 self.quantity_name = text
@@ -2191,6 +2205,8 @@ class UI_MainWindow(QWidget):
                 self.draw_heatmaps()
 
             # drop down menu on selection which quantity to plot
+            # layout that controls the plotting items
+            self.plot_control_layout = QtWidgets.QVBoxLayout()
             quantity_menu = QtWidgets.QComboBox()
             quantity_menu.setFixedSize(QtCore.QSize(200, 50))
             quantity_menu.setStyleSheet('font-size: 18px')
@@ -2207,7 +2223,21 @@ class UI_MainWindow(QWidget):
 
             # connect the drop down menu with actions
             quantity_menu.currentTextChanged.connect(heatmap_quantity_changed)
-            self.single_result_layout.addWidget(quantity_menu, 0, 0)
+            self.plot_control_layout.addWidget(quantity_menu)
+
+            # checkbox on if doing real-time inference
+            self.realtime_inference_checkbox = QtWidgets.QCheckBox('Realtime inference when dragging')
+            self.realtime_inference_checkbox.setStyleSheet('font-size: 18px')
+            self.realtime_inference_checkbox.setMinimumSize(QtCore.QSize(500, 50))
+            self.realtime_inference_checkbox.stateChanged.connect(realtime_inference_checkbox_clicked)
+            if self.realtime_inference:
+                self.realtime_inference_checkbox.setChecked(True)
+            else:
+                self.realtime_inference_checkbox.setChecked(False)
+            self.plot_control_layout.addWidget(self.use_cache_checkbox)
+
+            # add plot control layout to general layout
+            self.single_result_layout.addLayout(self.plot_control_layout, 0, 0)
 
             # define default plotting quantity
             self.cur_plot_quantity_1 = self.all_quantities_1[:, :, 4] * self.all_quantities_1[:, :, 6]
