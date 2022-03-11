@@ -1,8 +1,6 @@
 # the script gets called by nero_app when running the model
 import os
 import sys
-import time
-import tqdm
 import torch
 import torchvision
 import numpy as np
@@ -28,29 +26,6 @@ import nero_transform
 def resize(image, size):
     image = F.interpolate(image.unsqueeze(0), size=size, mode="nearest").squeeze(0)
     return image
-
-
-# Print iterations progress
-def print_progress_bar (iteration, total, prefix = '', suffix = '', decimals = 1, length = 100, fill = '█', printEnd = "\r"):
-    """
-    Call in a loop to create terminal progress bar
-    @params:
-        iteration   - Required  : current iteration (Int)
-        total       - Required  : total iterations (Int)
-        prefix      - Optional  : prefix string (Str)
-        suffix      - Optional  : suffix string (Str)
-        decimals    - Optional  : positive number of decimals in percent complete (Int)
-        length      - Optional  : character length of bar (Int)
-        fill        - Optional  : bar fill character (Str)
-        printEnd    - Optional  : end character (e.g. "\r", "\r\n") (Str)
-    """
-    percent = ("{0:." + str(decimals) + "f}").format(100 * (iteration / float(total)))
-    filledLength = int(length * iteration // total)
-    bar = fill * filledLength + '-' * (length - filledLength)
-    print('\r%s |%s| %s%% %s' % (prefix, bar, percent, suffix), end = printEnd)
-    # Print New Line on Complete
-    if iteration == total:
-        print()
 
 
 # digit recognition (mnist)
@@ -129,16 +104,11 @@ def run_mnist_once(model, test_image, test_label=None, batch_size=None, rotate_a
     with torch.no_grad():
         # single image mode
         if test_image.shape[0] == 1:
-            batch_time_start = time.time()
             # prepare current batch's testing data
             test_image = test_image.to(device)
 
             # inference
             output = model(test_image).cpu().detach().numpy()[0]
-
-            batch_time_end = time.time()
-            batch_time_cost = batch_time_end - batch_time_start
-            # print(f'Inference time: {batch_time_cost} seconds')
 
             return output
 
@@ -180,8 +150,6 @@ def run_mnist_once(model, test_image, test_label=None, batch_size=None, rotate_a
             test_loader = torch.utils.data.DataLoader(dataset, **test_kwargs)
 
             for batch_idx, (data, target) in enumerate(test_loader):
-                batch_time_start = time.time()
-                # print(target)
                 # prepare current batch's testing data
                 data, target = data.to(device), target.to(device)
 
@@ -207,15 +175,6 @@ def run_mnist_once(model, test_image, test_label=None, batch_size=None, rotate_a
                     # correctness
                     if pred.eq(target.view_as(pred))[i].item() == True:
                         num_correct_per_digit[target.cpu().tolist()[i]] += 1
-
-                batch_time_end = time.time()
-                batch_time_cost = batch_time_end - batch_time_start
-
-                # print_progress_bar(iteration=batch_idx+1,
-                #                     total=len(test_loader),
-                #                     prefix=f'Test batch {batch_idx+1}/{len(test_loader)},',
-                #                     suffix='%s: %.3f, time: %.2f' % ('CE loss', all_batch_avg_losses[-1], batch_time_cost),
-                #                     length=50)
 
             # average (over digits) loss and accuracy
             avg_accuracy = total_num_correct / len(test_loader.dataset)
@@ -275,7 +234,6 @@ def process_model_outputs(outputs, targets, iou_thres=0.5, conf_thres=0):
                 cur_object_outputs.append(output[j].numpy())
 
         # convert conf-qualified results to tensor
-        # if cur_object_outputs:
         cur_object_outputs = torch.from_numpy(np.array(cur_object_outputs))
 
         # all predicted labels and true label for the current object
@@ -365,7 +323,6 @@ def run_coco_once(model_name, model, test_image, custom_names, pytorch_names, te
     with torch.no_grad():
         # single image mode
         if test_image.shape[0] == 1:
-            # batch_time_start = time.time()
             # prepare current batch's testing data
             test_image = test_image.to(device)
 
@@ -409,16 +366,12 @@ def run_coco_once(model_name, model, test_image, custom_names, pytorch_names, te
             if outputs != []:
                 cur_qualified_output, cur_precision, cur_recall, cur_F_measure = process_model_outputs(outputs, torch.from_numpy(test_label))
             else:
-                # print('empty')
                 # no qualified output
                 cur_qualified_output = np.zeros((1, 1, 7))
                 cur_precision = np.zeros(1)
                 cur_recall = np.zeros(1)
                 cur_F_measure = np.zeros(1)
-            # batch_time_end = time.time()
-            # batch_time_cost = batch_time_end - batch_time_start
-            # print(f'Inference time: {batch_time_cost} seconds')
-    # print(cur_qualified_output)
+
     return [cur_qualified_output, cur_precision, cur_recall, cur_F_measure]
 
 
