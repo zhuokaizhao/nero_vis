@@ -380,22 +380,28 @@ class UI_MainWindow(QWidget):
             self.data_mode = 'aggregate'
             self.dataset_index = int(text.split(' ')[-1])
             self.dataset_dir = self.aggregate_data_dirs[self.dataset_index]
-            # load the image and scale the size
-            # get all the image paths from the directory
-            self.all_images_paths = glob.glob(os.path.join(self.dataset_dir, '*.png'))
-            self.loaded_images_pt = []
-            self.loaded_images_names = []
-            self.loaded_images_labels = torch.zeros(len(self.all_images_paths), dtype=torch.int64)
-            self.cur_images_pt = torch.zeros((len(self.all_images_paths), 29, 29, 1))
+            # in digit recognition, all the images are loaded
+            if self.mode == 'digit_recognition':
+                # load the image and scale the size
+                # get all the image paths from the directory
+                self.all_images_paths = glob.glob(os.path.join(self.dataset_dir, '*.png'))
+                self.loaded_images_pt = []
+                self.loaded_images_names = []
+                self.loaded_images_labels = torch.zeros(len(self.all_images_paths), dtype=torch.int64)
+                self.cur_images_pt = torch.zeros((len(self.all_images_paths), 29, 29, 1))
 
-            for i, cur_image_path in enumerate(self.all_images_paths):
-                self.loaded_images_pt.append(torch.from_numpy(np.asarray(Image.open(cur_image_path)))[:, :, None])
-                self.loaded_images_names.append(cur_image_path.split('/')[-1])
-                self.loaded_images_labels[i] = int(cur_image_path.split('/')[-1].split('_')[1])
+                for i, cur_image_path in enumerate(self.all_images_paths):
+                    self.loaded_images_pt.append(torch.from_numpy(np.asarray(Image.open(cur_image_path)))[:, :, None])
+                    self.loaded_images_names.append(cur_image_path.split('/')[-1])
+                    self.loaded_images_labels[i] = int(cur_image_path.split('/')[-1].split('_')[1])
 
-                # keep a copy to represent the current (rotated) version of the original images
-                # prepare image tensor for model purpose
-                self.cur_images_pt[i] = nero_transform.prepare_mnist_image(self.loaded_images_pt[-1].clone())
+                    # keep a copy to represent the current (rotated) version of the original images
+                    # prepare image tensor for model purpose
+                    self.cur_images_pt[i] = nero_transform.prepare_mnist_image(self.loaded_images_pt[-1].clone())
+
+            # in object detection, only all the image paths are loaded
+            elif self.mode == 'object_detection':
+                self.all_images_paths = glob.glob(os.path.join(self.dataset_dir, 'images', '*.jpg'))
 
             # self.cur_images_pt = torch.from_numpy(np.asarray(self.cur_images_pt))
             # check the data to be ready
@@ -406,6 +412,7 @@ class UI_MainWindow(QWidget):
                 # run button
                 # buttons layout for run model
                 self.run_button_layout = QtWidgets.QGridLayout()
+                # no displayed test image as in the single case so layout row number-1
                 self.layout.addLayout(self.run_button_layout, 2, 0, 1, 2)
 
                 self.run_button = QtWidgets.QPushButton('Analyze model')
@@ -697,25 +704,29 @@ class UI_MainWindow(QWidget):
         self.aggregate_image_menu.setStyleSheet('font-size: 18px')
         self.aggregate_image_menu.addItem('Input dataset')
 
+        # data dir
+        self.aggregate_data_dirs = glob.glob(os.path.join(os.getcwd(), 'example_data', self.mode, f'aggregate'))
+
         if self.mode == 'digit_recognition':
-            self.aggregate_data_dirs = glob.glob(os.path.join(os.getcwd(), 'example_data', self.mode, f'aggregate*'))
             # load all images in the folder
             for i in range(len(self.aggregate_data_dirs)):
                 # TODO: icons for aggregated datasets
-                self.aggregate_image_menu.addItem(f'Dataset {i}')
+                self.aggregate_image_menu.addItem(f'Test {i}')
 
             # set default to the prompt/description
             self.aggregate_image_menu.setCurrentIndex(0)
 
         elif self.mode == 'object_detection':
-            self.aggregate_data_dirs = glob.glob(os.path.join(os.getcwd(), 'example_data', self.mode, f'aggregate*'))
             # load all images in the folder
             for i in range(len(self.aggregate_data_dirs)):
                 # TODO: icons for aggregated datasets
-                self.aggregate_image_menu.addItem(f'Dataset {i}')
+                self.aggregate_image_menu.addItem(f'Test {i}')
 
             # set default to the prompt/description
             self.aggregate_image_menu.setCurrentIndex(0)
+
+        elif self.mode == 'piv':
+            raise NotImplementedError('Not available for PIV yet')
 
         # connect the drop down menu with actions
         self.aggregate_image_menu.currentTextChanged.connect(aggregate_dataset_selection_changed)
@@ -1158,17 +1169,19 @@ class UI_MainWindow(QWidget):
                     print(f'\nAggregate mode: Rotated {self.cur_rotation_angle} degrees')
                     # self.all_angles.append(self.cur_rotation_angle)
 
-                    avg_accuracy_1, avg_accuracy_per_digit_1, output_1 = nero_run_model.run_coco_once(self.model_1,
-                                                                                            self.cur_images_pt,
-                                                                                            self.loaded_images_labels,
-                                                                                            batch_size=self.batch_size,
-                                                                                            rotate_angle=self.cur_rotation_angle)
+                    cur_qualified_output, cur_precision, cur_recall, cur_F_measure = nero_run_model.run_coco_once('aggregate',
+                                                                                                                    self.model_1,
+                                                                                                                    self.cur_images_pt,
+                                                                                                                    self.loaded_images_labels,
+                                                                                                                    batch_size=self.batch_size,
+                                                                                                                    rotate_angle=self.cur_rotation_angle)
 
-                    avg_accuracy_2, avg_accuracy_per_digit_2, output_2 = nero_run_model.run_coco_once(self.model_2,
-                                                                                            self.cur_images_pt,
-                                                                                            self.loaded_images_labels,
-                                                                                            batch_size=self.batch_size,
-                                                                                            rotate_angle=self.cur_rotation_angle)
+                    cur_qualified_output, cur_precision, cur_recall, cur_F_measure = nero_run_model.run_coco_once('aggregate',
+                                                                                                                    self.model_2,
+                                                                                                                    self.cur_images_pt,
+                                                                                                                    self.loaded_images_labels,
+                                                                                                                    batch_size=self.batch_size,
+                                                                                                                    rotate_angle=self.cur_rotation_angle)
 
                     # append to results
                     self.all_avg_accuracy_1[i] = avg_accuracy_1
@@ -1197,14 +1210,16 @@ class UI_MainWindow(QWidget):
             self.display_mnist_single_result(type='bar', boundary_width=3)
 
         elif self.mode == 'object_detection':
-            self.output_1 = nero_run_model.run_coco_once(self.model_1_name,
+            self.output_1 = nero_run_model.run_coco_once('single',
+                                                            self.model_1_name,
                                                             self.model_1,
                                                             self.cropped_image_pt,
                                                             self.custom_coco_names,
                                                             self.pytorch_coco_names,
                                                             test_label=self.cur_image_label)
 
-            self.output_2 = nero_run_model.run_coco_once(self.model_2_name,
+            self.output_2 = nero_run_model.run_coco_once('single',
+                                                            self.model_2_name,
                                                             self.model_2,
                                                             self.cropped_image_pt,
                                                             self.custom_coco_names,
@@ -1373,14 +1388,16 @@ class UI_MainWindow(QWidget):
 
                     # run the model
                     # update the model output
-                    self.output_1 = nero_run_model.run_coco_once(self.model_1_name,
+                    self.output_1 = nero_run_model.run_coco_once('single',
+                                                                    self.model_1_name,
                                                                     self.model_1,
                                                                     self.cropped_image_pt,
                                                                     self.custom_coco_names,
                                                                     self.pytorch_coco_names,
                                                                     test_label=self.cur_image_label)
 
-                    self.output_2 = nero_run_model.run_coco_once(self.model_2_name,
+                    self.output_2 = nero_run_model.run_coco_once('single',
+                                                                    self.model_2_name,
                                                                     self.model_2,
                                                                     self.cropped_image_pt,
                                                                     self.custom_coco_names,
