@@ -2184,8 +2184,8 @@ class UI_MainWindow(QWidget):
             painter.end()
 
         # move the model menu on top of the each individual NERO plot
-        self.single_result_layout.addWidget(self.model_1_menu, 0, 2, 1, 1)
-        self.single_result_layout.addWidget(self.model_2_menu, 0, 3, 1, 1)
+        self.single_result_layout.addWidget(self.model_1_menu, 0, 2, 1, 1, QtCore.Qt.AlignCenter)
+        self.single_result_layout.addWidget(self.model_2_menu, 0, 3, 1, 1, QtCore.Qt.AlignCenter)
 
         # move run button below the displayed image
         self.single_result_layout.addWidget(self.run_button, 2, 0)
