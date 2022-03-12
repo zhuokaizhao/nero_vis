@@ -926,10 +926,10 @@ class UI_MainWindow(QWidget):
 
 
     # initialize digit selection control drop down menu
-    def init_aggregate_polar_control(self):
+    def init_aggregate_plot_control(self):
         # aggregate digit selection drop-down menu
         @QtCore.Slot()
-        def aggregate_digit_selection_changed(text):
+        def aggregate_class_selection_changed(text):
             # update the current digit selection
             # if average or a specific digit
             if text.split(' ')[0] == 'Averaged':
@@ -1079,29 +1079,33 @@ class UI_MainWindow(QWidget):
 
             self.aggregate_result_layout.addWidget(low_dim_scatter_view, 0, 0)
 
-
-
         # drop down menu on choosing the digit
         # self.digit_selection_layout = QtWidgets.QVBoxLayout()
-        self.digit_selection_menu = QtWidgets.QComboBox()
-        self.digit_selection_menu.setMinimumSize(QtCore.QSize(250, 50))
-        self.digit_selection_menu.setStyleSheet('font-size: 18px')
-        self.digit_selection_menu.addItem(f'Averaged over all digits')
-        # add all digits as items
-        for i in range(10):
-            self.digit_selection_menu.addItem(f'Digit {i}')
+        self.class_selection_menu = QtWidgets.QComboBox()
+        self.class_selection_menu.setMinimumSize(QtCore.QSize(250, 50))
+        self.class_selection_menu.setStyleSheet('font-size: 18px')
+        if self.mode == 'digit_recognition':
+            self.class_selection_menu.addItem(f'Averaged over all digits')
+            # add all digits as items
+            for i in range(10):
+                self.class_selection_menu.addItem(f'Digit {i}')
+        elif self.mode == 'object_detection':
+            self.class_selection_menu.addItem(f'Averaged over all classes')
+            # add all classes as items
+            for i in range(self.coco_classes):
+                self.class_selection_menu.addItem(f'{self.coco_classes[i]}')
 
         # set default to digit -1, which means the average one
         self.digit_selection = -1
-        self.digit_selection_menu.setCurrentIndex(0)
+        self.class_selection_menu.setCurrentIndex(0)
 
         # connect the drop down menu with actions
-        self.digit_selection_menu.currentTextChanged.connect(aggregate_digit_selection_changed)
-        self.digit_selection_menu.setEditable(True)
-        self.digit_selection_menu.lineEdit().setReadOnly(True)
-        self.digit_selection_menu.lineEdit().setAlignment(QtCore.Qt.AlignRight)
+        self.class_selection_menu.currentTextChanged.connect(aggregate_class_selection_changed)
+        self.class_selection_menu.setEditable(True)
+        self.class_selection_menu.lineEdit().setReadOnly(True)
+        self.class_selection_menu.lineEdit().setAlignment(QtCore.Qt.AlignRight)
 
-        self.aggregate_result_layout.addWidget(self.digit_selection_menu, 0, 2)
+        self.aggregate_result_layout.addWidget(self.class_selection_menu, 0, 2)
 
         # push button on running PCA
         self.pca_button = QtWidgets.QPushButton('See Overview')
@@ -1113,6 +1117,7 @@ class UI_MainWindow(QWidget):
 
     # run model on the aggregate dataset
     def run_model_aggregated(self):
+
         if self.mode == 'digit_recognition':
             # all the rotation angles applied to the aggregated dataset
             self.all_aggregate_angles = list(range(0, 365, 90))
@@ -1153,7 +1158,7 @@ class UI_MainWindow(QWidget):
                 self.all_outputs_2[i] = output_2
 
             # initialize digit selection control
-            self.init_aggregate_polar_control()
+            self.init_aggregate_plot_control()
 
             # display the result
             self.display_mnist_aggregate_result()
@@ -1164,8 +1169,8 @@ class UI_MainWindow(QWidget):
             self.y_translation = list(range(-self.image_size//2, self.image_size//2, self.translation_step))
 
             # output of each sample for all translations, has shape (num_y_trans, num_x_trans, num_samples, num_samples, 7)
-            self.all_outputs_1 = np.zeros((len(self.y_translation), len(self.x_translation), len(self.all_images_paths), 7))
-            self.all_outputs_2 = np.zeros((len(self.y_translation), len(self.x_translation), len(self.all_images_paths), 7))
+            self.all_outputs_1 = np.zeros((len(self.y_translation), len(self.x_translation)), dtype=np.ndarray)
+            self.all_outputs_2 = np.zeros((len(self.y_translation), len(self.x_translation)), dtype=np.ndarray)
 
             # for all the loaded images
             for y, y_tran in enumerate(self.y_translation):
@@ -1185,8 +1190,7 @@ class UI_MainWindow(QWidget):
                                                                     x_tran=x_tran,
                                                                     y_tran=y_tran,
                                                                     coco_names=self.original_coco_names)
-                    print(len(cur_qualified_output_1))
-                    exit()
+
                     # model 2 output
                     cur_qualified_output_2, \
                     cur_precision_2, \
@@ -1203,11 +1207,11 @@ class UI_MainWindow(QWidget):
                                                                     coco_names=self.original_coco_names)
 
                     # append to result arrays
-                    self.all_outputs_1[i] = output_1
-                    self.all_outputs_2[i] = output_2
+                    self.all_outputs_1[y, x] = cur_qualified_output_1
+                    self.all_outputs_2[y, x] = cur_qualified_output_2
 
             # initialize digit selection control
-            self.init_aggregate_polar_control()
+            self.init_aggregate_plot_control()
 
             # display the result
             self.display_mnist_aggregate_result()

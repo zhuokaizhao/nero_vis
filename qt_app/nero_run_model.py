@@ -221,8 +221,10 @@ def clean_model_outputs(model_name, outputs_dict, test_label, original_names, de
                 output[:, :4] = pred_boxes
                 output[:, 4] = pred_confs
                 output[:, 5] = pred_labels
+        else:
+            output = torch.zeros((1, 6))
 
-                outputs.append(output)
+        outputs.append(output)
 
     return outputs
 
@@ -425,11 +427,10 @@ def run_coco_once(mode, model_name, model, test_image, custom_names, pytorch_nam
             collate_fn=dataset.collate_fn
         )
 
-        all_qualified_output = []
-        all_precision = []
-        all_recall = []
-        all_F_measure = []
-        all_AP = []
+        all_qualified_output = np.zeros(len(dataset), dtype=np.ndarray)
+        all_precision = np.zeros(len(dataset))
+        all_recall = np.zeros(len(dataset))
+        all_F_measure = np.zeros(len(dataset))
 
         for batch_i, (_, test_images, test_labels) in enumerate(dataloader):
 
@@ -442,7 +443,6 @@ def run_coco_once(mode, model_name, model, test_image, custom_names, pytorch_nam
 
                 # outputs = nero_utilities.non_max_suppression(output_dict, conf_thres=0, nms_thres=0.4)
                 outputs = clean_model_outputs(model_name, outputs_dict, test_label, pytorch_names, custom_names)
-
                 if outputs != []:
                     cur_qualified_output, cur_precision, cur_recall, cur_F_measure = process_model_outputs(outputs, test_labels)
                 else:
@@ -452,9 +452,10 @@ def run_coco_once(mode, model_name, model, test_image, custom_names, pytorch_nam
                     cur_recall = []
                     cur_F_measure = []
 
-                all_qualified_output.append(cur_qualified_output)
-                all_precision.append(cur_precision)
-                all_recall.append(cur_recall)
-                all_F_measure.append(cur_F_measure)
+                all_qualified_output[batch_i*batch_size:batch_i*batch_size+len(test_images)] = cur_qualified_output
+                all_precision[batch_i*batch_size:batch_i*batch_size+len(test_images)] = cur_precision
+                all_recall[batch_i*batch_size:batch_i*batch_size+len(test_images)] = cur_recall
+                all_F_measure[batch_i*batch_size:batch_i*batch_size+len(test_images)] = cur_F_measure
+
 
     return [all_qualified_output, all_precision, all_recall, all_F_measure]
