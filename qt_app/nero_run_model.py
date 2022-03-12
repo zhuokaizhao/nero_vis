@@ -258,10 +258,11 @@ def process_model_outputs(outputs, targets, iou_thres=0.5, conf_thres=0):
         return iou
 
     # get all the outputs (the model proposes multiple bounding boxes for each object)
-    all_qualified_outputs = []
-    all_precisions = []
-    all_recalls = []
-    all_F_measure = []
+    all_qualified_outputs = np.zeros(len(outputs), dtype=np.ndarray)
+    # all_qualified_outputs = []
+    all_precisions = np.zeros(len(outputs))
+    all_recalls = np.zeros(len(outputs))
+    all_F_measure = np.zeros(len(outputs))
 
     # loop through model's outputs on each image sample
     for i in range(len(outputs)):
@@ -320,10 +321,10 @@ def process_model_outputs(outputs, targets, iou_thres=0.5, conf_thres=0):
 
         # rank all outputs based on IOU and then convert to numpy array
         qualified_output = np.array(sorted(qualified_output, key=lambda x: x[-1])[::-1])
-        all_qualified_outputs.append(qualified_output)
-        all_precisions.append(precision)
-        all_recalls.append(recall)
-        all_F_measure.append(F_measure)
+        all_qualified_outputs[i] = qualified_output
+        all_precisions[i] = precision
+        all_recalls[i] = recall
+        all_F_measure[i] = F_measure
 
 
     return all_qualified_outputs, all_precisions, all_recalls, all_F_measure
@@ -426,6 +427,5 @@ def run_coco_once(mode, model_name, model, test_image, custom_names, pytorch_nam
                 all_precision[batch_i*batch_size:batch_i*batch_size+len(test_images)] = cur_precision
                 all_recall[batch_i*batch_size:batch_i*batch_size+len(test_images)] = cur_recall
                 all_F_measure[batch_i*batch_size:batch_i*batch_size+len(test_images)] = cur_F_measure
-
 
     return [all_qualified_output, all_precision, all_recall, all_F_measure]

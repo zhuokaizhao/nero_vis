@@ -208,7 +208,7 @@ class UI_MainWindow(QWidget):
                 self.rotation = False
                 self.translation = False
                 # translation step when evaluating
-                self.translation_step = 4
+                self.translation_step = 32
 
                 # predefined model paths
                 self.model_1_name = 'FasterRCNN (0% jittering)'
@@ -1097,7 +1097,7 @@ class UI_MainWindow(QWidget):
 
         # drop down menu on choosing the display class
         self.class_selection_menu = QtWidgets.QComboBox()
-        self.class_selection_menu.setMinimumSize(QtCore.QSize(250, 50))
+        self.class_selection_menu.setFixedSize(QtCore.QSize(250, 50))
         self.class_selection_menu.setStyleSheet('font-size: 18px')
         if self.mode == 'digit_recognition':
             self.class_selection_menu.addItem(f'Averaged over all digits')
@@ -1107,8 +1107,8 @@ class UI_MainWindow(QWidget):
         elif self.mode == 'object_detection':
             self.class_selection_menu.addItem(f'Averaged over all classes')
             # add all classes as items
-            for i in range(self.coco_classes):
-                self.class_selection_menu.addItem(f'{self.coco_classes[i]}')
+            for cur_class in self.coco_classes:
+                self.class_selection_menu.addItem(f'{cur_class}')
 
         # set default to digit -1, which means the average one
         self.class_selection = -1
@@ -1119,11 +1119,12 @@ class UI_MainWindow(QWidget):
         self.class_selection_menu.lineEdit().setReadOnly(True)
         self.class_selection_menu.lineEdit().setAlignment(QtCore.Qt.AlignRight)
         # add to local layout
-        self.aggregate_result_layout.addWidget(self.class_selection_menu, 0, 2)
+        # self.aggregate_result_layout.addWidget(self.class_selection_menu, 0, 2)
+        self.aggregate_result_layout.addWidget(self.class_selection_menu, 0, 0)
 
         # drop down menu on choosing the dimension reduction method
         self.dr_selection_menu = QtWidgets.QComboBox()
-        self.dr_selection_menu.setMinimumSize(QtCore.QSize(250, 50))
+        self.dr_selection_menu.setFixedSize(QtCore.QSize(250, 50))
         self.dr_selection_menu.setStyleSheet('font-size: 18px')
         dr_algorithms = ['PCA', 'ICA', 'ISOMAP', 't-SNE', 'UMAP']
         for algo in dr_algorithms:
@@ -1137,14 +1138,16 @@ class UI_MainWindow(QWidget):
         self.dr_selection_menu.lineEdit().setReadOnly(True)
         self.dr_selection_menu.lineEdit().setAlignment(QtCore.Qt.AlignRight)
         # add to local layout
-        self.dr_selection_menu.addWidget(self.class_selection_menu, 1, 2)
+        # self.aggregate_result_layout.addWidget(self.class_selection_menu, 1, 2)
+        self.aggregate_result_layout.addWidget(self.class_selection_menu, 1, 0)
 
         # push button on running PCA
         self.pca_button = QtWidgets.QPushButton('See Overview')
         self.pca_button.setStyleSheet('font-size: 18px')
-        self.pca_button.setMinimumSize(QtCore.QSize(250, 50))
+        self.pca_button.setFixedSize(QtCore.QSize(250, 50))
         self.pca_button.clicked.connect(run_dimension_reduction)
-        self.aggregate_result_layout.addWidget(self.pca_button, 1, 3)
+        # self.aggregate_result_layout.addWidget(self.pca_button, 1, 3)
+        self.aggregate_result_layout.addWidget(self.pca_button, 2, 0)
 
 
     # run model on the aggregate dataset
@@ -1215,53 +1218,60 @@ class UI_MainWindow(QWidget):
             self.aggregate_F_measure_2 = np.zeros((len(self.y_translation), len(self.x_translation)))
             self.aggregate_AP_2 = np.zeros((len(self.y_translation), len(self.x_translation)))
 
-            # for all the loaded images
-            for y, y_tran in enumerate(self.y_translation):
-                for x, x_tran in enumerate(self.x_translation):
-                    print(y_tran, x_tran)
-                    # model 1 output
-                    cur_qualified_output_1, \
-                    cur_precision_1, \
-                    cur_recall_1, \
-                    cur_F_measure_1 = nero_run_model.run_coco_once('aggregate',
-                                                                    self.model_1_name,
-                                                                    self.model_1,
-                                                                    self.all_images_paths,
-                                                                    self.custom_coco_names,
-                                                                    self.pytorch_coco_names,
-                                                                    batch_size=self.batch_size,
-                                                                    x_tran=x_tran,
-                                                                    y_tran=y_tran,
-                                                                    coco_names=self.original_coco_names)
+            if self.use_cache:
+                self.aggregate_outputs_1 = self.load_from_cache(f'{self.mode}_{self.data_mode}_{self.model_1_cache_name}_outputs')
+                self.aggregate_outputs_2 = self.load_from_cache(f'{self.mode}_{self.data_mode}_{self.model_2_cache_name}_outputs')
+            else:
+                # for all the loaded images
+                for y, y_tran in enumerate(self.y_translation):
+                    for x, x_tran in enumerate(self.x_translation):
+                        print(y_tran, x_tran)
+                        # model 1 output
+                        cur_qualified_output_1, \
+                        cur_precision_1, \
+                        cur_recall_1, \
+                        cur_F_measure_1 = nero_run_model.run_coco_once('aggregate',
+                                                                        self.model_1_name,
+                                                                        self.model_1,
+                                                                        self.all_images_paths,
+                                                                        self.custom_coco_names,
+                                                                        self.pytorch_coco_names,
+                                                                        batch_size=self.batch_size,
+                                                                        x_tran=x_tran,
+                                                                        y_tran=y_tran,
+                                                                        coco_names=self.original_coco_names)
 
-                    # save to result arrays
-                    self.aggregate_outputs_1[y, x] = cur_qualified_output_1
-                    self.aggregate_precision_1[y, x] = np.mean(cur_precision_1)
-                    self.aggregate_recall_1[y, x] = np.mean(cur_recall_1)
-                    self.aggregate_F_measure_1[y, x] = np.mean(cur_F_measure_1)
-                    self.aggregate_AP_1[y, x] = nero_utilities.compute_ap(cur_recall_1, cur_precision_1)
+                        # save to result arrays
+                        self.aggregate_outputs_1[y, x] = cur_qualified_output_1
+                        self.aggregate_precision_1[y, x] = np.mean(cur_precision_1)
+                        self.aggregate_recall_1[y, x] = np.mean(cur_recall_1)
+                        self.aggregate_F_measure_1[y, x] = np.mean(cur_F_measure_1)
+                        self.aggregate_AP_1[y, x] = nero_utilities.compute_ap(cur_recall_1, cur_precision_1)
 
-                    # model 2 output
-                    cur_qualified_output_2, \
-                    cur_precision_2, \
-                    cur_recall_2, \
-                    cur_F_measure_2 = nero_run_model.run_coco_once('aggregate',
-                                                                    self.model_2_name,
-                                                                    self.model_2,
-                                                                    self.all_images_paths,
-                                                                    self.custom_coco_names,
-                                                                    self.pytorch_coco_names,
-                                                                    batch_size=self.batch_size,
-                                                                    x_tran=x_tran,
-                                                                    y_tran=y_tran,
-                                                                    coco_names=self.original_coco_names)
+                        # model 2 output
+                        cur_qualified_output_2, \
+                        cur_precision_2, \
+                        cur_recall_2, \
+                        cur_F_measure_2 = nero_run_model.run_coco_once('aggregate',
+                                                                        self.model_2_name,
+                                                                        self.model_2,
+                                                                        self.all_images_paths,
+                                                                        self.custom_coco_names,
+                                                                        self.pytorch_coco_names,
+                                                                        batch_size=self.batch_size,
+                                                                        x_tran=x_tran,
+                                                                        y_tran=y_tran,
+                                                                        coco_names=self.original_coco_names)
 
-                    # save to result arrays
-                    self.aggregate_outputs_2[y, x] = cur_qualified_output_2
-                    self.aggregate_precision_2[y, x] = np.mean(cur_precision_2)
-                    self.aggregate_recall_2[y, x] = np.mean(cur_recall_2)
-                    self.aggregate_F_measure_2[y, x] = np.mean(cur_F_measure_2)
-                    self.aggregate_AP_2[y, x] = nero_utilities.compute_ap(cur_recall_2, cur_precision_2)
+                        # save to result arrays
+                        self.aggregate_outputs_2[y, x] = cur_qualified_output_2
+                        self.aggregate_precision_2[y, x] = np.mean(cur_precision_2)
+                        self.aggregate_recall_2[y, x] = np.mean(cur_recall_2)
+                        self.aggregate_F_measure_2[y, x] = np.mean(cur_F_measure_2)
+                        self.aggregate_AP_2[y, x] = nero_utilities.compute_ap(cur_recall_2, cur_precision_2)
+
+                self.save_to_cache(name=f'{self.mode}_{self.data_mode}_{self.model_1_cache_name}_outputs', content=self.aggregate_outputs_1)
+                self.save_to_cache(name=f'{self.mode}_{self.data_mode}_{self.model_2_cache_name}_outputs', content=self.aggregate_outputs_2)
 
 
             # initialize digit selection control
@@ -1520,8 +1530,8 @@ class UI_MainWindow(QWidget):
 
             # save to cache
             else:
-                self.save_to_cache(name=f'{self.data_mode}_{self.model_1_cache_name}_{self.image_index}', content=self.all_quantities_1)
-                self.save_to_cache(name=f'{self.data_mode}_{self.model_2_cache_name}_{self.image_index}', content=self.all_quantities_2)
+                self.save_to_cache(name=f'{self.mode}_{self.data_mode}_{self.model_1_cache_name}_{self.image_index}', content=self.all_quantities_1)
+                self.save_to_cache(name=f'{self.mode}_{self.data_mode}_{self.model_2_cache_name}_{self.image_index}', content=self.all_quantities_2)
 
             # display the individual NERO plot
             self.display_coco_single_result()
@@ -2306,9 +2316,9 @@ class UI_MainWindow(QWidget):
         self.aggregate_result_layout.addWidget(self.model_1_menu, 0, 1, 1, 1, QtCore.Qt.AlignCenter)
         self.aggregate_result_layout.addWidget(self.model_2_menu, 0, 2, 1, 1, QtCore.Qt.AlignCenter)
 
-        # move run button in the first column
-        self.aggregate_result_layout.addWidget(self.run_button, 0, 0)
-        self.aggregate_result_layout.addWidget(self.use_cache_checkbox, 1, 0)
+        # move run button in the first column (after aggregate heatmap control)
+        self.aggregate_result_layout.addWidget(self.run_button, 3, 0)
+        self.aggregate_result_layout.addWidget(self.use_cache_checkbox, 4, 0)
 
         self.aggregate_result_existed = True
 
@@ -2351,8 +2361,21 @@ class UI_MainWindow(QWidget):
         self.aggregate_result_layout.addLayout(self.aggregate_plot_control_layout, 0, 0)
 
         # define default plotting quantity (IOU*Confidence)
-        self.cur_plot_quantity_1 = self.aggregate_outputs_1[:, :, 4] * self.aggregate_outputs_1[:, :, 6]
-        self.cur_plot_quantity_2 = self.aggregate_outputs_2[:, :, 4] * self.aggregate_outputs_2[:, :, 6]
+        self.aggregate_confidence_1 = np.zeros((len(self.y_translation), len(self.x_translation)))
+        self.aggregate_confidence_2 = np.zeros((len(self.y_translation), len(self.x_translation)))
+        self.aggregate_iou_1 = np.zeros((len(self.y_translation), len(self.x_translation)))
+        self.aggregate_iou_2 = np.zeros((len(self.y_translation), len(self.x_translation)))
+        for y in range(len(self.y_translation)):
+            for x in range(len(self.x_translation)):
+                all_samples_conf_sum = []
+                all_samples_iou_sum
+                for i in range(len(self.aggregate_outputs_1[y, x])):
+                    all_samples_conf_sum.append(self.aggregate_outputs_1[y, x][i][0, 4])
+
+                self.aggregate_confidence_1[y, x] = np.mean(all_samples_conf_sum)
+
+        self.cur_plot_quantity_1 = self.aggregate_outputs_1[:, :, :, 4] * self.aggregate_outputs_1[:, :, :, 6]
+        self.cur_plot_quantity_2 = self.aggregate_outputs_2[:, :, :, 4] * self.aggregate_outputs_2[:, :, :, 6]
 
         # draw the heatmap
         self.draw_heatmaps(mode='aggregate')
