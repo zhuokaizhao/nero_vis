@@ -872,17 +872,18 @@ class UI_MainWindow(QWidget):
         self.aggregate_result_layout = QtWidgets.QGridLayout()
         # self.aggregate_result_layout.setContentsMargins(30, 50, 30, 50)
 
-        # add to general layout
-        self.layout.addLayout(self.aggregate_result_layout, 0, 2)
-
         # if model result ever existed
         self.aggregate_result_existed = False
 
         # batch size when running in aggregate mode
         if self.mode == 'digit_recognition':
             self.batch_size = 100
+            # add to general layout
+            self.layout.addLayout(self.aggregate_result_layout, 0, 2)
         elif self.mode == 'object_detection':
             self.batch_size = 64
+            # add to general layout
+            self.layout.addLayout(self.aggregate_result_layout, 1, 0)
         elif self.mode == 'piv':
             self.batch_size = 16
 
@@ -927,18 +928,30 @@ class UI_MainWindow(QWidget):
 
     # initialize digit selection control drop down menu
     def init_aggregate_plot_control(self):
-        # aggregate digit selection drop-down menu
+        # aggregate class selection drop-down menu
         @QtCore.Slot()
         def aggregate_class_selection_changed(text):
             # update the current digit selection
-            # if average or a specific digit
-            if text.split(' ')[0] == 'Averaged':
-                self.digit_selection = -1
-            elif text.split(' ')[0] == 'Digit':
-                self.digit_selection = int(text.split(' ')[-1])
+            # first two cases are for digit recognition (MNIST)
+            if self.mode == 'digit_recognition':
+                if text.split(' ')[0] == 'Averaged':
+                    self.class_selection = -1
+                elif text.split(' ')[0] == 'Digit':
+                    self.class_selection = int(text.split(' ')[-1])
 
-            # display the plot
-            self.display_mnist_aggregate_result()
+                # display the plot
+                self.display_mnist_aggregate_result()
+
+            # for object detection (COCO)
+            elif self.mode == 'object_detection':
+                self.class_selection = text
+
+                # display the plot
+                self.display_coco_aggregate_result()
+
+        # change different dimension reduction algorithms
+        def dr_selection_changed(text):
+            self.dr_selection = text
 
         # run PCA on demand
         @QtCore.Slot()
@@ -1023,11 +1036,11 @@ class UI_MainWindow(QWidget):
             # run pca of all images on the selected digit
             # each image has tensor with length being the number of rotations
             cur_digit_indices = []
-            if self.digit_selection == -1:
+            if self.class_selection == -1:
                 cur_digit_indices = list(range(len(self.loaded_images_labels)))
             else:
                 for i in range(len(self.loaded_images_labels)):
-                    if self.digit_selection == self.loaded_images_labels[i]:
+                    if self.class_selection == self.loaded_images_labels[i]:
                         cur_digit_indices.append(i)
 
             all_high_dim_points_1 = np.zeros((len(cur_digit_indices), len(self.all_aggregate_angles)))
@@ -1042,8 +1055,11 @@ class UI_MainWindow(QWidget):
                     all_high_dim_points_2[i, j] = int(self.all_outputs_2[j][index].argmax() == self.loaded_images_labels[index])
 
             # run dimension reduction algorithm
-            low_dim_1 = run_pca(all_high_dim_points_1, target_dim=2)
-            low_dim_2 = run_pca(all_high_dim_points_2, target_dim=2)
+            if self.dr_selection == 'PCA':
+                low_dim_1 = run_pca(all_high_dim_points_1, target_dim=2)
+                low_dim_2 = run_pca(all_high_dim_points_2, target_dim=2)
+            else:
+                raise NotImplemented()
 
             # scatter plot on low-dim points
             low_dim_scatter_view = pg.GraphicsLayoutWidget()
@@ -1079,8 +1095,7 @@ class UI_MainWindow(QWidget):
 
             self.aggregate_result_layout.addWidget(low_dim_scatter_view, 0, 0)
 
-        # drop down menu on choosing the digit
-        # self.digit_selection_layout = QtWidgets.QVBoxLayout()
+        # drop down menu on choosing the display class
         self.class_selection_menu = QtWidgets.QComboBox()
         self.class_selection_menu.setMinimumSize(QtCore.QSize(250, 50))
         self.class_selection_menu.setStyleSheet('font-size: 18px')
@@ -1096,23 +1111,40 @@ class UI_MainWindow(QWidget):
                 self.class_selection_menu.addItem(f'{self.coco_classes[i]}')
 
         # set default to digit -1, which means the average one
-        self.digit_selection = -1
+        self.class_selection = -1
         self.class_selection_menu.setCurrentIndex(0)
-
         # connect the drop down menu with actions
         self.class_selection_menu.currentTextChanged.connect(aggregate_class_selection_changed)
         self.class_selection_menu.setEditable(True)
         self.class_selection_menu.lineEdit().setReadOnly(True)
         self.class_selection_menu.lineEdit().setAlignment(QtCore.Qt.AlignRight)
-
+        # add to local layout
         self.aggregate_result_layout.addWidget(self.class_selection_menu, 0, 2)
+
+        # drop down menu on choosing the dimension reduction method
+        self.dr_selection_menu = QtWidgets.QComboBox()
+        self.dr_selection_menu.setMinimumSize(QtCore.QSize(250, 50))
+        self.dr_selection_menu.setStyleSheet('font-size: 18px')
+        dr_algorithms = ['PCA', 'ICA', 'ISOMAP', 't-SNE', 'UMAP']
+        for algo in dr_algorithms:
+            self.dr_selection_menu.addItem(f'{algo}')
+        # set default to digit 0, which means PCA
+        self.dr_selection = dr_algorithms[0]
+        self.dr_selection_menu.setCurrentIndex(0)
+        # connect the drop down menu with actions
+        self.dr_selection_menu.currentTextChanged.connect(dr_selection_changed)
+        self.dr_selection_menu.setEditable(True)
+        self.dr_selection_menu.lineEdit().setReadOnly(True)
+        self.dr_selection_menu.lineEdit().setAlignment(QtCore.Qt.AlignRight)
+        # add to local layout
+        self.dr_selection_menu.addWidget(self.class_selection_menu, 1, 2)
 
         # push button on running PCA
         self.pca_button = QtWidgets.QPushButton('See Overview')
         self.pca_button.setStyleSheet('font-size: 18px')
         self.pca_button.setMinimumSize(QtCore.QSize(250, 50))
         self.pca_button.clicked.connect(run_dimension_reduction)
-        self.aggregate_result_layout.addWidget(self.pca_button, 1, 2)
+        self.aggregate_result_layout.addWidget(self.pca_button, 1, 3)
 
 
     # run model on the aggregate dataset
@@ -1169,13 +1201,24 @@ class UI_MainWindow(QWidget):
             self.y_translation = list(range(-self.image_size//2, self.image_size//2, self.translation_step))
 
             # output of each sample for all translations, has shape (num_y_trans, num_x_trans, num_samples, num_samples, 7)
-            self.all_outputs_1 = np.zeros((len(self.y_translation), len(self.x_translation)), dtype=np.ndarray)
-            self.all_outputs_2 = np.zeros((len(self.y_translation), len(self.x_translation)), dtype=np.ndarray)
+            self.aggregate_outputs_1 = np.zeros((len(self.y_translation), len(self.x_translation)), dtype=np.ndarray)
+            self.aggregate_outputs_2 = np.zeros((len(self.y_translation), len(self.x_translation)), dtype=np.ndarray)
+
+            # average precision, recall, F measure and AP
+            self.aggregate_precision_1 = np.zeros((len(self.y_translation), len(self.x_translation)))
+            self.aggregate_recall_1 = np.zeros((len(self.y_translation), len(self.x_translation)))
+            self.aggregate_F_measure_1 = np.zeros((len(self.y_translation), len(self.x_translation)))
+            self.aggregate_AP_1 = np.zeros((len(self.y_translation), len(self.x_translation)))
+
+            self.aggregate_precision_2 = np.zeros((len(self.y_translation), len(self.x_translation)))
+            self.aggregate_recall_2 = np.zeros((len(self.y_translation), len(self.x_translation)))
+            self.aggregate_F_measure_2 = np.zeros((len(self.y_translation), len(self.x_translation)))
+            self.aggregate_AP_2 = np.zeros((len(self.y_translation), len(self.x_translation)))
 
             # for all the loaded images
             for y, y_tran in enumerate(self.y_translation):
                 for x, x_tran in enumerate(self.x_translation):
-
+                    print(y_tran, x_tran)
                     # model 1 output
                     cur_qualified_output_1, \
                     cur_precision_1, \
@@ -1190,6 +1233,13 @@ class UI_MainWindow(QWidget):
                                                                     x_tran=x_tran,
                                                                     y_tran=y_tran,
                                                                     coco_names=self.original_coco_names)
+
+                    # save to result arrays
+                    self.aggregate_outputs_1[y, x] = cur_qualified_output_1
+                    self.aggregate_precision_1[y, x] = np.mean(cur_precision_1)
+                    self.aggregate_recall_1[y, x] = np.mean(cur_recall_1)
+                    self.aggregate_F_measure_1[y, x] = np.mean(cur_F_measure_1)
+                    self.aggregate_AP_1[y, x] = nero_utilities.compute_ap(cur_recall_1, cur_precision_1)
 
                     # model 2 output
                     cur_qualified_output_2, \
@@ -1206,15 +1256,19 @@ class UI_MainWindow(QWidget):
                                                                     y_tran=y_tran,
                                                                     coco_names=self.original_coco_names)
 
-                    # append to result arrays
-                    self.all_outputs_1[y, x] = cur_qualified_output_1
-                    self.all_outputs_2[y, x] = cur_qualified_output_2
+                    # save to result arrays
+                    self.aggregate_outputs_2[y, x] = cur_qualified_output_2
+                    self.aggregate_precision_2[y, x] = np.mean(cur_precision_2)
+                    self.aggregate_recall_2[y, x] = np.mean(cur_recall_2)
+                    self.aggregate_F_measure_2[y, x] = np.mean(cur_F_measure_2)
+                    self.aggregate_AP_2[y, x] = nero_utilities.compute_ap(cur_recall_2, cur_precision_2)
+
 
             # initialize digit selection control
             self.init_aggregate_plot_control()
 
             # display the result
-            self.display_mnist_aggregate_result()
+            self.display_coco_aggregate_result()
 
 
 
@@ -1470,7 +1524,7 @@ class UI_MainWindow(QWidget):
                 self.save_to_cache(name=f'{self.data_mode}_{self.model_2_cache_name}_{self.image_index}', content=self.all_quantities_2)
 
             # display the individual NERO plot
-            self.display_coco_single_result(type='heatmap', boundary_width=3)
+            self.display_coco_single_result()
 
 
     # draw an arrow, used between input image(s) and model outputs
@@ -1747,7 +1801,7 @@ class UI_MainWindow(QWidget):
                         # translation amout for plotting in heatmap
                         self.cur_x_tran = -x_dist - self.x_translation[0]
                         self.cur_y_tran = y_dist - self.y_translation[0]
-                        self.draw_heatmaps()
+                        self.draw_heatmaps(mode='single')
 
                         # run inference only when in the realtime mode
                         if self.realtime_inference:
@@ -1809,47 +1863,49 @@ class UI_MainWindow(QWidget):
         self.draw_rectangle(painter, right_rect_center_x, right_rect_center_y, right_display_rect_width, right_display_rect_height, fill=cover_color)
 
 
-    # draw heatmap
-    def draw_heatmaps(self):
-        # helper function on drawing individual heatmap
-        def draw_individual_heatmap(data, title=None, range=(0, 1)):
-            # actuall heatmap
-            heatmap = pg.ImageItem()
-            heatmap.setOpts(axisOrder='row-major')
-            heatmap.setImage(data)
+    # helper function on drawing individual heatmap (called by both individual and aggregate cases)
+    def draw_individual_heatmap(self, data, title=None, range=(0, 1)):
+        # actuall heatmap
+        heatmap = pg.ImageItem()
+        heatmap.setOpts(axisOrder='row-major')
+        heatmap.setImage(data)
 
-            # small indicator on where the translation is at
-            scatter_item = pg.ScatterPlotItem(pxMode=False)
-            scatter_point = []
+        # small indicator on where the translation is at
+        scatter_item = pg.ScatterPlotItem(pxMode=False)
+        scatter_point = []
 
-            scatter_point.append({'pos': (self.cur_x_tran, self.cur_y_tran),
-                                    'size': 3,
-                                    'pen': {'color': 'red', 'width': 0.1},
-                                    'brush': (255, 0, 0, 255)})
+        scatter_point.append({'pos': (self.cur_x_tran, self.cur_y_tran),
+                                'size': 3,
+                                'pen': {'color': 'red', 'width': 0.1},
+                                'brush': (255, 0, 0, 255)})
 
-            # add points to the item
-            scatter_item.addPoints(scatter_point)
+        # add points to the item
+        scatter_item.addPoints(scatter_point)
 
-            # create view box to contain the heatmap
-            view_box = pg.ViewBox()
-            view_box.setAspectLocked(lock=True)
-            view_box.addItem(heatmap)
-            view_box.addItem(scatter_item)
+        # create view box to contain the heatmap
+        view_box = pg.ViewBox()
+        view_box.setAspectLocked(lock=True)
+        view_box.addItem(heatmap)
+        view_box.addItem(scatter_item)
 
-            heatmap_plot = pg.PlotItem(viewBox=view_box, title=title)
-            heatmap_plot.getAxis('bottom').setLabel('Translation in x')
-            heatmap_plot.getAxis('bottom').setStyle(tickLength=0, showValues=False)
-            heatmap_plot.getAxis('left').setLabel('Translation in y')
-            heatmap_plot.getAxis('left').setStyle(tickLength=0, showValues=False)
-            # disable being able to move plot around
-            heatmap_plot.setMouseEnabled(x=False, y=False)
+        heatmap_plot = pg.PlotItem(viewBox=view_box, title=title)
+        heatmap_plot.getAxis('bottom').setLabel('Translation in x')
+        heatmap_plot.getAxis('bottom').setStyle(tickLength=0, showValues=False)
+        heatmap_plot.getAxis('left').setLabel('Translation in y')
+        heatmap_plot.getAxis('left').setStyle(tickLength=0, showValues=False)
+        # disable being able to move plot around
+        heatmap_plot.setMouseEnabled(x=False, y=False)
 
-            # create colorbar
-            color_map = pg.colormap.get('viridis')
-            color_bar = pg.ColorBarItem(values= range, colorMap=color_map)
-            color_bar.setImageItem(heatmap, insert_in=heatmap_plot)
+        # create colorbar
+        color_map = pg.colormap.get('viridis')
+        color_bar = pg.ColorBarItem(values= range, colorMap=color_map)
+        color_bar.setImageItem(heatmap, insert_in=heatmap_plot)
 
-            return heatmap_plot
+        return heatmap_plot
+
+
+    # draw heatmaps that displays the individual NERO plots
+    def draw_heatmaps(self, mode):
 
         # helper function for clicking inside the heatmap
         def heatmap_mouse_clicked(event, heatmap_plot):
@@ -1899,8 +1955,8 @@ class UI_MainWindow(QWidget):
         # left top right bottom
         self.heatmap_view_2.ci.layout.setContentsMargins(0, 20, 0, 0)
         self.heatmap_view_2.setFixedSize(self.plot_size*1.3, self.plot_size*1.3)
-        self.heatmap_plot_1 = draw_individual_heatmap(data_1)
-        self.heatmap_plot_2 = draw_individual_heatmap(data_2)
+        self.heatmap_plot_1 = self.draw_individual_heatmap(data_1)
+        self.heatmap_plot_2 = self.draw_individual_heatmap(data_2)
         # self.view_box_1.scene().sigMouseClicked.connect(heatmap_mouse_clicked(self.view_box_1))
         # self.view_box_2.scene().sigMouseClicked.connect(heatmap_mouse_clicked(self.view_box_2))
 
@@ -1909,8 +1965,12 @@ class UI_MainWindow(QWidget):
         self.heatmap_view_2.addItem(self.heatmap_plot_2)
 
         # add to general layout
-        self.single_result_layout.addWidget(self.heatmap_view_1, 1, 2)
-        self.single_result_layout.addWidget(self.heatmap_view_2, 1, 3)
+        if mode == 'single':
+            self.single_result_layout.addWidget(self.heatmap_view_1, 1, 2)
+            self.single_result_layout.addWidget(self.heatmap_view_2, 1, 3)
+        elif mode == 'aggregate':
+            self.aggregate_result_layout.addWidget(self.heatmap_view_1, 1, 1)
+            self.aggregate_result_layout.addWidget(self.heatmap_view_2, 1, 2)
 
 
     # display MNIST aggregated results
@@ -1936,10 +1996,10 @@ class UI_MainWindow(QWidget):
         for i in range(len(self.all_aggregate_angles)):
             radian = self.all_aggregate_angles[i] / 180 * np.pi
             # model 1 accuracy
-            if self.digit_selection == -1:
+            if self.class_selection == -1:
                 cur_quantity_1 = self.all_avg_accuracy_1[i]
             else:
-                cur_quantity_1 = self.all_avg_accuracy_per_digit_1[i][self.digit_selection]
+                cur_quantity_1 = self.all_avg_accuracy_per_digit_1[i][self.class_selection]
             # Transform to cartesian and plot
             x_1 = cur_quantity_1 * np.cos(radian)
             y_1 = cur_quantity_1 * np.sin(radian)
@@ -1951,10 +2011,10 @@ class UI_MainWindow(QWidget):
                                 'brush': QtGui.QColor('blue')})
 
             # model 2 quantity
-            if self.digit_selection == -1:
+            if self.class_selection == -1:
                 cur_quantity_2 = self.all_avg_accuracy_2[i]
             else:
-                cur_quantity_2 = self.all_avg_accuracy_per_digit_2[i][self.digit_selection]
+                cur_quantity_2 = self.all_avg_accuracy_per_digit_2[i][self.class_selection]
             # Transform to cartesian and plot
             x_2 = cur_quantity_2 * np.cos(radian)
             y_2 = cur_quantity_2 * np.sin(radian)
@@ -2242,35 +2302,90 @@ class UI_MainWindow(QWidget):
 
     # display COCO aggregate results
     def display_coco_aggregate_result(self):
-        return None
+        # move the model menu on top of the each aggregate NERO plot
+        self.aggregate_result_layout.addWidget(self.model_1_menu, 0, 1, 1, 1, QtCore.Qt.AlignCenter)
+        self.aggregate_result_layout.addWidget(self.model_2_menu, 0, 2, 1, 1, QtCore.Qt.AlignCenter)
+
+        # move run button in the first column
+        self.aggregate_result_layout.addWidget(self.run_button, 0, 0)
+        self.aggregate_result_layout.addWidget(self.use_cache_checkbox, 1, 0)
+
+        self.aggregate_result_existed = True
+
+        @QtCore.Slot()
+        def heatmap_quantity_changed(text):
+            print('Plotting:', text, 'on heatmap')
+            self.quantity_name = text
+
+            if text == 'Confidence*IOU':
+                self.cur_plot_quantity_1 = self.all_quantities_1[:, :, 4] * self.all_quantities_1[:, :, 6]
+                self.cur_plot_quantity_2 = self.all_quantities_2[:, :, 4] * self.all_quantities_2[:, :, 6]
+            elif text == 'Confidence':
+                self.cur_plot_quantity_1 = self.all_quantities_1[:, :, 4]
+                self.cur_plot_quantity_2 = self.all_quantities_2[:, :, 4]
+            elif text == 'IOU':
+                self.cur_plot_quantity_1 = self.all_quantities_1[:, :, 6]
+                self.cur_plot_quantity_2 = self.all_quantities_2[:, :, 6]
+
+        # drop down menu on selection which quantity to plot
+        # layout that controls the plotting items
+        self.aggregate_plot_control_layout = QtWidgets.QVBoxLayout()
+        quantity_menu = QtWidgets.QComboBox()
+        quantity_menu.setFixedSize(QtCore.QSize(200, 50))
+        quantity_menu.setStyleSheet('font-size: 18px')
+        quantity_menu.setEditable(True)
+        quantity_menu.lineEdit().setReadOnly(True)
+        quantity_menu.lineEdit().setAlignment(QtCore.Qt.AlignLeft)
+
+        quantity_menu.addItem('Confidence*IOU')
+        quantity_menu.addItem('Confidence')
+        quantity_menu.addItem('IOU')
+        # self.quantity_menu.setCurrentIndex(0)
+        quantity_menu.setCurrentText('Confidence*IOU')
+
+        # connect the drop down menu with actions
+        quantity_menu.currentTextChanged.connect(heatmap_quantity_changed)
+        self.aggregate_plot_control_layout.addWidget(quantity_menu)
+
+        # add plot control layout to general layout
+        self.aggregate_result_layout.addLayout(self.aggregate_plot_control_layout, 0, 0)
+
+        # define default plotting quantity (IOU*Confidence)
+        self.cur_plot_quantity_1 = self.aggregate_outputs_1[:, :, 4] * self.aggregate_outputs_1[:, :, 6]
+        self.cur_plot_quantity_2 = self.aggregate_outputs_2[:, :, 4] * self.aggregate_outputs_2[:, :, 6]
+
+        # draw the heatmap
+        self.draw_heatmaps(mode='aggregate')
+
+
 
 
     # display COCO single results
-    def display_coco_single_result(self, type, boundary_width):
+    def display_coco_single_result(self):
 
         # aggregate mode does not draw arrow
-        if self.data_mode == 'single':
-            # draw arrow
-            # add a new label for result if no result has existed
-            if not self.single_result_existed:
-                self.arrow_label = QLabel(self)
-                self.arrow_label.setContentsMargins(0, 0, 0, 0)
-                self.arrow_label.setAlignment(QtCore.Qt.AlignCenter)
-                self.arrow_label.setWordWrap(True)
-                self.arrow_label.setTextFormat(QtGui.Qt.AutoText)
+        # if self.data_mode == 'single':
+        #     # draw arrow
+        #     # add a new label for result if no result has existed
+        #     if not self.single_result_existed:
+        #         self.arrow_label = QLabel(self)
+        #         self.arrow_label.setContentsMargins(0, 0, 0, 0)
+        #         self.arrow_label.setAlignment(QtCore.Qt.AlignCenter)
+        #         self.arrow_label.setWordWrap(True)
+        #         self.arrow_label.setTextFormat(QtGui.Qt.AutoText)
 
-            arrow_pixmap = QPixmap(100, 50)
-            arrow_pixmap.fill(QtCore.Qt.white)
-            painter = QtGui.QPainter(arrow_pixmap)
-            # set pen (used to draw outlines of shapes) and brush (draw the background of a shape)
-            pen = QtGui.QPen()
-            # draw arrow to indicate feeding
-            self.draw_arrow(painter, pen, 100, 50, boundary_width)
+        #     arrow_pixmap = QPixmap(100, 50)
+        #     arrow_pixmap.fill(QtCore.Qt.white)
+        #     painter = QtGui.QPainter(arrow_pixmap)
+        #     # set pen (used to draw outlines of shapes) and brush (draw the background of a shape)
+        #     pen = QtGui.QPen()
+        #     # draw arrow to indicate feeding
+        #     self.draw_arrow(painter, pen, 100, 50, boundary_width)
 
-            # add to the label and layout
-            self.arrow_label.setPixmap(arrow_pixmap)
-            self.single_result_layout.addWidget(self.arrow_label, 1, 1)
-            painter.end()
+        #     # add to the label and layout
+        #     self.arrow_label.setPixmap(arrow_pixmap)
+        #     self.single_result_layout.addWidget(self.arrow_label, 1, 1)
+        #     painter.end()
 
         # move the model menu on top of the each individual NERO plot
         self.single_result_layout.addWidget(self.model_1_menu, 0, 2, 1, 1, QtCore.Qt.AlignCenter)
@@ -2286,104 +2401,103 @@ class UI_MainWindow(QWidget):
         self.single_result_existed = True
 
         # draw result using heatmaps
-        if type == 'heatmap':
-            @QtCore.Slot()
-            def realtime_inference_checkbox_clicked(state):
-                if state == QtCore.Qt.Checked:
-                    self.realtime_inference = True
-                else:
-                    self.realtime_inference = False
-
-            @QtCore.Slot()
-            def heatmap_quantity_changed(text):
-                print('Plotting:', text, 'on heatmap')
-                self.quantity_name = text
-
-                if text == 'Confidence*IOU':
-                    self.cur_plot_quantity_1 = self.all_quantities_1[:, :, 4] * self.all_quantities_1[:, :, 6]
-                    self.cur_plot_quantity_2 = self.all_quantities_2[:, :, 4] * self.all_quantities_2[:, :, 6]
-                elif text == 'Confidence':
-                    self.cur_plot_quantity_1 = self.all_quantities_1[:, :, 4]
-                    self.cur_plot_quantity_2 = self.all_quantities_2[:, :, 4]
-                elif text == 'IOU':
-                    self.cur_plot_quantity_1 = self.all_quantities_1[:, :, 6]
-                    self.cur_plot_quantity_2 = self.all_quantities_2[:, :, 6]
-                elif text == 'Consensus':
-                    self.cur_plot_quantity_1 = np.zeros((self.all_quantities_1.shape[0], self.all_quantities_1.shape[1]))
-                    self.cur_plot_quantity_2 = np.zeros((self.all_quantities_2.shape[0], self.all_quantities_2.shape[1]))
-                    # for each position, compute its bounding box center
-                    # x_ratio = int(self.image_size // self.all_quantities_1.shape[0])
-                    # y_ratio = int(self.image_size // self.all_quantities_1.shape[1])
-                    for i in range(self.all_quantities_1.shape[0]):
-                        for j in range(self.all_quantities_1.shape[1]):
-                            # correct translation amount
-                            x_tran = self.all_translations[i, j, 0]
-                            y_tran = self.all_translations[i, j, 1]
-
-                            # current bounding box center from model 1 and 2
-                            cur_center_x_1 = (self.all_quantities_1[i, j, 0] + self.all_quantities_1[i, j, 2]) / 2
-                            cur_center_y_1 = (self.all_quantities_1[i, j, 1] + self.all_quantities_1[i, j, 3]) / 2
-                            cur_center_x_2 = (self.all_quantities_2[i, j, 0] + self.all_quantities_2[i, j, 2]) / 2
-                            cur_center_y_2 = (self.all_quantities_2[i, j, 1] + self.all_quantities_2[i, j, 3]) / 2
-
-                            # model output translation
-                            x_tran_model_1 = cur_center_x_1 - self.image_size//2 - 1
-                            y_tran_model_1 = cur_center_y_1 - self.image_size//2 - 1
-                            x_tran_model_2 = cur_center_x_2 - self.image_size//2 - 1
-                            y_tran_model_2 = cur_center_y_2 - self.image_size//2 - 1
-
-                            # compute percentage
-                            if np.sqrt(x_tran**2 + y_tran**2) == 0:
-                                self.cur_plot_quantity_1[i, j] = 1
-                                self.cur_plot_quantity_2[i, j] = 1
-                            else:
-                                self.cur_plot_quantity_1[i, j] = 1 - np.sqrt((x_tran_model_1-x_tran)**2 + (y_tran_model_1-y_tran)**2) / np.sqrt(x_tran**2 + y_tran**2)
-                                self.cur_plot_quantity_2[i, j] = 1 - np.sqrt((x_tran_model_2-x_tran)**2 + (y_tran_model_2-y_tran)**2) / np.sqrt(x_tran**2 + y_tran**2)
-
-                # re-display the heatmap
-                self.draw_heatmaps()
-
-            # drop down menu on selection which quantity to plot
-            # layout that controls the plotting items
-            self.plot_control_layout = QtWidgets.QVBoxLayout()
-            quantity_menu = QtWidgets.QComboBox()
-            quantity_menu.setFixedSize(QtCore.QSize(200, 50))
-            quantity_menu.setStyleSheet('font-size: 18px')
-            quantity_menu.setEditable(True)
-            quantity_menu.lineEdit().setReadOnly(True)
-            quantity_menu.lineEdit().setAlignment(QtCore.Qt.AlignLeft)
-
-            quantity_menu.addItem('Confidence*IOU')
-            quantity_menu.addItem('Confidence')
-            quantity_menu.addItem('IOU')
-            quantity_menu.addItem('Consensus')
-            # self.quantity_menu.setCurrentIndex(0)
-            quantity_menu.setCurrentText('Confidence*IOU')
-
-            # connect the drop down menu with actions
-            quantity_menu.currentTextChanged.connect(heatmap_quantity_changed)
-            self.plot_control_layout.addWidget(quantity_menu)
-
-            # checkbox on if doing real-time inference
-            self.realtime_inference_checkbox = QtWidgets.QCheckBox('Realtime inference when dragging')
-            self.realtime_inference_checkbox.setStyleSheet('font-size: 18px')
-            self.realtime_inference_checkbox.setMinimumSize(QtCore.QSize(500, 50))
-            self.realtime_inference_checkbox.stateChanged.connect(realtime_inference_checkbox_clicked)
-            if self.realtime_inference:
-                self.realtime_inference_checkbox.setChecked(True)
+        @QtCore.Slot()
+        def realtime_inference_checkbox_clicked(state):
+            if state == QtCore.Qt.Checked:
+                self.realtime_inference = True
             else:
-                self.realtime_inference_checkbox.setChecked(False)
-            self.plot_control_layout.addWidget(self.realtime_inference_checkbox)
+                self.realtime_inference = False
 
-            # add plot control layout to general layout
-            self.single_result_layout.addLayout(self.plot_control_layout, 0, 0)
+        @QtCore.Slot()
+        def heatmap_quantity_changed(text):
+            print('Plotting:', text, 'on heatmap')
+            self.quantity_name = text
 
-            # define default plotting quantity
-            self.cur_plot_quantity_1 = self.all_quantities_1[:, :, 4] * self.all_quantities_1[:, :, 6]
-            self.cur_plot_quantity_2 = self.all_quantities_2[:, :, 4] * self.all_quantities_2[:, :, 6]
+            if text == 'Confidence*IOU':
+                self.cur_plot_quantity_1 = self.all_quantities_1[:, :, 4] * self.all_quantities_1[:, :, 6]
+                self.cur_plot_quantity_2 = self.all_quantities_2[:, :, 4] * self.all_quantities_2[:, :, 6]
+            elif text == 'Confidence':
+                self.cur_plot_quantity_1 = self.all_quantities_1[:, :, 4]
+                self.cur_plot_quantity_2 = self.all_quantities_2[:, :, 4]
+            elif text == 'IOU':
+                self.cur_plot_quantity_1 = self.all_quantities_1[:, :, 6]
+                self.cur_plot_quantity_2 = self.all_quantities_2[:, :, 6]
+            elif text == 'Consensus':
+                self.cur_plot_quantity_1 = np.zeros((self.all_quantities_1.shape[0], self.all_quantities_1.shape[1]))
+                self.cur_plot_quantity_2 = np.zeros((self.all_quantities_2.shape[0], self.all_quantities_2.shape[1]))
+                # for each position, compute its bounding box center
+                # x_ratio = int(self.image_size // self.all_quantities_1.shape[0])
+                # y_ratio = int(self.image_size // self.all_quantities_1.shape[1])
+                for i in range(self.all_quantities_1.shape[0]):
+                    for j in range(self.all_quantities_1.shape[1]):
+                        # correct translation amount
+                        x_tran = self.all_translations[i, j, 0]
+                        y_tran = self.all_translations[i, j, 1]
 
-            # draw the heatmap
-            self.draw_heatmaps()
+                        # current bounding box center from model 1 and 2
+                        cur_center_x_1 = (self.all_quantities_1[i, j, 0] + self.all_quantities_1[i, j, 2]) / 2
+                        cur_center_y_1 = (self.all_quantities_1[i, j, 1] + self.all_quantities_1[i, j, 3]) / 2
+                        cur_center_x_2 = (self.all_quantities_2[i, j, 0] + self.all_quantities_2[i, j, 2]) / 2
+                        cur_center_y_2 = (self.all_quantities_2[i, j, 1] + self.all_quantities_2[i, j, 3]) / 2
+
+                        # model output translation
+                        x_tran_model_1 = cur_center_x_1 - self.image_size//2 - 1
+                        y_tran_model_1 = cur_center_y_1 - self.image_size//2 - 1
+                        x_tran_model_2 = cur_center_x_2 - self.image_size//2 - 1
+                        y_tran_model_2 = cur_center_y_2 - self.image_size//2 - 1
+
+                        # compute percentage
+                        if np.sqrt(x_tran**2 + y_tran**2) == 0:
+                            self.cur_plot_quantity_1[i, j] = 1
+                            self.cur_plot_quantity_2[i, j] = 1
+                        else:
+                            self.cur_plot_quantity_1[i, j] = 1 - np.sqrt((x_tran_model_1-x_tran)**2 + (y_tran_model_1-y_tran)**2) / np.sqrt(x_tran**2 + y_tran**2)
+                            self.cur_plot_quantity_2[i, j] = 1 - np.sqrt((x_tran_model_2-x_tran)**2 + (y_tran_model_2-y_tran)**2) / np.sqrt(x_tran**2 + y_tran**2)
+
+            # re-display the heatmap
+            self.draw_heatmaps(mode='single')
+
+        # drop down menu on selection which quantity to plot
+        # layout that controls the plotting items
+        self.single_plot_control_layout = QtWidgets.QVBoxLayout()
+        quantity_menu = QtWidgets.QComboBox()
+        quantity_menu.setFixedSize(QtCore.QSize(200, 50))
+        quantity_menu.setStyleSheet('font-size: 18px')
+        quantity_menu.setEditable(True)
+        quantity_menu.lineEdit().setReadOnly(True)
+        quantity_menu.lineEdit().setAlignment(QtCore.Qt.AlignLeft)
+
+        quantity_menu.addItem('Confidence*IOU')
+        quantity_menu.addItem('Confidence')
+        quantity_menu.addItem('IOU')
+        quantity_menu.addItem('Consensus')
+        # self.quantity_menu.setCurrentIndex(0)
+        quantity_menu.setCurrentText('Confidence*IOU')
+
+        # connect the drop down menu with actions
+        quantity_menu.currentTextChanged.connect(heatmap_quantity_changed)
+        self.single_plot_control_layout.addWidget(quantity_menu)
+
+        # checkbox on if doing real-time inference
+        self.realtime_inference_checkbox = QtWidgets.QCheckBox('Realtime inference when dragging')
+        self.realtime_inference_checkbox.setStyleSheet('font-size: 18px')
+        self.realtime_inference_checkbox.setMinimumSize(QtCore.QSize(500, 50))
+        self.realtime_inference_checkbox.stateChanged.connect(realtime_inference_checkbox_clicked)
+        if self.realtime_inference:
+            self.realtime_inference_checkbox.setChecked(True)
+        else:
+            self.realtime_inference_checkbox.setChecked(False)
+        self.single_plot_control_layout.addWidget(self.realtime_inference_checkbox)
+
+        # add plot control layout to general layout
+        self.single_result_layout.addLayout(self.single_plot_control_layout, 0, 0)
+
+        # define default plotting quantity
+        self.cur_plot_quantity_1 = self.all_quantities_1[:, :, 4] * self.all_quantities_1[:, :, 6]
+        self.cur_plot_quantity_2 = self.all_quantities_2[:, :, 4] * self.all_quantities_2[:, :, 6]
+
+        # draw the heatmap
+        self.draw_heatmaps(mode='single')
 
 
     def mouseMoveEvent(self, event):
