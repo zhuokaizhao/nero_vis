@@ -187,6 +187,46 @@ def run_mnist_once(model, test_image, test_label=None, batch_size=None, rotate_a
             return avg_accuracy, avg_accuracy_per_digit, all_output
 
 
+# filter/modify the model outputs by supported classes
+def clean_model_outputs(model_name, outputs_dict, test_label, original_names, desired_names):
+    outputs = []
+    # actually outputs_dict has length 1 because it is single image mode
+    for i in range(len(outputs_dict)):
+        image_pred = outputs_dict[i]
+        pred_boxes = image_pred['boxes'].cpu()
+        pred_labels = image_pred['labels'].cpu()
+        pred_confs = image_pred['scores'].cpu()
+        # the model proposes multiple bounding boxes for each object
+        if len(pred_boxes) != 0:
+            # when we are using pretrained model and ground truth label is present
+            if (model_name == 'FasterRCNN (Pre-trained)') and type(test_label) != type(None):
+                valid_indices = []
+                for j in range(len(pred_labels)):
+                    if original_names[int(pred_labels[j]-1)] in desired_names:
+                        valid_indices.append(j)
+                        pred_labels[j] = desired_names.index(original_names[int(pred_labels[j]-1)]) + 1
+                    else:
+                        continue
+
+                if len(valid_indices) != 0:
+                    # transform output in the format of (x1, y1, x2, y2, conf, class_pred)
+                    output = torch.zeros((len(valid_indices), 6))
+                    output[:, :4] = pred_boxes[valid_indices]
+                    output[:, 4] = pred_confs[valid_indices]
+                    output[:, 5] = pred_labels[valid_indices]
+                    outputs.append(output)
+            else:
+                # transform output in the format of (x1, y1, x2, y2, conf, class_pred)
+                output = torch.zeros((len(pred_boxes), 6))
+                output[:, :4] = pred_boxes
+                output[:, 4] = pred_confs
+                output[:, 5] = pred_labels
+
+                outputs.append(output)
+
+    return outputs
+
+
 # helper function on processing coco model output
 def process_model_outputs(outputs, targets, iou_thres=0.5, conf_thres=0):
 
@@ -220,6 +260,7 @@ def process_model_outputs(outputs, targets, iou_thres=0.5, conf_thres=0):
     all_precisions = []
     all_recalls = []
     all_F_measure = []
+
     # loop through model's outputs on each image sample
     for i in range(len(outputs)):
 
@@ -267,8 +308,6 @@ def process_model_outputs(outputs, targets, iou_thres=0.5, conf_thres=0):
             else:
                 num_false_positive += 1
 
-        # make to numpy array
-        qualified_output = np.array(qualified_output)
         # Number of TP and FP is computed from all predictions (un-iou thresheld)
         # precision = TP / (TP + FP)
         precision = num_true_positive / (num_true_positive + num_false_positive + 1e-16)
@@ -277,59 +316,46 @@ def process_model_outputs(outputs, targets, iou_thres=0.5, conf_thres=0):
         # F-measure = (2 * Precision * Recall) / (Precision + Recall)
         F_measure = (2 * precision * recall) / (precision + recall + 1e-16)
 
-        # rank all outputs based on IOU
-        qualified_output = sorted(qualified_output, key=lambda x: x[-1])[::-1]
+        # rank all outputs based on IOU and then convert to numpy array
+        qualified_output = np.array(sorted(qualified_output, key=lambda x: x[-1])[::-1])
         all_qualified_outputs.append(qualified_output)
         all_precisions.append(precision)
         all_recalls.append(recall)
         all_F_measure.append(F_measure)
 
-    all_qualified_outputs = np.array(all_qualified_outputs)
-    all_precisions = np.array(all_precisions)
-    all_recalls = np.array(all_recalls)
-    all_F_measure = np.array(all_F_measure)
 
     return all_qualified_outputs, all_precisions, all_recalls, all_F_measure
 
 
-# filter/modify the model outputs by supported classes
-def clean_model_outputs(model_name, outputs_dict, test_label, original_names, desired_names):
-    outputs = []
-    # actually outputs_dict has length 1 because it is single image mode
-    for i in range(len(outputs_dict)):
-        image_pred = outputs_dict[i]
-        pred_boxes = image_pred['boxes'].cpu()
-        pred_labels = image_pred['labels'].cpu()
-        pred_confs = image_pred['scores'].cpu()
-        # the model proposes multiple bounding boxes for each object
-        if len(pred_boxes) != 0:
-            # when we are using pretrained model and ground truth label is present
-            if (model_name == 'FasterRCNN (Pre-trained)') and type(test_label) != type(None):
-                valid_indices = []
-                for j in range(len(pred_labels)):
-                    if original_names[int(pred_labels[j]-1)] in desired_names:
-                        valid_indices.append(j)
-                        pred_labels[j] = desired_names.index(original_names[int(pred_labels[j]-1)]) + 1
-                    else:
-                        continue
+# compute average precision
+def compute_ap(recall, precision):
+    """ Compute the average precision, given the recall and precision curves.
+    Code originally from https://github.com/rbgirshick/py-faster-rcnn.
 
-                if len(valid_indices) != 0:
-                    # transform output in the format of (x1, y1, x2, y2, conf, class_pred)
-                    output = torch.zeros((len(valid_indices), 6))
-                    output[:, :4] = pred_boxes[valid_indices]
-                    output[:, 4] = pred_confs[valid_indices]
-                    output[:, 5] = pred_labels[valid_indices]
-                    outputs.append(output)
-            else:
-                # transform output in the format of (x1, y1, x2, y2, conf, class_pred)
-                output = torch.zeros((len(pred_boxes), 6))
-                output[:, :4] = pred_boxes
-                output[:, 4] = pred_confs
-                output[:, 5] = pred_labels
+    # Arguments
+        recall:    The recall curve (list).
+        precision: The precision curve (list).
+    # Returns
+        The average precision as computed in py-faster-rcnn.
+    """
+    # correct AP calculation
+    # first append sentinel values at the end
+    mrec = np.concatenate(([0.0], recall, [1.0]))
+    mpre = np.concatenate(([0.0], precision, [0.0]))
 
-                outputs.append(output)
+    # compute the precision envelope
+    for i in range(mpre.size - 1, 0, -1):
+        mpre[i - 1] = np.maximum(mpre[i - 1], mpre[i])
 
-    return outputs
+    # to calculate area under PR curve, look for points
+    # where X axis (recall) changes value
+    i = np.where(mrec[1:] != mrec[:-1])[0]
+
+    # and sum (\Delta recall) * prec
+    ap = np.sum((mrec[i + 1] - mrec[i]) * mpre[i + 1])
+
+    return ap
+
 
 # run model on either a single COCO image or a batch of COCO images
 def run_coco_once(mode, model_name, model, test_image, custom_names, pytorch_names, test_label=None, batch_size=1, x_tran=None, y_tran=None, coco_names=None):
@@ -357,13 +383,18 @@ def run_coco_once(mode, model_name, model, test_image, custom_names, pytorch_nam
             outputs = clean_model_outputs(model_name, outputs_dict, test_label, pytorch_names, custom_names)
 
             if outputs != []:
-                cur_qualified_output, cur_precision, cur_recall, cur_F_measure = process_model_outputs(outputs, torch.from_numpy(test_label))
+                all_qualified_output, all_precision, all_recall, all_F_measure = process_model_outputs(outputs, torch.from_numpy(test_label))
+                # since single mode has 1 image input, it could be directly converted to numpy array
+                all_qualified_output = np.array(all_qualified_output)
+                all_precision = np.array(all_precision)
+                all_recall = np.array(all_recall)
+                all_F_measure = np.array(all_F_measure)
             else:
                 # no qualified output
-                cur_qualified_output = np.zeros((1, 1, 7))
-                cur_precision = np.zeros(1)
-                cur_recall = np.zeros(1)
-                cur_F_measure = np.zeros(1)
+                all_qualified_output = np.zeros((1, 1, 7))
+                all_precision = np.zeros(1)
+                all_recall = np.zeros(1)
+                all_F_measure = np.zeros(1)
 
     # multiple image (batch) mode
     elif mode == 'aggregate':
@@ -398,6 +429,7 @@ def run_coco_once(mode, model_name, model, test_image, custom_names, pytorch_nam
         all_precision = []
         all_recall = []
         all_F_measure = []
+        all_AP = []
 
         for batch_i, (_, test_images, test_labels) in enumerate(dataloader):
 
@@ -415,15 +447,14 @@ def run_coco_once(mode, model_name, model, test_image, custom_names, pytorch_nam
                     cur_qualified_output, cur_precision, cur_recall, cur_F_measure = process_model_outputs(outputs, test_labels)
                 else:
                     # no qualified output
-                    cur_qualified_output = np.zeros((1, 1, 7))
-                    cur_precision = np.zeros(1)
-                    cur_recall = np.zeros(1)
-                    cur_F_measure = np.zeros(1)
+                    cur_qualified_output = []
+                    cur_precision = []
+                    cur_recall = []
+                    cur_F_measure = []
 
-                print(cur_qualified_output.shape)
-                print(cur_precision.shape)
-                print(cur_precision.shape)
-                print(cur_F_measure.shape)
-                exit()
+                all_qualified_output.append(cur_qualified_output)
+                all_precision.append(cur_precision)
+                all_recall.append(cur_recall)
+                all_F_measure.append(cur_F_measure)
 
-    return [cur_qualified_output, cur_precision, cur_recall, cur_F_measure]
+    return [all_qualified_output, all_precision, all_recall, all_F_measure]
