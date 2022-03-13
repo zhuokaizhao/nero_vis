@@ -2361,21 +2361,29 @@ class UI_MainWindow(QWidget):
         self.aggregate_result_layout.addLayout(self.aggregate_plot_control_layout, 0, 0)
 
         # define default plotting quantity (IOU*Confidence)
-        self.aggregate_confidence_1 = np.zeros((len(self.y_translation), len(self.x_translation)))
-        self.aggregate_confidence_2 = np.zeros((len(self.y_translation), len(self.x_translation)))
+        self.aggregate_conf_1 = np.zeros((len(self.y_translation), len(self.x_translation)))
         self.aggregate_iou_1 = np.zeros((len(self.y_translation), len(self.x_translation)))
+        self.aggregate_conf_2 = np.zeros((len(self.y_translation), len(self.x_translation)))
         self.aggregate_iou_2 = np.zeros((len(self.y_translation), len(self.x_translation)))
         for y in range(len(self.y_translation)):
             for x in range(len(self.x_translation)):
-                all_samples_conf_sum = []
-                all_samples_iou_sum
+                all_samples_conf_sum_1 = []
+                all_samples_iou_sum_1 = []
+                all_samples_conf_sum_2 = []
+                all_samples_iou_sum_2 = []
                 for i in range(len(self.aggregate_outputs_1[y, x])):
-                    all_samples_conf_sum.append(self.aggregate_outputs_1[y, x][i][0, 4])
+                    all_samples_conf_sum_1.append(self.aggregate_outputs_1[y, x][i][0, 4])
+                    all_samples_iou_sum_1.append(self.aggregate_outputs_1[y, x][i][0, 6])
+                    all_samples_conf_sum_2.append(self.aggregate_outputs_2[y, x][i][0, 4])
+                    all_samples_iou_sum_2.append(self.aggregate_outputs_2[y, x][i][0, 6])
 
-                self.aggregate_confidence_1[y, x] = np.mean(all_samples_conf_sum)
+                self.aggregate_conf_1[y, x] = np.mean(all_samples_conf_sum_1)
+                self.aggregate_iou_1[y, x] = np.mean(all_samples_iou_sum_1)
+                self.aggregate_conf_2[y, x] = np.mean(all_samples_conf_sum_2)
+                self.aggregate_iou_2[y, x] = np.mean(all_samples_iou_sum_2)
 
-        self.cur_plot_quantity_1 = self.aggregate_outputs_1[:, :, :, 4] * self.aggregate_outputs_1[:, :, :, 6]
-        self.cur_plot_quantity_2 = self.aggregate_outputs_2[:, :, :, 4] * self.aggregate_outputs_2[:, :, :, 6]
+        self.cur_plot_quantity_1 = self.aggregate_conf_1 * self.aggregate_iou_1
+        self.cur_plot_quantity_2 = self.aggregate_conf_2 * self.aggregate_iou_2
 
         # draw the heatmap
         self.draw_heatmaps(mode='aggregate')
