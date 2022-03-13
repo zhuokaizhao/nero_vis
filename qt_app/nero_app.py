@@ -1137,12 +1137,12 @@ class UI_MainWindow(QWidget):
                 self.low_dim_scatter_item_2 = pg.ScatterPlotItem(pxMode=False)
 
                 low_dim_point_1 = [{'pos': (low_dim_1[i, 0], low_dim_1[i, 1]),
-                                    'size': 0.05,
+                                    'size': 0.1,
                                     'pen': {'color': 'w', 'width': 0.1},
                                     'brush': QtGui.QColor('blue')}]
 
                 low_dim_point_2 = [{'pos': (low_dim_2[i, 0], low_dim_2[i, 1]),
-                                    'size': 0.05,
+                                    'size': 0.1,
                                     'pen': {'color': 'w', 'width': 0.1},
                                     'brush': QtGui.QColor('magenta')}]
 
@@ -1162,6 +1162,7 @@ class UI_MainWindow(QWidget):
                 self.aggregate_result_layout.addWidget(low_dim_scatter_view_1, 0, 0)
                 self.aggregate_result_layout.addWidget(low_dim_scatter_view_2, 0, 0)
             elif self.mode == 'object_detection':
+                # aggregate result layout at the very left
                 self.aggregate_result_layout.addWidget(low_dim_scatter_view_1, 2, 1)
                 self.aggregate_result_layout.addWidget(low_dim_scatter_view_2, 2, 2)
 
@@ -1213,14 +1214,14 @@ class UI_MainWindow(QWidget):
         self.dr_selection_menu.lineEdit().setReadOnly(True)
         self.dr_selection_menu.lineEdit().setAlignment(QtCore.Qt.AlignRight)
         # add to local layout
-        self.aggregate_plot_control_layout.addWidget(self.dr_selection_menu, 2, 0)
+        self.aggregate_plot_control_layout.addWidget(self.dr_selection_menu, 1, 0)
 
         # push button on running PCA
         self.run_dr_button = QtWidgets.QPushButton('See Overview')
         self.run_dr_button.setStyleSheet('font-size: 18px')
         self.run_dr_button.setFixedSize(QtCore.QSize(250, 50))
         self.run_dr_button.clicked.connect(run_dimension_reduction)
-        self.aggregate_plot_control_layout.addWidget(self.run_dr_button, 3, 0)
+        self.aggregate_plot_control_layout.addWidget(self.run_dr_button, 2, 0)
 
 
     # run model on the aggregate dataset
@@ -2412,8 +2413,8 @@ class UI_MainWindow(QWidget):
         self.aggregate_result_layout.addWidget(self.model_2_menu, 0, 2, 1, 1, QtCore.Qt.AlignCenter)
 
         # move run button in the first column (after aggregate heatmap control)
-        self.aggregate_plot_control_layout.addWidget(self.run_button, 4, 0)
-        self.aggregate_plot_control_layout.addWidget(self.use_cache_checkbox, 5, 0)
+        self.aggregate_plot_control_layout.addWidget(self.run_button, 3, 0)
+        self.aggregate_plot_control_layout.addWidget(self.use_cache_checkbox, 4, 0)
 
         self.aggregate_result_existed = True
 

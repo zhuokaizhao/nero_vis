@@ -151,6 +151,7 @@ for i in tqdm(range(start_index, len(dataset))):
                     selected_images[desired_classes[label_custom]]['bb_area'].append(bb_area)
 
 
+# save these images for hand picking later
 # for each object class, rank all the qulified results based on bb area
 for cur_class in desired_classes:
     print(f"\n{len(selected_images[cur_class]['image_index'])} potential {cur_class} images have been found")
