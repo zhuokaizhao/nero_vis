@@ -417,14 +417,14 @@ class UI_MainWindow(QWidget):
 
                 self.run_button = QtWidgets.QPushButton('Analyze model')
                 self.run_button.setStyleSheet('font-size: 18px')
-                self.run_button.setMinimumSize(QtCore.QSize(500, 50))
+                self.run_button.setFixedSize(QtCore.QSize(250, 50))
                 self.run_button_layout.addWidget(self.run_button)
                 self.run_button.clicked.connect(self.run_button_clicked)
 
                 # instead of running, we can also load results from cache
                 self.use_cache_checkbox = QtWidgets.QCheckBox('Use previously computed result')
                 self.use_cache_checkbox.setStyleSheet('font-size: 18px')
-                self.use_cache_checkbox.setMinimumSize(QtCore.QSize(500, 50))
+                self.use_cache_checkbox.setFixedSize(QtCore.QSize(300, 50))
                 self.use_cache_checkbox.stateChanged.connect(run_cache_checkbox_clicked)
                 self.run_button_layout.addWidget(self.use_cache_checkbox)
 
@@ -525,14 +525,14 @@ class UI_MainWindow(QWidget):
                 self.run_button_text = 'Analyze model'
                 self.run_button = QtWidgets.QPushButton(self.run_button_text)
                 self.run_button.setStyleSheet('font-size: 18px')
-                self.run_button.setMinimumSize(QtCore.QSize(500, 50))
+                self.run_button.setFixedSize(QtCore.QSize(250, 50))
                 self.run_button.clicked.connect(self.run_button_clicked)
                 self.run_button_layout.addWidget(self.run_button)
 
                 # instead of running, we can also load results from cache
                 self.use_cache_checkbox = QtWidgets.QCheckBox('Use previously computed result')
                 self.use_cache_checkbox.setStyleSheet('font-size: 18px')
-                self.use_cache_checkbox.setMinimumSize(QtCore.QSize(500, 50))
+                self.use_cache_checkbox.setFixedSize(QtCore.QSize(300, 50))
                 self.use_cache_checkbox.stateChanged.connect(run_cache_checkbox_clicked)
                 self.run_button_layout.addWidget(self.use_cache_checkbox)
 
@@ -1095,6 +1095,11 @@ class UI_MainWindow(QWidget):
 
             self.aggregate_result_layout.addWidget(low_dim_scatter_view, 0, 0)
 
+        # layout that controls the plotting items
+        self.aggregate_plot_control_layout = QtWidgets.QGridLayout()
+        # add plot control layout to general layout
+        self.aggregate_result_layout.addLayout(self.aggregate_plot_control_layout, 0, 0, 3, 1)
+
         # drop down menu on choosing the display class
         self.class_selection_menu = QtWidgets.QComboBox()
         self.class_selection_menu.setFixedSize(QtCore.QSize(250, 50))
@@ -1119,8 +1124,7 @@ class UI_MainWindow(QWidget):
         self.class_selection_menu.lineEdit().setReadOnly(True)
         self.class_selection_menu.lineEdit().setAlignment(QtCore.Qt.AlignRight)
         # add to local layout
-        # self.aggregate_result_layout.addWidget(self.class_selection_menu, 0, 2)
-        self.aggregate_result_layout.addWidget(self.class_selection_menu, 0, 0)
+        self.aggregate_plot_control_layout.addWidget(self.class_selection_menu, 0, 0)
 
         # drop down menu on choosing the dimension reduction method
         self.dr_selection_menu = QtWidgets.QComboBox()
@@ -1138,16 +1142,14 @@ class UI_MainWindow(QWidget):
         self.dr_selection_menu.lineEdit().setReadOnly(True)
         self.dr_selection_menu.lineEdit().setAlignment(QtCore.Qt.AlignRight)
         # add to local layout
-        # self.aggregate_result_layout.addWidget(self.class_selection_menu, 1, 2)
-        self.aggregate_result_layout.addWidget(self.class_selection_menu, 1, 0)
+        self.aggregate_plot_control_layout.addWidget(self.class_selection_menu, 2, 0)
 
         # push button on running PCA
         self.pca_button = QtWidgets.QPushButton('See Overview')
         self.pca_button.setStyleSheet('font-size: 18px')
         self.pca_button.setFixedSize(QtCore.QSize(250, 50))
         self.pca_button.clicked.connect(run_dimension_reduction)
-        # self.aggregate_result_layout.addWidget(self.pca_button, 1, 3)
-        self.aggregate_result_layout.addWidget(self.pca_button, 2, 0)
+        self.aggregate_plot_control_layout.addWidget(self.pca_button, 3, 0)
 
 
     # run model on the aggregate dataset
@@ -2336,8 +2338,8 @@ class UI_MainWindow(QWidget):
         self.aggregate_result_layout.addWidget(self.model_2_menu, 0, 2, 1, 1, QtCore.Qt.AlignCenter)
 
         # move run button in the first column (after aggregate heatmap control)
-        self.aggregate_result_layout.addWidget(self.run_button, 3, 0)
-        self.aggregate_result_layout.addWidget(self.use_cache_checkbox, 4, 0)
+        self.aggregate_plot_control_layout.addWidget(self.run_button, 4, 0)
+        self.aggregate_plot_control_layout.addWidget(self.use_cache_checkbox, 5, 0)
 
         self.aggregate_result_existed = True
 
@@ -2345,26 +2347,26 @@ class UI_MainWindow(QWidget):
         def heatmap_quantity_changed(text):
             print('Plotting:', text, 'on heatmap')
             self.quantity_name = text
-
             if text == 'Confidence*IOU':
-                self.cur_plot_quantity_1 = self.all_quantities_1[:, :, 4] * self.all_quantities_1[:, :, 6]
-                self.cur_plot_quantity_2 = self.all_quantities_2[:, :, 4] * self.all_quantities_2[:, :, 6]
+                self.cur_plot_quantity_1 = self.aggregate_conf_1 * self.aggregate_iou_1
+                self.cur_plot_quantity_2 = self.aggregate_conf_2 * self.aggregate_iou_2
             elif text == 'Confidence':
-                self.cur_plot_quantity_1 = self.all_quantities_1[:, :, 4]
-                self.cur_plot_quantity_2 = self.all_quantities_2[:, :, 4]
+                self.cur_plot_quantity_1 = self.aggregate_conf_1
+                self.cur_plot_quantity_2 = self.aggregate_conf_2
             elif text == 'IOU':
-                self.cur_plot_quantity_1 = self.all_quantities_1[:, :, 6]
-                self.cur_plot_quantity_2 = self.all_quantities_2[:, :, 6]
+                self.cur_plot_quantity_1 = self.aggregate_iou_1
+                self.cur_plot_quantity_2 = self.aggregate_iou_2
+
+            # re-display the heatmap
+            self.draw_heatmaps(mode='aggregate')
 
         # drop down menu on selection which quantity to plot
-        # layout that controls the plotting items
-        self.aggregate_plot_control_layout = QtWidgets.QVBoxLayout()
         quantity_menu = QtWidgets.QComboBox()
-        quantity_menu.setFixedSize(QtCore.QSize(200, 50))
+        quantity_menu.setFixedSize(QtCore.QSize(250, 50))
         quantity_menu.setStyleSheet('font-size: 18px')
         quantity_menu.setEditable(True)
         quantity_menu.lineEdit().setReadOnly(True)
-        quantity_menu.lineEdit().setAlignment(QtCore.Qt.AlignLeft)
+        quantity_menu.lineEdit().setAlignment(QtCore.Qt.AlignCenter)
 
         quantity_menu.addItem('Confidence*IOU')
         quantity_menu.addItem('Confidence')
@@ -2374,10 +2376,7 @@ class UI_MainWindow(QWidget):
 
         # connect the drop down menu with actions
         quantity_menu.currentTextChanged.connect(heatmap_quantity_changed)
-        self.aggregate_plot_control_layout.addWidget(quantity_menu)
-
-        # add plot control layout to general layout
-        self.aggregate_result_layout.addLayout(self.aggregate_plot_control_layout, 0, 0)
+        self.aggregate_plot_control_layout.addWidget(quantity_menu, 0, 0)
 
         # define default plotting quantity (IOU*Confidence)
         self.aggregate_conf_1 = np.zeros((len(self.y_translation), len(self.x_translation)))
@@ -2509,11 +2508,11 @@ class UI_MainWindow(QWidget):
         # layout that controls the plotting items
         self.single_plot_control_layout = QtWidgets.QVBoxLayout()
         quantity_menu = QtWidgets.QComboBox()
-        quantity_menu.setFixedSize(QtCore.QSize(200, 50))
+        quantity_menu.setFixedSize(QtCore.QSize(250, 50))
         quantity_menu.setStyleSheet('font-size: 18px')
         quantity_menu.setEditable(True)
         quantity_menu.lineEdit().setReadOnly(True)
-        quantity_menu.lineEdit().setAlignment(QtCore.Qt.AlignLeft)
+        quantity_menu.lineEdit().setAlignment(QtCore.Qt.AlignCenter)
 
         quantity_menu.addItem('Confidence*IOU')
         quantity_menu.addItem('Confidence')
@@ -2529,7 +2528,7 @@ class UI_MainWindow(QWidget):
         # checkbox on if doing real-time inference
         self.realtime_inference_checkbox = QtWidgets.QCheckBox('Realtime inference when dragging')
         self.realtime_inference_checkbox.setStyleSheet('font-size: 18px')
-        self.realtime_inference_checkbox.setMinimumSize(QtCore.QSize(500, 50))
+        self.realtime_inference_checkbox.setFixedSize(QtCore.QSize(250, 50))
         self.realtime_inference_checkbox.stateChanged.connect(realtime_inference_checkbox_clicked)
         if self.realtime_inference:
             self.realtime_inference_checkbox.setChecked(True)
