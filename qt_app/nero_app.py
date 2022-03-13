@@ -1719,10 +1719,10 @@ class UI_MainWindow(QWidget):
             # draw ground truth
             painter = QtGui.QPainter(detailed_image_pixmap)
             # draw the ground truth label
-            gt_display_center_x = (self.cur_image_label[0, 2] + self.cur_image_label[0, 4]) // 2 * (self.plot_size/self.image_size)
-            gt_display_center_y = (self.cur_image_label[0, 3] + self.cur_image_label[0, 5]) // 2 * (self.plot_size/self.image_size)
-            gt_display_rect_width = (self.cur_image_label[0, 4] - self.cur_image_label[0, 2]) * (self.plot_size/self.image_size)
-            gt_display_rect_height = (self.cur_image_label[0, 5] - self.cur_image_label[0, 3]) * (self.plot_size/self.image_size)
+            gt_display_center_x = (self.cur_image_label[0, 1] + self.cur_image_label[0, 3]) // 2 * (self.plot_size/self.image_size)
+            gt_display_center_y = (self.cur_image_label[0, 2] + self.cur_image_label[0, 4]) // 2 * (self.plot_size/self.image_size)
+            gt_display_rect_width = (self.cur_image_label[0, 3] - self.cur_image_label[0, 1]) * (self.plot_size/self.image_size)
+            gt_display_rect_height = (self.cur_image_label[0, 4] - self.cur_image_label[0, 2]) * (self.plot_size/self.image_size)
             self.draw_rectangle(painter, gt_display_center_x, gt_display_center_y, gt_display_rect_width, gt_display_rect_height, color='yellow', alpha=166, label='Ground Truth')
 
             # box from model 1
@@ -1866,10 +1866,10 @@ class UI_MainWindow(QWidget):
                             self.cur_image_label[i, 2:] = self.compute_label(self.loaded_image_label[i, :4], self.x_min, self.y_min, (self.image_size, self.image_size))
 
                         # draw the ground truth label
-                        gt_display_center_x = (self.cur_image_label[0, 2] + self.cur_image_label[0, 4]) / 2 * (self.display_image_size/self.uncropped_image_size) + (rect_center_x - display_rect_width/2)
-                        gt_display_center_y = (self.cur_image_label[0, 3] + self.cur_image_label[0, 5]) / 2 * (self.display_image_size/self.uncropped_image_size) + (rect_center_y - display_rect_height/2)
-                        gt_display_rect_width = (self.cur_image_label[0, 4] - self.cur_image_label[0, 2]) * (self.display_image_size/self.uncropped_image_size)
-                        gt_display_rect_height = (self.cur_image_label[0, 5] - self.cur_image_label[0, 3]) * (self.display_image_size/self.uncropped_image_size)
+                        gt_display_center_x = (self.cur_image_label[0, 1] + self.cur_image_label[0, 3]) / 2 * (self.display_image_size/self.uncropped_image_size) + (rect_center_x - display_rect_width/2)
+                        gt_display_center_y = (self.cur_image_label[0, 4] + self.cur_image_label[0, 2]) / 2 * (self.display_image_size/self.uncropped_image_size) + (rect_center_y - display_rect_height/2)
+                        gt_display_rect_width = (self.cur_image_label[0, 3] - self.cur_image_label[0, 1]) * (self.display_image_size/self.uncropped_image_size)
+                        gt_display_rect_height = (self.cur_image_label[0, 4] - self.cur_image_label[0, 2]) * (self.display_image_size/self.uncropped_image_size)
                         self.draw_rectangle(painter, gt_display_center_x, gt_display_center_y, gt_display_rect_width, gt_display_rect_height, color='yellow', label='Ground Truth')
                         painter.end()
 
