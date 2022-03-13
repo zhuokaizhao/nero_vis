@@ -208,9 +208,9 @@ class FixedJittering(object):
 
 # convert object classes from coco to custom class labels
 class ConvertLabel(object):
-    def __init__(self, coco_classes, desired_classes):
+    def __init__(self, original_classes, desired_classes):
 
-        self.coco_classes = coco_classes
+        self.original_classes = original_classes
         self.desired_classes = desired_classes
 
     def __call__(self, data):
@@ -222,7 +222,7 @@ class ConvertLabel(object):
         for i, cur_label in enumerate(labels):
             # 0 is always background for pytorch faster-rcnn
             cur_id = cur_label[-1].astype(int)
-            key_id_custom = int(self.desired_classes.index(self.coco_classes[cur_id]) + 1)
+            key_id_custom = int(self.desired_classes.index(self.original_classes[cur_id]) + 1)
             labels[i, -1] = key_id_custom
 
         return label_path, img, labels

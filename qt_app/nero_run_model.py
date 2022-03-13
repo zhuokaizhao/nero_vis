@@ -197,15 +197,18 @@ def clean_model_outputs(model_name, outputs_dict, original_names, desired_names)
         pred_boxes = image_pred['boxes'].cpu()
         pred_labels = image_pred['labels'].cpu()
         pred_confs = image_pred['scores'].cpu()
+        # print('\npred_labels', pred_labels)
         # the model proposes multiple bounding boxes for each object
         if len(pred_boxes) != 0:
             # when we are using pretrained model and ground truth label is present
             if (model_name == 'FasterRCNN (Pre-trained)'):
                 valid_indices = []
                 for j in range(len(pred_labels)):
+                    # print('\nPred label 1', original_names[int(pred_labels[j]-1)])
                     if original_names[int(pred_labels[j]-1)] in desired_names:
                         valid_indices.append(j)
                         pred_labels[j] = desired_names.index(original_names[int(pred_labels[j]-1)]) + 1
+                        # print('After conversion:', pred_labels[j])
                     else:
                         continue
 
@@ -406,7 +409,7 @@ def run_coco_once(mode, model_name, model, test_image, custom_names, pytorch_nam
         all_recall = np.zeros(len(dataset))
         all_F_measure = np.zeros(len(dataset))
 
-        for batch_i, (_, test_images, test_labels) in tqdm(enumerate(dataloader)):
+        for batch_i, (images_paths, test_images, test_labels) in enumerate(dataloader):
 
             if test_labels is None:
                 continue
@@ -414,7 +417,8 @@ def run_coco_once(mode, model_name, model, test_image, custom_names, pytorch_nam
             with torch.no_grad():
                 test_images = test_images.to(device)
                 outputs_dict = model(test_images)
-
+                # print('\n Current image path', images_paths)
+                # print('\n Ground truth label', test_labels)
                 # outputs = nero_utilities.non_max_suppression(output_dict, conf_thres=0, nms_thres=0.4)
                 outputs = clean_model_outputs(model_name, outputs_dict, pytorch_names, custom_names)
                 if outputs != []:

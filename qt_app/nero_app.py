@@ -1297,7 +1297,7 @@ class UI_MainWindow(QWidget):
                 # for all the loaded images
                 for y, y_tran in enumerate(self.y_translation):
                     for x, x_tran in enumerate(self.x_translation):
-                        print(y_tran, x_tran)
+                        print(f'y_tran = {y_tran}, x_tran = {x_tran}')
                         # model 1 output
                         cur_qualified_output_1, \
                         cur_precision_1, \
@@ -1528,10 +1528,10 @@ class UI_MainWindow(QWidget):
                         # draw rectangle on the displayed image to indicate scanning process
                         painter = QtGui.QPainter(self.image_pixmap)
                         # draw the ground truth label
-                        gt_display_center_x = (self.cur_image_label[0, 2] + self.cur_image_label[0, 4]) / 2 * (display_rect_width/self.image_size) + (rect_center_x - display_rect_width/2)
-                        gt_display_center_y = (self.cur_image_label[0, 3] + self.cur_image_label[0, 5]) / 2 * (display_rect_height/self.image_size) + (rect_center_y - display_rect_height/2)
-                        gt_display_rect_width = (self.cur_image_label[0, 4] - self.cur_image_label[0, 2]) * (display_rect_width/self.image_size)
-                        gt_display_rect_height = (self.cur_image_label[0, 5] - self.cur_image_label[0, 3]) * (display_rect_height/self.image_size)
+                        gt_display_center_x = (self.cur_image_label[0, 1] + self.cur_image_label[0, 3]) / 2 * (display_rect_width/self.image_size) + (rect_center_x - display_rect_width/2)
+                        gt_display_center_y = (self.cur_image_label[0, 2] + self.cur_image_label[0, 4]) / 2 * (display_rect_height/self.image_size) + (rect_center_y - display_rect_height/2)
+                        gt_display_rect_width = (self.cur_image_label[0, 3] - self.cur_image_label[0, 1]) * (display_rect_width/self.image_size)
+                        gt_display_rect_height = (self.cur_image_label[0, 4] - self.cur_image_label[0, 2]) * (display_rect_height/self.image_size)
                         self.draw_rectangle(painter, gt_display_center_x, gt_display_center_y, gt_display_rect_width, gt_display_rect_height, color='yellow', label='Ground Truth')
                         painter.end()
 
@@ -1587,10 +1587,10 @@ class UI_MainWindow(QWidget):
                 # draw rectangle on the displayed image to indicate scanning process
                 painter = QtGui.QPainter(self.image_pixmap)
                 # draw the ground truth label
-                gt_display_center_x = (self.cur_image_label[0, 2] + self.cur_image_label[0, 4]) / 2 * (display_rect_width/self.image_size) + (rect_center_x - display_rect_width/2)
-                gt_display_center_y = (self.cur_image_label[0, 3] + self.cur_image_label[0, 5]) / 2 * (display_rect_height/self.image_size) + (rect_center_y - display_rect_height/2)
-                gt_display_rect_width = (self.cur_image_label[0, 4] - self.cur_image_label[0, 2]) * (display_rect_width/self.image_size)
-                gt_display_rect_height = (self.cur_image_label[0, 5] - self.cur_image_label[0, 3]) * (display_rect_height/self.image_size)
+                gt_display_center_x = (self.cur_image_label[0, 1] + self.cur_image_label[0, 3]) / 2 * (display_rect_width/self.image_size) + (rect_center_x - display_rect_width/2)
+                gt_display_center_y = (self.cur_image_label[0, 2] + self.cur_image_label[0, 4]) / 2 * (display_rect_height/self.image_size) + (rect_center_y - display_rect_height/2)
+                gt_display_rect_width = (self.cur_image_label[0, 3] - self.cur_image_label[0, 1]) * (display_rect_width/self.image_size)
+                gt_display_rect_height = (self.cur_image_label[0, 4] - self.cur_image_label[0, 2]) * (display_rect_height/self.image_size)
                 self.draw_rectangle(painter, gt_display_center_x, gt_display_center_y, gt_display_rect_width, gt_display_rect_height, color='yellow', label='Ground Truth')
                 painter.end()
 
