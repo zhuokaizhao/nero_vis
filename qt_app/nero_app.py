@@ -214,7 +214,8 @@ class UI_MainWindow(QWidget):
                 self.rotation = False
                 self.translation = False
                 # translation step when evaluating
-                self.translation_step = 8
+                self.translation_step_aggregate = 8
+                self.translation_step_single = 4
 
                 # predefined model paths
                 self.model_1_name = 'FasterRCNN (0% jittering)'
@@ -1272,8 +1273,8 @@ class UI_MainWindow(QWidget):
 
         elif self.mode == 'object_detection':
             # all the translations in x and y applied to the aggregated dataset
-            self.x_translation = list(range(-self.image_size//2, self.image_size//2, self.translation_step))
-            self.y_translation = list(range(-self.image_size//2, self.image_size//2, self.translation_step))
+            self.x_translation = list(range(-self.image_size//2, self.image_size//2, self.translation_step_aggregate))
+            self.y_translation = list(range(-self.image_size//2, self.image_size//2, self.translation_step_aggregate))
 
             # output of each sample for all translations, has shape (num_y_trans, num_x_trans, num_samples, num_samples, 7)
             self.aggregate_outputs_1 = np.zeros((len(self.y_translation), len(self.x_translation)), dtype=np.ndarray)
@@ -1450,8 +1451,8 @@ class UI_MainWindow(QWidget):
 
             # all the x and y translations
             # x translates on columns, y translates on rows
-            self.x_translation = list(range(-self.image_size//2, self.image_size//2, self.translation_step))
-            self.y_translation = list(range(-self.image_size//2, self.image_size//2, self.translation_step))
+            self.x_translation = list(range(-self.image_size//2, self.image_size//2, self.translation_step_single))
+            self.y_translation = list(range(-self.image_size//2, self.image_size//2, self.translation_step_single))
             num_x_translations = len(self.x_translation)
             num_y_translations = len(self.y_translation)
             self.all_translations = np.zeros((num_y_translations, num_x_translations, 2))
