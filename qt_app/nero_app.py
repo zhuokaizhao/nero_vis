@@ -13,6 +13,12 @@ from PySide6.QtGui  import QPixmap, QFont
 # from PySide6.QtCore import QEvent
 from PySide6.QtWidgets import QWidget, QLabel, QRadioButton
 
+from sklearn.decomposition import PCA
+from sklearn.decomposition import FastICA
+from sklearn import manifold
+from sklearn.manifold import TSNE
+import umap
+
 import nero_transform
 import nero_utilities
 import nero_run_model
@@ -964,22 +970,27 @@ class UI_MainWindow(QWidget):
         def dr_selection_changed(text):
             self.dr_selection = text
 
+            # re-run dimension reduction and show result
+            run_dimension_reduction()
+
         # run PCA on demand
         @QtCore.Slot()
         def run_dimension_reduction():
             # helper function on computing dimension reduction via PCA
-            def run_pca(high_dim, target_dim):
-                # get covariance matrix
-                cov_matrix = np.cov(high_dim.T)
-                # eigendecomposition
-                values, vectors = np.linalg.eig(cov_matrix)
-                values = np.real(values)
-                vectors = np.real(vectors)
+            def dimension_reduce(high_dim, target_dim):
 
-                # project onto principle components
-                low_dim = np.zeros((len(high_dim), target_dim))
-                for i in range(target_dim):
-                    low_dim[:, i] = high_dim.dot(vectors.T[i])
+                if self.dr_selection == 'PCA':
+                    pca = PCA(n_components=target_dim, svd_solver='full')
+                    low_dim = pca.fit_transform(high_dim)
+                elif self.dr_selection == 'ICA':
+                    ica = FastICA(n_components=target_dim, random_state=12)
+                    low_dim = ica.fit_transform(high_dim)
+                elif self.dr_selection == 'ISOMAP':
+                    low_dim = manifold.Isomap(n_neighbors=5, n_components=target_dim, n_jobs=-1).fit_transform(high_dim)
+                elif self.dr_selection == 't-SNE':
+                    low_dim = TSNE(n_components=target_dim, n_iter=250).fit_transform(high_dim)
+                elif self.dr_selection == 'UMAP':
+                    low_dim = umap.UMAP(n_neighbors=5, min_dist=0.3, n_components=target_dim).fit_transform(high_dim)
 
                 return low_dim
 
@@ -1094,11 +1105,8 @@ class UI_MainWindow(QWidget):
                         all_high_dim_points_2[i, j] = cur_value_2
 
             # run dimension reduction algorithm
-            if self.dr_selection == 'PCA':
-                low_dim_1 = run_pca(all_high_dim_points_1, target_dim=2)
-                low_dim_2 = run_pca(all_high_dim_points_2, target_dim=2)
-            else:
-                raise NotImplemented()
+            low_dim_1 = dimension_reduce(all_high_dim_points_1, target_dim=2)
+            low_dim_2 = dimension_reduce(all_high_dim_points_2, target_dim=2)
 
             # scatter plot on low-dim points
             low_dim_scatter_view_1 = pg.GraphicsLayoutWidget()
@@ -1144,8 +1152,8 @@ class UI_MainWindow(QWidget):
                 self.aggregate_result_layout.addWidget(low_dim_scatter_view_1, 0, 0)
                 self.aggregate_result_layout.addWidget(low_dim_scatter_view_2, 0, 0)
             elif self.mode == 'object_detection':
-                self.aggregate_result_layout.addWidget(low_dim_scatter_view_1, 1, 1)
-                self.aggregate_result_layout.addWidget(low_dim_scatter_view_2, 1, 2)
+                self.aggregate_result_layout.addWidget(low_dim_scatter_view_1, 2, 1)
+                self.aggregate_result_layout.addWidget(low_dim_scatter_view_2, 2, 2)
 
 
         # layout that controls the plotting items
@@ -1195,7 +1203,7 @@ class UI_MainWindow(QWidget):
         self.dr_selection_menu.lineEdit().setReadOnly(True)
         self.dr_selection_menu.lineEdit().setAlignment(QtCore.Qt.AlignRight)
         # add to local layout
-        self.aggregate_plot_control_layout.addWidget(self.class_selection_menu, 2, 0)
+        self.aggregate_plot_control_layout.addWidget(self.dr_selection_menu, 2, 0)
 
         # push button on running PCA
         self.run_dr_button = QtWidgets.QPushButton('See Overview')
