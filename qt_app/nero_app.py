@@ -214,7 +214,7 @@ class UI_MainWindow(QWidget):
                 self.rotation = False
                 self.translation = False
                 # translation step when evaluating
-                self.translation_step = 32
+                self.translation_step = 4
 
                 # predefined model paths
                 self.model_1_name = 'FasterRCNN (0% jittering)'

@@ -6,6 +6,7 @@ from sympy import EX
 import torch
 import torchvision
 import numpy as np
+from tqdm import tqdm
 from PIL import Image, ImageDraw
 from torch.autograd import Variable
 from torchvision import transforms
@@ -405,7 +406,7 @@ def run_coco_once(mode, model_name, model, test_image, custom_names, pytorch_nam
         all_recall = np.zeros(len(dataset))
         all_F_measure = np.zeros(len(dataset))
 
-        for batch_i, (_, test_images, test_labels) in enumerate(dataloader):
+        for batch_i, (_, test_images, test_labels) in tqdm(enumerate(dataloader)):
 
             if test_labels is None:
                 continue
