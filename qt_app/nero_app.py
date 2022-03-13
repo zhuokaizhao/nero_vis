@@ -442,19 +442,12 @@ class UI_MainWindow(QWidget):
             # in object detection, only all the image paths are loaded
             elif self.mode == 'object_detection':
                 self.all_images_paths = glob.glob(os.path.join(self.dataset_dir, 'images', '*.jpg'))
-                self.all_labels_paths = glob.glob(os.path.join(self.dataset_dir, 'labels', '*.txt'))
+                self.all_labels_paths = glob.glob(os.path.join(self.dataset_dir, 'labels', '*.npy'))
                 self.loaded_images_labels = np.zeros(len(self.all_images_paths), dtype=np.int64)
                 for i, cur_label_path in enumerate(self.all_labels_paths):
-                    cur_labels = np.loadtxt(cur_label_path).reshape(-1, 5)[:, 0]
-                     # analyze the img path to get the key bb index
-                    key_label_index = int(cur_label_path.split('_')[-1].split('.')[0])
-                    # get the key id in coco names
-                    key_label_coco = int(cur_labels[key_label_index])
-                    # convert to custom
-                    key_label_custom = int(self.custom_coco_names.index(self.original_coco_names[key_label_coco]))
-                    self.loaded_images_labels[i] = key_label_custom
+                    cur_label = cur_label_path.split('_')[0]
+                    self.loaded_images_labels[i] = cur_label
 
-            # self.cur_images_pt = torch.from_numpy(np.asarray(self.cur_images_pt))
             # check the data to be ready
             self.data_existed = True
 
