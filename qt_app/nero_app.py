@@ -1874,29 +1874,30 @@ class UI_MainWindow(QWidget):
 
 
     # helper function on drawing individual heatmap (called by both individual and aggregate cases)
-    def draw_individual_heatmap(self, data, title=None, range=(0, 1)):
+    def draw_individual_heatmap(self, mode, data, title=None, range=(0, 1)):
         # actuall heatmap
         heatmap = pg.ImageItem()
         heatmap.setOpts(axisOrder='row-major')
         heatmap.setImage(data)
 
-        # small indicator on where the translation is at
-        scatter_item = pg.ScatterPlotItem(pxMode=False)
-        scatter_point = []
-
-        scatter_point.append({'pos': (self.cur_x_tran, self.cur_y_tran),
-                                'size': 3,
-                                'pen': {'color': 'red', 'width': 0.1},
-                                'brush': (255, 0, 0, 255)})
-
-        # add points to the item
-        scatter_item.addPoints(scatter_point)
-
         # create view box to contain the heatmap
         view_box = pg.ViewBox()
         view_box.setAspectLocked(lock=True)
         view_box.addItem(heatmap)
-        view_box.addItem(scatter_item)
+
+        if mode == 'single':
+            # small indicator on where the translation is at
+            scatter_item = pg.ScatterPlotItem(pxMode=False)
+            scatter_point = []
+
+            scatter_point.append({'pos': (self.cur_x_tran, self.cur_y_tran),
+                                    'size': 3,
+                                    'pen': {'color': 'red', 'width': 0.1},
+                                    'brush': (255, 0, 0, 255)})
+
+            # add points to the item
+            scatter_item.addPoints(scatter_point)
+            view_box.addItem(scatter_item)
 
         heatmap_plot = pg.PlotItem(viewBox=view_box, title=title)
         heatmap_plot.getAxis('bottom').setLabel('Translation in x')
@@ -1956,31 +1957,49 @@ class UI_MainWindow(QWidget):
         else:
             data_2 = self.cur_plot_quantity_2
 
-        # heatmap view
-        self.heatmap_view_1 = pg.GraphicsLayoutWidget()
-        # left top right bottom
-        self.heatmap_view_1.ci.layout.setContentsMargins(0, 20, 0, 0)
-        self.heatmap_view_1.setFixedSize(self.plot_size*1.3, self.plot_size*1.3)
-        self.heatmap_view_2 = pg.GraphicsLayoutWidget()
-        # left top right bottom
-        self.heatmap_view_2.ci.layout.setContentsMargins(0, 20, 0, 0)
-        self.heatmap_view_2.setFixedSize(self.plot_size*1.3, self.plot_size*1.3)
-        self.heatmap_plot_1 = self.draw_individual_heatmap(data_1)
-        self.heatmap_plot_2 = self.draw_individual_heatmap(data_2)
-        # self.view_box_1.scene().sigMouseClicked.connect(heatmap_mouse_clicked(self.view_box_1))
-        # self.view_box_2.scene().sigMouseClicked.connect(heatmap_mouse_clicked(self.view_box_2))
-
-        # add to view
-        self.heatmap_view_1.addItem(self.heatmap_plot_1)
-        self.heatmap_view_2.addItem(self.heatmap_plot_2)
-
         # add to general layout
         if mode == 'single':
+            # heatmap view
+            self.heatmap_view_1 = pg.GraphicsLayoutWidget()
+            # left top right bottom
+            self.heatmap_view_1.ci.layout.setContentsMargins(0, 20, 0, 0)
+            self.heatmap_view_1.setFixedSize(self.plot_size*1.3, self.plot_size*1.3)
+            self.heatmap_view_2 = pg.GraphicsLayoutWidget()
+            # left top right bottom
+            self.heatmap_view_2.ci.layout.setContentsMargins(0, 20, 0, 0)
+            self.heatmap_view_2.setFixedSize(self.plot_size*1.3, self.plot_size*1.3)
+            self.heatmap_plot_1 = self.draw_individual_heatmap('single', data_1)
+            self.heatmap_plot_2 = self.draw_individual_heatmap('single', data_2)
+            # self.view_box_1.scene().sigMouseClicked.connect(heatmap_mouse_clicked(self.view_box_1))
+            # self.view_box_2.scene().sigMouseClicked.connect(heatmap_mouse_clicked(self.view_box_2))
+
+            # add to view
+            self.heatmap_view_1.addItem(self.heatmap_plot_1)
+            self.heatmap_view_2.addItem(self.heatmap_plot_2)
+
             self.single_result_layout.addWidget(self.heatmap_view_1, 1, 2)
             self.single_result_layout.addWidget(self.heatmap_view_2, 1, 3)
         elif mode == 'aggregate':
-            self.aggregate_result_layout.addWidget(self.heatmap_view_1, 1, 1)
-            self.aggregate_result_layout.addWidget(self.heatmap_view_2, 1, 2)
+            # heatmap view
+            self.aggregate_heatmap_view_1 = pg.GraphicsLayoutWidget()
+            # left top right bottom
+            self.aggregate_heatmap_view_1.ci.layout.setContentsMargins(0, 20, 0, 0)
+            self.aggregate_heatmap_view_1.setFixedSize(self.plot_size*1.3, self.plot_size*1.3)
+            self.aggregate_heatmap_view_2 = pg.GraphicsLayoutWidget()
+            # left top right bottom
+            self.aggregate_heatmap_view_2.ci.layout.setContentsMargins(0, 20, 0, 0)
+            self.aggregate_heatmap_view_2.setFixedSize(self.plot_size*1.3, self.plot_size*1.3)
+            self.aggregate_heatmap_plot_1 = self.draw_individual_heatmap('aggregate', data_1)
+            self.aggregate_heatmap_plot_2 = self.draw_individual_heatmap('aggregate', data_2)
+            # self.view_box_1.scene().sigMouseClicked.connect(heatmap_mouse_clicked(self.view_box_1))
+            # self.view_box_2.scene().sigMouseClicked.connect(heatmap_mouse_clicked(self.view_box_2))
+
+            # add to view
+            self.aggregate_heatmap_view_1.addItem(self.aggregate_heatmap_plot_1)
+            self.aggregate_heatmap_view_2.addItem(self.aggregate_heatmap_plot_2)
+
+            self.aggregate_result_layout.addWidget(self.aggregate_heatmap_view_1, 1, 1)
+            self.aggregate_result_layout.addWidget(self.aggregate_heatmap_view_2, 1, 2)
 
 
     # display MNIST aggregated results
@@ -2387,8 +2406,6 @@ class UI_MainWindow(QWidget):
 
         # draw the heatmap
         self.draw_heatmaps(mode='aggregate')
-
-
 
 
     # display COCO single results
