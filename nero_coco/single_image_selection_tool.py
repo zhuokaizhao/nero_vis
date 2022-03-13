@@ -83,7 +83,7 @@ candidate_original_image_dir = os.path.join(candidate_dir, 'original_images')
 os.makedirs(candidate_original_image_dir, exist_ok=True)
 
 # load the dataset
-dataset = data.COCODetection(root=input_dir, splits=[f'instances_{data_type}2017'], skip_empty=True)
+dataset = data.COCODetection(root=input_dir, splits=[f'instances_{data_type}2017'], skip_empty=False)
 class_names = np.array(dataset.classes)
 
 # analyzing each image in the dataset
@@ -154,10 +154,10 @@ for i in tqdm(range(start_index, len(dataset))):
                     bb_area = (key_bb_max_x-key_bb_min_x)*(key_bb_max_y-key_bb_min_y)
 
                     # reject the candidates whose bounding box is too large for the extracted image
-                    if bb_area > 0.5*image_size[0]*image_size[1]:
+                    if bb_area > 0.3*image_size[0]*image_size[1]:
                         continue
                     # reject the candidates whose bounding box is too small
-                    elif bb_area < 0.01*image_size[0]*image_size[1]:
+                    elif bb_area < 0.1*image_size[0]*image_size[1]:
                         continue
 
                     # this object can serve for all translation

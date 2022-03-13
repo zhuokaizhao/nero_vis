@@ -115,10 +115,25 @@ def main():
 
             downsample_factor = 1
             # images are selected through coco_single_image_selection_tool.py
-            image_indices = [174, 2623, 1680, 2760, 1144]
+            # these indices are empty-included dataset indices
+            image_indices = [1253, 2646, 1692, 2787, 1154]
             image_labels = ['car', 'bottle', 'cup', 'chair', 'book']
             label_indices = [0, 9, 0, 4, 6]
-            dataset = data.COCODetection(root=input_dir, splits=[f'instances_val2017'], skip_empty=True)
+            images_folder_dir = '/home/zhuokai/Desktop/nvme1n1p1/Data/coco/val2017'
+            json_path = '/home/zhuokai/Desktop/nvme1n1p1/Data/coco/annotations/instances_val2017.json'
+            dataset = data.COCODetection(root=input_dir, splits=[f'instances_val2017'], skip_empty=False)
+
+            # all the class names from the original COCO
+            class_names = np.array(dataset.classes)
+
+            # load json for getting image/label paths
+            all_image_names = []
+            _coco = COCO(json_path)
+            image_ids = sorted(_coco.getImgIds())
+            for entry in _coco.loadImgs(image_ids):
+                dirname, filename = entry['coco_url'].split('/')[-2:]
+                abs_path = os.path.join(input_dir, dirname, filename)
+                all_image_names.append(abs_path)
 
             for i, image_index in enumerate(image_indices):
 
@@ -143,14 +158,27 @@ def main():
                     cur_class_ids = cur_label[:, 4:5][:, 0].astype(int)
 
                 # save image and label
-                cur_image = Image.fromarray(cur_image)
-                cur_image_path = os.path.join(output_dir, f'{image_labels[i]}_{image_indices[i]}_{label_indices[i]}.png')
-                cur_image.save(cur_image_path)
+                # create images and labels folder inside the (current) test_dir
+                image_dir = os.path.join(output_dir, 'images')
+                label_dir = os.path.join(output_dir, 'labels')
+                # create image and label dirs
+                os.makedirs(image_dir, exist_ok=True)
+                os.makedirs(label_dir, exist_ok=True)
+                # copy the original image over if no scale is present
+                if downsample_factor == 1:
+                    cur_image_name = all_image_names[image_indices[i]]
+                    img_extension = cur_image_name.split('.')[-1]
+                    cur_image_path = os.path.join(image_dir, f'{image_labels[i]}_{image_index}_{label_indices[i]}.' + img_extension)
+                    copy(os.path.join(images_folder_dir, cur_image_name), cur_image_path)
+                else:
+                    cur_image = Image.fromarray(cur_image)
+                    cur_image_path = os.path.join(image_dir, f'{image_labels[i]}_{image_index}_{label_indices[i]}.png')
+                    cur_image.save(cur_image_path)
 
                 cur_label = np.zeros((1, 5))
                 cur_label[0, :4] = cur_bounding_boxes[label_indices[i]]
                 cur_label[0, 4] = cur_class_ids[label_indices[i]]
-                cur_label_path = os.path.join(output_dir, f'{image_labels[i]}_{image_indices[i]}_{label_indices[i]}.npy')
+                cur_label_path = os.path.join(label_dir, f'{image_labels[i]}_{image_index}_{label_indices[i]}.npy')
                 np.save(cur_label_path, cur_label)
 
                 print(f'Chosen original image has been saved to {cur_image_path}')
