@@ -359,6 +359,40 @@ class UI_MainWindow(QWidget):
             piv_button_clicked()
 
 
+    # load single mnist image from self.image_path
+    def load_mnist_single_image(self):
+
+        self.loaded_image_label = int(self.image_path.split('/')[-1].split('_')[1])
+        # load the image
+        self.loaded_image_pt = torch.from_numpy(np.asarray(Image.open(self.image_path)))[:, :, None]
+        self.loaded_image_name = self.image_path.split('/')[-1]
+        # keep a copy to represent the current (rotated) version of the original images
+        self.cur_image_pt = self.loaded_image_pt.clone()
+
+
+    # load single coco image from self.image_path
+    def load_coco_single_image(self):
+
+        self.label_path = self.image_path.replace('png', 'npy')
+        self.loaded_image_label = np.load(self.label_path)
+        # loaded image label is in original coco classes defined by original_coco_names
+        # convert to custom names
+        for i in range(len(self.loaded_image_label)):
+            self.loaded_image_label[i, -1] = self.custom_coco_names.index(self.original_coco_names[int(self.loaded_image_label[i, -1])])
+
+        # the center of the bounding box is the center of cropped image
+        # we know that we only have one object, x is column, y is row
+        self.center_x = int((self.loaded_image_label[0, 0] + self.loaded_image_label[0, 2]) // 2)
+        self.center_y = int((self.loaded_image_label[0, 1] + self.loaded_image_label[0, 3]) // 2)
+
+        # load the image
+        self.loaded_image_pt = torch.from_numpy(np.array(Image.open(self.image_path).convert('RGB'), dtype=np.uint8))
+        self.loaded_image_name = self.image_path.split('/')[-1]
+
+        # take the cropped part of the entire input image to put in display image
+        self.cur_image_pt = self.loaded_image_pt[self.center_y-self.display_image_size//2:self.center_y+self.display_image_size//2, self.center_x-self.display_image_size//2:self.center_x+self.display_image_size//2, :]
+
+
     def init_load_layout(self):
 
         # load aggregate dataset drop-down menu
@@ -490,34 +524,12 @@ class UI_MainWindow(QWidget):
             if self.mode == 'digit_recognition':
                 self.image_index = int(text.split(' ')[-1])
                 self.image_path = self.single_images_paths[self.image_index]
-                self.loaded_image_label = int(self.image_path.split('/')[-1].split('_')[1])
-                # load the image
-                self.loaded_image_pt = torch.from_numpy(np.asarray(Image.open(self.image_path)))[:, :, None]
-                self.loaded_image_name = self.image_path.split('/')[-1]
-                # keep a copy to represent the current (rotated) version of the original images
-                self.cur_image_pt = self.loaded_image_pt.clone()
+                self.load_mnist_single_image()
 
             elif self.mode == 'object_detection':
                 self.image_index = self.coco_classes.index(text.split(' ')[0])
                 self.image_path = self.single_images_paths[self.image_index]
-                self.label_path = self.image_path.replace('png', 'npy')
-                self.loaded_image_label = np.load(self.label_path)
-                # loaded image label is in original coco classes defined by original_coco_names
-                # convert to custom names
-                for i in range(len(self.loaded_image_label)):
-                    self.loaded_image_label[i, -1] = self.custom_coco_names.index(self.original_coco_names[int(self.loaded_image_label[i, -1])])
-
-                # the center of the bounding box is the center of cropped image
-                # we know that we only have one object, x is column, y is row
-                self.center_x = int((self.loaded_image_label[0, 0] + self.loaded_image_label[0, 2]) // 2)
-                self.center_y = int((self.loaded_image_label[0, 1] + self.loaded_image_label[0, 3]) // 2)
-
-                # load the image
-                self.loaded_image_pt = torch.from_numpy(np.array(Image.open(self.image_path).convert('RGB'), dtype=np.uint8))
-                self.loaded_image_name = self.image_path.split('/')[-1]
-
-                # take the cropped part of the entire input image to put in display image
-                self.cur_image_pt = self.loaded_image_pt[self.center_y-self.display_image_size//2:self.center_y+self.display_image_size//2, self.center_x-self.display_image_size//2:self.center_x+self.display_image_size//2, :]
+                self.load_coco_single_image()
 
             # convert to QImage for display purpose
             self.cur_display_image = nero_utilities.tensor_to_qt_image(self.cur_image_pt)
@@ -1009,11 +1021,11 @@ class UI_MainWindow(QWidget):
 
                 # only allow clicking one point at a time
                 # save the old brush
-                if points[0].brush() == pg.mkBrushQtGui.QColor('blue'):
-                    self.old_brush = pg.mkBrushQtGui.QColor('blue')
+                if points[0].brush() == QtGui.QColor('blue'):
+                    self.old_brush = QtGui.QColor('blue')
 
-                elif points[0].brush() == pg.mkBrushQtGui.QColor('magenta'):
-                    self.old_brush = pg.mkBrushQtGui.QColor('magenta')
+                elif points[0].brush() == QtGui.QColor('magenta'):
+                    self.old_brush = QtGui.QColor('magenta')
 
                 # create new brush
                 new_brush = pg.mkBrush(255, 0, 0, 255)
@@ -1027,26 +1039,30 @@ class UI_MainWindow(QWidget):
                 # start single result view from here
                 if not self.image_existed:
                     self.init_single_result_layout()
+
+                # get the corresponding image path
                 self.image_path = self.all_images_paths[self.image_index]
 
-                # load the image and scale the size
-                self.loaded_image_pt = torch.from_numpy(np.asarray(Image.open(self.image_path)))[:, :, None]
-                self.loaded_image_name = self.image_path.split('/')[-1]
-                self.loaded_image_label = int(self.image_path.split('/')[-1].split('_')[1])
+                # load the image
+                if self.mode == 'digit_recognition':
+                    self.load_mnist_single_image()
+                elif self.mode == 'object_detection':
+                    self.load_coco_single_image()
 
-                # keep a copy to represent the current (rotated) version of the original images
-                self.cur_image_pt = self.loaded_image_pt.clone()
                 # convert to QImage for display purpose
                 self.cur_display_image = nero_utilities.tensor_to_qt_image(self.cur_image_pt)
                 # resize the display QImage
                 self.cur_display_image = self.cur_display_image.scaledToWidth(self.display_image_size)
-                # prepare image tensor for model purpose
-                self.cur_image_pt = nero_transform.prepare_mnist_image(self.cur_image_pt)
 
                 # display the image
                 self.display_image()
-                # run model once and display results (Detailed bar plot)
-                self.run_model_once()
+
+                if self.mode == 'digit_recognition':
+                    # prepare image tensor for model purpose
+                    self.cur_image_pt = nero_transform.prepare_mnist_image(self.cur_image_pt)
+                    # run model once and display results (Detailed bar plot)
+                    self.run_model_once()
+
                 # run model all and display results (Individual NERO plot)
                 self.run_model_all()
 
@@ -1903,8 +1919,11 @@ class UI_MainWindow(QWidget):
             self.single_result_layout.addWidget(self.image_label, 1, 0)
             # self.single_result_layout.addWidget(self.name_label, 2, 0)
         elif self.data_mode == 'aggregate':
-            self.single_result_layout.addWidget(self.image_label, 0, 2)
-            # self.single_result_layout.addWidget(self.name_label, 1, 2)
+            if self.mode == 'digit_recognition':
+                self.single_result_layout.addWidget(self.image_label, 0, 2)
+                # self.single_result_layout.addWidget(self.name_label, 1, 2)
+            elif self.mode == 'object_detection':
+                self.single_result_layout.addWidget(self.image_label, 0, 0)
 
 
     # helper function on drawing mask on input COCO image (to highlight the current FOV)
