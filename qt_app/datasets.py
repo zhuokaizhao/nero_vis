@@ -40,7 +40,7 @@ class COCODataset(Dataset):
         self.img_files = list_path
         # get label path from image path
         self.label_files = [
-            path.replace("images", "labels").replace(".png", ".txt").replace(".jpg", ".txt")
+            path.replace('images', 'labels').replace('.png', '.npy').replace('.jpg', '.npy')
             for path in self.img_files
         ]
 
@@ -70,7 +70,8 @@ class COCODataset(Dataset):
             # Ignore warning if file is empty
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore")
-                boxes = np.loadtxt(label_path).reshape(-1, 5)
+                # boxes = np.loadtxt(label_path).reshape(-1, 5)
+                boxes = np.load(label_path)
 
         except Exception as e:
             print(f"Could not read label '{label_path}'.")

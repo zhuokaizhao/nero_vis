@@ -32,22 +32,6 @@ def prepare_mnist_image(image):
     return image
 
 
-# Below for COCO iamges
-# parse the content in data configuration file, returns a dict
-def parse_data_config(path):
-    """Parses the data configuration file"""
-    options = dict()
-    with open(path, 'r') as fp:
-        lines = fp.readlines()
-    for line in lines:
-        line = line.strip()
-        if line == '' or line.startswith('#'):
-            continue
-        key, value = line.split('=')
-        options[key.strip()] = value.strip()
-    return options
-
-
 # load the class names from the class file
 def load_classes(path):
     """
@@ -173,16 +157,21 @@ class FixedJittering(object):
     def __call__(self, data):
         label_path, img, labels = data
 
-        all_ids = labels[:, 0].astype(int)
-        all_bbs = labels[:, 1:]
+        # all_ids = labels[:, 0].astype(int)
+        # all_bbs = labels[:, 1:]
+        # # analyze the img path to get the key bb index
+        # key_label_index = int(label_path.split('_')[-1].split('.')[0])
+        # # get the target bb
+        # key_id = int(all_ids[key_label_index])
+        # key_bb = all_bbs[key_label_index]
+
+
+        # all_bbs only contains 1 bounding box
+        key_id = labels[0, -1].astype(int)
+        key_bb = labels[0, :4]
 
         # labels for current image
         processed_labels = []
-        # analyze the img path to get the key bb index
-        key_label_index = int(label_path.split('_')[-1].split('.')[0])
-        # get the target bb
-        key_id = int(all_ids[key_label_index])
-        key_bb = all_bbs[key_label_index]
 
         # center of the target object
         key_bb_min_x = key_bb[0]
@@ -203,11 +192,12 @@ class FixedJittering(object):
         key_bb_min_x, key_bb_min_y, key_bb_max_x, key_bb_max_y \
             = self.compute_label(key_bb, x_min, y_min, self.img_size)
 
-        processed_labels.append([key_id,
-                                key_bb_min_x,
+        # put label in the format of (x_1, y_1, x_2, y_2, class)
+        processed_labels.append([key_bb_min_x,
                                 key_bb_min_y,
                                 key_bb_max_x,
-                                key_bb_max_y])
+                                key_bb_max_y,
+                                key_id])
 
         # extract the image, pad if needed
         extracted_img = self.extract_img_with_pad(img, self.img_size, x_min, y_min, x_max, y_max)
@@ -225,14 +215,15 @@ class ConvertLabel(object):
 
     def __call__(self, data):
 
+        # for this study, each image has one label only
         label_path, img, labels = data
 
         # convert key id from COCO classes to custom desired classes
         for i, cur_label in enumerate(labels):
             # 0 is always background for pytorch faster-rcnn
-            cur_id = cur_label[0].astype(int)
+            cur_id = cur_label[-1].astype(int)
             key_id_custom = int(self.desired_classes.index(self.coco_classes[cur_id]) + 1)
-            labels[i, 0] = key_id_custom
+            labels[i, -1] = key_id_custom
 
         return label_path, img, labels
 
@@ -247,6 +238,7 @@ class ToTensor(object):
         # Extract image as PyTorch tensor
         img = torchvision.transforms.ToTensor()(img)
 
+        # add index in front of the label tensor
         bb_targets = torch.zeros((len(boxes), 6))
         bb_targets[:, 1:] = torchvision.transforms.ToTensor()(boxes)
 

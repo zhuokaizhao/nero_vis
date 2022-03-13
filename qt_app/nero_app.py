@@ -373,7 +373,7 @@ class UI_MainWindow(QWidget):
     # load single coco image from self.image_path
     def load_coco_single_image(self):
 
-        self.label_path = self.image_path.replace('png', 'npy')
+        self.label_path = self.image_path.replace('images', 'labels').replace('png', 'npy').replace('jpg', 'npy')
         self.loaded_image_label = np.load(self.label_path)
         # loaded image label is in original coco classes defined by original_coco_names
         # convert to custom names
@@ -443,9 +443,9 @@ class UI_MainWindow(QWidget):
             elif self.mode == 'object_detection':
                 self.all_images_paths = glob.glob(os.path.join(self.dataset_dir, 'images', '*.jpg'))
                 self.all_labels_paths = glob.glob(os.path.join(self.dataset_dir, 'labels', '*.npy'))
-                self.loaded_images_labels = np.zeros(len(self.all_images_paths), dtype=np.int64)
+                self.loaded_images_labels = np.zeros(len(self.all_images_paths), dtype=np.string_)
                 for i, cur_label_path in enumerate(self.all_labels_paths):
-                    cur_label = cur_label_path.split('_')[0]
+                    cur_label = cur_label_path.split('/')[-1].split('_')[0]
                     self.loaded_images_labels[i] = cur_label
 
             # check the data to be ready
@@ -788,7 +788,7 @@ class UI_MainWindow(QWidget):
             self.coco_classes = ['car', 'bottle', 'cup', 'chair', 'book']
             # add a image of each class
             for i, cur_class in enumerate(self.coco_classes):
-                cur_image_path = glob.glob(os.path.join(os.getcwd(), 'example_data', self.mode, 'single', f'{cur_class}*.png'))[0]
+                cur_image_path = glob.glob(os.path.join(os.getcwd(), 'example_data', self.mode, 'single', 'images', f'{cur_class}*.png'))[0]
                 self.single_images_paths.append(cur_image_path)
                 self.image_menu.addItem(QtGui.QIcon(cur_image_path), f'{cur_class} image')
 
@@ -957,9 +957,9 @@ class UI_MainWindow(QWidget):
             # first two cases are for digit recognition (MNIST)
             if self.mode == 'digit_recognition':
                 if text.split(' ')[0] == 'Averaged':
-                    self.class_selection = -1
+                    self.class_selection = 'all'
                 elif text.split(' ')[0] == 'Digit':
-                    self.class_selection = int(text.split(' ')[-1])
+                    self.class_selection = text.split(' ')[-1]
 
                 # display the plot
                 self.display_mnist_aggregate_result()
@@ -1064,7 +1064,7 @@ class UI_MainWindow(QWidget):
             # run dimension reduction of all images on the selected digit
             # each image has tensor with length being the number of translations
             cur_class_indices = []
-            if self.class_selection == -1:
+            if self.class_selection == 'all':
                 # all the indices
                 cur_class_indices = list(range(len(self.loaded_images_labels)))
             else:
@@ -1185,8 +1185,8 @@ class UI_MainWindow(QWidget):
             for cur_class in self.coco_classes:
                 self.class_selection_menu.addItem(f'{cur_class}')
 
-        # set default to digit -1, which means the average one
-        self.class_selection = -1
+        # set default to 'all', which means the average one
+        self.class_selection = 'all'
         self.class_selection_menu.setCurrentIndex(0)
         # connect the drop down menu with actions
         self.class_selection_menu.currentTextChanged.connect(aggregate_class_selection_changed)
@@ -1489,9 +1489,9 @@ class UI_MainWindow(QWidget):
                         # object index
                         self.cur_image_label[i, 0] = i
                         # since PyTorch FasterRCNN has 0 as background
-                        self.cur_image_label[i, 1] = self.loaded_image_label[i, 4] + 1
+                        self.cur_image_label[i, 5] = self.loaded_image_label[i, 4] + 1
                         # modify the label accordingly
-                        self.cur_image_label[i, 2:] = self.compute_label(self.loaded_image_label[i, :4], self.x_min, self.y_min, (self.image_size, self.image_size))
+                        self.cur_image_label[i, 1:5] = self.compute_label(self.loaded_image_label[i, :4], self.x_min, self.y_min, (self.image_size, self.image_size))
 
                     if self.use_cache:
                         continue

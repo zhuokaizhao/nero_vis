@@ -188,7 +188,7 @@ def run_mnist_once(model, test_image, test_label=None, batch_size=None, rotate_a
 
 
 # filter/modify the model outputs by supported classes
-def clean_model_outputs(model_name, outputs_dict, test_label, original_names, desired_names):
+def clean_model_outputs(model_name, outputs_dict, original_names, desired_names):
     outputs = []
     # actually outputs_dict has length 1 because it is single image mode
     for i in range(len(outputs_dict)):
@@ -199,7 +199,7 @@ def clean_model_outputs(model_name, outputs_dict, test_label, original_names, de
         # the model proposes multiple bounding boxes for each object
         if len(pred_boxes) != 0:
             # when we are using pretrained model and ground truth label is present
-            if (model_name == 'FasterRCNN (Pre-trained)') and type(test_label) != type(None):
+            if (model_name == 'FasterRCNN (Pre-trained)'):
                 valid_indices = []
                 for j in range(len(pred_labels)):
                     if original_names[int(pred_labels[j]-1)] in desired_names:
@@ -214,7 +214,8 @@ def clean_model_outputs(model_name, outputs_dict, test_label, original_names, de
                     output[:, :4] = pred_boxes[valid_indices]
                     output[:, 4] = pred_confs[valid_indices]
                     output[:, 5] = pred_labels[valid_indices]
-                    outputs.append(output)
+                else:
+                    output = torch.zeros((1, 6))
             else:
                 # transform output in the format of (x1, y1, x2, y2, conf, class_pred)
                 output = torch.zeros((len(pred_boxes), 6))
@@ -284,11 +285,11 @@ def process_model_outputs(outputs, targets, iou_thres=0.5, conf_thres=0):
 
         # all predicted labels and true label for the current object
         pred_labels = cur_object_outputs[:, -1].numpy()
-        true_labels = targets[targets[:, 0] == i][:, 1].numpy()
+        true_labels = targets[targets[:, 0] == i][:, 5].numpy()
 
         # all predicted bounding boxes and true bb for the current object
         pred_boxes = cur_object_outputs[:, :4]
-        true_boxes = targets[targets[:, 0] == i][:, 2:]
+        true_boxes = targets[targets[:, 0] == i][:, 1:5]
         qualified_output = []
         num_true_positive = 0
         num_false_positive = 0
@@ -347,13 +348,14 @@ def run_coco_once(mode, model_name, model, test_image, custom_names, pytorch_nam
         # reformat input image from (height, width, channel) to (batch size, channel, height, width)
         test_image = test_image.permute((2, 0, 1))[None, :, :, :].float()
         with torch.no_grad():
+
             # single image mode
             # prepare current batch's testing data
             test_image = test_image.to(device)
 
             # run model inference
             outputs_dict = model(test_image)
-            outputs = clean_model_outputs(model_name, outputs_dict, test_label, pytorch_names, custom_names)
+            outputs = clean_model_outputs(model_name, outputs_dict, pytorch_names, custom_names)
 
             if outputs != []:
                 all_qualified_output, all_precision, all_recall, all_F_measure = process_model_outputs(outputs, torch.from_numpy(test_label))
@@ -413,7 +415,7 @@ def run_coco_once(mode, model_name, model, test_image, custom_names, pytorch_nam
                 outputs_dict = model(test_images)
 
                 # outputs = nero_utilities.non_max_suppression(output_dict, conf_thres=0, nms_thres=0.4)
-                outputs = clean_model_outputs(model_name, outputs_dict, test_label, pytorch_names, custom_names)
+                outputs = clean_model_outputs(model_name, outputs_dict, pytorch_names, custom_names)
                 if outputs != []:
                     cur_qualified_output, cur_precision, cur_recall, cur_F_measure = process_model_outputs(outputs, test_labels)
                 else:
