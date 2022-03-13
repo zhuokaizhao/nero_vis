@@ -1,17 +1,17 @@
 # the script extracts example data
 import os
 import cv2
-import tqdm
 import torch
 import random
 import argparse
 import torchvision
 import numpy as np
 from PIL import Image
+from tqdm import tqdm
 from shutil import copy
 from gluoncv import data
 from pycocotools.coco import COCO
-from mlxtend.data import loadlocal_mnist
+# from mlxtend.data import loadlocal_mnist
 
 random.seed(10)
 
@@ -21,7 +21,7 @@ def main():
     # name of data (mnist, coco, etc)
     parser.add_argument('--name', required=True, action='store', nargs=1, dest='name')
     # aggregate or single data
-    parser.add_argument('--name', required=True, action='store', nargs=1, dest='mode')
+    parser.add_argument('--mode', required=True, action='store', nargs=1, dest='mode')
     # number of samples
     parser.add_argument('--num', required=True, action='store', nargs=1, dest='num')
     # input data directory
@@ -96,22 +96,22 @@ def main():
     elif name == 'coco':
         image_size = (128, 128)
         output_dir = args.output_dir[0]
+        # input variables
+        if args.input_dir:
+            input_dir = args.input_dir[0]
+        else:
+            input_dir = '/home/zhuokai/Desktop/nvme1n1p1/Data/coco/'
+
+        if verbose:
+            print(f'\nData name: {name}')
+            print(f'Mode: {mode}')
+            print(f'Number of samples: {num_samples}')
+            print(f'Input directory: {input_dir}')
+            print(f'Output directory: {output_dir}')
+            print(f'Visualizing selected data: {vis}')
+            print(f'Verbosity: {verbose}\n')
+
         if mode == 'single':
-            # input variables
-            if args.input_dir:
-                input_dir = args.input_dir[0]
-            else:
-                input_dir = '/home/zhuokai/Desktop/nvme1n1p1/Data/coco/'
-
-            output_dir = args.output_dir[0]
-
-            if verbose:
-                print(f'\nData name: {name}')
-                print(f'Number of samples: {num_samples}')
-                print(f'Input directory: {input_dir}')
-                print(f'Output directory: {output_dir}')
-                print(f'Visualizing selected data: {vis}')
-                print(f'Verbosity: {verbose}\n')
 
             downsample_factor = 1
             # images are selected through coco_single_image_selection_tool.py
@@ -155,6 +155,8 @@ def main():
 
                 print(f'Chosen original image has been saved to {cur_image_path}')
 
+                print(f'{mode} mode: {len(image_indices)} {name} images have been selected and saved')
+
         elif mode == 'aggregate':
             desired_classes = ['car', 'bottle', 'cup', 'chair', 'book']
             # downsample factor when determining if an image is qualified
@@ -167,7 +169,6 @@ def main():
             images_folder_dir = '/home/zhuokai/Desktop/nvme1n1p1/Data/coco/val2017'
             json_path = '/home/zhuokai/Desktop/nvme1n1p1/Data/coco/annotations/instances_val2017.json'
             dataset = data.COCODetection(root=input_dir, splits=['instances_val2017'], skip_empty=False)
-            num_images = len(dataset)
             start_index = 0
 
             # translation range used to check to make sure current object supports all possible translation
@@ -197,23 +198,11 @@ def main():
             os.makedirs(image_dir, exist_ok=True)
             os.makedirs(label_dir, exist_ok=True)
 
-            # some information we want to collect when generating train datasets
-            # number of potential target bb rejected for not having enough surrounding area
-            num_rej_target_no_space = 0
-            # number of potential target bb rejected for bounding boxes being too large
-            num_rej_target_large_bb = 0
-            # number of potential target bb rejected for bounding boxes being too small
-            num_rej_target_small_bb = 0
-            # total number of potential target bb
-            num_target_bb = 0
-            # total number of qualified target bb
-            num_target_passed = 0
-
             # go through all images in dataset
             for i in tqdm(range(start_index, len(dataset))):
 
                 # stop if all done
-                if num_extracted >= num_images:
+                if num_extracted >= num_samples:
                     break
 
                 # current image and its label
@@ -224,10 +213,10 @@ def main():
                 height, width = cur_image.shape[:2]
 
                 # randomly permutate the labels
-                cur_label_randomized = np.random.permutation(cur_label)
+                # cur_label_randomized = np.random.permutation(cur_label)
                 # all the bounding boxes and their correponding class ids of the current single image
-                cur_bounding_boxes = cur_label_randomized[:, :4]
-                cur_class_ids = cur_label_randomized[:, 4:5][:, 0].astype(int)
+                cur_bounding_boxes = cur_label[:, :4]
+                cur_class_ids = cur_label[:, 4:5][:, 0].astype(int)
 
                 if downsample_factor != 1:
                     # convert to PIL image for up/downsampling
@@ -247,7 +236,7 @@ def main():
                 # go through all the labels in this current image
                 for m, k in enumerate(cur_class_ids):
                     # stop if all done
-                    if num_extracted >= num_images:
+                    if num_extracted >= num_samples:
                         break
 
                     # find objects within desired labels
@@ -255,12 +244,6 @@ def main():
 
                         # current bounding box
                         cur_bb = cur_bounding_boxes_scaled[m]
-
-                        # potential target_bb number that has not gone through any checks
-                        num_target_bb += 1
-
-                        # obtain the list of labels for this extracted image
-                        cut_out_labels = []
 
                         # compute the center of the current key object
                         key_bb_min_x = cur_bb[0]
@@ -281,7 +264,6 @@ def main():
 
                                 # make sure that the extracted image fits in the original image
                                 if x_min < 0 or x_max >= width or y_min < 0 or y_max >= height:
-                                    num_rej_target_no_space += 1
                                     not_qualified = True
                                     break
 
@@ -291,28 +273,25 @@ def main():
                         if not_qualified:
                             continue
 
-                        # save the original label but record which bb is the target
+                        # save the scaled label
+                        cur_label = np.zeros((1, 5))
+                        cur_label[0, :4] = cur_bb
+                        # keep the original label and record which bb is the target
+                        cur_label[0, 4] = k
                         # i indicates its original index in COCO (for human debug)
                         # m indicates its target bb index (for training loading data)
-                        cut_out_labels_path = os.path.join(label_dir, f'COCO_{i}_bb_{m}.txt')
-
-                        # save the scaled label
-                        with open(cut_out_labels_path, 'w') as myfile:
-                            for a in range(len(cur_label_randomized)):
-                                class_id = cur_class_ids[a]
-                                x_min, y_min, x_max, y_max = cur_bounding_boxes_scaled[a]
-                                line = str(int(class_id)) + ' ' + str(x_min) + ' ' + str(y_min) + ' ' + str(x_max) + ' ' + str(y_max)
-                                myfile.write(line + '\n')
+                        cur_label_path = os.path.join(label_dir, f'{class_names[k]}_{i}_{m}.npy')
+                        np.save(cur_label_path, cur_label)
 
                         # copy the original image over if no scale is present
                         if downsample_factor == 1:
                             cur_image_name = all_image_names[i]
                             img_extension = cur_image_name.split('.')[-1]
-                            cut_out_image_path = os.path.join(image_dir, f'COCO_{i}_bb_{m}.' + img_extension)
+                            cut_out_image_path = os.path.join(image_dir, f'{class_names[k]}_{i}_{m}.' + img_extension)
                             copy(os.path.join(images_folder_dir, cur_image_name), cut_out_image_path)
                         else:
                             # save the image
-                            cut_out_image_path = os.path.join(image_dir, f'COCO_{i}_bb_{m}.png')
+                            cut_out_image_path = os.path.join(image_dir, f'{class_names[k]}_{i}_{m}.png')
                             # get a RGB copy for saving
                             cut_out_image_rgb = cv2.cvtColor(cur_image_scaled, cv2.COLOR_BGR2RGB)
                             cv2.imwrite(cut_out_image_path, cut_out_image_rgb)
@@ -321,16 +300,18 @@ def main():
                         num_extracted += 1
 
             # save the label names
-            name_path = os.path.join(output_dir, 'custom.names')
-            if not os.path.isfile(name_path):
-                with open(name_path, 'w') as name_file:
-                    for label in desired_classes:
-                        name_file.write('%s\n' % label)
+            # name_path = os.path.join(output_dir, 'custom.names')
+            # if not os.path.isfile(name_path):
+            #     with open(name_path, 'w') as name_file:
+            #         for label in desired_classes:
+            #             name_file.write('%s\n' % label)
 
-                print(f'\ncustom.names have been generated and saved')
+            #     print(f'\ncustom.names have been generated and saved')
+
+            print(f'{mode} mode: {num_extracted} {name} images have been selected and saved')
 
 
-    print(f'{mode} mode: {len(image_indices)} {name} images have been selected and saved')
+
 
 
 if __name__ == '__main__':
