@@ -214,7 +214,7 @@ class UI_MainWindow(QWidget):
                 self.rotation = False
                 self.translation = False
                 # translation step when evaluating
-                self.translation_step = 4
+                self.translation_step = 8
 
                 # predefined model paths
                 self.model_1_name = 'FasterRCNN (0% jittering)'
@@ -373,7 +373,7 @@ class UI_MainWindow(QWidget):
     # load single coco image from self.image_path
     def load_coco_single_image(self):
 
-        self.label_path = self.image_path.replace('images', 'labels').replace('png', 'npy').replace('jpg', 'npy')
+        self.label_path = self.image_path.replace('images', 'labels').replace('jpg', 'npy').replace('jpg', 'npy')
         self.loaded_image_label = np.load(self.label_path)
         # loaded image label is in original coco classes defined by original_coco_names
         # convert to custom names
@@ -424,7 +424,7 @@ class UI_MainWindow(QWidget):
             if self.mode == 'digit_recognition':
                 # load the image and scale the size
                 # get all the image paths from the directory
-                self.all_images_paths = glob.glob(os.path.join(self.dataset_dir, '*.png'))
+                self.all_images_paths = glob.glob(os.path.join(self.dataset_dir, '*.jpg'))
                 self.loaded_images_pt = []
                 self.loaded_images_names = []
                 self.loaded_images_labels = torch.zeros(len(self.all_images_paths), dtype=torch.int64)
@@ -776,7 +776,7 @@ class UI_MainWindow(QWidget):
             self.single_images_paths = []
             # add a image of each class
             for i in range(10):
-                cur_image_path = glob.glob(os.path.join(os.getcwd(), 'example_data', self.mode, 'single', f'label_{i}*.png'))[0]
+                cur_image_path = glob.glob(os.path.join(os.getcwd(), 'example_data', self.mode, 'single', f'label_{i}*.jpg'))[0]
                 self.single_images_paths.append(cur_image_path)
                 self.image_menu.addItem(QtGui.QIcon(cur_image_path), f'Image {i}')
 
@@ -788,7 +788,7 @@ class UI_MainWindow(QWidget):
             self.coco_classes = ['car', 'bottle', 'cup', 'chair', 'book']
             # add a image of each class
             for i, cur_class in enumerate(self.coco_classes):
-                cur_image_path = glob.glob(os.path.join(os.getcwd(), 'example_data', self.mode, 'single', 'images', f'{cur_class}*.png'))[0]
+                cur_image_path = glob.glob(os.path.join(os.getcwd(), 'example_data', self.mode, 'single', 'images', f'{cur_class}*.jpg'))[0]
                 self.single_images_paths.append(cur_image_path)
                 self.image_menu.addItem(QtGui.QIcon(cur_image_path), f'{cur_class} image')
 
@@ -1497,13 +1497,13 @@ class UI_MainWindow(QWidget):
                         continue
 
                     # sanity check on if image/label are correct
-                    sanity_check = False
-                    if sanity_check:
-                        sanity_path = f'/home/zhuokai/Desktop/UChicago/Research/nero_vis/qt_app/example_data/object_detection/sanity_{x_tran}_{y_tran}.png'
-                        sanity_image = Image.fromarray(self.cropped_image_pt.numpy())
-                        temp = ImageDraw.Draw(sanity_image)
-                        temp.rectangle([(self.cur_image_label[0, 2], self.cur_image_label[0, 3]), (self.cur_image_label[0, 4], self.cur_image_label[0, 5])], outline='yellow')
-                        sanity_image.save(sanity_path)
+                    # sanity_check = False
+                    # if sanity_check:
+                    #     sanity_path = f'/home/zhuokai/Desktop/UChicago/Research/nero_vis/qt_app/example_data/object_detection/sanity_{x_tran}_{y_tran}.jpg'
+                    #     sanity_image = Image.fromarray(self.cropped_image_pt.numpy())
+                    #     temp = ImageDraw.Draw(sanity_image)
+                    #     temp.rectangle([(self.cur_image_label[0, 2], self.cur_image_label[0, 3]), (self.cur_image_label[0, 4], self.cur_image_label[0, 5])], outline='yellow')
+                    #     sanity_image.save(sanity_path)
 
                     # re-display image for each rectangle drawn every 8 steps
                     if (x_tran)%2 == 0 and (y_tran)%2 == 0:
@@ -1863,7 +1863,7 @@ class UI_MainWindow(QWidget):
 
                         # re-compute the ground truth label bounding boxes of the cropped image
                         for i in range(len(self.cur_image_label)):
-                            self.cur_image_label[i, 2:] = self.compute_label(self.loaded_image_label[i, :4], self.x_min, self.y_min, (self.image_size, self.image_size))
+                            self.cur_image_label[i, 1:5] = self.compute_label(self.loaded_image_label[i, :4], self.x_min, self.y_min, (self.image_size, self.image_size))
 
                         # draw the ground truth label
                         gt_display_center_x = (self.cur_image_label[0, 1] + self.cur_image_label[0, 3]) / 2 * (self.display_image_size/self.uncropped_image_size) + (rect_center_x - display_rect_width/2)
