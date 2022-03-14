@@ -1061,7 +1061,7 @@ class UI_MainWindow(QWidget):
                 # run model all and display results (Individual NERO plot)
                 self.run_model_all()
 
-                self.single_result_existed = True
+                # self.single_result_existed = True
 
             # run dimension reduction of all images on the selected digit
             # each image has tensor with length being the number of translations
@@ -1460,8 +1460,8 @@ class UI_MainWindow(QWidget):
             self.all_translations = np.zeros((num_y_translations, num_x_translations, 2))
 
             if self.use_cache:
-                self.all_quantities_1 = self.load_from_cache(name=f'{self.data_mode}_{self.model_1_cache_name}_{self.image_index}')
-                self.all_quantities_2 = self.load_from_cache(name=f'{self.data_mode}_{self.model_2_cache_name}_{self.image_index}')
+                self.all_quantities_1 = self.load_from_cache(name=f'single_{self.model_1_cache_name}_{self.image_index}')
+                self.all_quantities_2 = self.load_from_cache(name=f'single_{self.model_2_cache_name}_{self.image_index}')
             else:
                 self.all_quantities_1 = np.zeros((num_y_translations, num_x_translations, 7))
                 self.all_quantities_2 = np.zeros((num_y_translations, num_x_translations, 7))
@@ -2065,11 +2065,9 @@ class UI_MainWindow(QWidget):
             self.heatmap_view_2.addItem(self.heatmap_plot_2)
 
             if self.data_mode == 'single':
-                self.single_result_layout.addWidget(self.heatmap_view_1, 1, 2)
-                self.single_result_layout.addWidget(self.heatmap_view_2, 1, 3)
+                self.single_result_layout.addWidget(self.heatmap_view_1, 1, 1)
+                self.single_result_layout.addWidget(self.heatmap_view_2, 1, 2)
             elif self.data_mode == 'aggregate':
-                # self.single_result_layout.addWidget(self.heatmap_view_1, 2, 1)
-                # self.single_result_layout.addWidget(self.heatmap_view_2, 2, 2)
                 self.aggregate_result_layout.addWidget(self.heatmap_view_1, 1, 4)
                 self.aggregate_result_layout.addWidget(self.heatmap_view_2, 1, 5)
 
@@ -2530,8 +2528,8 @@ class UI_MainWindow(QWidget):
         # if single mode, change control menus' locations
         if self.data_mode == 'single':
             # move the model menu on top of the each individual NERO plot when in single mode
-            self.single_result_layout.addWidget(self.model_1_menu, 0, 2, 1, 1, QtCore.Qt.AlignCenter)
-            self.single_result_layout.addWidget(self.model_2_menu, 0, 3, 1, 1, QtCore.Qt.AlignCenter)
+            self.single_result_layout.addWidget(self.model_1_menu, 0, 1, 1, 1, QtCore.Qt.AlignCenter)
+            self.single_result_layout.addWidget(self.model_2_menu, 0, 2, 1, 1, QtCore.Qt.AlignCenter)
 
             # move run button below the displayed image
             self.single_result_layout.addWidget(self.run_button, 2, 0)
@@ -2556,14 +2554,38 @@ class UI_MainWindow(QWidget):
             self.quantity_name = text
 
             if text == 'Confidence*IOU':
-                self.cur_plot_quantity_1 = self.all_quantities_1[:, :, 4] * self.all_quantities_1[:, :, 6]
-                self.cur_plot_quantity_2 = self.all_quantities_2[:, :, 4] * self.all_quantities_2[:, :, 6]
+                if self.data_mode == 'single':
+                    self.cur_plot_quantity_1 = self.all_quantities_1[:, :, 4] * self.all_quantities_1[:, :, 6]
+                    self.cur_plot_quantity_2 = self.all_quantities_2[:, :, 4] * self.all_quantities_2[:, :, 6]
+                elif self.data_mode == 'aggregate':
+                    # current selected individual images' result on all transformations
+                    for y in range(len(self.y_translation)):
+                        for x in range(len(self.x_translation)):
+                            self.cur_plot_quantity_1[y, x] = self.aggregate_outputs_1[y, x][self.image_index][0, 4] * self.aggregate_outputs_1[y, x][self.image_index][0, 6]
+                            self.cur_plot_quantity_2[y, x] = self.aggregate_outputs_2[y, x][self.image_index][0, 4] * self.aggregate_outputs_2[y, x][self.image_index][0, 6]
+
             elif text == 'Confidence':
-                self.cur_plot_quantity_1 = self.all_quantities_1[:, :, 4]
-                self.cur_plot_quantity_2 = self.all_quantities_2[:, :, 4]
+                if self.data_mode == 'single':
+                    self.cur_plot_quantity_1 = self.all_quantities_1[:, :, 4]
+                    self.cur_plot_quantity_2 = self.all_quantities_2[:, :, 4]
+                elif self.data_mode == 'aggregate':
+                    # current selected individual images' result on all transformations
+                    for y in range(len(self.y_translation)):
+                        for x in range(len(self.x_translation)):
+                            self.cur_plot_quantity_1[y, x] = self.aggregate_outputs_1[y, x][self.image_index][0, 4]
+                            self.cur_plot_quantity_2[y, x] = self.aggregate_outputs_2[y, x][self.image_index][0, 4]
+
             elif text == 'IOU':
-                self.cur_plot_quantity_1 = self.all_quantities_1[:, :, 6]
-                self.cur_plot_quantity_2 = self.all_quantities_2[:, :, 6]
+                if self.data_mode == 'single':
+                    self.cur_plot_quantity_1 = self.all_quantities_1[:, :, 6]
+                    self.cur_plot_quantity_2 = self.all_quantities_2[:, :, 6]
+                elif self.data_mode == 'aggregate':
+                    # current selected individual images' result on all transformations
+                    for y in range(len(self.y_translation)):
+                        for x in range(len(self.x_translation)):
+                            self.cur_plot_quantity_1[y, x] = self.aggregate_outputs_1[y, x][self.image_index][0, 6]
+                            self.cur_plot_quantity_2[y, x] = self.aggregate_outputs_2[y, x][self.image_index][0, 6]
+
             elif text == 'Consensus':
                 self.cur_plot_quantity_1 = np.zeros((self.all_quantities_1.shape[0], self.all_quantities_1.shape[1]))
                 self.cur_plot_quantity_2 = np.zeros((self.all_quantities_2.shape[0], self.all_quantities_2.shape[1]))
@@ -2629,25 +2651,26 @@ class UI_MainWindow(QWidget):
             self.realtime_inference_checkbox.setChecked(True)
         else:
             self.realtime_inference_checkbox.setChecked(False)
+
         self.single_plot_control_layout.addWidget(self.realtime_inference_checkbox)
 
-        # add plot control layout to general layout
-        self.single_result_layout.addLayout(self.single_plot_control_layout, 0, 0)
 
         # define default plotting quantity
         if self.data_mode == 'single':
+            # add plot control layout to general layout
+            self.single_result_layout.addLayout(self.single_plot_control_layout, 0, 0)
             self.cur_plot_quantity_1 = self.all_quantities_1[:, :, 4] * self.all_quantities_1[:, :, 6]
             self.cur_plot_quantity_2 = self.all_quantities_2[:, :, 4] * self.all_quantities_2[:, :, 6]
         elif self.data_mode == 'aggregate':
+            # add plot control layout to general layout
+            self.aggregate_result_layout.addLayout(self.single_plot_control_layout, 0, 3)
             # current selected individual images' result on all transformations
             self.cur_plot_quantity_1 = np.zeros((len(self.y_translation), len(self.x_translation)))
             self.cur_plot_quantity_2 = np.zeros((len(self.y_translation), len(self.x_translation)))
             for y in range(len(self.y_translation)):
                 for x in range(len(self.x_translation)):
-                    self.cur_plot_quantity_1[y, x] = self.aggregate_outputs_1[y, x][self.image_index][0, 4]
-                    self.cur_plot_quantity_2[y, x] = self.aggregate_outputs_2[y, x][self.image_index][0, 4]
-
-            print(self.cur_plot_quantity_2.shape)
+                    self.cur_plot_quantity_1[y, x] = self.aggregate_outputs_1[y, x][self.image_index][0, 4] * self.aggregate_outputs_1[y, x][self.image_index][0, 6]
+                    self.cur_plot_quantity_2[y, x] = self.aggregate_outputs_2[y, x][self.image_index][0, 4] * self.aggregate_outputs_2[y, x][self.image_index][0, 6]
 
         # draw the heatmap
         self.draw_heatmaps(mode='single')
