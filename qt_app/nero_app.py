@@ -1101,7 +1101,7 @@ class UI_MainWindow(QWidget):
                 self.old_brush = QtGui.QColor('magenta')
 
             # create new brush and brush the newly clicked point
-            new_brush = pg.mkBrush(0, 255, 0, 255)
+            new_brush = pg.mkBrush(255, 0, 0, 255)
             points[0].setBrush(new_brush)
             points[0].setPen(5)
 
@@ -1172,50 +1172,53 @@ class UI_MainWindow(QWidget):
 
         all_high_dim_points_1 = np.zeros((len(cur_class_indices), num_transformations))
         all_high_dim_points_2 = np.zeros((len(cur_class_indices), num_transformations))
-        if self.quantity_name == 'Confidence*IOU' or self.quantity_name == 'Confidence' or self.quantity_name == 'IOU':
-            for i, index in enumerate(cur_class_indices):
-                for j in range(num_transformations):
-                    if self.mode == 'digit_recognition':
-                        # all_outputs has shape (num_rotations, num_samples, 10)
-                        all_high_dim_points_1[i, j] = int(self.all_outputs_1[j][index].argmax() == self.loaded_images_labels[index])
-                        all_high_dim_points_2[i, j] = int(self.all_outputs_2[j][index].argmax() == self.loaded_images_labels[index])
-                    elif self.mode == 'object_detection':
 
-                        y = int(j//len(self.x_translation))
-                        x = int(j%len(self.x_translation))
+        for i, index in enumerate(cur_class_indices):
+            # if the current index matches with the selected class
+            if self.loaded_images_labels[i] == self.class_selection:
+                if self.quantity_name == 'Confidence*IOU' or self.quantity_name == 'Confidence' or self.quantity_name == 'IOU':
+                        # go through all the transfomations
+                        for j in range(num_transformations):
+                            if self.mode == 'digit_recognition':
+                                # all_outputs has shape (num_rotations, num_samples, 10)
+                                all_high_dim_points_1[i, j] = int(self.all_outputs_1[j][index].argmax() == self.loaded_images_labels[index])
+                                all_high_dim_points_2[i, j] = int(self.all_outputs_2[j][index].argmax() == self.loaded_images_labels[index])
+                            elif self.mode == 'object_detection':
 
-                        cur_conf_1 = self.aggregate_outputs_1[y, x][i][0, 4]
-                        cur_iou_1= self.aggregate_outputs_1[y, x][i][0, 6]
-                        cur_conf_2 = self.aggregate_outputs_2[y, x][i][0, 4]
-                        cur_iou_2 = self.aggregate_outputs_2[y, x][i][0, 6]
+                                y = int(j//len(self.x_translation))
+                                x = int(j%len(self.x_translation))
 
-                        if self.quantity_name == 'Confidence*IOU':
-                            cur_value_1 = cur_conf_1 * cur_iou_1
-                            cur_value_2 = cur_conf_2 * cur_iou_2
-                        elif self.quantity_name == 'Confidence':
-                            cur_value_1 = cur_conf_1
-                            cur_value_2 = cur_conf_2
-                        elif self.quantity_name == 'IOU':
-                            cur_value_1 = cur_iou_1
-                            cur_value_2 = cur_iou_2
+                                cur_conf_1 = self.aggregate_outputs_1[y, x][i][0, 4]
+                                cur_iou_1= self.aggregate_outputs_1[y, x][i][0, 6]
+                                cur_conf_2 = self.aggregate_outputs_2[y, x][i][0, 4]
+                                cur_iou_2 = self.aggregate_outputs_2[y, x][i][0, 6]
 
+                                if self.quantity_name == 'Confidence*IOU':
+                                    cur_value_1 = cur_conf_1 * cur_iou_1
+                                    cur_value_2 = cur_conf_2 * cur_iou_2
+                                elif self.quantity_name == 'Confidence':
+                                    cur_value_1 = cur_conf_1
+                                    cur_value_2 = cur_conf_2
+                                elif self.quantity_name == 'IOU':
+                                    cur_value_1 = cur_iou_1
+                                    cur_value_2 = cur_iou_2
 
-                        # aggregate_outputs_1 has shape (num_y_translations, num_x_translations, num_samples, 7)
-                        all_high_dim_points_1[i, j] = cur_value_1
-                        all_high_dim_points_2[i, j] = cur_value_2
-        else:
-            if self.quantity_name == 'Precision':
-                all_high_dim_points_1 = self.aggregate_precision_1
-                all_high_dim_points_2 = self.aggregate_precision_2
-            elif self.quantity_name == 'Recall':
-                all_high_dim_points_1 = self.aggregate_recall_1
-                all_high_dim_points_2 = self.aggregate_recall_2
-            elif self.quantity_name == 'AP':
-                all_high_dim_points_1 = self.aggregate_AP_1
-                all_high_dim_points_2 = self.aggregate_AP_2
-            elif self.quantity_name == 'F1 Score':
-                all_high_dim_points_1 = self.aggregate_F_measure_1
-                all_high_dim_points_2 = self.aggregate_F_measure_2
+                                # aggregate_outputs_1 has shape (num_y_translations, num_x_translations, num_samples, 7)
+                                all_high_dim_points_1[i, j] = cur_value_1
+                                all_high_dim_points_2[i, j] = cur_value_2
+
+                # when the current selected is precision, recall, etc that
+                else:
+                    # since mAP is no high-dim, do thing if that is selected
+                    if self.quantity_name == 'Precision':
+                        all_high_dim_points_1 = self.aggregate_precision_1
+                        all_high_dim_points_2 = self.aggregate_precision_2
+                    elif self.quantity_name == 'Recall':
+                        all_high_dim_points_1 = self.aggregate_recall_1
+                        all_high_dim_points_2 = self.aggregate_recall_2
+                    elif self.quantity_name == 'F1 Score':
+                        all_high_dim_points_1 = self.aggregate_F_measure_1
+                        all_high_dim_points_2 = self.aggregate_F_measure_2
 
         # get the average intensity of each sample
         all_intensity_1 = np.mean(all_high_dim_points_1, axis=1)
@@ -1343,28 +1346,30 @@ class UI_MainWindow(QWidget):
             self.aggregate_outputs_1 = np.zeros((len(self.y_translation), len(self.x_translation)), dtype=np.ndarray)
             self.aggregate_outputs_2 = np.zeros((len(self.y_translation), len(self.x_translation)), dtype=np.ndarray)
 
-            # average precision, recall, F measure and AP
-            self.aggregate_precision_1 = np.zeros((len(self.y_translation), len(self.x_translation)))
-            self.aggregate_recall_1 = np.zeros((len(self.y_translation), len(self.x_translation)))
-            self.aggregate_F_measure_1 = np.zeros((len(self.y_translation), len(self.x_translation)))
-            self.aggregate_AP_1 = np.zeros((len(self.y_translation), len(self.x_translation)))
+            # individual precision, recall, F measure and AP
+            self.aggregate_precision_1 = np.zeros((len(self.y_translation), len(self.x_translation)), dtype=np.ndarray)
+            self.aggregate_recall_1 = np.zeros((len(self.y_translation), len(self.x_translation)), dtype=np.ndarray)
+            self.aggregate_F_measure_1 = np.zeros((len(self.y_translation), len(self.x_translation)), dtype=np.ndarray)
+            # mAP does not have individuals
+            self.aggregate_mAP_1 = np.zeros((len(self.y_translation), len(self.x_translation)))
 
-            self.aggregate_precision_2 = np.zeros((len(self.y_translation), len(self.x_translation)))
-            self.aggregate_recall_2 = np.zeros((len(self.y_translation), len(self.x_translation)))
-            self.aggregate_F_measure_2 = np.zeros((len(self.y_translation), len(self.x_translation)))
-            self.aggregate_AP_2 = np.zeros((len(self.y_translation), len(self.x_translation)))
+            self.aggregate_precision_2 = np.zeros((len(self.y_translation), len(self.x_translation)), dtype=np.ndarray)
+            self.aggregate_recall_2 = np.zeros((len(self.y_translation), len(self.x_translation)), dtype=np.ndarray)
+            self.aggregate_F_measure_2 = np.zeros((len(self.y_translation), len(self.x_translation)), dtype=np.ndarray)
+            # mAP does not have individuals
+            self.aggregate_mAP_2 = np.zeros((len(self.y_translation), len(self.x_translation)))
 
             if self.use_cache:
                 self.aggregate_outputs_1 = self.load_from_cache(f'{self.mode}_{self.data_mode}_{self.model_1_cache_name}_outputs')
                 self.aggregate_precision_1 = self.load_from_cache(f'{self.mode}_{self.data_mode}_{self.model_1_cache_name}_precision')
                 self.aggregate_recall_1 = self.load_from_cache(f'{self.mode}_{self.data_mode}_{self.model_1_cache_name}_recall')
-                self.aggregate_AP_1 = self.load_from_cache(f'{self.mode}_{self.data_mode}_{self.model_1_cache_name}_AP')
+                self.aggregate_mAP_1 = self.load_from_cache(f'{self.mode}_{self.data_mode}_{self.model_1_cache_name}_mAP')
                 self.aggregate_F_measure_1 = self.load_from_cache(f'{self.mode}_{self.data_mode}_{self.model_1_cache_name}_F_measure')
 
                 self.aggregate_outputs_2 = self.load_from_cache(f'{self.mode}_{self.data_mode}_{self.model_2_cache_name}_outputs')
                 self.aggregate_precision_2 = self.load_from_cache(f'{self.mode}_{self.data_mode}_{self.model_2_cache_name}_precision')
                 self.aggregate_recall_2 = self.load_from_cache(f'{self.mode}_{self.data_mode}_{self.model_2_cache_name}_recall')
-                self.aggregate_AP_2 = self.load_from_cache(f'{self.mode}_{self.data_mode}_{self.model_2_cache_name}_AP')
+                self.aggregate_mAP_2 = self.load_from_cache(f'{self.mode}_{self.data_mode}_{self.model_2_cache_name}_mAP')
                 self.aggregate_F_measure_2 = self.load_from_cache(f'{self.mode}_{self.data_mode}_{self.model_2_cache_name}_F_measure')
             else:
                 # for all the loaded images
@@ -1388,10 +1393,10 @@ class UI_MainWindow(QWidget):
 
                         # save to result arrays
                         self.aggregate_outputs_1[y, x] = cur_qualified_output_1
-                        self.aggregate_precision_1[y, x] = np.mean(cur_precision_1)
-                        self.aggregate_recall_1[y, x] = np.mean(cur_recall_1)
-                        self.aggregate_F_measure_1[y, x] = np.mean(cur_F_measure_1)
-                        self.aggregate_AP_1[y, x] = nero_utilities.compute_ap(cur_recall_1, cur_precision_1)
+                        self.aggregate_precision_1[y, x] = cur_precision_1
+                        self.aggregate_recall_1[y, x] = cur_recall_1
+                        self.aggregate_F_measure_1[y, x] = cur_F_measure_1
+                        self.aggregate_mAP_1[y, x] = nero_utilities.compute_ap(cur_recall_1, cur_precision_1)
 
                         # model 2 output
                         cur_qualified_output_2, \
@@ -1410,21 +1415,21 @@ class UI_MainWindow(QWidget):
 
                         # save to result arrays
                         self.aggregate_outputs_2[y, x] = cur_qualified_output_2
-                        self.aggregate_precision_2[y, x] = np.mean(cur_precision_2)
-                        self.aggregate_recall_2[y, x] = np.mean(cur_recall_2)
-                        self.aggregate_F_measure_2[y, x] = np.mean(cur_F_measure_2)
-                        self.aggregate_AP_2[y, x] = nero_utilities.compute_ap(cur_recall_2, cur_precision_2)
+                        self.aggregate_precision_2[y, x] = cur_precision_2
+                        self.aggregate_recall_2[y, x] = cur_recall_2
+                        self.aggregate_F_measure_2[y, x] = cur_F_measure_2
+                        self.aggregate_mAP_2[y, x] = nero_utilities.compute_ap(cur_recall_2, cur_precision_2)
 
                 self.save_to_cache(name=f'{self.mode}_{self.data_mode}_{self.model_1_cache_name}_outputs', content=self.aggregate_outputs_1)
                 self.save_to_cache(name=f'{self.mode}_{self.data_mode}_{self.model_1_cache_name}_precision', content=self.aggregate_precision_1)
                 self.save_to_cache(name=f'{self.mode}_{self.data_mode}_{self.model_1_cache_name}_recall', content=self.aggregate_recall_1)
-                self.save_to_cache(name=f'{self.mode}_{self.data_mode}_{self.model_1_cache_name}_AP', content=self.aggregate_AP_1)
+                self.save_to_cache(name=f'{self.mode}_{self.data_mode}_{self.model_1_cache_name}_mAP', content=self.aggregate_mAP_1)
                 self.save_to_cache(name=f'{self.mode}_{self.data_mode}_{self.model_1_cache_name}_F_measure', content=self.aggregate_F_measure_1)
 
                 self.save_to_cache(name=f'{self.mode}_{self.data_mode}_{self.model_2_cache_name}_outputs', content=self.aggregate_outputs_2)
                 self.save_to_cache(name=f'{self.mode}_{self.data_mode}_{self.model_2_cache_name}_precision', content=self.aggregate_precision_2)
                 self.save_to_cache(name=f'{self.mode}_{self.data_mode}_{self.model_2_cache_name}_recall', content=self.aggregate_recall_2)
-                self.save_to_cache(name=f'{self.mode}_{self.data_mode}_{self.model_2_cache_name}_AP', content=self.aggregate_AP_2)
+                self.save_to_cache(name=f'{self.mode}_{self.data_mode}_{self.model_2_cache_name}_mAP', content=self.aggregate_mAP_2)
                 self.save_to_cache(name=f'{self.mode}_{self.data_mode}_{self.model_2_cache_name}_F_measure', content=self.aggregate_F_measure_2)
 
             # initialize digit selection control
@@ -2564,26 +2569,26 @@ class UI_MainWindow(QWidget):
             print('Plotting:', text, 'on heatmap')
             self.quantity_name = text
             if text == 'Confidence*IOU':
-                self.cur_plot_quantity_1 = self.aggregate_conf_1 * self.aggregate_iou_1
-                self.cur_plot_quantity_2 = self.aggregate_conf_2 * self.aggregate_iou_2
+                self.cur_plot_quantity_1 = self.aggregate_avg_conf_1 * self.aggregate_avg_iou_1
+                self.cur_plot_quantity_2 = self.aggregate_avg_conf_2 * self.aggregate_avg_iou_2
             elif text == 'Confidence':
-                self.cur_plot_quantity_1 = self.aggregate_conf_1
-                self.cur_plot_quantity_2 = self.aggregate_conf_2
+                self.cur_plot_quantity_1 = self.aggregate_avg_conf_1
+                self.cur_plot_quantity_2 = self.aggregate_avg_conf_2
             elif text == 'IOU':
-                self.cur_plot_quantity_1 = self.aggregate_iou_1
-                self.cur_plot_quantity_2 = self.aggregate_iou_2
+                self.cur_plot_quantity_1 = self.aggregate_avg_iou_1
+                self.cur_plot_quantity_2 = self.aggregate_avg_iou_2
             elif text == 'Precision':
-                self.cur_plot_quantity_1 = self.aggregate_precision_1
-                self.cur_plot_quantity_2 = self.aggregate_precision_2
+                self.cur_plot_quantity_1 = self.aggregate_avg_precision_1
+                self.cur_plot_quantity_2 = self.aggregate_avg_precision_2
             elif text == 'Recall':
-                self.cur_plot_quantity_1 = self.aggregate_recall_1
-                self.cur_plot_quantity_2 = self.aggregate_recall_2
-            elif text == 'AP':
-                self.cur_plot_quantity_1 = self.aggregate_AP_1
-                self.cur_plot_quantity_2 = self.aggregate_AP_2
+                self.cur_plot_quantity_1 = self.aggregate_avg_recall_1
+                self.cur_plot_quantity_2 = self.aggregate_avg_recall_2
             elif text == 'F1 score':
-                self.cur_plot_quantity_1 = self.aggregate_F_measure_1
-                self.cur_plot_quantity_2 = self.aggregate_F_measure_2
+                self.cur_plot_quantity_1 = self.aggregate_avg_F_measure_1
+                self.cur_plot_quantity_2 = self.aggregate_avg_F_measure_2
+            elif text == 'AP':
+                self.cur_plot_quantity_1 = self.aggregate_mAP_1
+                self.cur_plot_quantity_2 = self.aggregate_mAP_2
 
             # re-display the heatmap
             self.draw_heatmaps(mode='aggregate')
@@ -2616,10 +2621,12 @@ class UI_MainWindow(QWidget):
 
         # define default plotting quantity (IOU*Confidence)
         self.quantity_name = 'Confidence*IOU'
-        self.aggregate_conf_1 = np.zeros((len(self.y_translation), len(self.x_translation)))
-        self.aggregate_iou_1 = np.zeros((len(self.y_translation), len(self.x_translation)))
-        self.aggregate_conf_2 = np.zeros((len(self.y_translation), len(self.x_translation)))
-        self.aggregate_iou_2 = np.zeros((len(self.y_translation), len(self.x_translation)))
+        # averaged (depends on selected class) confidence and iou of the top results (ranked by IOU)
+        self.aggregate_avg_conf_1 = np.zeros((len(self.y_translation), len(self.x_translation)))
+        self.aggregate_avg_iou_1 = np.zeros((len(self.y_translation), len(self.x_translation)))
+        self.aggregate_avg_conf_2 = np.zeros((len(self.y_translation), len(self.x_translation)))
+        self.aggregate_avg_iou_2 = np.zeros((len(self.y_translation), len(self.x_translation)))
+
         # different display class
         if self.class_selection == 'all':
             for y in range(len(self.y_translation)):
@@ -2634,33 +2641,65 @@ class UI_MainWindow(QWidget):
                         all_samples_conf_sum_2.append(self.aggregate_outputs_2[y, x][i][0, 4])
                         all_samples_iou_sum_2.append(self.aggregate_outputs_2[y, x][i][0, 6])
 
-                    self.aggregate_conf_1[y, x] = np.mean(all_samples_conf_sum_1)
-                    self.aggregate_iou_1[y, x] = np.mean(all_samples_iou_sum_1)
-                    self.aggregate_conf_2[y, x] = np.mean(all_samples_conf_sum_2)
-                    self.aggregate_iou_2[y, x] = np.mean(all_samples_iou_sum_2)
+                    self.aggregate_avg_conf_1[y, x] = np.mean(all_samples_conf_sum_1)
+                    self.aggregate_avg_conf_2[y, x] = np.mean(all_samples_conf_sum_2)
+                    self.aggregate_avg_iou_1[y, x] = np.mean(all_samples_iou_sum_1)
+                    self.aggregate_avg_iou_2[y, x] = np.mean(all_samples_iou_sum_2)
+                    self.aggregate_avg_precision_1 = np.mean(self.aggregate_precision_1, axis=2)
+                    self.aggregate_avg_precision_2 = np.mean(self.aggregate_precision_2, axis=2)
+                    self.aggregate_avg_recall_1 = np.mean(self.aggregate_recall_1, axis=2)
+                    self.aggregate_avg_recall_2 = np.mean(self.aggregate_recall_2, axis=2)
+                    self.aggregate_avg_F_measure_1 = np.mean(self.aggregate_F_measure_1, axis=2)
+                    self.aggregate_avg_F_measure_2 = np.mean(self.aggregate_F_measure_2, axis=2)
 
         # get the result of a specific class
         else:
+            self.aggregate_avg_precision_1 = np.zeros((len(self.y_translation), len(self.x_translation)))
+            self.aggregate_avg_precision_2 = np.zeros((len(self.y_translation), len(self.x_translation)))
+            self.aggregate_avg_recall_1 = np.zeros((len(self.y_translation), len(self.x_translation)))
+            self.aggregate_avg_recall_2 = np.zeros((len(self.y_translation), len(self.x_translation)))
+            self.aggregate_avg_F_measure_1 = np.zeros((len(self.y_translation), len(self.x_translation)))
+            self.aggregate_avg_F_measure_2 = np.zeros((len(self.y_translation), len(self.x_translation)))
+
             for y in range(len(self.y_translation)):
                 for x in range(len(self.x_translation)):
                     all_samples_conf_sum_1 = []
                     all_samples_iou_sum_1 = []
                     all_samples_conf_sum_2 = []
                     all_samples_iou_sum_2 = []
+                    all_samples_precision_sum_1 = []
+                    all_samples_precision_sum_2 = []
+                    all_samples_recall_sum_1 = []
+                    all_samples_recall_sum_2 = []
+                    all_samples_F_measure_sum_1 = []
+                    all_samples_F_measure_sum_2 = []
                     for i in range(len(self.aggregate_outputs_1[y, x])):
                         if self.class_selection == self.loaded_images_labels[i]:
                             all_samples_conf_sum_1.append(self.aggregate_outputs_1[y, x][i][0, 4])
                             all_samples_iou_sum_1.append(self.aggregate_outputs_1[y, x][i][0, 6])
                             all_samples_conf_sum_2.append(self.aggregate_outputs_2[y, x][i][0, 4])
                             all_samples_iou_sum_2.append(self.aggregate_outputs_2[y, x][i][0, 6])
+                            all_samples_precision_sum_1.append(self.aggregate_precision_1[y, x][i][0])
+                            all_samples_precision_sum_2.append(self.aggregate_precision_2[y, x][i][0])
+                            all_samples_recall_sum_1.append(self.aggregate_recall_1[y, x][i][0])
+                            all_samples_recall_sum_2.append(self.aggregate_recall_2[y, x][i][0])
+                            all_samples_F_measure_sum_1.append(self.aggregate_F_measure_1[y, x][i][0])
+                            all_samples_F_measure_sum_2.append(self.aggregate_F_measure_2[y, x][i][0])
 
-                    self.aggregate_conf_1[y, x] = np.mean(all_samples_conf_sum_1)
-                    self.aggregate_iou_1[y, x] = np.mean(all_samples_iou_sum_1)
-                    self.aggregate_conf_2[y, x] = np.mean(all_samples_conf_sum_2)
-                    self.aggregate_iou_2[y, x] = np.mean(all_samples_iou_sum_2)
+                    self.aggregate_avg_conf_1[y, x] = np.mean(all_samples_conf_sum_1)
+                    self.aggregate_avg_conf_2[y, x] = np.mean(all_samples_conf_sum_2)
+                    self.aggregate_avg_iou_1[y, x] = np.mean(all_samples_iou_sum_1)
+                    self.aggregate_avg_iou_2[y, x] = np.mean(all_samples_iou_sum_2)
+                    self.aggregate_avg_precision_1[y, x] = np.mean(all_samples_precision_sum_1)
+                    self.aggregate_avg_precision_2[y, x] = np.mean(all_samples_precision_sum_2)
+                    self.aggregate_avg_recall_1[y, x] = np.mean(all_samples_recall_sum_1)
+                    self.aggregate_avg_recall_2[y, x] = np.mean(all_samples_recall_sum_1)
+                    self.aggregate_avg_F_measure_1[y, x] = np.mean(all_samples_F_measure_sum_1)
+                    self.aggregate_avg_F_measure_2[y, x] = np.mean(all_samples_F_measure_sum_2)
 
-        self.cur_plot_quantity_1 = self.aggregate_conf_1 * self.aggregate_iou_1
-        self.cur_plot_quantity_2 = self.aggregate_conf_2 * self.aggregate_iou_2
+        # default plotting quantity is Confidence*IOU
+        self.cur_plot_quantity_1 = self.aggregate_avg_conf_1 * self.aggregate_avg_iou_1
+        self.cur_plot_quantity_2 = self.aggregate_avg_conf_2 * self.aggregate_avg_iou_2
 
         # draw the heatmap
         self.draw_heatmaps(mode='aggregate')
