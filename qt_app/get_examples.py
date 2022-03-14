@@ -193,8 +193,7 @@ def main():
             # downsample factor when determining if an image is qualified
             downsample_factor = 1
 
-            # translation range used to check to make sure current object supports all possible translation
-            # happened during training (in the augmentation scheme)
+            # maximum translation range used to check to make sure current object supports all possible translation
             x_translation = [-64, 64]
             y_translation = [-64, 64]
             # all the class names from the original COCO

@@ -214,7 +214,7 @@ class UI_MainWindow(QWidget):
                 self.rotation = False
                 self.translation = False
                 # translation step when evaluating
-                self.translation_step_aggregate = 8
+                self.translation_step_aggregate = 4
                 self.translation_step_single = 4
 
                 # predefined model paths
@@ -1036,6 +1036,7 @@ class UI_MainWindow(QWidget):
 
                 # get the corresponding image path
                 self.image_path = self.all_images_paths[self.image_index]
+                print(f'Selected image at {self.image_path}')
 
                 # load the image
                 if self.mode == 'digit_recognition':
@@ -1783,16 +1784,23 @@ class UI_MainWindow(QWidget):
 
         # display for model 1
         self.detailed_image_label_1, self.detailed_text_label_1 = draw_detailed_plot(self.detailed_display_image, self.output_1, 'blue')
-        self.single_result_layout.addWidget(self.detailed_image_label_1, 3, 2)
-        # spacer item between image and text
-        image_text_spacer = QtWidgets.QSpacerItem(self.plot_size, 10, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
-        self.single_result_layout.addItem(image_text_spacer, 4, 2)
-        self.single_result_layout.addWidget(self.detailed_text_label_1, 4, 2)
-
         # display for model 2
         self.detailed_image_label_2, self.detailed_text_label_2 = draw_detailed_plot(self.detailed_display_image, self.output_2, 'magenta')
-        self.single_result_layout.addWidget(self.detailed_image_label_2, 3, 3)
-        self.single_result_layout.addWidget(self.detailed_text_label_2, 4, 3)
+        # spacer item between image and text
+        image_text_spacer = QtWidgets.QSpacerItem(self.plot_size, 10, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
+
+        if self.data_mode == 'single':
+            self.single_result_layout.addWidget(self.detailed_image_label_1, 3, 1)
+            self.single_result_layout.addItem(image_text_spacer, 4, 2)
+            self.single_result_layout.addWidget(self.detailed_text_label_1, 4, 1)
+            self.single_result_layout.addWidget(self.detailed_image_label_2, 3, 2)
+            self.single_result_layout.addWidget(self.detailed_text_label_2, 4, 2)
+        elif self.data_mode == 'aggregate':
+            self.aggregate_result_layout.addWidget(self.detailed_image_label_1, 2, 4)
+            self.aggregate_result_layout.addItem(image_text_spacer, 3, 5)
+            self.aggregate_result_layout.addWidget(self.detailed_text_label_1, 3, 4)
+            self.aggregate_result_layout.addWidget(self.detailed_image_label_2, 2, 5)
+            self.aggregate_result_layout.addWidget(self.detailed_text_label_2, 3, 5)
 
 
     def display_image(self):
@@ -1913,12 +1921,14 @@ class UI_MainWindow(QWidget):
         if self.data_mode == 'single':
             self.single_result_layout.addWidget(self.image_label, 1, 0)
             # self.single_result_layout.addWidget(self.name_label, 2, 0)
+
         elif self.data_mode == 'aggregate':
             if self.mode == 'digit_recognition':
                 self.single_result_layout.addWidget(self.image_label, 0, 2)
                 # self.single_result_layout.addWidget(self.name_label, 1, 2)
             elif self.mode == 'object_detection':
-                self.single_result_layout.addWidget(self.image_label, 1, 0)
+                # self.single_result_layout.addWidget(self.image_label, 1, 0, 2, 1)
+                self.aggregate_result_layout.addWidget(self.image_label, 1, 3, 3, 1)
 
 
     # helper function on drawing mask on input COCO image (to highlight the current FOV)
@@ -2054,12 +2064,14 @@ class UI_MainWindow(QWidget):
             self.heatmap_view_1.addItem(self.heatmap_plot_1)
             self.heatmap_view_2.addItem(self.heatmap_plot_2)
 
-            if self.mode == 'single':
+            if self.data_mode == 'single':
                 self.single_result_layout.addWidget(self.heatmap_view_1, 1, 2)
                 self.single_result_layout.addWidget(self.heatmap_view_2, 1, 3)
-            elif self.mode == 'aggregate':
-                self.single_result_layout.addWidget(self.heatmap_view_1, 1, 1)
-                self.single_result_layout.addWidget(self.heatmap_view_2, 1, 2)
+            elif self.data_mode == 'aggregate':
+                # self.single_result_layout.addWidget(self.heatmap_view_1, 2, 1)
+                # self.single_result_layout.addWidget(self.heatmap_view_2, 2, 2)
+                self.aggregate_result_layout.addWidget(self.heatmap_view_1, 1, 4)
+                self.aggregate_result_layout.addWidget(self.heatmap_view_2, 1, 5)
 
         elif mode == 'aggregate':
             # heatmap view
@@ -2623,8 +2635,19 @@ class UI_MainWindow(QWidget):
         self.single_result_layout.addLayout(self.single_plot_control_layout, 0, 0)
 
         # define default plotting quantity
-        self.cur_plot_quantity_1 = self.all_quantities_1[:, :, 4] * self.all_quantities_1[:, :, 6]
-        self.cur_plot_quantity_2 = self.all_quantities_2[:, :, 4] * self.all_quantities_2[:, :, 6]
+        if self.data_mode == 'single':
+            self.cur_plot_quantity_1 = self.all_quantities_1[:, :, 4] * self.all_quantities_1[:, :, 6]
+            self.cur_plot_quantity_2 = self.all_quantities_2[:, :, 4] * self.all_quantities_2[:, :, 6]
+        elif self.data_mode == 'aggregate':
+            # current selected individual images' result on all transformations
+            self.cur_plot_quantity_1 = np.zeros((len(self.y_translation), len(self.x_translation)))
+            self.cur_plot_quantity_2 = np.zeros((len(self.y_translation), len(self.x_translation)))
+            for y in range(len(self.y_translation)):
+                for x in range(len(self.x_translation)):
+                    self.cur_plot_quantity_1[y, x] = self.aggregate_outputs_1[y, x][self.image_index][0, 4]
+                    self.cur_plot_quantity_2[y, x] = self.aggregate_outputs_2[y, x][self.image_index][0, 4]
+
+            print(self.cur_plot_quantity_2.shape)
 
         # draw the heatmap
         self.draw_heatmaps(mode='single')
