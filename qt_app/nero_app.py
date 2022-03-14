@@ -922,7 +922,7 @@ class UI_MainWindow(QWidget):
             # take up two columns in UI layout
             self.layout.addLayout(self.single_result_layout, 1, 0, 1, 2)
         elif self.data_mode == 'aggregate':
-            self.layout.addLayout(self.single_result_layout, 1, 2)
+            self.layout.addLayout(self.single_result_layout, 1, 1)
 
         # if model result ever existed
         self.single_result_existed = False
@@ -1918,7 +1918,7 @@ class UI_MainWindow(QWidget):
                 self.single_result_layout.addWidget(self.image_label, 0, 2)
                 # self.single_result_layout.addWidget(self.name_label, 1, 2)
             elif self.mode == 'object_detection':
-                self.single_result_layout.addWidget(self.image_label, 0, 0)
+                self.single_result_layout.addWidget(self.image_label, 1, 0)
 
 
     # helper function on drawing mask on input COCO image (to highlight the current FOV)
@@ -2054,8 +2054,13 @@ class UI_MainWindow(QWidget):
             self.heatmap_view_1.addItem(self.heatmap_plot_1)
             self.heatmap_view_2.addItem(self.heatmap_plot_2)
 
-            self.single_result_layout.addWidget(self.heatmap_view_1, 1, 2)
-            self.single_result_layout.addWidget(self.heatmap_view_2, 1, 3)
+            if self.mode == 'single':
+                self.single_result_layout.addWidget(self.heatmap_view_1, 1, 2)
+                self.single_result_layout.addWidget(self.heatmap_view_2, 1, 3)
+            elif self.mode == 'aggregate':
+                self.single_result_layout.addWidget(self.heatmap_view_1, 1, 1)
+                self.single_result_layout.addWidget(self.heatmap_view_2, 1, 2)
+
         elif mode == 'aggregate':
             # heatmap view
             self.aggregate_heatmap_view_1 = pg.GraphicsLayoutWidget()
@@ -2510,13 +2515,15 @@ class UI_MainWindow(QWidget):
         #     self.single_result_layout.addWidget(self.arrow_label, 1, 1)
         #     painter.end()
 
-        # move the model menu on top of the each individual NERO plot
-        self.single_result_layout.addWidget(self.model_1_menu, 0, 2, 1, 1, QtCore.Qt.AlignCenter)
-        self.single_result_layout.addWidget(self.model_2_menu, 0, 3, 1, 1, QtCore.Qt.AlignCenter)
+        # if single mode, change control menus' locations
+        if self.data_mode == 'single':
+            # move the model menu on top of the each individual NERO plot when in single mode
+            self.single_result_layout.addWidget(self.model_1_menu, 0, 2, 1, 1, QtCore.Qt.AlignCenter)
+            self.single_result_layout.addWidget(self.model_2_menu, 0, 3, 1, 1, QtCore.Qt.AlignCenter)
 
-        # move run button below the displayed image
-        self.single_result_layout.addWidget(self.run_button, 2, 0)
-        self.single_result_layout.addWidget(self.use_cache_checkbox, 3, 0)
+            # move run button below the displayed image
+            self.single_result_layout.addWidget(self.run_button, 2, 0)
+            self.single_result_layout.addWidget(self.use_cache_checkbox, 3, 0)
 
         # plot current field-of-view's detailed prediction results
         self.draw_model_output()
@@ -2604,7 +2611,7 @@ class UI_MainWindow(QWidget):
         # checkbox on if doing real-time inference
         self.realtime_inference_checkbox = QtWidgets.QCheckBox('Realtime inference when dragging')
         self.realtime_inference_checkbox.setStyleSheet('font-size: 18px')
-        self.realtime_inference_checkbox.setFixedSize(QtCore.QSize(250, 50))
+        self.realtime_inference_checkbox.setFixedSize(QtCore.QSize(300, 50))
         self.realtime_inference_checkbox.stateChanged.connect(realtime_inference_checkbox_clicked)
         if self.realtime_inference:
             self.realtime_inference_checkbox.setChecked(True)
