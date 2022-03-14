@@ -111,6 +111,23 @@ def main():
             print(f'Visualizing selected data: {vis}')
             print(f'Verbosity: {verbose}\n')
 
+        # folder dir that contains all the original images
+        images_folder_dir = '/home/zhuokai/Desktop/nvme1n1p1/Data/coco/val2017'
+        json_path = '/home/zhuokai/Desktop/nvme1n1p1/Data/coco/annotations/instances_val2017.json'
+        dataset = data.COCODetection(root=input_dir, splits=[f'instances_val2017'], skip_empty=False)
+
+        # all the class names from the original COCO
+        class_names = np.array(dataset.classes)
+
+        # load json for getting image/label paths
+        all_image_names = []
+        _coco = COCO(json_path)
+        image_ids = sorted(_coco.getImgIds())
+        for entry in _coco.loadImgs(image_ids):
+            dirname, filename = entry['coco_url'].split('/')[-2:]
+            abs_path = os.path.join(input_dir, dirname, filename)
+            all_image_names.append(abs_path)
+
         if mode == 'single':
 
             downsample_factor = 1
@@ -119,21 +136,7 @@ def main():
             image_indices = [1253, 2646, 1692, 2787, 1154]
             image_labels = ['car', 'bottle', 'cup', 'chair', 'book']
             label_indices = [0, 9, 0, 4, 6]
-            images_folder_dir = '/home/zhuokai/Desktop/nvme1n1p1/Data/coco/val2017'
-            json_path = '/home/zhuokai/Desktop/nvme1n1p1/Data/coco/annotations/instances_val2017.json'
-            dataset = data.COCODetection(root=input_dir, splits=[f'instances_val2017'], skip_empty=False)
 
-            # all the class names from the original COCO
-            class_names = np.array(dataset.classes)
-
-            # load json for getting image/label paths
-            all_image_names = []
-            _coco = COCO(json_path)
-            image_ids = sorted(_coco.getImgIds())
-            for entry in _coco.loadImgs(image_ids):
-                dirname, filename = entry['coco_url'].split('/')[-2:]
-                abs_path = os.path.join(input_dir, dirname, filename)
-                all_image_names.append(abs_path)
 
             for i, image_index in enumerate(image_indices):
 
@@ -189,15 +192,6 @@ def main():
             desired_classes = ['car', 'bottle', 'cup', 'chair', 'book']
             # downsample factor when determining if an image is qualified
             downsample_factor = 1
-            # object sizes upper limit
-            size_limit = 1.0
-
-            # sets of parameters for different types of datasets
-            # image folder directory for later copying the original images (instead of re-saving)
-            images_folder_dir = '/home/zhuokai/Desktop/nvme1n1p1/Data/coco/val2017'
-            json_path = '/home/zhuokai/Desktop/nvme1n1p1/Data/coco/annotations/instances_val2017.json'
-            dataset = data.COCODetection(root=input_dir, splits=['instances_val2017'], skip_empty=False)
-            start_index = 0
 
             # translation range used to check to make sure current object supports all possible translation
             # happened during training (in the augmentation scheme)
@@ -227,7 +221,7 @@ def main():
             os.makedirs(label_dir, exist_ok=True)
 
             # go through all images in dataset
-            for i in tqdm(range(start_index, len(dataset))):
+            for i in tqdm(range(len(dataset))):
 
                 # stop if all done
                 if num_extracted >= num_samples:
@@ -292,6 +286,13 @@ def main():
 
                                 # make sure that the extracted image fits in the original image
                                 if x_min < 0 or x_max >= width or y_min < 0 or y_max >= height:
+                                    not_qualified = True
+                                    break
+
+                                bb_area = (key_bb_max_x-key_bb_min_x)*(key_bb_max_y-key_bb_min_y)
+
+                                # reject the candidates whose bounding box is too large or too small
+                                if bb_area > 0.5*image_size[0]*image_size[1] or bb_area < 0.1*image_size[0]*image_size[1]:
                                     not_qualified = True
                                     break
 
