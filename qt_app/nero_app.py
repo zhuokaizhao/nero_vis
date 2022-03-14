@@ -1018,20 +1018,18 @@ class UI_MainWindow(QWidget):
 
                 # clear previous visualization
                 if self.last_clicked:
-                    # previously selected point's visual cue
                     self.last_clicked.resetPen()
                     self.last_clicked.setBrush(self.old_brush)
 
                 # only allow clicking one point at a time
-                # save the old brush
+                # save the old brush, use color to determine which plot gets the click
                 if points[0].brush() == QtGui.QColor('blue'):
                     self.old_brush = QtGui.QColor('blue')
-
                 elif points[0].brush() == QtGui.QColor('magenta'):
                     self.old_brush = QtGui.QColor('magenta')
 
-                # create new brush
-                new_brush = pg.mkBrush(255, 0, 0, 255)
+                # create new brush and brush the newly clicked point
+                new_brush = pg.mkBrush(0, 255, 0, 255)
                 points[0].setBrush(new_brush)
                 points[0].setPen(5)
 
@@ -1039,6 +1037,7 @@ class UI_MainWindow(QWidget):
 
                 # get the clicked scatter item's information
                 self.image_index = int(item.opts['name'])
+
                 # start single result view from here
                 if not self.image_existed:
                     self.init_single_result_layout()
@@ -1069,8 +1068,6 @@ class UI_MainWindow(QWidget):
 
                 # run model all and display results (Individual NERO plot)
                 self.run_model_all()
-
-                # self.single_result_existed = True
 
             # run dimension reduction of all images on the selected digit
             # each image has tensor with length being the number of translations
@@ -1304,7 +1301,16 @@ class UI_MainWindow(QWidget):
 
             if self.use_cache:
                 self.aggregate_outputs_1 = self.load_from_cache(f'{self.mode}_{self.data_mode}_{self.model_1_cache_name}_outputs')
+                self.aggregate_precision_1 = self.load_from_cache(f'{self.mode}_{self.data_mode}_{self.model_1_cache_name}_precision')
+                self.aggregate_recall_1 = self.load_from_cache(f'{self.mode}_{self.data_mode}_{self.model_1_cache_name}_recall')
+                self.aggregate_AP_1 = self.load_from_cache(f'{self.mode}_{self.data_mode}_{self.model_1_cache_name}_AP')
+                self.aggregate_F_measure_1 = self.load_from_cache(f'{self.mode}_{self.data_mode}_{self.model_1_cache_name}_F_measure')
+
                 self.aggregate_outputs_2 = self.load_from_cache(f'{self.mode}_{self.data_mode}_{self.model_2_cache_name}_outputs')
+                self.aggregate_precision_2 = self.load_from_cache(f'{self.mode}_{self.data_mode}_{self.model_2_cache_name}_precision')
+                self.aggregate_recall_2 = self.load_from_cache(f'{self.mode}_{self.data_mode}_{self.model_2_cache_name}_recall')
+                self.aggregate_AP_2 = self.load_from_cache(f'{self.mode}_{self.data_mode}_{self.model_2_cache_name}_AP')
+                self.aggregate_F_measure_2 = self.load_from_cache(f'{self.mode}_{self.data_mode}_{self.model_2_cache_name}_F_measure')
             else:
                 # for all the loaded images
                 for y, y_tran in enumerate(self.y_translation):
@@ -1355,8 +1361,16 @@ class UI_MainWindow(QWidget):
                         self.aggregate_AP_2[y, x] = nero_utilities.compute_ap(cur_recall_2, cur_precision_2)
 
                 self.save_to_cache(name=f'{self.mode}_{self.data_mode}_{self.model_1_cache_name}_outputs', content=self.aggregate_outputs_1)
-                self.save_to_cache(name=f'{self.mode}_{self.data_mode}_{self.model_2_cache_name}_outputs', content=self.aggregate_outputs_2)
+                self.save_to_cache(name=f'{self.mode}_{self.data_mode}_{self.model_1_cache_name}_precision', content=self.aggregate_precision_1)
+                self.save_to_cache(name=f'{self.mode}_{self.data_mode}_{self.model_1_cache_name}_recall', content=self.aggregate_recall_1)
+                self.save_to_cache(name=f'{self.mode}_{self.data_mode}_{self.model_1_cache_name}_AP', content=self.aggregate_AP_1)
+                self.save_to_cache(name=f'{self.mode}_{self.data_mode}_{self.model_1_cache_name}_F_measure', content=self.aggregate_F_measure_1)
 
+                self.save_to_cache(name=f'{self.mode}_{self.data_mode}_{self.model_2_cache_name}_outputs', content=self.aggregate_outputs_2)
+                self.save_to_cache(name=f'{self.mode}_{self.data_mode}_{self.model_2_cache_name}_precision', content=self.aggregate_precision_2)
+                self.save_to_cache(name=f'{self.mode}_{self.data_mode}_{self.model_2_cache_name}_recall', content=self.aggregate_recall_2)
+                self.save_to_cache(name=f'{self.mode}_{self.data_mode}_{self.model_2_cache_name}_AP', content=self.aggregate_AP_2)
+                self.save_to_cache(name=f'{self.mode}_{self.data_mode}_{self.model_2_cache_name}_F_measure', content=self.aggregate_F_measure_2)
 
             # initialize digit selection control
             self.init_aggregate_plot_control()
@@ -2503,6 +2517,18 @@ class UI_MainWindow(QWidget):
             elif text == 'IOU':
                 self.cur_plot_quantity_1 = self.aggregate_iou_1
                 self.cur_plot_quantity_2 = self.aggregate_iou_2
+            elif text == 'Precision':
+                self.cur_plot_quantity_1 = self.aggregate_precision_1
+                self.cur_plot_quantity_2 = self.aggregate_precision_2
+            elif text == 'Recall':
+                self.cur_plot_quantity_1 = self.aggregate_recall_1
+                self.cur_plot_quantity_2 = self.aggregate_recall_2
+            elif text == 'AP':
+                self.cur_plot_quantity_1 = self.aggregate_AP_1
+                self.cur_plot_quantity_2 = self.aggregate_AP_2
+            elif text == 'F-measure':
+                self.cur_plot_quantity_1 = self.cur_F_measure_1
+                self.cur_plot_quantity_2 = self.cur_F_measure_2
 
             # re-display the heatmap
             self.draw_heatmaps(mode='aggregate')
