@@ -247,7 +247,6 @@ class UI_MainWindow(QWidget):
                 self.all_quantities_2 = []
 
                 # when doing highlighting
-                # last_clicked is not None when it is either clicked or during manual rotation
                 self.last_clicked = None
                 self.cur_line = None
 
@@ -965,6 +964,10 @@ class UI_MainWindow(QWidget):
 
     # initialize digit selection control drop down menu
     def init_aggregate_plot_control(self):
+
+        # mark if dimension reduction algorithm has been run
+        self.dr_result_existed = False
+
         # aggregate class selection drop-down menu
         @QtCore.Slot()
         def aggregate_class_selection_changed(text):
@@ -981,212 +984,25 @@ class UI_MainWindow(QWidget):
 
             # for object detection (COCO)
             elif self.mode == 'object_detection':
-                self.class_selection = text
+                if text.split(' ')[0] == 'Averaged':
+                    self.class_selection = 'all'
+                else:
+                    self.class_selection = text
 
                 # display the plot
                 self.display_coco_aggregate_result()
 
-                run_dimension_reduction()
+                # after change class
+                if self.dr_result_existed:
+                    self.run_dimension_reduction()
 
         # change different dimension reduction algorithms
         def dr_selection_changed(text):
             self.dr_selection = text
 
             # re-run dimension reduction and show result
-            run_dimension_reduction()
-
-        # run PCA on demand
-        @QtCore.Slot()
-        def run_dimension_reduction():
-            # helper function on computing dimension reduction via PCA
-            def dimension_reduce(high_dim, target_dim):
-
-                if self.dr_selection == 'PCA':
-                    pca = PCA(n_components=target_dim, svd_solver='full')
-                    low_dim = pca.fit_transform(high_dim)
-                elif self.dr_selection == 'ICA':
-                    ica = FastICA(n_components=target_dim, random_state=12)
-                    low_dim = ica.fit_transform(high_dim)
-                elif self.dr_selection == 'ISOMAP':
-                    low_dim = manifold.Isomap(n_neighbors=5, n_components=target_dim, n_jobs=-1).fit_transform(high_dim)
-                elif self.dr_selection == 't-SNE':
-                    low_dim = TSNE(n_components=target_dim, n_iter=250).fit_transform(high_dim)
-                elif self.dr_selection == 'UMAP':
-                    low_dim = umap.UMAP(n_neighbors=5, min_dist=0.3, n_components=target_dim).fit_transform(high_dim)
-
-                return low_dim
-
-            # helper function for clicking inside the scatter plot
-            def low_dim_scatter_clicked(item, points):
-
-                # clear previous visualization
-                if self.last_clicked:
-                    self.last_clicked.resetPen()
-                    self.last_clicked.setBrush(self.old_brush)
-
-                # only allow clicking one point at a time
-                # save the old brush, use color to determine which plot gets the click
-                if points[0].brush() == QtGui.QColor('blue'):
-                    self.old_brush = QtGui.QColor('blue')
-                elif points[0].brush() == QtGui.QColor('magenta'):
-                    self.old_brush = QtGui.QColor('magenta')
-
-                # create new brush and brush the newly clicked point
-                new_brush = pg.mkBrush(0, 255, 0, 255)
-                points[0].setBrush(new_brush)
-                points[0].setPen(5)
-
-                self.last_clicked = points[0]
-
-                # get the clicked scatter item's information
-                self.image_index = int(item.opts['name'])
-
-                # start single result view from here
-                if not self.image_existed:
-                    self.init_single_result_layout()
-
-                # get the corresponding image path
-                self.image_path = self.all_images_paths[self.image_index]
-                print(f'Selected image at {self.image_path}')
-
-                # load the image
-                if self.mode == 'digit_recognition':
-                    self.load_mnist_single_image()
-                elif self.mode == 'object_detection':
-                    self.load_coco_single_image()
-
-                # convert to QImage for display purpose
-                self.cur_display_image = nero_utilities.tensor_to_qt_image(self.cur_image_pt)
-                # resize the display QImage
-                self.cur_display_image = self.cur_display_image.scaledToWidth(self.display_image_size)
-
-                # display the image
-                # self.display_image()
-
-                if self.mode == 'digit_recognition':
-                    # prepare image tensor for model purpose
-                    self.cur_image_pt = nero_transform.prepare_mnist_image(self.cur_image_pt)
-                    # run model once and display results (Detailed bar plot)
-                    self.run_model_once()
-
-                # run model all and display results (Individual NERO plot)
-                self.run_model_all()
-
-            # run dimension reduction of all images on the selected digit
-            # each image has tensor with length being the number of translations
-            cur_class_indices = []
-            if self.class_selection == 'all':
-                # all the indices
-                cur_class_indices = list(range(len(self.loaded_images_labels)))
-            else:
-                for i in range(len(self.loaded_images_labels)):
-                    if self.class_selection == self.loaded_images_labels[i]:
-                        cur_class_indices.append(i)
-
-            if self.mode == 'digit_recognition':
-                num_transformations = len(self.all_aggregate_angles)
-            elif self.mode == 'object_detection':
-                num_transformations = len(self.x_translation) * len(self.y_translation)
-
-            all_high_dim_points_1 = np.zeros((len(cur_class_indices), num_transformations))
-            all_high_dim_points_2 = np.zeros((len(cur_class_indices), num_transformations))
-            if self.quantity_name == 'Confidence*IOU' or self.quantity_name == 'Confidence' or self.quantity_name == 'IOU':
-                for i, index in enumerate(cur_class_indices):
-                    for j in range(num_transformations):
-                        if self.mode == 'digit_recognition':
-                            # all_outputs has shape (num_rotations, num_samples, 10)
-                            all_high_dim_points_1[i, j] = int(self.all_outputs_1[j][index].argmax() == self.loaded_images_labels[index])
-                            all_high_dim_points_2[i, j] = int(self.all_outputs_2[j][index].argmax() == self.loaded_images_labels[index])
-                        elif self.mode == 'object_detection':
-
-                            y = int(j//len(self.x_translation))
-                            x = int(j%len(self.x_translation))
-
-                            cur_conf_1 = self.aggregate_outputs_1[y, x][i][0, 4]
-                            cur_iou_1= self.aggregate_outputs_1[y, x][i][0, 6]
-                            cur_conf_2 = self.aggregate_outputs_2[y, x][i][0, 4]
-                            cur_iou_2 = self.aggregate_outputs_2[y, x][i][0, 6]
-
-                            if self.quantity_name == 'Confidence*IOU':
-                                cur_value_1 = cur_conf_1 * cur_iou_1
-                                cur_value_2 = cur_conf_2 * cur_iou_2
-                            elif self.quantity_name == 'Confidence':
-                                cur_value_1 = cur_conf_1
-                                cur_value_2 = cur_conf_2
-                            elif self.quantity_name == 'IOU':
-                                cur_value_1 = cur_iou_1
-                                cur_value_2 = cur_iou_2
-
-
-                            # aggregate_outputs_1 has shape (num_y_translations, num_x_translations, num_samples, 7)
-                            all_high_dim_points_1[i, j] = cur_value_1
-                            all_high_dim_points_2[i, j] = cur_value_2
-            else:
-                if self.quantity_name == 'Precision':
-                    all_high_dim_points_1 = self.aggregate_precision_1
-                    all_high_dim_points_2 = self.aggregate_precision_2
-                elif self.quantity_name == 'Recall':
-                    all_high_dim_points_1 = self.aggregate_recall_1
-                    all_high_dim_points_2 = self.aggregate_recall_2
-                elif self.quantity_name == 'AP':
-                    all_high_dim_points_1 = self.aggregate_AP_1
-                    all_high_dim_points_2 = self.aggregate_AP_2
-                elif self.quantity_name == 'F1 Score':
-                    all_high_dim_points_1 = self.aggregate_F_measure_1
-                    all_high_dim_points_2 = self.aggregate_F_measure_2
-
-            # run dimension reduction algorithm
-            low_dim_1 = dimension_reduce(all_high_dim_points_1, target_dim=2)
-            low_dim_2 = dimension_reduce(all_high_dim_points_2, target_dim=2)
-
-            # scatter plot on low-dim points
-            low_dim_scatter_view_1 = pg.GraphicsLayoutWidget()
-            low_dim_scatter_view_1.setBackground('white')
-            low_dim_scatter_view_1.setFixedSize(self.plot_size, self.plot_size)
-            self.low_dim_scatter_plot_1 = low_dim_scatter_view_1.addPlot()
-
-            low_dim_scatter_view_2 = pg.GraphicsLayoutWidget()
-            low_dim_scatter_view_2.setBackground('white')
-            low_dim_scatter_view_2.setFixedSize(self.plot_size, self.plot_size)
-            self.low_dim_scatter_plot_2 = low_dim_scatter_view_2.addPlot()
-
-            for i, index in enumerate(cur_class_indices):
-                # all the points to be plotted
-                # add individual items for getting the item's name later when clicking
-                # Set pxMode=False to allow spots to transform with the view
-                self.low_dim_scatter_item_1 = pg.ScatterPlotItem(pxMode=False)
-                self.low_dim_scatter_item_2 = pg.ScatterPlotItem(pxMode=False)
-
-                low_dim_point_1 = [{'pos': (low_dim_1[i, 0], low_dim_1[i, 1]),
-                                    'size': 0.1,
-                                    'pen': {'color': 'w', 'width': 0.1},
-                                    'brush': QtGui.QColor('blue')}]
-
-                low_dim_point_2 = [{'pos': (low_dim_2[i, 0], low_dim_2[i, 1]),
-                                    'size': 0.1,
-                                    'pen': {'color': 'w', 'width': 0.1},
-                                    'brush': QtGui.QColor('magenta')}]
-
-                # add points to the item
-                self.low_dim_scatter_item_1.addPoints(low_dim_point_1, name=str(index))
-                self.low_dim_scatter_item_2.addPoints(low_dim_point_2, name=str(index))
-
-                # add points to the plot
-                self.low_dim_scatter_plot_1.addItem(self.low_dim_scatter_item_1)
-                self.low_dim_scatter_plot_2.addItem(self.low_dim_scatter_item_2)
-
-                # connect click events on scatter items
-                self.low_dim_scatter_item_1.sigClicked.connect(low_dim_scatter_clicked)
-                self.low_dim_scatter_item_2.sigClicked.connect(low_dim_scatter_clicked)
-
-            if self.mode == 'digit_recognition':
-                self.aggregate_result_layout.addWidget(low_dim_scatter_view_1, 0, 0)
-                self.aggregate_result_layout.addWidget(low_dim_scatter_view_2, 0, 0)
-            elif self.mode == 'object_detection':
-                # aggregate result layout at the very left
-                self.aggregate_result_layout.addWidget(low_dim_scatter_view_1, 2, 1)
-                self.aggregate_result_layout.addWidget(low_dim_scatter_view_2, 2, 2)
-
+            if self.dr_result_existed:
+                self.run_dimension_reduction()
 
         # layout that controls the plotting items
         self.aggregate_plot_control_layout = QtWidgets.QGridLayout()
@@ -1241,8 +1057,219 @@ class UI_MainWindow(QWidget):
         self.run_dr_button = QtWidgets.QPushButton('See Overview')
         self.run_dr_button.setStyleSheet('font-size: 18px')
         self.run_dr_button.setFixedSize(QtCore.QSize(250, 50))
-        self.run_dr_button.clicked.connect(run_dimension_reduction)
+        self.run_dr_button.clicked.connect(self.run_dimension_reduction)
         self.aggregate_plot_control_layout.addWidget(self.run_dr_button, 3, 0)
+
+
+    # run PCA on demand
+    @QtCore.Slot()
+    def run_dimension_reduction(self):
+
+        self.dr_result_existed = True
+
+        # helper function on computing dimension reduction via PCA
+        def dimension_reduce(high_dim, target_dim):
+
+            if self.dr_selection == 'PCA':
+                pca = PCA(n_components=target_dim, svd_solver='full')
+                low_dim = pca.fit_transform(high_dim)
+            elif self.dr_selection == 'ICA':
+                ica = FastICA(n_components=target_dim, random_state=12)
+                low_dim = ica.fit_transform(high_dim)
+            elif self.dr_selection == 'ISOMAP':
+                low_dim = manifold.Isomap(n_neighbors=5, n_components=target_dim, n_jobs=-1).fit_transform(high_dim)
+            elif self.dr_selection == 't-SNE':
+                low_dim = TSNE(n_components=target_dim, n_iter=250).fit_transform(high_dim)
+            elif self.dr_selection == 'UMAP':
+                low_dim = umap.UMAP(n_neighbors=5, min_dist=0.3, n_components=target_dim).fit_transform(high_dim)
+
+            return low_dim
+
+        # helper function for clicking inside the scatter plot
+        def low_dim_scatter_clicked(item, points):
+
+            # clear previous visualization
+            if self.last_clicked:
+                self.last_clicked.resetPen()
+                self.last_clicked.setBrush(self.old_brush)
+
+            # only allow clicking one point at a time
+            # save the old brush, use color to determine which plot gets the click
+            if points[0].brush() == QtGui.QColor('blue'):
+                self.old_brush = QtGui.QColor('blue')
+            elif points[0].brush() == QtGui.QColor('magenta'):
+                self.old_brush = QtGui.QColor('magenta')
+
+            # create new brush and brush the newly clicked point
+            new_brush = pg.mkBrush(0, 255, 0, 255)
+            points[0].setBrush(new_brush)
+            points[0].setPen(5)
+
+            self.last_clicked = points[0]
+
+            # get the clicked scatter item's information
+            self.image_index = int(item.opts['name'])
+
+            # start single result view from here
+            if not self.image_existed:
+                self.init_single_result_layout()
+
+            # get the corresponding image path
+            self.image_path = self.all_images_paths[self.image_index]
+            print(f'Selected image at {self.image_path}')
+
+            # load the image
+            if self.mode == 'digit_recognition':
+                self.load_mnist_single_image()
+            elif self.mode == 'object_detection':
+                self.load_coco_single_image()
+
+            # convert to QImage for display purpose
+            self.cur_display_image = nero_utilities.tensor_to_qt_image(self.cur_image_pt)
+            # resize the display QImage
+            self.cur_display_image = self.cur_display_image.scaledToWidth(self.display_image_size)
+
+            # display the image
+            # self.display_image()
+
+            if self.mode == 'digit_recognition':
+                # prepare image tensor for model purpose
+                self.cur_image_pt = nero_transform.prepare_mnist_image(self.cur_image_pt)
+                # run model once and display results (Detailed bar plot)
+                self.run_model_once()
+
+            # run model all and display results (Individual NERO plot)
+            self.run_model_all()
+
+        # helper function on normalizing low dimension points within [-1, 1] sqaure
+        def normalize_low_dim_result(low_dim):
+            # to preserve shape, largest bound are taken from either axis
+            all_min = np.min(low_dim)
+            all_max = np.max(low_dim)
+
+            # lerp each point's x and y into [-1, 1]
+            new_low_dim = np.zeros(low_dim.shape)
+            new_low_dim[:, 0] = nero_utilities.lerp(low_dim[:, 0], all_min, all_max, -1, 1)
+            new_low_dim[:, 1] = nero_utilities.lerp(low_dim[:, 1], all_min, all_max, -1, 1)
+
+            return new_low_dim
+
+        # run dimension reduction of all images on the selected digit
+        # each image has tensor with length being the number of translations
+        cur_class_indices = []
+        if self.class_selection == 'all':
+            # all the indices
+            cur_class_indices = list(range(len(self.loaded_images_labels)))
+        else:
+            for i in range(len(self.loaded_images_labels)):
+                if self.class_selection == self.loaded_images_labels[i]:
+                    cur_class_indices.append(i)
+
+        if self.mode == 'digit_recognition':
+            num_transformations = len(self.all_aggregate_angles)
+        elif self.mode == 'object_detection':
+            num_transformations = len(self.x_translation) * len(self.y_translation)
+
+        all_high_dim_points_1 = np.zeros((len(cur_class_indices), num_transformations))
+        all_high_dim_points_2 = np.zeros((len(cur_class_indices), num_transformations))
+        if self.quantity_name == 'Confidence*IOU' or self.quantity_name == 'Confidence' or self.quantity_name == 'IOU':
+            for i, index in enumerate(cur_class_indices):
+                for j in range(num_transformations):
+                    if self.mode == 'digit_recognition':
+                        # all_outputs has shape (num_rotations, num_samples, 10)
+                        all_high_dim_points_1[i, j] = int(self.all_outputs_1[j][index].argmax() == self.loaded_images_labels[index])
+                        all_high_dim_points_2[i, j] = int(self.all_outputs_2[j][index].argmax() == self.loaded_images_labels[index])
+                    elif self.mode == 'object_detection':
+
+                        y = int(j//len(self.x_translation))
+                        x = int(j%len(self.x_translation))
+
+                        cur_conf_1 = self.aggregate_outputs_1[y, x][i][0, 4]
+                        cur_iou_1= self.aggregate_outputs_1[y, x][i][0, 6]
+                        cur_conf_2 = self.aggregate_outputs_2[y, x][i][0, 4]
+                        cur_iou_2 = self.aggregate_outputs_2[y, x][i][0, 6]
+
+                        if self.quantity_name == 'Confidence*IOU':
+                            cur_value_1 = cur_conf_1 * cur_iou_1
+                            cur_value_2 = cur_conf_2 * cur_iou_2
+                        elif self.quantity_name == 'Confidence':
+                            cur_value_1 = cur_conf_1
+                            cur_value_2 = cur_conf_2
+                        elif self.quantity_name == 'IOU':
+                            cur_value_1 = cur_iou_1
+                            cur_value_2 = cur_iou_2
+
+
+                        # aggregate_outputs_1 has shape (num_y_translations, num_x_translations, num_samples, 7)
+                        all_high_dim_points_1[i, j] = cur_value_1
+                        all_high_dim_points_2[i, j] = cur_value_2
+        else:
+            if self.quantity_name == 'Precision':
+                all_high_dim_points_1 = self.aggregate_precision_1
+                all_high_dim_points_2 = self.aggregate_precision_2
+            elif self.quantity_name == 'Recall':
+                all_high_dim_points_1 = self.aggregate_recall_1
+                all_high_dim_points_2 = self.aggregate_recall_2
+            elif self.quantity_name == 'AP':
+                all_high_dim_points_1 = self.aggregate_AP_1
+                all_high_dim_points_2 = self.aggregate_AP_2
+            elif self.quantity_name == 'F1 Score':
+                all_high_dim_points_1 = self.aggregate_F_measure_1
+                all_high_dim_points_2 = self.aggregate_F_measure_2
+
+        # run dimension reduction algorithm
+        low_dim_1 = dimension_reduce(all_high_dim_points_1, target_dim=2)
+        low_dim_1 = normalize_low_dim_result(low_dim_1)
+        low_dim_2 = dimension_reduce(all_high_dim_points_2, target_dim=2)
+        low_dim_2 = normalize_low_dim_result(low_dim_2)
+
+        # scatter plot on low-dim points
+        low_dim_scatter_view_1 = pg.GraphicsLayoutWidget()
+        low_dim_scatter_view_1.setBackground('white')
+        low_dim_scatter_view_1.setFixedSize(self.plot_size, self.plot_size)
+        self.low_dim_scatter_plot_1 = low_dim_scatter_view_1.addPlot()
+
+        low_dim_scatter_view_2 = pg.GraphicsLayoutWidget()
+        low_dim_scatter_view_2.setBackground('white')
+        low_dim_scatter_view_2.setFixedSize(self.plot_size, self.plot_size)
+        self.low_dim_scatter_plot_2 = low_dim_scatter_view_2.addPlot()
+
+        for i, index in enumerate(cur_class_indices):
+            # all the points to be plotted
+            # add individual items for getting the item's name later when clicking
+            # Set pxMode=False to allow spots to transform with the view
+            self.low_dim_scatter_item_1 = pg.ScatterPlotItem(pxMode=False)
+            self.low_dim_scatter_item_2 = pg.ScatterPlotItem(pxMode=False)
+
+            low_dim_point_1 = [{'pos': (low_dim_1[i, 0], low_dim_1[i, 1]),
+                                'size': 0.1,
+                                'pen': {'color': 'w', 'width': 0.1},
+                                'brush': QtGui.QColor('blue')}]
+
+            low_dim_point_2 = [{'pos': (low_dim_2[i, 0], low_dim_2[i, 1]),
+                                'size': 0.1,
+                                'pen': {'color': 'w', 'width': 0.1},
+                                'brush': QtGui.QColor('magenta')}]
+
+            # add points to the item
+            self.low_dim_scatter_item_1.addPoints(low_dim_point_1, name=str(index))
+            self.low_dim_scatter_item_2.addPoints(low_dim_point_2, name=str(index))
+
+            # add points to the plot
+            self.low_dim_scatter_plot_1.addItem(self.low_dim_scatter_item_1)
+            self.low_dim_scatter_plot_2.addItem(self.low_dim_scatter_item_2)
+
+            # connect click events on scatter items
+            self.low_dim_scatter_item_1.sigClicked.connect(low_dim_scatter_clicked)
+            self.low_dim_scatter_item_2.sigClicked.connect(low_dim_scatter_clicked)
+
+        if self.mode == 'digit_recognition':
+            self.aggregate_result_layout.addWidget(low_dim_scatter_view_1, 0, 0)
+            self.aggregate_result_layout.addWidget(low_dim_scatter_view_2, 0, 0)
+        elif self.mode == 'object_detection':
+            # aggregate result layout at the very left
+            self.aggregate_result_layout.addWidget(low_dim_scatter_view_1, 2, 1)
+            self.aggregate_result_layout.addWidget(low_dim_scatter_view_2, 2, 2)
 
 
     # run model on the aggregate dataset
@@ -2546,6 +2573,10 @@ class UI_MainWindow(QWidget):
 
             # re-display the heatmap
             self.draw_heatmaps(mode='aggregate')
+
+            # re-run dimension reduction and show result
+            if self.dr_result_existed:
+                self.run_dimension_reduction()
 
         # drop down menu on selection which quantity to plot
         quantity_menu = QtWidgets.QComboBox()
