@@ -327,6 +327,9 @@ def main():
                         # update the number of extracted image
                         num_extracted += 1
 
+                        # only take one image
+                        break
+
             # save the label names
             # name_path = os.path.join(output_dir, 'custom.names')
             # if not os.path.isfile(name_path):
