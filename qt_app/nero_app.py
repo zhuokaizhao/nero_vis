@@ -906,7 +906,7 @@ class UI_MainWindow(QWidget):
         elif self.mode == 'object_detection':
             self.batch_size = 64
             # add to general layout
-            self.layout.addLayout(self.aggregate_result_layout, 1, 0)
+            self.layout.addLayout(self.aggregate_result_layout, 1, 0, 3, 3)
         elif self.mode == 'piv':
             self.batch_size = 16
 
@@ -1572,13 +1572,7 @@ class UI_MainWindow(QWidget):
                     cover_color = QtGui.QColor(65, 65, 65, 225)
                     self.draw_fov_mask(painter, rect_center_x, rect_center_y, display_rect_width, display_rect_height, cover_color)
 
-                    # end the painter
-                    painter.end()
-
                     # draw ground truth label on the display image
-                    # draw rectangle on the displayed image to indicate scanning process
-                    painter = QtGui.QPainter(self.image_pixmap)
-                    # draw the ground truth label
                     gt_display_center_x = (self.cur_image_label[0, 1] + self.cur_image_label[0, 3]) / 2 * (display_rect_width/self.image_size) + (rect_center_x - display_rect_width/2)
                     gt_display_center_y = (self.cur_image_label[0, 2] + self.cur_image_label[0, 4]) / 2 * (display_rect_height/self.image_size) + (rect_center_y - display_rect_height/2)
                     gt_display_rect_width = (self.cur_image_label[0, 3] - self.cur_image_label[0, 1]) * (display_rect_width/self.image_size)
@@ -1599,23 +1593,9 @@ class UI_MainWindow(QWidget):
 
             # when this is in aggregate mode, all the computations have been done
             elif self.data_mode == 'aggregate':
-                self.display_image()
-                display_rect_width = self.display_image_size/2
-                display_rect_height = self.display_image_size/2
-                # since the translation measures on the movement of object instead of the point of view, the sign is reversed
-                rect_center_x = self.display_image_size/2 - 0 * (self.display_image_size/self.uncropped_image_size)
-                rect_center_y = self.display_image_size/2 - 0 * (self.display_image_size/self.uncropped_image_size)
-                # draw rectangles on the displayed image to indicate scanning process
-                painter = QtGui.QPainter(self.image_pixmap)
-                # draw the rectangles
-                cover_color = QtGui.QColor(65, 65, 65, 225)
-                self.draw_fov_mask(painter, rect_center_x, rect_center_y, display_rect_width, display_rect_height, cover_color)
-                # end the painter
-                painter.end()
-
                 # all the label paths
                 cur_label_path = self.all_labels_paths[self.image_index]
-                # load the label
+                # load the label of the current selected image
                 self.loaded_image_label = np.load(cur_label_path)
                 self.cur_image_label = np.zeros((len(self.loaded_image_label), 6))
                 for i in range(len(self.cur_image_label)):
@@ -1626,6 +1606,7 @@ class UI_MainWindow(QWidget):
                     # modify the label accordingly
                     self.cur_image_label[i, 1:5] = self.loaded_image_label[i, :4]
 
+                # information needed for interactive display
                 # bounding box center of the key object
                 self.center_x = int((self.cur_image_label[0, 1] + self.cur_image_label[0, 3]) // 2)
                 self.center_y = int((self.cur_image_label[0, 2] + self.cur_image_label[0, 4]) // 2)
@@ -1635,9 +1616,40 @@ class UI_MainWindow(QWidget):
                 self.y_min = self.center_y - self.image_size//2
                 self.y_max = self.center_y + self.image_size//2
                 # no transformation to start
-                self.cur_x_tran = 0
-                self.cur_y_tran = 0
+                self.cur_x_tran = self.image_size//2
+                self.cur_y_tran = self.image_size//2
 
+                # display the image and plot mask + ground truth
+                self.display_image()
+
+                display_rect_width = self.display_image_size/2
+                display_rect_height = self.display_image_size/2
+                # since the translation measures on the movement of object instead of the point of view, the sign is reversed
+                rect_center_x = self.display_image_size/2
+                rect_center_y = self.display_image_size/2
+                # draw rectangles on the displayed image to indicate scanning process
+                painter = QtGui.QPainter(self.image_pixmap)
+                # draw the rectangles
+                cover_color = QtGui.QColor(65, 65, 65, 225)
+                self.draw_fov_mask(painter, rect_center_x, rect_center_y, display_rect_width, display_rect_height, cover_color)
+
+                # re-compute the ground truth label bounding boxes of the cropped image
+                for i in range(len(self.cur_image_label)):
+                    self.cur_image_label[i, 1:5] = self.compute_label(self.loaded_image_label[i, :4], self.x_min, self.y_min, (self.image_size, self.image_size))
+
+                # draw the ground truth label
+                gt_display_center_x = (self.cur_image_label[0, 1] + self.cur_image_label[0, 3]) / 2 * (self.display_image_size/self.uncropped_image_size) + (rect_center_x - display_rect_width/2)
+                gt_display_center_y = (self.cur_image_label[0, 4] + self.cur_image_label[0, 2]) / 2 * (self.display_image_size/self.uncropped_image_size) + (rect_center_y - display_rect_height/2)
+                gt_display_rect_width = (self.cur_image_label[0, 3] - self.cur_image_label[0, 1]) * (self.display_image_size/self.uncropped_image_size)
+                gt_display_rect_height = (self.cur_image_label[0, 4] - self.cur_image_label[0, 2]) * (self.display_image_size/self.uncropped_image_size)
+                self.draw_rectangle(painter, gt_display_center_x, gt_display_center_y, gt_display_rect_width, gt_display_rect_height, color='yellow', label='Ground Truth')
+                painter.end()
+
+                # update pixmap with the label
+                self.image_label.setPixmap(self.image_pixmap)
+
+                # force repaint
+                self.image_label.repaint()
 
 
             # display the individual NERO plot
