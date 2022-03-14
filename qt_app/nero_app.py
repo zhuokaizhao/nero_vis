@@ -1008,10 +1008,6 @@ class UI_MainWindow(QWidget):
                     # previously selected point's visual cue
                     self.last_clicked.resetPen()
                     self.last_clicked.setBrush(self.old_brush)
-                    # previous single image vis
-                    # self.clear_layout(self.single_result_layout)
-                    # self.single_result_existed = False
-                    # self.image_existed = False
 
                 # only allow clicking one point at a time
                 # save the old brush
@@ -1050,7 +1046,7 @@ class UI_MainWindow(QWidget):
                 self.cur_display_image = self.cur_display_image.scaledToWidth(self.display_image_size)
 
                 # display the image
-                self.display_image()
+                # self.display_image()
 
                 if self.mode == 'digit_recognition':
                     # prepare image tensor for model purpose
@@ -1368,6 +1364,7 @@ class UI_MainWindow(QWidget):
             self.display_mnist_single_result(type='bar', boundary_width=3)
 
         elif self.mode == 'object_detection':
+
             self.output_1 = nero_run_model.run_coco_once('single',
                                                             self.model_1_name,
                                                             self.model_1,
@@ -1450,163 +1447,198 @@ class UI_MainWindow(QWidget):
             self.display_mnist_single_result(type='polar', boundary_width=3)
 
         elif self.mode == 'object_detection':
+            # when this is called in the single case
+            if self.data_mode == 'single':
+                # all the x and y translations
+                # x translates on columns, y translates on rows
+                self.x_translation = list(range(-self.image_size//2, self.image_size//2, self.translation_step_single))
+                self.y_translation = list(range(-self.image_size//2, self.image_size//2, self.translation_step_single))
+                num_x_translations = len(self.x_translation)
+                num_y_translations = len(self.y_translation)
+                self.all_translations = np.zeros((num_y_translations, num_x_translations, 2))
 
-            # all the x and y translations
-            # x translates on columns, y translates on rows
-            self.x_translation = list(range(-self.image_size//2, self.image_size//2, self.translation_step_single))
-            self.y_translation = list(range(-self.image_size//2, self.image_size//2, self.translation_step_single))
-            num_x_translations = len(self.x_translation)
-            num_y_translations = len(self.y_translation)
-            self.all_translations = np.zeros((num_y_translations, num_x_translations, 2))
+                if self.use_cache:
+                    self.all_quantities_1 = self.load_from_cache(name=f'single_{self.model_1_cache_name}_{self.image_index}')
+                    self.all_quantities_2 = self.load_from_cache(name=f'single_{self.model_2_cache_name}_{self.image_index}')
+                else:
+                    self.all_quantities_1 = np.zeros((num_y_translations, num_x_translations, 7))
+                    self.all_quantities_2 = np.zeros((num_y_translations, num_x_translations, 7))
 
-            if self.use_cache:
-                self.all_quantities_1 = self.load_from_cache(name=f'single_{self.model_1_cache_name}_{self.image_index}')
-                self.all_quantities_2 = self.load_from_cache(name=f'single_{self.model_2_cache_name}_{self.image_index}')
-            else:
-                self.all_quantities_1 = np.zeros((num_y_translations, num_x_translations, 7))
-                self.all_quantities_2 = np.zeros((num_y_translations, num_x_translations, 7))
+                for y, y_tran in enumerate(self.y_translation):
+                    for x, x_tran in enumerate(self.x_translation):
+                        # translation amout
+                        # cur_x_tran and cur_y_tran are used to draw points on the heatmap to indicate translation amount
+                        self.cur_x_tran = x_tran - self.x_translation[0]
+                        # y axis needs to be converted from image axis to heatmap axis
+                        self.cur_y_tran = -y_tran - self.y_translation[0]
+                        # all_translations are for book keeping
+                        self.all_translations[y, x] = [x_tran, y_tran]
 
-            for y, y_tran in enumerate(self.y_translation):
-                for x, x_tran in enumerate(self.x_translation):
-                    # translation amout
-                    # cur_x_tran and cur_y_tran are used to draw points on the heatmap to indicate translation amount
-                    self.cur_x_tran = x_tran - self.x_translation[0]
-                    # y axis needs to be converted from image axis to heatmap axis
-                    self.cur_y_tran = -y_tran - self.y_translation[0]
-                    # all_translations are for book keeping
-                    self.all_translations[y, x] = [x_tran, y_tran]
+                        # modify the underlying image tensor accordingly
+                        # take the cropped part of the entire input image
+                        cur_center_x = self.center_x - x_tran
+                        cur_center_y = self.center_y - y_tran
+                        self.x_min = cur_center_x - self.image_size//2
+                        self.x_max = cur_center_x + self.image_size//2
+                        self.y_min = cur_center_y - self.image_size//2
+                        self.y_max = cur_center_y + self.image_size//2
+                        # model takes image between [0, 1]
+                        self.cropped_image_pt = self.loaded_image_pt[self.y_min:self.y_max, self.x_min:self.x_max, :] / 255
 
-                    # modify the underlying image tensor accordingly
-                    # take the cropped part of the entire input image
-                    cur_center_x = self.center_x - x_tran
-                    cur_center_y = self.center_y - y_tran
-                    self.x_min = cur_center_x - self.image_size//2
-                    self.x_max = cur_center_x + self.image_size//2
-                    self.y_min = cur_center_y - self.image_size//2
-                    self.y_max = cur_center_y + self.image_size//2
-                    # model takes image between [0, 1]
-                    self.cropped_image_pt = self.loaded_image_pt[self.y_min:self.y_max, self.x_min:self.x_max, :] / 255
+                        self.cur_image_label = np.zeros((len(self.loaded_image_label), 6))
+                        for i in range(len(self.cur_image_label)):
+                            # object index
+                            self.cur_image_label[i, 0] = i
+                            # since PyTorch FasterRCNN has 0 as background
+                            self.cur_image_label[i, 5] = self.loaded_image_label[i, 4] + 1
+                            # modify the label accordingly
+                            self.cur_image_label[i, 1:5] = self.compute_label(self.loaded_image_label[i, :4], self.x_min, self.y_min, (self.image_size, self.image_size))
 
-                    self.cur_image_label = np.zeros((len(self.loaded_image_label), 6))
-                    for i in range(len(self.cur_image_label)):
-                        # object index
-                        self.cur_image_label[i, 0] = i
-                        # since PyTorch FasterRCNN has 0 as background
-                        self.cur_image_label[i, 5] = self.loaded_image_label[i, 4] + 1
-                        # modify the label accordingly
-                        self.cur_image_label[i, 1:5] = self.compute_label(self.loaded_image_label[i, :4], self.x_min, self.y_min, (self.image_size, self.image_size))
+                        if self.use_cache:
+                            continue
 
-                    if self.use_cache:
-                        continue
+                        # re-display image for each rectangle drawn every 8 steps
+                        if (x_tran)%2 == 0 and (y_tran)%2 == 0:
+                            self.display_image()
 
-                    # sanity check on if image/label are correct
-                    # sanity_check = False
-                    # if sanity_check:
-                    #     sanity_path = f'/home/zhuokai/Desktop/UChicago/Research/nero_vis/qt_app/example_data/object_detection/sanity_{x_tran}_{y_tran}.jpg'
-                    #     sanity_image = Image.fromarray(self.cropped_image_pt.numpy())
-                    #     temp = ImageDraw.Draw(sanity_image)
-                    #     temp.rectangle([(self.cur_image_label[0, 2], self.cur_image_label[0, 3]), (self.cur_image_label[0, 4], self.cur_image_label[0, 5])], outline='yellow')
-                    #     sanity_image.save(sanity_path)
+                            display_rect_width = self.display_image_size/2
+                            display_rect_height = self.display_image_size/2
+                            # since the translation measures on the movement of object instead of the point of view, the sign is reversed
+                            rect_center_x = self.display_image_size/2 - x_tran * (self.display_image_size/self.uncropped_image_size)
+                            rect_center_y = self.display_image_size/2 - y_tran * (self.display_image_size/self.uncropped_image_size)
 
-                    # re-display image for each rectangle drawn every 8 steps
-                    if (x_tran)%2 == 0 and (y_tran)%2 == 0:
-                        self.display_image()
+                            # draw rectangles on the displayed image to indicate scanning process
+                            painter = QtGui.QPainter(self.image_pixmap)
+                            # draw the rectangles
+                            cover_color = QtGui.QColor(65, 65, 65, 225)
+                            self.draw_fov_mask(painter, rect_center_x, rect_center_y, display_rect_width, display_rect_height, cover_color)
 
-                        display_rect_width = self.display_image_size/2
-                        display_rect_height = self.display_image_size/2
-                        # since the translation measures on the movement of object instead of the point of view, the sign is reversed
-                        rect_center_x = self.display_image_size/2 - x_tran * (self.display_image_size/self.uncropped_image_size)
-                        rect_center_y = self.display_image_size/2 - y_tran * (self.display_image_size/self.uncropped_image_size)
+                            # end the painter
+                            painter.end()
 
-                        # draw rectangles on the displayed image to indicate scanning process
-                        painter = QtGui.QPainter(self.image_pixmap)
-                        # draw the rectangles
-                        cover_color = QtGui.QColor(65, 65, 65, 225)
-                        self.draw_fov_mask(painter, rect_center_x, rect_center_y, display_rect_width, display_rect_height, cover_color)
+                            # draw ground truth label on the display image
+                            # draw rectangle on the displayed image to indicate scanning process
+                            painter = QtGui.QPainter(self.image_pixmap)
+                            # draw the ground truth label
+                            gt_display_center_x = (self.cur_image_label[0, 1] + self.cur_image_label[0, 3]) / 2 * (display_rect_width/self.image_size) + (rect_center_x - display_rect_width/2)
+                            gt_display_center_y = (self.cur_image_label[0, 2] + self.cur_image_label[0, 4]) / 2 * (display_rect_height/self.image_size) + (rect_center_y - display_rect_height/2)
+                            gt_display_rect_width = (self.cur_image_label[0, 3] - self.cur_image_label[0, 1]) * (display_rect_width/self.image_size)
+                            gt_display_rect_height = (self.cur_image_label[0, 4] - self.cur_image_label[0, 2]) * (display_rect_height/self.image_size)
+                            self.draw_rectangle(painter, gt_display_center_x, gt_display_center_y, gt_display_rect_width, gt_display_rect_height, color='yellow', label='Ground Truth')
+                            painter.end()
 
-                        # end the painter
-                        painter.end()
+                            # update pixmap with the label
+                            self.image_label.setPixmap(self.image_pixmap)
 
-                        # draw ground truth label on the display image
-                        # draw rectangle on the displayed image to indicate scanning process
-                        painter = QtGui.QPainter(self.image_pixmap)
-                        # draw the ground truth label
-                        gt_display_center_x = (self.cur_image_label[0, 1] + self.cur_image_label[0, 3]) / 2 * (display_rect_width/self.image_size) + (rect_center_x - display_rect_width/2)
-                        gt_display_center_y = (self.cur_image_label[0, 2] + self.cur_image_label[0, 4]) / 2 * (display_rect_height/self.image_size) + (rect_center_y - display_rect_height/2)
-                        gt_display_rect_width = (self.cur_image_label[0, 3] - self.cur_image_label[0, 1]) * (display_rect_width/self.image_size)
-                        gt_display_rect_height = (self.cur_image_label[0, 4] - self.cur_image_label[0, 2]) * (display_rect_height/self.image_size)
-                        self.draw_rectangle(painter, gt_display_center_x, gt_display_center_y, gt_display_rect_width, gt_display_rect_height, color='yellow', label='Ground Truth')
-                        painter.end()
+                            # force repaint
+                            self.image_label.repaint()
 
-                        # update pixmap with the label
-                        self.image_label.setPixmap(self.image_pixmap)
+                        # run the model
+                        # update the model output
+                        self.output_1 = nero_run_model.run_coco_once('single',
+                                                                        self.model_1_name,
+                                                                        self.model_1,
+                                                                        self.cropped_image_pt,
+                                                                        self.custom_coco_names,
+                                                                        self.pytorch_coco_names,
+                                                                        test_label=self.cur_image_label)
 
-                        # force repaint
-                        self.image_label.repaint()
+                        self.output_2 = nero_run_model.run_coco_once('single',
+                                                                        self.model_2_name,
+                                                                        self.model_2,
+                                                                        self.cropped_image_pt,
+                                                                        self.custom_coco_names,
+                                                                        self.pytorch_coco_names,
+                                                                        test_label=self.cur_image_label)
 
-                    # run the model
-                    # update the model output
-                    self.output_1 = nero_run_model.run_coco_once('single',
-                                                                    self.model_1_name,
-                                                                    self.model_1,
-                                                                    self.cropped_image_pt,
-                                                                    self.custom_coco_names,
-                                                                    self.pytorch_coco_names,
-                                                                    test_label=self.cur_image_label)
+                        # plotting the quantity regarding the correct label
+                        quantity_1 = self.output_1[0][0][0]
+                        quantity_2 = self.output_2[0][0][0]
+                        self.all_quantities_1[y, x] = quantity_1
+                        self.all_quantities_2[y, x] = quantity_2
 
-                    self.output_2 = nero_run_model.run_coco_once('single',
-                                                                    self.model_2_name,
-                                                                    self.model_2,
-                                                                    self.cropped_image_pt,
-                                                                    self.custom_coco_names,
-                                                                    self.pytorch_coco_names,
-                                                                    test_label=self.cur_image_label)
+                # display as the final x_tran, y_tran
+                if self.use_cache:
+                    self.display_image()
+                    display_rect_width = self.display_image_size/2
+                    display_rect_height = self.display_image_size/2
+                    # since the translation measures on the movement of object instead of the point of view, the sign is reversed
+                    rect_center_x = self.display_image_size/2 - x_tran * (self.display_image_size/self.uncropped_image_size)
+                    rect_center_y = self.display_image_size/2 - y_tran * (self.display_image_size/self.uncropped_image_size)
 
-                    # plotting the quantity regarding the correct label
-                    quantity_1 = self.output_1[0][0][0]
-                    quantity_2 = self.output_2[0][0][0]
-                    self.all_quantities_1[y, x] = quantity_1
-                    self.all_quantities_2[y, x] = quantity_2
+                    # draw rectangles on the displayed image to indicate scanning process
+                    painter = QtGui.QPainter(self.image_pixmap)
+                    # draw the rectangles
+                    cover_color = QtGui.QColor(65, 65, 65, 225)
+                    self.draw_fov_mask(painter, rect_center_x, rect_center_y, display_rect_width, display_rect_height, cover_color)
 
-            # display as the final x_tran, y_tran
-            if self.use_cache:
+                    # end the painter
+                    painter.end()
+
+                    # draw ground truth label on the display image
+                    # draw rectangle on the displayed image to indicate scanning process
+                    painter = QtGui.QPainter(self.image_pixmap)
+                    # draw the ground truth label
+                    gt_display_center_x = (self.cur_image_label[0, 1] + self.cur_image_label[0, 3]) / 2 * (display_rect_width/self.image_size) + (rect_center_x - display_rect_width/2)
+                    gt_display_center_y = (self.cur_image_label[0, 2] + self.cur_image_label[0, 4]) / 2 * (display_rect_height/self.image_size) + (rect_center_y - display_rect_height/2)
+                    gt_display_rect_width = (self.cur_image_label[0, 3] - self.cur_image_label[0, 1]) * (display_rect_width/self.image_size)
+                    gt_display_rect_height = (self.cur_image_label[0, 4] - self.cur_image_label[0, 2]) * (display_rect_height/self.image_size)
+                    self.draw_rectangle(painter, gt_display_center_x, gt_display_center_y, gt_display_rect_width, gt_display_rect_height, color='yellow', label='Ground Truth')
+                    painter.end()
+
+                    # update pixmap with the label
+                    self.image_label.setPixmap(self.image_pixmap)
+
+                    # force repaint
+                    self.image_label.repaint()
+
+                # save to cache
+                else:
+                    self.save_to_cache(name=f'{self.mode}_{self.data_mode}_{self.model_1_cache_name}_{self.image_index}', content=self.all_quantities_1)
+                    self.save_to_cache(name=f'{self.mode}_{self.data_mode}_{self.model_2_cache_name}_{self.image_index}', content=self.all_quantities_2)
+
+            # when this is in aggregate mode, all the computations have been done
+            elif self.data_mode == 'aggregate':
                 self.display_image()
                 display_rect_width = self.display_image_size/2
                 display_rect_height = self.display_image_size/2
                 # since the translation measures on the movement of object instead of the point of view, the sign is reversed
-                rect_center_x = self.display_image_size/2 - x_tran * (self.display_image_size/self.uncropped_image_size)
-                rect_center_y = self.display_image_size/2 - y_tran * (self.display_image_size/self.uncropped_image_size)
-
+                rect_center_x = self.display_image_size/2 - 0 * (self.display_image_size/self.uncropped_image_size)
+                rect_center_y = self.display_image_size/2 - 0 * (self.display_image_size/self.uncropped_image_size)
                 # draw rectangles on the displayed image to indicate scanning process
                 painter = QtGui.QPainter(self.image_pixmap)
                 # draw the rectangles
                 cover_color = QtGui.QColor(65, 65, 65, 225)
                 self.draw_fov_mask(painter, rect_center_x, rect_center_y, display_rect_width, display_rect_height, cover_color)
-
                 # end the painter
                 painter.end()
 
-                # draw ground truth label on the display image
-                # draw rectangle on the displayed image to indicate scanning process
-                painter = QtGui.QPainter(self.image_pixmap)
-                # draw the ground truth label
-                gt_display_center_x = (self.cur_image_label[0, 1] + self.cur_image_label[0, 3]) / 2 * (display_rect_width/self.image_size) + (rect_center_x - display_rect_width/2)
-                gt_display_center_y = (self.cur_image_label[0, 2] + self.cur_image_label[0, 4]) / 2 * (display_rect_height/self.image_size) + (rect_center_y - display_rect_height/2)
-                gt_display_rect_width = (self.cur_image_label[0, 3] - self.cur_image_label[0, 1]) * (display_rect_width/self.image_size)
-                gt_display_rect_height = (self.cur_image_label[0, 4] - self.cur_image_label[0, 2]) * (display_rect_height/self.image_size)
-                self.draw_rectangle(painter, gt_display_center_x, gt_display_center_y, gt_display_rect_width, gt_display_rect_height, color='yellow', label='Ground Truth')
-                painter.end()
+                # all the label paths
+                cur_label_path = self.all_labels_paths[self.image_index]
+                # load the label
+                self.loaded_image_label = np.load(cur_label_path)
+                self.cur_image_label = np.zeros((len(self.loaded_image_label), 6))
+                for i in range(len(self.cur_image_label)):
+                    # object index
+                    self.cur_image_label[i, 0] = i
+                    # since PyTorch FasterRCNN has 0 as background
+                    self.cur_image_label[i, 5] = self.custom_coco_names.index(self.original_coco_names[int(self.loaded_image_label[i, -1])]) + 1
+                    # modify the label accordingly
+                    self.cur_image_label[i, 1:5] = self.loaded_image_label[i, :4]
 
-                # update pixmap with the label
-                self.image_label.setPixmap(self.image_pixmap)
+                # bounding box center of the key object
+                self.center_x = int((self.cur_image_label[0, 1] + self.cur_image_label[0, 3]) // 2)
+                self.center_y = int((self.cur_image_label[0, 2] + self.cur_image_label[0, 4]) // 2)
+                # just need information for interactive display
+                self.x_min = self.center_x - self.image_size//2
+                self.x_max = self.center_x + self.image_size//2
+                self.y_min = self.center_y - self.image_size//2
+                self.y_max = self.center_y + self.image_size//2
+                # no transformation to start
+                self.cur_x_tran = 0
+                self.cur_y_tran = 0
 
-                # force repaint
-                self.image_label.repaint()
 
-            # save to cache
-            else:
-                self.save_to_cache(name=f'{self.mode}_{self.data_mode}_{self.model_1_cache_name}_{self.image_index}', content=self.all_quantities_1)
-                self.save_to_cache(name=f'{self.mode}_{self.data_mode}_{self.model_2_cache_name}_{self.image_index}', content=self.all_quantities_2)
 
             # display the individual NERO plot
             self.display_coco_single_result()
