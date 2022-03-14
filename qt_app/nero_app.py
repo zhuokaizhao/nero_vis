@@ -1098,10 +1098,6 @@ class UI_MainWindow(QWidget):
                             all_high_dim_points_1[i, j] = int(self.all_outputs_1[j][index].argmax() == self.loaded_images_labels[index])
                             all_high_dim_points_2[i, j] = int(self.all_outputs_2[j][index].argmax() == self.loaded_images_labels[index])
                         elif self.mode == 'object_detection':
-                            self.aggregate_conf_1 = np.zeros((len(self.y_translation), len(self.x_translation)))
-                            self.aggregate_iou_1 = np.zeros((len(self.y_translation), len(self.x_translation)))
-                            self.aggregate_conf_2 = np.zeros((len(self.y_translation), len(self.x_translation)))
-                            self.aggregate_iou_2 = np.zeros((len(self.y_translation), len(self.x_translation)))
 
                             y = int(j//len(self.x_translation))
                             x = int(j%len(self.x_translation))
