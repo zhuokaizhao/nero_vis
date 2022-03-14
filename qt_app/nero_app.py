@@ -1,6 +1,7 @@
 import enum
 from gc import callbacks
 import os
+from selectors import EpollSelector
 import sys
 import glob
 import time
@@ -456,10 +457,10 @@ class UI_MainWindow(QWidget):
             elif self.mode == 'object_detection':
                 self.all_images_paths = glob.glob(os.path.join(self.dataset_dir, 'images', '*.jpg'))
                 self.all_labels_paths = glob.glob(os.path.join(self.dataset_dir, 'labels', '*.npy'))
-                self.loaded_images_labels = np.zeros(len(self.all_images_paths), dtype=np.string_)
+                self.loaded_images_labels = []
                 for i, cur_label_path in enumerate(self.all_labels_paths):
                     cur_label = cur_label_path.split('/')[-1].split('_')[0]
-                    self.loaded_images_labels[i] = cur_label
+                    self.loaded_images_labels.append(cur_label)
 
             # check the data to be ready
             self.data_existed = True
@@ -2526,9 +2527,9 @@ class UI_MainWindow(QWidget):
             elif text == 'AP':
                 self.cur_plot_quantity_1 = self.aggregate_AP_1
                 self.cur_plot_quantity_2 = self.aggregate_AP_2
-            elif text == 'F-measure':
-                self.cur_plot_quantity_1 = self.cur_F_measure_1
-                self.cur_plot_quantity_2 = self.cur_F_measure_2
+            elif text == 'F1 score':
+                self.cur_plot_quantity_1 = self.aggregate_F_measure_1
+                self.cur_plot_quantity_2 = self.aggregate_F_measure_2
 
             # re-display the heatmap
             self.draw_heatmaps(mode='aggregate')
@@ -2544,6 +2545,10 @@ class UI_MainWindow(QWidget):
         quantity_menu.addItem('Confidence*IOU')
         quantity_menu.addItem('Confidence')
         quantity_menu.addItem('IOU')
+        quantity_menu.addItem('Precision')
+        quantity_menu.addItem('Recall')
+        quantity_menu.addItem('AP')
+        quantity_menu.addItem('F1 Score')
         # self.quantity_menu.setCurrentIndex(0)
         quantity_menu.setCurrentText('Confidence*IOU')
 
@@ -2557,22 +2562,44 @@ class UI_MainWindow(QWidget):
         self.aggregate_iou_1 = np.zeros((len(self.y_translation), len(self.x_translation)))
         self.aggregate_conf_2 = np.zeros((len(self.y_translation), len(self.x_translation)))
         self.aggregate_iou_2 = np.zeros((len(self.y_translation), len(self.x_translation)))
-        for y in range(len(self.y_translation)):
-            for x in range(len(self.x_translation)):
-                all_samples_conf_sum_1 = []
-                all_samples_iou_sum_1 = []
-                all_samples_conf_sum_2 = []
-                all_samples_iou_sum_2 = []
-                for i in range(len(self.aggregate_outputs_1[y, x])):
-                    all_samples_conf_sum_1.append(self.aggregate_outputs_1[y, x][i][0, 4])
-                    all_samples_iou_sum_1.append(self.aggregate_outputs_1[y, x][i][0, 6])
-                    all_samples_conf_sum_2.append(self.aggregate_outputs_2[y, x][i][0, 4])
-                    all_samples_iou_sum_2.append(self.aggregate_outputs_2[y, x][i][0, 6])
+        # different display class
+        if self.class_selection == 'all':
+            for y in range(len(self.y_translation)):
+                for x in range(len(self.x_translation)):
+                    all_samples_conf_sum_1 = []
+                    all_samples_iou_sum_1 = []
+                    all_samples_conf_sum_2 = []
+                    all_samples_iou_sum_2 = []
+                    for i in range(len(self.aggregate_outputs_1[y, x])):
+                        all_samples_conf_sum_1.append(self.aggregate_outputs_1[y, x][i][0, 4])
+                        all_samples_iou_sum_1.append(self.aggregate_outputs_1[y, x][i][0, 6])
+                        all_samples_conf_sum_2.append(self.aggregate_outputs_2[y, x][i][0, 4])
+                        all_samples_iou_sum_2.append(self.aggregate_outputs_2[y, x][i][0, 6])
 
-                self.aggregate_conf_1[y, x] = np.mean(all_samples_conf_sum_1)
-                self.aggregate_iou_1[y, x] = np.mean(all_samples_iou_sum_1)
-                self.aggregate_conf_2[y, x] = np.mean(all_samples_conf_sum_2)
-                self.aggregate_iou_2[y, x] = np.mean(all_samples_iou_sum_2)
+                    self.aggregate_conf_1[y, x] = np.mean(all_samples_conf_sum_1)
+                    self.aggregate_iou_1[y, x] = np.mean(all_samples_iou_sum_1)
+                    self.aggregate_conf_2[y, x] = np.mean(all_samples_conf_sum_2)
+                    self.aggregate_iou_2[y, x] = np.mean(all_samples_iou_sum_2)
+
+        # get the result of a specific class
+        else:
+            for y in range(len(self.y_translation)):
+                for x in range(len(self.x_translation)):
+                    all_samples_conf_sum_1 = []
+                    all_samples_iou_sum_1 = []
+                    all_samples_conf_sum_2 = []
+                    all_samples_iou_sum_2 = []
+                    for i in range(len(self.aggregate_outputs_1[y, x])):
+                        if self.class_selection == self.loaded_images_labels[i]:
+                            all_samples_conf_sum_1.append(self.aggregate_outputs_1[y, x][i][0, 4])
+                            all_samples_iou_sum_1.append(self.aggregate_outputs_1[y, x][i][0, 6])
+                            all_samples_conf_sum_2.append(self.aggregate_outputs_2[y, x][i][0, 4])
+                            all_samples_iou_sum_2.append(self.aggregate_outputs_2[y, x][i][0, 6])
+
+                    self.aggregate_conf_1[y, x] = np.mean(all_samples_conf_sum_1)
+                    self.aggregate_iou_1[y, x] = np.mean(all_samples_iou_sum_1)
+                    self.aggregate_conf_2[y, x] = np.mean(all_samples_conf_sum_2)
+                    self.aggregate_iou_2[y, x] = np.mean(all_samples_iou_sum_2)
 
         self.cur_plot_quantity_1 = self.aggregate_conf_1 * self.aggregate_iou_1
         self.cur_plot_quantity_2 = self.aggregate_conf_2 * self.aggregate_iou_2
