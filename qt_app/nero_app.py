@@ -986,6 +986,8 @@ class UI_MainWindow(QWidget):
                 # display the plot
                 self.display_coco_aggregate_result()
 
+                run_dimension_reduction()
+
         # change different dimension reduction algorithms
         def dr_selection_changed(text):
             self.dr_selection = text
@@ -1088,39 +1090,54 @@ class UI_MainWindow(QWidget):
 
             all_high_dim_points_1 = np.zeros((len(cur_class_indices), num_transformations))
             all_high_dim_points_2 = np.zeros((len(cur_class_indices), num_transformations))
-            for i, index in enumerate(cur_class_indices):
-                for j in range(num_transformations):
-                    if self.mode == 'digit_recognition':
-                        # all_outputs has shape (num_rotations, num_samples, 10)
-                        all_high_dim_points_1[i, j] = int(self.all_outputs_1[j][index].argmax() == self.loaded_images_labels[index])
-                        all_high_dim_points_2[i, j] = int(self.all_outputs_2[j][index].argmax() == self.loaded_images_labels[index])
-                    elif self.mode == 'object_detection':
-                        self.aggregate_conf_1 = np.zeros((len(self.y_translation), len(self.x_translation)))
-                        self.aggregate_iou_1 = np.zeros((len(self.y_translation), len(self.x_translation)))
-                        self.aggregate_conf_2 = np.zeros((len(self.y_translation), len(self.x_translation)))
-                        self.aggregate_iou_2 = np.zeros((len(self.y_translation), len(self.x_translation)))
+            if self.quantity_name == 'Confidence*IOU' or self.quantity_name == 'Confidence' or self.quantity_name == 'IOU':
+                for i, index in enumerate(cur_class_indices):
+                    for j in range(num_transformations):
+                        if self.mode == 'digit_recognition':
+                            # all_outputs has shape (num_rotations, num_samples, 10)
+                            all_high_dim_points_1[i, j] = int(self.all_outputs_1[j][index].argmax() == self.loaded_images_labels[index])
+                            all_high_dim_points_2[i, j] = int(self.all_outputs_2[j][index].argmax() == self.loaded_images_labels[index])
+                        elif self.mode == 'object_detection':
+                            self.aggregate_conf_1 = np.zeros((len(self.y_translation), len(self.x_translation)))
+                            self.aggregate_iou_1 = np.zeros((len(self.y_translation), len(self.x_translation)))
+                            self.aggregate_conf_2 = np.zeros((len(self.y_translation), len(self.x_translation)))
+                            self.aggregate_iou_2 = np.zeros((len(self.y_translation), len(self.x_translation)))
 
-                        y = int(j//len(self.x_translation))
-                        x = int(j%len(self.x_translation))
+                            y = int(j//len(self.x_translation))
+                            x = int(j%len(self.x_translation))
 
-                        cur_conf_1 = self.aggregate_outputs_1[y, x][i][0, 4]
-                        cur_iou_1= self.aggregate_outputs_1[y, x][i][0, 6]
-                        cur_conf_2 = self.aggregate_outputs_2[y, x][i][0, 4]
-                        cur_iou_2 = self.aggregate_outputs_2[y, x][i][0, 6]
+                            cur_conf_1 = self.aggregate_outputs_1[y, x][i][0, 4]
+                            cur_iou_1= self.aggregate_outputs_1[y, x][i][0, 6]
+                            cur_conf_2 = self.aggregate_outputs_2[y, x][i][0, 4]
+                            cur_iou_2 = self.aggregate_outputs_2[y, x][i][0, 6]
 
-                        if self.quantity_name == 'Confidence*IOU':
-                            cur_value_1 = cur_conf_1 * cur_iou_1
-                            cur_value_2 = cur_conf_2 * cur_iou_2
-                        elif self.quantity_name == 'Confidence':
-                            cur_value_1 = cur_conf_1
-                            cur_value_2 = cur_conf_2
-                        elif self.quantity_name == 'IOU':
-                            cur_value_1 = cur_iou_1
-                            cur_value_2 = cur_iou_2
+                            if self.quantity_name == 'Confidence*IOU':
+                                cur_value_1 = cur_conf_1 * cur_iou_1
+                                cur_value_2 = cur_conf_2 * cur_iou_2
+                            elif self.quantity_name == 'Confidence':
+                                cur_value_1 = cur_conf_1
+                                cur_value_2 = cur_conf_2
+                            elif self.quantity_name == 'IOU':
+                                cur_value_1 = cur_iou_1
+                                cur_value_2 = cur_iou_2
 
-                        # aggregate_outputs_1 has shape (num_y_translations, num_x_translations, num_samples, 7)
-                        all_high_dim_points_1[i, j] = cur_value_1
-                        all_high_dim_points_2[i, j] = cur_value_2
+
+                            # aggregate_outputs_1 has shape (num_y_translations, num_x_translations, num_samples, 7)
+                            all_high_dim_points_1[i, j] = cur_value_1
+                            all_high_dim_points_2[i, j] = cur_value_2
+            else:
+                if self.quantity_name == 'Precision':
+                    all_high_dim_points_1 = self.aggregate_precision_1
+                    all_high_dim_points_2 = self.aggregate_precision_2
+                elif self.quantity_name == 'Recall':
+                    all_high_dim_points_1 = self.aggregate_recall_1
+                    all_high_dim_points_2 = self.aggregate_recall_2
+                elif self.quantity_name == 'AP':
+                    all_high_dim_points_1 = self.aggregate_AP_1
+                    all_high_dim_points_2 = self.aggregate_AP_2
+                elif self.quantity_name == 'F1 Score':
+                    all_high_dim_points_1 = self.aggregate_F_measure_1
+                    all_high_dim_points_2 = self.aggregate_F_measure_2
 
             # run dimension reduction algorithm
             low_dim_1 = dimension_reduce(all_high_dim_points_1, target_dim=2)
