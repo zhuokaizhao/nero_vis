@@ -405,15 +405,27 @@ class UI_MainWindow(QWidget):
 
             # clear the single image selection
             self.image_menu.setCurrentIndex(0)
+
             # clear previous result layout
-            if self.aggregate_result_existed:
+            if self.data_existed:
+                self.clear_layout(self.run_button_layout)
                 self.clear_layout(self.aggregate_result_layout)
                 self.aggregate_result_existed = False
                 self.data_existed = False
-            if self.single_result_existed:
+                self.run_button_existed = False
+                print('Previous aggregate result layout deleted')
+
+            # since single case starts with image loading
+            if self.image_existed:
+                # move model selection menus back to load menu
+                self.load_menu_layout.addWidget(self.model_1_menu, 2, 3)
+                self.load_menu_layout.addWidget(self.model_2_menu, 3, 3)
+                self.clear_layout(self.run_button_layout)
                 self.clear_layout(self.single_result_layout)
                 self.single_result_existed = False
                 self.image_existed = False
+                self.run_button_existed = False
+                print('Previous single result layout deleted')
 
             self.init_aggregate_result_layout()
 
@@ -891,6 +903,7 @@ class UI_MainWindow(QWidget):
 
 
     def init_aggregate_result_layout(self):
+
         # loaded images and model result layout
         self.aggregate_result_layout = QtWidgets.QGridLayout()
         # self.aggregate_result_layout.setContentsMargins(30, 50, 30, 50)
