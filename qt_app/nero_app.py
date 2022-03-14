@@ -1217,6 +1217,10 @@ class UI_MainWindow(QWidget):
                 all_high_dim_points_1 = self.aggregate_F_measure_1
                 all_high_dim_points_2 = self.aggregate_F_measure_2
 
+        # get the average intensity of each sample
+        all_intensity_1 = np.mean(all_high_dim_points_1, axis=1)
+        all_intensity_2 = np.mean(all_high_dim_points_2, axis=1)
+
         # run dimension reduction algorithm
         low_dim_1 = dimension_reduce(all_high_dim_points_1, target_dim=2)
         low_dim_1 = normalize_low_dim_result(low_dim_1)
@@ -1234,6 +1238,16 @@ class UI_MainWindow(QWidget):
         low_dim_scatter_view_2.setFixedSize(self.plot_size, self.plot_size)
         self.low_dim_scatter_plot_2 = low_dim_scatter_view_2.addPlot()
 
+        # save colorbar as used in aggregate NERO plot, to be used in color encode scatter points
+        scatter_color_map = pg.colormap.get('viridis')
+        scatter_lut = scatter_color_map.getLookupTable(start=0, stop=1, nPts=100, alpha=False)
+        # quantize all the intensity into color
+        color_indices_1 = []
+        color_indices_2 = []
+        for i in range(len(all_intensity_1)):
+            color_indices_1.append(scatter_lut[int(all_intensity_1[i]*100)])
+            color_indices_2.append(scatter_lut[int(all_intensity_2[i]*100)])
+
         for i, index in enumerate(cur_class_indices):
             # all the points to be plotted
             # add individual items for getting the item's name later when clicking
@@ -1244,12 +1258,12 @@ class UI_MainWindow(QWidget):
             low_dim_point_1 = [{'pos': (low_dim_1[i, 0], low_dim_1[i, 1]),
                                 'size': 0.1,
                                 'pen': {'color': 'w', 'width': 0.1},
-                                'brush': QtGui.QColor('blue')}]
+                                'brush': QtGui.QColor(color_indices_1[i][0], color_indices_1[i][1], color_indices_1[i][2])}]
 
             low_dim_point_2 = [{'pos': (low_dim_2[i, 0], low_dim_2[i, 1]),
                                 'size': 0.1,
                                 'pen': {'color': 'w', 'width': 0.1},
-                                'brush': QtGui.QColor('magenta')}]
+                                'brush': QtGui.QColor(color_indices_2[i][0], color_indices_2[i][1], color_indices_2[i][2])}]
 
             # add points to the item
             self.low_dim_scatter_item_1.addPoints(low_dim_point_1, name=str(index))
