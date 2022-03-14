@@ -1221,14 +1221,14 @@ class UI_MainWindow(QWidget):
         self.dr_selection_menu.lineEdit().setReadOnly(True)
         self.dr_selection_menu.lineEdit().setAlignment(QtCore.Qt.AlignRight)
         # add to local layout
-        self.aggregate_plot_control_layout.addWidget(self.dr_selection_menu, 1, 0)
+        self.aggregate_plot_control_layout.addWidget(self.dr_selection_menu, 2, 0)
 
         # push button on running PCA
         self.run_dr_button = QtWidgets.QPushButton('See Overview')
         self.run_dr_button.setStyleSheet('font-size: 18px')
         self.run_dr_button.setFixedSize(QtCore.QSize(250, 50))
         self.run_dr_button.clicked.connect(run_dimension_reduction)
-        self.aggregate_plot_control_layout.addWidget(self.run_dr_button, 2, 0)
+        self.aggregate_plot_control_layout.addWidget(self.run_dr_button, 3, 0)
 
 
     # run model on the aggregate dataset
@@ -2499,8 +2499,8 @@ class UI_MainWindow(QWidget):
         self.aggregate_result_layout.addWidget(self.model_2_menu, 0, 2, 1, 1, QtCore.Qt.AlignCenter)
 
         # move run button in the first column (after aggregate heatmap control)
-        self.aggregate_plot_control_layout.addWidget(self.run_button, 3, 0)
-        self.aggregate_plot_control_layout.addWidget(self.use_cache_checkbox, 4, 0)
+        self.aggregate_plot_control_layout.addWidget(self.run_button, 4, 0)
+        self.aggregate_plot_control_layout.addWidget(self.use_cache_checkbox, 5, 0)
 
         self.aggregate_result_existed = True
 
@@ -2549,7 +2549,7 @@ class UI_MainWindow(QWidget):
 
         # connect the drop down menu with actions
         quantity_menu.currentTextChanged.connect(heatmap_quantity_changed)
-        self.aggregate_plot_control_layout.addWidget(quantity_menu, 0, 0)
+        self.aggregate_plot_control_layout.addWidget(quantity_menu, 1, 0)
 
         # define default plotting quantity (IOU*Confidence)
         self.quantity_name = 'Confidence*IOU'
