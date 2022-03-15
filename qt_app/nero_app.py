@@ -135,10 +135,13 @@ class UI_MainWindow(QWidget):
             print(f'Cleaned {self.previous_mode} aggregate_result_layout')
             self.clear_layout(self.aggregate_result_layout)
             self.data_existed = False
+            self.aggregate_result_existed = False
+            self.single_result_existed = False
         if self.single_result_existed:
             print(f'Cleaned {self.previous_mode} single_result_layout')
             self.clear_layout(self.single_result_layout)
             self.image_existed = False
+            self.single_result_existed = False
 
 
     def init_mode_control_layout(self):
@@ -2017,8 +2020,11 @@ class UI_MainWindow(QWidget):
 
         # put pixmap in the label
         self.image_label.setPixmap(self.image_pixmap)
-        # set label to the size of pixmap so that when clicked it is wrt image
-        self.image_label.setFixedSize(self.image_pixmap.size())
+        if self.mode == 'digit_recognition':
+            self.image_label.setFixedSize(self.plot_size, self.plot_size)
+        elif self.mode == 'object_detection':
+            # set label to the size of pixmap so that when clicked it is wrt image
+            self.image_label.setFixedSize(self.image_pixmap.size())
         self.image_label.setContentsMargins(0, 0, 0, 0)
 
         # pixel mouse over for object detection mode
@@ -2409,29 +2415,29 @@ class UI_MainWindow(QWidget):
     def display_mnist_single_result(self, type, boundary_width):
         self.single_result_existed = True
         # aggregate mode does not draw arrow
-        if self.data_mode == 'single':
-            # draw arrow
-            # add a new label for result if no result has existed
-            if not self.single_result_existed:
-                self.arrow_label = QLabel(self)
-                self.arrow_label.setContentsMargins(0, 0, 0, 0)
-                self.arrow_label.setAlignment(QtCore.Qt.AlignCenter)
-                self.arrow_label.setWordWrap(True)
-                self.arrow_label.setTextFormat(QtGui.Qt.AutoText)
-                self.single_result_existed = True
+        # if self.data_mode == 'single':
+        #     # draw arrow
+        #     # add a new label for result if no result has existed
+        #     if not self.single_result_existed:
+        #         self.arrow_label = QLabel(self)
+        #         self.arrow_label.setContentsMargins(0, 0, 0, 0)
+        #         self.arrow_label.setAlignment(QtCore.Qt.AlignCenter)
+        #         self.arrow_label.setWordWrap(True)
+        #         self.arrow_label.setTextFormat(QtGui.Qt.AutoText)
+        #         self.single_result_existed = True
 
-            arrow_pixmap = QPixmap(100, 50)
-            arrow_pixmap.fill(QtCore.Qt.white)
-            painter = QtGui.QPainter(arrow_pixmap)
-            # set pen (used to draw outlines of shapes) and brush (draw the background of a shape)
-            pen = QtGui.QPen()
-            # draw arrow to indicate feeding
-            self.draw_arrow(painter, pen, 100, 50, boundary_width)
+        #     arrow_pixmap = QPixmap(100, 50)
+        #     arrow_pixmap.fill(QtCore.Qt.white)
+        #     painter = QtGui.QPainter(arrow_pixmap)
+        #     # set pen (used to draw outlines of shapes) and brush (draw the background of a shape)
+        #     pen = QtGui.QPen()
+        #     # draw arrow to indicate feeding
+        #     self.draw_arrow(painter, pen, 100, 50, boundary_width)
 
-            # add to the label and layout
-            self.arrow_label.setPixmap(arrow_pixmap)
-            self.single_result_layout.addWidget(self.arrow_label, 1, 1)
-            painter.end()
+        #     # add to the label and layout
+        #     self.arrow_label.setPixmap(arrow_pixmap)
+        #     self.single_result_layout.addWidget(self.arrow_label, 1, 1)
+        #     painter.end()
 
         # draw result using bar plot
         if type == 'bar':
