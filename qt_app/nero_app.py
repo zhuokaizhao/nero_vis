@@ -71,7 +71,7 @@ class UI_MainWindow(QWidget):
 
         # load/initialize program cache
         self.use_cache = False
-        cache_dir = os.path.join(os.getcwd(), 'cache')
+        cache_dir = os.path.join(os.getcwd(), 'available_cache')
         if not os.path.isdir(cache_dir):
             os.mkdir(cache_dir)
 
@@ -457,8 +457,14 @@ class UI_MainWindow(QWidget):
 
             # in object detection, only all the image paths are loaded
             elif self.mode == 'object_detection':
+                # all the images and labels paths
                 self.all_images_paths = glob.glob(os.path.join(self.dataset_dir, 'images', '*.jpg'))
-                self.all_labels_paths = glob.glob(os.path.join(self.dataset_dir, 'labels', '*.npy'))
+                self.all_labels_paths = []
+                for cur_image_path in self.all_images_paths:
+                    cur_label_path = cur_image_path.replace('images', 'labels').replace('jpg', 'npy')
+                    self.all_labels_paths.append(cur_label_path)
+
+                # name of the classes of each label
                 self.loaded_images_labels = []
                 for i, cur_label_path in enumerate(self.all_labels_paths):
                     cur_label = cur_label_path.split('/')[-1].split('_')[0]
@@ -1163,10 +1169,10 @@ class UI_MainWindow(QWidget):
         cur_class_indices = []
         if self.class_selection == 'all':
             # all the indices
-            cur_class_indices = list(range(len(self.loaded_image_label)))
+            cur_class_indices = list(range(len(self.loaded_images_labels)))
         else:
-            for i in range(len(self.loaded_image_label)):
-                if self.class_selection == self.loaded_image_label[i, -1]:
+            for i in range(len(self.loaded_images_labels)):
+                if self.class_selection == self.loaded_images_labels[i]:
                     cur_class_indices.append(i)
 
         if self.mode == 'digit_recognition':
