@@ -2407,7 +2407,7 @@ class UI_MainWindow(QWidget):
 
     # display MNIST single results
     def display_mnist_single_result(self, type, boundary_width):
-
+        self.single_result_existed = True
         # aggregate mode does not draw arrow
         if self.data_mode == 'single':
             # draw arrow
