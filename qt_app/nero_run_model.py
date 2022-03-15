@@ -320,7 +320,7 @@ def process_model_outputs(outputs, targets, iou_thres=0.5, conf_thres=0):
         # precision = TP / (TP + FP)
         precision = num_true_positive / (num_true_positive + num_false_positive + 1e-16)
         # Recall = TP / (TP + FN), where (TP + FN) is just the number of ground truths
-        recall = np.min(1, num_true_positive / (len(true_boxes) + 1e-16))
+        recall = min(1, num_true_positive / (len(true_boxes) + 1e-16))
         # F-measure = (2 * Precision * Recall) / (Precision + Recall)
         F_measure = (2 * precision * recall) / (precision + recall + 1e-16)
 

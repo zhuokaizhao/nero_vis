@@ -590,16 +590,18 @@ class UI_MainWindow(QWidget):
             print('Model 1:', text)
             self.model_1_name = text
             if self.mode == 'digit_recognition':
+                # Original, E2CNN or DA
+                self.model_1_cache_name = self.model_1_name.split(' ')[0]
                 # load the mode
-                if text == 'Simple model':
+                if text == 'Original model':
                     self.model_1_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'non_eqv', '*.pt'))[0]
                     # reload model
                     self.model_1 = nero_run_model.load_model(self.mode, 'non-eqv', self.model_1_path)
-                elif text == 'Simple model with E2CNN':
+                elif text == 'E2CNN model':
                     self.model_1_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'rot_eqv', '*.pt'))[0]
                     # reload model
                     self.model_1 = nero_run_model.load_model(self.mode, 'rot-eqv', self.model_1_path)
-                elif text == 'Simple model with DA':
+                elif text == 'DA model':
                     self.model_1_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'aug_rot_eqv', '*.pt'))[0]
                     # reload model
                     self.model_1 = nero_run_model.load_model(self.mode, 'aug-eqv', self.model_1_path)
@@ -656,16 +658,18 @@ class UI_MainWindow(QWidget):
             print('Model 2:', text)
             self.model_2_name = text
             if self.mode == 'digit_recognition':
+                # Original, E2CNN or DA
+                self.model_2_cache_name = self.model_1_name.split(' ')[0]
                 # load the mode
-                if text == 'Simple model':
+                if text == 'Original model':
                     self.model_2_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'non_eqv', '*.pt'))[0]
                     # reload model
                     self.model_2 = nero_run_model.load_model('non_eqv', self.model_2_path)
-                elif text == 'Simple model with E2CNN':
+                elif text == 'E2CNN model':
                     self.model_2_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'rot_eqv', '*.pt'))[0]
                     # reload model
                     self.model_2 = nero_run_model.load_model('rot_eqv', self.model_2_path)
-                elif text == 'Simple model with DA':
+                elif text == 'DA model':
                     self.model_2_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'aug_rot_eqv', '*.pt'))[0]
                     # reload model
                     self.model_2 = nero_run_model.load_model('aug_eqv', self.model_2_path)
@@ -789,7 +793,7 @@ class UI_MainWindow(QWidget):
             self.single_images_paths = []
             # add a image of each class
             for i in range(10):
-                cur_image_path = glob.glob(os.path.join(os.getcwd(), 'example_data', self.mode, 'single', f'label_{i}*.jpg'))[0]
+                cur_image_path = glob.glob(os.path.join(os.getcwd(), 'example_data', self.mode, 'single', f'label_{i}*.png'))[0]
                 self.single_images_paths.append(cur_image_path)
                 self.image_menu.addItem(QtGui.QIcon(cur_image_path), f'Image {i}')
 
@@ -837,10 +841,10 @@ class UI_MainWindow(QWidget):
         self.model_1_menu.setFixedSize(QtCore.QSize(300, 50))
         self.model_1_menu.setStyleSheet('font-size: 18px')
         if self.mode == 'digit_recognition':
-            self.model_1_menu.addItem(model_1_icon, 'Simple model')
-            self.model_1_menu.addItem(model_1_icon, 'Simple model with E2CNN')
-            self.model_1_menu.addItem(model_1_icon, 'Simple model with DA')
-            self.model_1_menu.setCurrentText('Simple model')
+            self.model_1_menu.addItem(model_1_icon, 'Original model')
+            self.model_1_menu.addItem(model_1_icon, 'E2CNN model')
+            self.model_1_menu.addItem(model_1_icon, 'DA model')
+            self.model_1_menu.setCurrentText('Original model')
         elif self.mode == 'object_detection':
             self.model_1_menu.addItem(model_1_icon, 'FasterRCNN (0% jittering)')
             self.model_1_menu.addItem(model_1_icon, 'FasterRCNN (20% jittering)')
@@ -879,11 +883,11 @@ class UI_MainWindow(QWidget):
         self.model_2_menu.lineEdit().setReadOnly(True)
         self.model_2_menu.lineEdit().setAlignment(QtCore.Qt.AlignCenter)
         if self.mode == 'digit_recognition':
-            self.model_2_menu.addItem(model_2_icon, 'Simple model')
-            self.model_2_menu.addItem(model_2_icon, 'Simple model with E2CNN')
-            self.model_2_menu.addItem(model_2_icon, 'Simple model with DA')
-            # model_2_menu.setCurrentText('Simple model with E2CNN')
-            self.model_2_menu.setCurrentText('Simple model with DA')
+            self.model_2_menu.addItem(model_2_icon, 'Original model')
+            self.model_2_menu.addItem(model_2_icon, 'E2CNN model')
+            self.model_2_menu.addItem(model_2_icon, 'DA model')
+            # model_2_menu.setCurrentText('E2CNN model')
+            self.model_2_menu.setCurrentText('DA model')
         elif self.mode == 'object_detection':
             self.model_2_menu.addItem(model_2_icon, 'FasterRCNN (0% jittering)')
             self.model_2_menu.addItem(model_2_icon, 'FasterRCNN (20% jittering)')
@@ -915,7 +919,7 @@ class UI_MainWindow(QWidget):
         if self.mode == 'digit_recognition':
             self.batch_size = 100
             # add to general layout
-            self.layout.addLayout(self.aggregate_result_layout, 0, 2)
+            self.layout.addLayout(self.aggregate_result_layout, 1, 0)
         elif self.mode == 'object_detection':
             self.batch_size = 64
             # add to general layout
@@ -1156,10 +1160,10 @@ class UI_MainWindow(QWidget):
         cur_class_indices = []
         if self.class_selection == 'all':
             # all the indices
-            cur_class_indices = list(range(len(self.loaded_images_labels)))
+            cur_class_indices = list(range(len(self.loaded_image_label)))
         else:
-            for i in range(len(self.loaded_images_labels)):
-                if self.class_selection == self.loaded_images_labels[i]:
+            for i in range(len(self.loaded_image_label)):
+                if self.class_selection == self.loaded_image_label[i, -1]:
                     cur_class_indices.append(i)
 
         if self.mode == 'digit_recognition':
@@ -1173,50 +1177,46 @@ class UI_MainWindow(QWidget):
         for i, index in enumerate(cur_class_indices):
             # if the current index matches with the selected class
             if self.class_selection == 'all' or self.loaded_images_labels[i] == self.class_selection:
-                if self.quantity_name == 'Confidence*IOU' or self.quantity_name == 'Confidence' or self.quantity_name == 'IOU':
-                        # go through all the transfomations
-                        for j in range(num_transformations):
-                            if self.mode == 'digit_recognition':
-                                # all_outputs has shape (num_rotations, num_samples, 10)
-                                all_high_dim_points_1[i, j] = int(self.all_outputs_1[j][index].argmax() == self.loaded_images_labels[index])
-                                all_high_dim_points_2[i, j] = int(self.all_outputs_2[j][index].argmax() == self.loaded_images_labels[index])
+                # go through all the transfomations
+                for j in range(num_transformations):
+                    if self.mode == 'digit_recognition':
+                        # all_outputs has shape (num_rotations, num_samples, 10)
+                        all_high_dim_points_1[i, j] = int(self.all_outputs_1[j][index].argmax() == self.loaded_images_labels[index])
+                        all_high_dim_points_2[i, j] = int(self.all_outputs_2[j][index].argmax() == self.loaded_images_labels[index])
 
-                            elif self.mode == 'object_detection':
+                    elif self.mode == 'object_detection':
 
-                                y = int(j//len(self.x_translation))
-                                x = int(j%len(self.x_translation))
+                        y = int(j//len(self.x_translation))
+                        x = int(j%len(self.x_translation))
 
-                                # aggregate_outputs_1 has shape (num_y_translations, num_x_translations, num_samples, 7)
-                                cur_conf_1 = self.aggregate_outputs_1[y, x][i][0, 4]
-                                cur_iou_1= self.aggregate_outputs_1[y, x][i][0, 6]
-                                cur_conf_2 = self.aggregate_outputs_2[y, x][i][0, 4]
-                                cur_iou_2 = self.aggregate_outputs_2[y, x][i][0, 6]
+                        # aggregate_outputs_1 has shape (num_y_translations, num_x_translations, num_samples, 7)
+                        cur_conf_1 = self.aggregate_outputs_1[y, x][i][0, 4]
+                        cur_iou_1= self.aggregate_outputs_1[y, x][i][0, 6]
 
-                                if self.quantity_name == 'Confidence*IOU':
-                                    cur_value_1 = cur_conf_1 * cur_iou_1
-                                    cur_value_2 = cur_conf_2 * cur_iou_2
-                                elif self.quantity_name == 'Confidence':
-                                    cur_value_1 = cur_conf_1
-                                    cur_value_2 = cur_conf_2
-                                elif self.quantity_name == 'IOU':
-                                    cur_value_1 = cur_iou_1
-                                    cur_value_2 = cur_iou_2
+                        cur_conf_2 = self.aggregate_outputs_2[y, x][i][0, 4]
+                        cur_iou_2 = self.aggregate_outputs_2[y, x][i][0, 6]
 
-                                all_high_dim_points_1[i, j] = cur_value_1
-                                all_high_dim_points_2[i, j] = cur_value_2
+                        if self.quantity_name == 'Confidence*IOU':
+                            cur_value_1 = cur_conf_1 * cur_iou_1
+                            cur_value_2 = cur_conf_2 * cur_iou_2
+                        elif self.quantity_name == 'Confidence':
+                            cur_value_1 = cur_conf_1
+                            cur_value_2 = cur_conf_2
+                        elif self.quantity_name == 'IOU':
+                            cur_value_1 = cur_iou_1
+                            cur_value_2 = cur_iou_2
+                        elif self.quantity_name == 'Precision':
+                            cur_value_1 = self.aggregate_precision_1[y, x][i]
+                            cur_value_2 = self.aggregate_precision_2[y, x][i]
+                        elif self.quantity_name == 'Recall':
+                            cur_value_1 = self.aggregate_recall_1[y, x][i]
+                            cur_value_2 = self.aggregate_recall_2[y, x][i]
+                        elif self.quantity_name == 'F1 Score':
+                            cur_value_1 = self.aggregate_F_measure_1[y, x][i]
+                            cur_value_2 = self.aggregate_F_measure_2[y, x][i]
 
-                # when the current selected is precision, recall, etc that
-                else:
-                    # since mAP is no high-dim, do thing if that is selected
-                    if self.quantity_name == 'Precision':
-                        all_high_dim_points_1 = self.aggregate_precision_1
-                        all_high_dim_points_2 = self.aggregate_precision_2
-                    elif self.quantity_name == 'Recall':
-                        all_high_dim_points_1 = self.aggregate_recall_1
-                        all_high_dim_points_2 = self.aggregate_recall_2
-                    elif self.quantity_name == 'F1 Score':
-                        all_high_dim_points_1 = self.aggregate_F_measure_1
-                        all_high_dim_points_2 = self.aggregate_F_measure_2
+                        all_high_dim_points_1[i, j] = cur_value_1
+                        all_high_dim_points_2[i, j] = cur_value_2
 
         # get the average intensity of each sample
         all_intensity_1 = np.mean(all_high_dim_points_1, axis=1)
@@ -1305,42 +1305,63 @@ class UI_MainWindow(QWidget):
 
         if self.mode == 'digit_recognition':
             # all the rotation angles applied to the aggregated dataset
-            self.all_aggregate_angles = list(range(0, 365, 90))
-            # average accuracies over all digits under all rotations, has shape (num_rotations, 1)
-            self.all_avg_accuracy_1 = np.zeros(len(self.all_aggregate_angles))
-            self.all_avg_accuracy_2 = np.zeros(len(self.all_aggregate_angles))
-            # average accuracies of each digit under all rotations, has shape (num_rotations, 10)
-            self.all_avg_accuracy_per_digit_1 = np.zeros((len(self.all_aggregate_angles), 10))
-            self.all_avg_accuracy_per_digit_2 = np.zeros((len(self.all_aggregate_angles), 10))
-            # output of each class's probablity of all samples, has shape (num_rotations, num_samples, 10)
-            self.all_outputs_1 = np.zeros((len(self.all_aggregate_angles), len(self.cur_images_pt), 10))
-            self.all_outputs_2 = np.zeros((len(self.all_aggregate_angles), len(self.cur_images_pt), 10))
+            self.all_aggregate_angles = list(range(0, 365, 5))
 
-            # for all the loaded images
-            # for i, self.cur_rotation_angle in enumerate(range(0, 365, 5)):
-            for i, self.cur_rotation_angle in enumerate(self.all_aggregate_angles):
-                print(f'\nAggregate mode: Rotated {self.cur_rotation_angle} degrees')
-                # self.all_angles.append(self.cur_rotation_angle)
+            # load from cache if available
+            if self.use_cache:
+                self.all_avg_accuracy_1 = self.load_from_cache(f'{self.mode}_{self.data_mode}_{self.model_1_cache_name}_avg_accuracy')
+                self.all_avg_accuracy_per_digit_1 = self.load_from_cache(f'{self.mode}_{self.data_mode}_{self.model_1_cache_name}_avg_accuracy_per_digit')
+                self.all_outputs_1 = self.load_from_cache(f'{self.mode}_{self.data_mode}_{self.model_1_cache_name}_outputs')
 
-                avg_accuracy_1, avg_accuracy_per_digit_1, output_1 = nero_run_model.run_mnist_once(self.model_1,
-                                                                                        self.cur_images_pt,
-                                                                                        self.loaded_images_labels,
-                                                                                        batch_size=self.batch_size,
-                                                                                        rotate_angle=self.cur_rotation_angle)
+                self.all_avg_accuracy_2 = self.load_from_cache(f'{self.mode}_{self.data_mode}_{self.model_2_cache_name}_avg_accuracy')
+                self.all_avg_accuracy_per_digit_2 = self.load_from_cache(f'{self.mode}_{self.data_mode}_{self.model_2_cache_name}_avg_accuracy_per_digit')
+                self.all_outputs_2 = self.load_from_cache(f'{self.mode}_{self.data_mode}_{self.model_2_cache_name}_outputs')
+            else:
+                # average accuracies over all digits under all rotations, has shape (num_rotations, 1)
+                self.all_avg_accuracy_1 = np.zeros(len(self.all_aggregate_angles))
+                self.all_avg_accuracy_2 = np.zeros(len(self.all_aggregate_angles))
+                # average accuracies of each digit under all rotations, has shape (num_rotations, 10)
+                self.all_avg_accuracy_per_digit_1 = np.zeros((len(self.all_aggregate_angles), 10))
+                self.all_avg_accuracy_per_digit_2 = np.zeros((len(self.all_aggregate_angles), 10))
+                # output of each class's probablity of all samples, has shape (num_rotations, num_samples, 10)
+                self.all_outputs_1 = np.zeros((len(self.all_aggregate_angles), len(self.cur_images_pt), 10))
+                self.all_outputs_2 = np.zeros((len(self.all_aggregate_angles), len(self.cur_images_pt), 10))
 
-                avg_accuracy_2, avg_accuracy_per_digit_2, output_2 = nero_run_model.run_mnist_once(self.model_2,
-                                                                                        self.cur_images_pt,
-                                                                                        self.loaded_images_labels,
-                                                                                        batch_size=self.batch_size,
-                                                                                        rotate_angle=self.cur_rotation_angle)
+                # for all the loaded images
+                # for i, self.cur_rotation_angle in enumerate(range(0, 365, 5)):
+                for i, self.cur_rotation_angle in enumerate(self.all_aggregate_angles):
+                    print(f'\nAggregate mode: Rotated {self.cur_rotation_angle} degrees')
+                    # self.all_angles.append(self.cur_rotation_angle)
 
-                # append to results
-                self.all_avg_accuracy_1[i] = avg_accuracy_1
-                self.all_avg_accuracy_2[i] = avg_accuracy_2
-                self.all_avg_accuracy_per_digit_1[i] = avg_accuracy_per_digit_1
-                self.all_avg_accuracy_per_digit_2[i] = avg_accuracy_per_digit_2
-                self.all_outputs_1[i] = output_1
-                self.all_outputs_2[i] = output_2
+                    avg_accuracy_1, avg_accuracy_per_digit_1, output_1 = nero_run_model.run_mnist_once(self.model_1,
+                                                                                            self.cur_images_pt,
+                                                                                            self.loaded_images_labels,
+                                                                                            batch_size=self.batch_size,
+                                                                                            rotate_angle=self.cur_rotation_angle)
+
+                    avg_accuracy_2, avg_accuracy_per_digit_2, output_2 = nero_run_model.run_mnist_once(self.model_2,
+                                                                                            self.cur_images_pt,
+                                                                                            self.loaded_images_labels,
+                                                                                            batch_size=self.batch_size,
+                                                                                            rotate_angle=self.cur_rotation_angle)
+
+                    # append to results
+                    self.all_avg_accuracy_1[i] = avg_accuracy_1
+                    self.all_avg_accuracy_2[i] = avg_accuracy_2
+                    self.all_avg_accuracy_per_digit_1[i] = avg_accuracy_per_digit_1
+                    self.all_avg_accuracy_per_digit_2[i] = avg_accuracy_per_digit_2
+                    self.all_outputs_1[i] = output_1
+                    self.all_outputs_2[i] = output_2
+
+                # save to cache
+                self.save_to_cache(f'{self.mode}_{self.data_mode}_{self.model_1_cache_name}_avg_accuracy', self.all_avg_accuracy_1)
+                self.save_to_cache(f'{self.mode}_{self.data_mode}_{self.model_1_cache_name}_avg_accuracy_per_digit', self.all_avg_accuracy_per_digit_1)
+                self.save_to_cache(f'{self.mode}_{self.data_mode}_{self.model_1_cache_name}_outputs', self.all_outputs_1)
+
+                self.save_to_cache(f'{self.mode}_{self.data_mode}_{self.model_2_cache_name}_avg_accuracy', self.all_avg_accuracy_2)
+                self.save_to_cache(f'{self.mode}_{self.data_mode}_{self.model_2_cache_name}_avg_accuracy_per_digit', self.all_avg_accuracy_per_digit_2)
+                self.save_to_cache(f'{self.mode}_{self.data_mode}_{self.model_2_cache_name}_outputs', self.all_outputs_2)
+
 
             # initialize digit selection control
             self.init_aggregate_plot_control()
@@ -2062,14 +2083,11 @@ class UI_MainWindow(QWidget):
         # add this image to the layout
         if self.data_mode == 'single':
             self.single_result_layout.addWidget(self.image_label, 1, 0)
-            # self.single_result_layout.addWidget(self.name_label, 2, 0)
 
         elif self.data_mode == 'aggregate':
             if self.mode == 'digit_recognition':
                 self.single_result_layout.addWidget(self.image_label, 0, 2)
-                # self.single_result_layout.addWidget(self.name_label, 1, 2)
             elif self.mode == 'object_detection':
-                # self.single_result_layout.addWidget(self.image_label, 1, 0, 2, 1)
                 self.aggregate_result_layout.addWidget(self.image_label, 1, 3, 3, 1)
 
 
