@@ -71,7 +71,7 @@ class UI_MainWindow(QWidget):
 
         # load/initialize program cache
         self.use_cache = False
-        cache_dir = os.path.join(os.getcwd(), 'available_cache')
+        cache_dir = os.path.join(os.getcwd(), 'cache')
         if not os.path.isdir(cache_dir):
             os.mkdir(cache_dir)
 
@@ -1184,48 +1184,46 @@ class UI_MainWindow(QWidget):
         all_high_dim_points_2 = np.zeros((len(cur_class_indices), num_transformations))
 
         for i, index in enumerate(cur_class_indices):
-            # if the current index matches with the selected class
-            if self.class_selection == 'all' or self.loaded_images_labels[i] == self.class_selection:
-                # go through all the transfomations
-                for j in range(num_transformations):
-                    if self.mode == 'digit_recognition':
-                        # all_outputs has shape (num_rotations, num_samples, 10)
-                        all_high_dim_points_1[i, j] = int(self.all_outputs_1[j][index].argmax() == self.loaded_images_labels[index])
-                        all_high_dim_points_2[i, j] = int(self.all_outputs_2[j][index].argmax() == self.loaded_images_labels[index])
+            # go through all the transfomations
+            for j in range(num_transformations):
+                if self.mode == 'digit_recognition':
+                    # all_outputs has shape (num_rotations, num_samples, 10)
+                    all_high_dim_points_1[i, j] = int(self.all_outputs_1[j][index].argmax() == self.loaded_images_labels[index])
+                    all_high_dim_points_2[i, j] = int(self.all_outputs_2[j][index].argmax() == self.loaded_images_labels[index])
 
-                    elif self.mode == 'object_detection':
+                elif self.mode == 'object_detection':
 
-                        y = int(j//len(self.x_translation))
-                        x = int(j%len(self.x_translation))
+                    y = int(j//len(self.x_translation))
+                    x = int(j%len(self.x_translation))
 
-                        # aggregate_outputs_1 has shape (num_y_translations, num_x_translations, num_samples, 7)
-                        cur_conf_1 = self.aggregate_outputs_1[y, x][i][0, 4]
-                        cur_iou_1= self.aggregate_outputs_1[y, x][i][0, 6]
+                    # aggregate_outputs_1 has shape (num_y_translations, num_x_translations, num_samples, 7)
+                    cur_conf_1 = self.aggregate_outputs_1[y, x][i][0, 4]
+                    cur_iou_1= self.aggregate_outputs_1[y, x][i][0, 6]
 
-                        cur_conf_2 = self.aggregate_outputs_2[y, x][i][0, 4]
-                        cur_iou_2 = self.aggregate_outputs_2[y, x][i][0, 6]
+                    cur_conf_2 = self.aggregate_outputs_2[y, x][i][0, 4]
+                    cur_iou_2 = self.aggregate_outputs_2[y, x][i][0, 6]
 
-                        if self.quantity_name == 'Confidence*IOU':
-                            cur_value_1 = cur_conf_1 * cur_iou_1
-                            cur_value_2 = cur_conf_2 * cur_iou_2
-                        elif self.quantity_name == 'Confidence':
-                            cur_value_1 = cur_conf_1
-                            cur_value_2 = cur_conf_2
-                        elif self.quantity_name == 'IOU':
-                            cur_value_1 = cur_iou_1
-                            cur_value_2 = cur_iou_2
-                        elif self.quantity_name == 'Precision':
-                            cur_value_1 = self.aggregate_precision_1[y, x][i]
-                            cur_value_2 = self.aggregate_precision_2[y, x][i]
-                        elif self.quantity_name == 'Recall':
-                            cur_value_1 = self.aggregate_recall_1[y, x][i]
-                            cur_value_2 = self.aggregate_recall_2[y, x][i]
-                        elif self.quantity_name == 'F1 Score':
-                            cur_value_1 = self.aggregate_F_measure_1[y, x][i]
-                            cur_value_2 = self.aggregate_F_measure_2[y, x][i]
+                    if self.quantity_name == 'Confidence*IOU':
+                        cur_value_1 = cur_conf_1 * cur_iou_1
+                        cur_value_2 = cur_conf_2 * cur_iou_2
+                    elif self.quantity_name == 'Confidence':
+                        cur_value_1 = cur_conf_1
+                        cur_value_2 = cur_conf_2
+                    elif self.quantity_name == 'IOU':
+                        cur_value_1 = cur_iou_1
+                        cur_value_2 = cur_iou_2
+                    elif self.quantity_name == 'Precision':
+                        cur_value_1 = self.aggregate_precision_1[y, x][i]
+                        cur_value_2 = self.aggregate_precision_2[y, x][i]
+                    elif self.quantity_name == 'Recall':
+                        cur_value_1 = self.aggregate_recall_1[y, x][i]
+                        cur_value_2 = self.aggregate_recall_2[y, x][i]
+                    elif self.quantity_name == 'F1 Score':
+                        cur_value_1 = self.aggregate_F_measure_1[y, x][i]
+                        cur_value_2 = self.aggregate_F_measure_2[y, x][i]
 
-                        all_high_dim_points_1[i, j] = cur_value_1
-                        all_high_dim_points_2[i, j] = cur_value_2
+                    all_high_dim_points_1[i, j] = cur_value_1
+                    all_high_dim_points_2[i, j] = cur_value_2
 
         # get the average intensity of each sample
         all_intensity_1 = np.mean(all_high_dim_points_1, axis=1)
@@ -1236,6 +1234,7 @@ class UI_MainWindow(QWidget):
         low_dim_1 = normalize_low_dim_result(low_dim_1)
         low_dim_2 = dimension_reduce(all_high_dim_points_2, target_dim=2)
         low_dim_2 = normalize_low_dim_result(low_dim_2)
+        print(f'{len(low_dim_1)} images under this class label')
 
         # scatter plot on low-dim points
         low_dim_scatter_view_1 = pg.GraphicsLayoutWidget()
