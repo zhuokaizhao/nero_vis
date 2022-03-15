@@ -158,6 +158,8 @@ class UI_MainWindow(QWidget):
                 self.image_size = 29
                 # image size that is used for display
                 self.display_image_size = 150
+                # heatmap and detailed image plot size
+                self.plot_size = 320
                 # image (input data) modification mode
                 self.rotation = True
                 self.translation = False
@@ -990,7 +992,7 @@ class UI_MainWindow(QWidget):
                 if text.split(' ')[0] == 'Averaged':
                     self.class_selection = 'all'
                 elif text.split(' ')[0] == 'Digit':
-                    self.class_selection = text.split(' ')[-1]
+                    self.class_selection = int(text.split(' ')[-1])
 
                 # display the plot
                 self.display_mnist_aggregate_result()
@@ -1005,9 +1007,9 @@ class UI_MainWindow(QWidget):
                 # display the plot
                 self.display_coco_aggregate_result()
 
-                # after change class
-                if self.dr_result_existed:
-                    self.run_dimension_reduction()
+            # after change class, run new dimension reduction if previously run
+            if self.dr_result_existed:
+                self.run_dimension_reduction()
 
         # change different dimension reduction algorithms
         def dr_selection_changed(text):
@@ -1139,10 +1141,9 @@ class UI_MainWindow(QWidget):
             # resize the display QImage
             self.cur_display_image = self.cur_display_image.scaledToWidth(self.display_image_size)
 
-            # display the image
-            # self.display_image()
-
             if self.mode == 'digit_recognition':
+                # display the image
+                self.display_image()
                 # prepare image tensor for model purpose
                 self.cur_image_pt = nero_transform.prepare_mnist_image(self.cur_image_pt)
                 # run model once and display results (Detailed bar plot)
@@ -1235,6 +1236,8 @@ class UI_MainWindow(QWidget):
         low_dim_2 = dimension_reduce(all_high_dim_points_2, target_dim=2)
         low_dim_2 = normalize_low_dim_result(low_dim_2)
         print(f'{len(low_dim_1)} images under this class label')
+        print(low_dim_1)
+        print(low_dim_2)
 
         # scatter plot on low-dim points
         low_dim_scatter_view_1 = pg.GraphicsLayoutWidget()
@@ -1260,7 +1263,7 @@ class UI_MainWindow(QWidget):
 
         # save colorbar as used in aggregate NERO plot, to be used in color encode scatter points
         scatter_color_map = pg.colormap.get('viridis')
-        scatter_lut = scatter_color_map.getLookupTable(start=0, stop=1, nPts=100, alpha=False)
+        scatter_lut = scatter_color_map.getLookupTable(start=0, stop=1, nPts=101, alpha=False)
         # quantize all the intensity into color
         color_indices_1 = []
         color_indices_2 = []
@@ -1300,8 +1303,8 @@ class UI_MainWindow(QWidget):
             self.low_dim_scatter_item_2.sigClicked.connect(low_dim_scatter_clicked)
 
         if self.mode == 'digit_recognition':
-            self.aggregate_result_layout.addWidget(low_dim_scatter_view_1, 0, 0)
-            self.aggregate_result_layout.addWidget(low_dim_scatter_view_2, 0, 0)
+            self.aggregate_result_layout.addWidget(low_dim_scatter_view_1, 1, 3)
+            self.aggregate_result_layout.addWidget(low_dim_scatter_view_2, 2, 3)
         elif self.mode == 'object_detection':
             # aggregate result layout at the very left
             self.aggregate_result_layout.addWidget(low_dim_scatter_view_1, 2, 1)
@@ -2094,7 +2097,7 @@ class UI_MainWindow(QWidget):
 
         elif self.data_mode == 'aggregate':
             if self.mode == 'digit_recognition':
-                self.single_result_layout.addWidget(self.image_label, 0, 2)
+                self.aggregate_result_layout.addWidget(self.image_label, 1, 3, 2, 1)
             elif self.mode == 'object_detection':
                 self.aggregate_result_layout.addWidget(self.image_label, 1, 3, 3, 1)
 
@@ -2262,13 +2265,12 @@ class UI_MainWindow(QWidget):
             self.aggregate_result_layout.addWidget(self.aggregate_heatmap_view_2, 1, 2)
 
 
-    # display MNIST aggregated results
-    def display_mnist_aggregate_result(self):
-
+    def draw_aggregate_polar(self):
         # initialize view and plot
         polar_view = pg.GraphicsLayoutWidget()
         polar_view.setBackground('white')
-        polar_view.setFixedSize(500, 500)
+        # polar plot larger than others because it occupies two rows
+        polar_view.setFixedSize(self.plot_size*1.7, self.plot_size*1.7)
         self.aggregate_polar_plot = polar_view.addPlot()
         self.aggregate_polar_plot = self.draw_polar(self.aggregate_polar_plot)
 
@@ -2281,14 +2283,17 @@ class UI_MainWindow(QWidget):
         all_y_1 = []
         all_x_2 = []
         all_y_2 = []
-        # plot selected digit's average accuracy across all rotations
+        # plot selected digit's average accuracy/confidence across all rotations
         for i in range(len(self.all_aggregate_angles)):
             radian = self.all_aggregate_angles[i] / 180 * np.pi
             # model 1 accuracy
-            if self.class_selection == -1:
-                cur_quantity_1 = self.all_avg_accuracy_1[i]
-            else:
-                cur_quantity_1 = self.all_avg_accuracy_per_digit_1[i][self.class_selection]
+            if self.quantity_name == 'Accuracy':
+                if self.class_selection == 'all':
+                    cur_quantity_1 = self.all_avg_accuracy_1[i]
+                else:
+                    cur_quantity_1 = self.all_avg_accuracy_per_digit_1[i][self.class_selection]
+            # elif self.quantity_name == 'Confidence':
+
             # Transform to cartesian and plot
             x_1 = cur_quantity_1 * np.cos(radian)
             y_1 = cur_quantity_1 * np.sin(radian)
@@ -2300,10 +2305,12 @@ class UI_MainWindow(QWidget):
                                 'brush': QtGui.QColor('blue')})
 
             # model 2 quantity
-            if self.class_selection == -1:
-                cur_quantity_2 = self.all_avg_accuracy_2[i]
-            else:
-                cur_quantity_2 = self.all_avg_accuracy_per_digit_2[i][self.class_selection]
+            if self.quantity_name == 'Accuracy':
+                if self.class_selection == 'all':
+                    cur_quantity_2 = self.all_avg_accuracy_2[i]
+                else:
+                    cur_quantity_2 = self.all_avg_accuracy_per_digit_2[i][self.class_selection]
+
             # Transform to cartesian and plot
             x_2 = cur_quantity_2 * np.cos(radian)
             y_2 = cur_quantity_2 * np.sin(radian)
@@ -2330,7 +2337,46 @@ class UI_MainWindow(QWidget):
         self.aggregate_polar_plot.setMouseEnabled(x=False, y=False)
 
         # add the plot view to the layout
-        self.aggregate_result_layout.addWidget(polar_view, 0, 1)
+        self.aggregate_result_layout.addWidget(polar_view, 1, 1, 2, 2)
+
+    # display MNIST aggregated results
+    def display_mnist_aggregate_result(self):
+
+        @QtCore.Slot()
+        def polar_quantity_changed(text):
+            print('Plotting:', text, 'on polar NERO')
+            self.quantity_name = text
+            self.draw_aggregate_polar()
+
+        # move the model menu on top of the each aggregate NERO plot
+        self.aggregate_result_layout.addWidget(self.model_1_menu, 0, 1, 1, 1, QtCore.Qt.AlignCenter)
+        self.aggregate_result_layout.addWidget(self.model_2_menu, 0, 2, 1, 1, QtCore.Qt.AlignCenter)
+
+        # move run button in the first column (after aggregate heatmap control)
+        self.aggregate_plot_control_layout.addWidget(self.run_button, 4, 0)
+        self.aggregate_plot_control_layout.addWidget(self.use_cache_checkbox, 5, 0)
+
+        self.aggregate_result_existed = True
+
+        # drop down menu on selection which quantity to plot
+        quantity_menu = QtWidgets.QComboBox()
+        quantity_menu.setFixedSize(QtCore.QSize(250, 50))
+        quantity_menu.setStyleSheet('font-size: 18px')
+        quantity_menu.setEditable(True)
+        quantity_menu.lineEdit().setReadOnly(True)
+        quantity_menu.lineEdit().setAlignment(QtCore.Qt.AlignCenter)
+
+        quantity_menu.addItem('Accuracy')
+        # quantity_menu.addItem('Confidence')
+        quantity_menu.setCurrentText('Accuracy')
+        self.quantity_name = 'Accuracy'
+
+        # connect the drop down menu with actions
+        quantity_menu.currentTextChanged.connect(polar_quantity_changed)
+        self.aggregate_plot_control_layout.addWidget(quantity_menu, 1, 0)
+
+        # draw the aggregate polar plot
+        self.draw_aggregate_polar()
 
 
     # display MNIST single results
