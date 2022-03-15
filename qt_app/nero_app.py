@@ -408,6 +408,9 @@ class UI_MainWindow(QWidget):
             if text == 'Input dataset':
                 return
 
+            # flag on if control has been set up
+            self.aggregate_plot_control_existed = False
+
             # clear the single image selection
             self.image_menu.setCurrentIndex(0)
 
@@ -617,6 +620,8 @@ class UI_MainWindow(QWidget):
                     # reload model
                     self.model_1 = nero_run_model.load_model(self.mode, 'aug-eqv', self.model_1_path)
 
+                print('Model 1 path:', self.model_1_path)
+
             elif self.mode == 'object_detection':
                 self.model_1_cache_name = self.model_1_name.split('(')[1].split(')')[0].split(' ')[0]
                 if text == 'FasterRCNN (0% jittering)':
@@ -654,15 +659,19 @@ class UI_MainWindow(QWidget):
                     self.model_1 = nero_run_model.load_model(self.mode, 'pre_trained', self.model_1_path)
                     print('Model 1 path: Downloaded from PyTorch')
 
-                # when loaded data is available, just show the result without clicking the button
-                if self.use_cache:
-                    if self.data_mode == 'aggregate':
-                        self.run_model_aggregated()
-                        self.aggregate_result_existed = True
+            # when loaded data is available, just show the result without clicking the button
+            if self.use_cache:
+                if self.data_mode == 'aggregate':
+                    self.run_model_aggregated()
+                    self.aggregate_result_existed = True
 
-                    elif self.data_mode == 'single':
-                        self.run_model_all()
-                        self.single_result_existed = True
+                    # run dimension reduction if previously run
+                    if self.dr_result_existed:
+                        self.run_dimension_reduction()
+
+                elif self.data_mode == 'single':
+                    self.run_model_all()
+                    self.single_result_existed = True
 
         @QtCore.Slot()
         def model_2_selection_changed(text):
@@ -684,6 +693,8 @@ class UI_MainWindow(QWidget):
                     self.model_2_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'aug_rot_eqv', '*.pt'))[0]
                     # reload model
                     self.model_2 = nero_run_model.load_model('aug_eqv', self.model_2_path)
+
+                print('Model 2 path:', self.model_2_path)
 
             elif self.mode == 'object_detection':
                 self.model_2_cache_name = self.model_2_name.split('(')[1].split(')')[0].split(' ')[0]
@@ -721,6 +732,20 @@ class UI_MainWindow(QWidget):
                     self.model_2_path = None
                     self.model_2 = nero_run_model.load_model(self.mode, 'pre_trained', self.model_2_path)
                     print('Model 2 path: Downloaded from PyTorch')
+
+            # when loaded data is available, just show the result without clicking the button
+            if self.use_cache:
+                if self.data_mode == 'aggregate':
+                    self.run_model_aggregated()
+                    self.aggregate_result_existed = True
+
+                    # run dimension reduction if previously run
+                    if self.dr_result_existed:
+                        self.run_dimension_reduction()
+
+                elif self.data_mode == 'single':
+                    self.run_model_all()
+                    self.single_result_existed = True
 
 
         # function used as model icon
@@ -930,7 +955,7 @@ class UI_MainWindow(QWidget):
         if self.mode == 'digit_recognition':
             self.batch_size = 100
             # add to general layout
-            self.layout.addLayout(self.aggregate_result_layout, 1, 0)
+            self.layout.addLayout(self.aggregate_result_layout, 1, 0, 3, 3)
         elif self.mode == 'object_detection':
             self.batch_size = 64
             # add to general layout
@@ -980,6 +1005,7 @@ class UI_MainWindow(QWidget):
     # initialize digit selection control drop down menu
     def init_aggregate_plot_control(self):
 
+        self.aggregate_plot_control_existed = True
         # mark if dimension reduction algorithm has been run
         self.dr_result_existed = False
 
@@ -1314,6 +1340,10 @@ class UI_MainWindow(QWidget):
     # run model on the aggregate dataset
     def run_model_aggregated(self):
 
+        if not self.aggregate_plot_control_existed:
+            # initialize digit selection control
+            self.init_aggregate_plot_control()
+
         if self.mode == 'digit_recognition':
             # all the rotation angles applied to the aggregated dataset
             self.all_aggregate_angles = list(range(0, 365, 5))
@@ -1373,9 +1403,6 @@ class UI_MainWindow(QWidget):
                 self.save_to_cache(f'{self.mode}_{self.data_mode}_{self.model_2_cache_name}_avg_accuracy_per_digit', self.all_avg_accuracy_per_digit_2)
                 self.save_to_cache(f'{self.mode}_{self.data_mode}_{self.model_2_cache_name}_outputs', self.all_outputs_2)
 
-
-            # initialize digit selection control
-            self.init_aggregate_plot_control()
 
             # display the result
             self.display_mnist_aggregate_result()
@@ -1475,8 +1502,6 @@ class UI_MainWindow(QWidget):
                 self.save_to_cache(name=f'{self.mode}_{self.data_mode}_{self.model_2_cache_name}_mAP', content=self.aggregate_mAP_2)
                 self.save_to_cache(name=f'{self.mode}_{self.data_mode}_{self.model_2_cache_name}_F_measure', content=self.aggregate_F_measure_2)
 
-            # initialize digit selection control
-            self.init_aggregate_plot_control()
 
             # display the result
             self.display_coco_aggregate_result()
