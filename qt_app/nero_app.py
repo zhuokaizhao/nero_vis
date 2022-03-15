@@ -130,11 +130,11 @@ class UI_MainWindow(QWidget):
             print(f'Cleaned previous run button')
             self.clear_layout(self.run_button_layout)
             self.run_button_existed = False
-        if self.data_existed:
+        if self.aggregate_result_existed:
             print(f'Cleaned {self.previous_mode} aggregate_result_layout')
             self.clear_layout(self.aggregate_result_layout)
             self.data_existed = False
-        if self.image_existed:
+        if self.single_result_existed:
             print(f'Cleaned {self.previous_mode} single_result_layout')
             self.clear_layout(self.single_result_layout)
             self.image_existed = False
@@ -1123,8 +1123,8 @@ class UI_MainWindow(QWidget):
             self.image_index = int(item.opts['name'])
 
             # start single result view from here
-            if not self.image_existed:
-                self.init_single_result_layout()
+            # if not self.image_existed:
+            #     self.init_single_result_layout()
 
             # get the corresponding image path
             self.image_path = self.all_images_paths[self.image_index]
@@ -2097,7 +2097,7 @@ class UI_MainWindow(QWidget):
 
         elif self.data_mode == 'aggregate':
             if self.mode == 'digit_recognition':
-                self.aggregate_result_layout.addWidget(self.image_label, 1, 3, 2, 1)
+                self.aggregate_result_layout.addWidget(self.image_label, 1, 4, 2, 1)
             elif self.mode == 'object_detection':
                 self.aggregate_result_layout.addWidget(self.image_label, 1, 3, 3, 1)
 
@@ -2437,7 +2437,7 @@ class UI_MainWindow(QWidget):
             # constrain plot showing limit by setting view box
             self.bar_plot.plotItem.vb.setLimits(xMin=-0.5, xMax=9.5, yMin=0, yMax=1.2)
             self.bar_plot.setBackground('w')
-            self.bar_plot.setFixedSize(600, 500)
+            self.bar_plot.setFixedSize(self.plot_size, self.plot_size)
             self.bar_plot.getAxis('bottom').setLabel('Digit')
             self.bar_plot.getAxis('left').setLabel('Confidence')
             # for i in range(10):
@@ -2465,7 +2465,7 @@ class UI_MainWindow(QWidget):
             if self.data_mode == 'single':
                 self.single_result_layout.addWidget(self.bar_plot, 1, 2)
             elif self.data_mode == 'aggregate':
-                self.single_result_layout.addWidget(self.bar_plot, 0, 0)
+                self.aggregate_result_layout.addWidget(self.bar_plot, 2, 6)
 
         elif type == 'polar':
 
@@ -2522,7 +2522,7 @@ class UI_MainWindow(QWidget):
             # initialize view and plot
             polar_view = pg.GraphicsLayoutWidget()
             polar_view.setBackground('white')
-            polar_view.setFixedSize(500, 500)
+            polar_view.setFixedSize(self.plot_size, self.plot_size)
             self.polar_plot = polar_view.addPlot()
             self.polar_plot = self.draw_polar(self.polar_plot)
 
@@ -2629,7 +2629,10 @@ class UI_MainWindow(QWidget):
             self.polar_plot.setMouseEnabled(x=False, y=False)
 
             # add the plot view to the layout
-            self.single_result_layout.addWidget(polar_view, 1, 3)
+            if self.data_mode == 'single':
+                self.single_result_layout.addWidget(polar_view, 1, 3)
+            elif self.data_mode == 'aggregate':
+                self.aggregate_result_layout.addWidget(polar_view, 1, 6)
 
         else:
             raise Exception('Unsupported display mode')
