@@ -167,15 +167,18 @@ class UI_MainWindow(QWidget):
                 self.rotation_step = 5
 
                 # preload model 1
-                self.model_1_name = 'Simple model'
+                self.model_1_name = 'Original model'
+                self.model_1_cache_name = self.model_1_name.split(' ')[0]
                 self.model_1_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'non_eqv', '*.pt'))[0]
                 self.model_1 = nero_run_model.load_model(self.mode, 'non_eqv', self.model_1_path)
 
                 # preload model 2
-                self.model_2_name = 'Simple model with DA'
+                self.model_2_name = 'DA model'
+                self.model_2_cache_name = self.model_2_name.split(' ')[0]
                 self.model_2_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'aug_rot_eqv', '*.pt'))[0]
                 self.model_2 = nero_run_model.load_model(self.mode, 'aug_eqv', self.model_2_path)
-                # self.model_2_name = 'Simple model with E2CNN'
+                # self.model_2_name = 'E2CNN model'
+                # self.model_2_cache_name = self.model_2_name.split(' ')[0]
                 # self.model_2_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'rot_eqv', '*.pt'))[0]
                 # self.model_2 = nero_run_model.load_model('rot-eqv', self.model_2_path)
 
