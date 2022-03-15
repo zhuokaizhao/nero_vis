@@ -437,7 +437,7 @@ class UI_MainWindow(QWidget):
             if self.mode == 'digit_recognition':
                 # load the image and scale the size
                 # get all the image paths from the directory
-                self.all_images_paths = glob.glob(os.path.join(self.dataset_dir, '*.jpg'))
+                self.all_images_paths = glob.glob(os.path.join(self.dataset_dir, '*.png'))
                 self.loaded_images_pt = []
                 self.loaded_images_names = []
                 self.loaded_images_labels = torch.zeros(len(self.all_images_paths), dtype=torch.int64)
@@ -1334,16 +1334,16 @@ class UI_MainWindow(QWidget):
                     # self.all_angles.append(self.cur_rotation_angle)
 
                     avg_accuracy_1, avg_accuracy_per_digit_1, output_1 = nero_run_model.run_mnist_once(self.model_1,
-                                                                                            self.cur_images_pt,
-                                                                                            self.loaded_images_labels,
-                                                                                            batch_size=self.batch_size,
-                                                                                            rotate_angle=self.cur_rotation_angle)
+                                                                                                        self.cur_images_pt,
+                                                                                                        self.loaded_images_labels,
+                                                                                                        batch_size=self.batch_size,
+                                                                                                        rotate_angle=self.cur_rotation_angle)
 
                     avg_accuracy_2, avg_accuracy_per_digit_2, output_2 = nero_run_model.run_mnist_once(self.model_2,
-                                                                                            self.cur_images_pt,
-                                                                                            self.loaded_images_labels,
-                                                                                            batch_size=self.batch_size,
-                                                                                            rotate_angle=self.cur_rotation_angle)
+                                                                                                        self.cur_images_pt,
+                                                                                                        self.loaded_images_labels,
+                                                                                                        batch_size=self.batch_size,
+                                                                                                        rotate_angle=self.cur_rotation_angle)
 
                     # append to results
                     self.all_avg_accuracy_1[i] = avg_accuracy_1
