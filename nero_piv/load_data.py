@@ -20,9 +20,9 @@ def read_all(data_path):
         img1_name_list = []
         img2_name_list = []
 
-        gt_name_list.extend(glob.glob(data_path + '/*_0.flo'))
-        img1_name_list.extend(glob.glob(data_path + '*_0.tif'))
-        img2_name_list.extend(glob.glob(data_path + '*_1.tif'))
+        gt_name_list.extend(glob.glob(data_path + '/*flow.flo'))
+        img1_name_list.extend(glob.glob(data_path + '*img1.tif'))
+        img2_name_list.extend(glob.glob(data_path + '*img2.tif'))
         gt_name_list.sort()
         img1_name_list.sort()
         img2_name_list.sort()
@@ -45,7 +45,6 @@ def construct_dataset(img1_name_list,
 
     amount = len(gt_name_list)
     total_data_index = np.arange(0, amount, 1)
-
     # load images and labels
     img1_name_list = np.asarray(img1_name_list)
     img2_name_list = np.asarray(img2_name_list)
