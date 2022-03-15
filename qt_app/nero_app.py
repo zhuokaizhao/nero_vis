@@ -14,6 +14,7 @@ from PySide6.QtGui  import QPixmap, QFont
 # from PySide6.QtCore import QEvent
 from PySide6.QtWidgets import QWidget, QLabel, QRadioButton
 
+from sklearn.compose import ColumnTransformer
 from sklearn.decomposition import PCA
 from sklearn.decomposition import FastICA
 from sklearn import manifold
@@ -1108,7 +1109,7 @@ class UI_MainWindow(QWidget):
 
         self.dr_result_existed = True
 
-        # helper function on computing dimension reduction via PCA
+        # helper function on computing dimension reductions
         def dimension_reduce(high_dim, target_dim):
 
             if self.dr_selection == 'PCA':
@@ -1224,11 +1225,11 @@ class UI_MainWindow(QWidget):
                     x = int(j%len(self.x_translation))
 
                     # aggregate_outputs_1 has shape (num_y_translations, num_x_translations, num_samples, 7)
-                    cur_conf_1 = self.aggregate_outputs_1[y, x][i][0, 4]
-                    cur_iou_1= self.aggregate_outputs_1[y, x][i][0, 6]
+                    cur_conf_1 = self.aggregate_outputs_1[y, x][index][0, 4]
+                    cur_iou_1= self.aggregate_outputs_1[y, x][index][0, 6]
 
-                    cur_conf_2 = self.aggregate_outputs_2[y, x][i][0, 4]
-                    cur_iou_2 = self.aggregate_outputs_2[y, x][i][0, 6]
+                    cur_conf_2 = self.aggregate_outputs_2[y, x][index][0, 4]
+                    cur_iou_2 = self.aggregate_outputs_2[y, x][index][0, 6]
 
                     if self.quantity_name == 'Confidence*IOU':
                         cur_value_1 = cur_conf_1 * cur_iou_1
@@ -1240,14 +1241,17 @@ class UI_MainWindow(QWidget):
                         cur_value_1 = cur_iou_1
                         cur_value_2 = cur_iou_2
                     elif self.quantity_name == 'Precision':
-                        cur_value_1 = self.aggregate_precision_1[y, x][i]
-                        cur_value_2 = self.aggregate_precision_2[y, x][i]
+                        cur_value_1 = self.aggregate_precision_1[y, x][index]
+                        cur_value_2 = self.aggregate_precision_2[y, x][index]
                     elif self.quantity_name == 'Recall':
-                        cur_value_1 = self.aggregate_recall_1[y, x][i]
-                        cur_value_2 = self.aggregate_recall_2[y, x][i]
+                        cur_value_1 = self.aggregate_recall_1[y, x][index]
+                        cur_value_2 = self.aggregate_recall_2[y, x][index]
                     elif self.quantity_name == 'F1 Score':
-                        cur_value_1 = self.aggregate_F_measure_1[y, x][i]
-                        cur_value_2 = self.aggregate_F_measure_2[y, x][i]
+                        cur_value_1 = self.aggregate_F_measure_1[y, x][index]
+                        cur_value_2 = self.aggregate_F_measure_2[y, x][index]
+                    elif self.quantity_name == 'mAP':
+                        cur_value_1 = 0
+                        cur_value_2 = 0
 
                     all_high_dim_points_1[i, j] = cur_value_1
                     all_high_dim_points_2[i, j] = cur_value_2
@@ -1261,9 +1265,6 @@ class UI_MainWindow(QWidget):
         low_dim_1 = normalize_low_dim_result(low_dim_1)
         low_dim_2 = dimension_reduce(all_high_dim_points_2, target_dim=2)
         low_dim_2 = normalize_low_dim_result(low_dim_2)
-        print(f'{len(low_dim_1)} images under this class label')
-        print(low_dim_1)
-        print(low_dim_2)
 
         # scatter plot on low-dim points
         low_dim_scatter_view_1 = pg.GraphicsLayoutWidget()
