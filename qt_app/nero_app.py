@@ -1095,10 +1095,7 @@ class UI_MainWindow(QWidget):
 
             # only allow clicking one point at a time
             # save the old brush, use color to determine which plot gets the click
-            if points[0].brush() == QtGui.QColor('blue'):
-                self.old_brush = QtGui.QColor('blue')
-            elif points[0].brush() == QtGui.QColor('magenta'):
-                self.old_brush = QtGui.QColor('magenta')
+            self.old_brush = points[0].brush()
 
             # create new brush and brush the newly clicked point
             new_brush = pg.mkBrush(255, 0, 0, 255)
@@ -1175,7 +1172,7 @@ class UI_MainWindow(QWidget):
 
         for i, index in enumerate(cur_class_indices):
             # if the current index matches with the selected class
-            if self.loaded_images_labels[i] == self.class_selection:
+            if self.class_selection == 'all' or self.loaded_images_labels[i] == self.class_selection:
                 if self.quantity_name == 'Confidence*IOU' or self.quantity_name == 'Confidence' or self.quantity_name == 'IOU':
                         # go through all the transfomations
                         for j in range(num_transformations):
@@ -1183,11 +1180,13 @@ class UI_MainWindow(QWidget):
                                 # all_outputs has shape (num_rotations, num_samples, 10)
                                 all_high_dim_points_1[i, j] = int(self.all_outputs_1[j][index].argmax() == self.loaded_images_labels[index])
                                 all_high_dim_points_2[i, j] = int(self.all_outputs_2[j][index].argmax() == self.loaded_images_labels[index])
+
                             elif self.mode == 'object_detection':
 
                                 y = int(j//len(self.x_translation))
                                 x = int(j%len(self.x_translation))
 
+                                # aggregate_outputs_1 has shape (num_y_translations, num_x_translations, num_samples, 7)
                                 cur_conf_1 = self.aggregate_outputs_1[y, x][i][0, 4]
                                 cur_iou_1= self.aggregate_outputs_1[y, x][i][0, 6]
                                 cur_conf_2 = self.aggregate_outputs_2[y, x][i][0, 4]
@@ -1203,7 +1202,6 @@ class UI_MainWindow(QWidget):
                                     cur_value_1 = cur_iou_1
                                     cur_value_2 = cur_iou_2
 
-                                # aggregate_outputs_1 has shape (num_y_translations, num_x_translations, num_samples, 7)
                                 all_high_dim_points_1[i, j] = cur_value_1
                                 all_high_dim_points_2[i, j] = cur_value_2
 
@@ -1234,12 +1232,23 @@ class UI_MainWindow(QWidget):
         low_dim_scatter_view_1 = pg.GraphicsLayoutWidget()
         low_dim_scatter_view_1.setBackground('white')
         low_dim_scatter_view_1.setFixedSize(self.plot_size, self.plot_size)
+
+        # set axis range
         self.low_dim_scatter_plot_1 = low_dim_scatter_view_1.addPlot()
+        # self.low_dim_scatter_plot_1
+        self.low_dim_scatter_plot_1.setXRange(-1.2, 1.2, padding=0)
+        self.low_dim_scatter_plot_1.setYRange(-1.2, 1.2, padding=0)
+        # Not letting user zoom out past axis limit
+        self.low_dim_scatter_plot_1.vb.setLimits(xMin=-1.2, xMax=1.2, yMin=-1.2, yMax=1.2)
 
         low_dim_scatter_view_2 = pg.GraphicsLayoutWidget()
         low_dim_scatter_view_2.setBackground('white')
         low_dim_scatter_view_2.setFixedSize(self.plot_size, self.plot_size)
         self.low_dim_scatter_plot_2 = low_dim_scatter_view_2.addPlot()
+        self.low_dim_scatter_plot_2.setXRange(-1.2, 1.2, padding=0)
+        self.low_dim_scatter_plot_2.setYRange(-1.2, 1.2, padding=0)
+        # Not letting user zoom out past axis limit
+        self.low_dim_scatter_plot_2.vb.setLimits(xMin=-1.2, xMax=1.2, yMin=-1.2, yMax=1.2)
 
         # save colorbar as used in aggregate NERO plot, to be used in color encode scatter points
         scatter_color_map = pg.colormap.get('viridis')
@@ -1256,7 +1265,9 @@ class UI_MainWindow(QWidget):
             # add individual items for getting the item's name later when clicking
             # Set pxMode=False to allow spots to transform with the view
             self.low_dim_scatter_item_1 = pg.ScatterPlotItem(pxMode=False)
+            self.low_dim_scatter_item_1.setSymbol('o')
             self.low_dim_scatter_item_2 = pg.ScatterPlotItem(pxMode=False)
+            self.low_dim_scatter_item_2.setSymbol('o')
 
             low_dim_point_1 = [{'pos': (low_dim_1[i, 0], low_dim_1[i, 1]),
                                 'size': 0.1,
@@ -2624,78 +2635,54 @@ class UI_MainWindow(QWidget):
         # averaged (depends on selected class) confidence and iou of the top results (ranked by IOU)
         self.aggregate_avg_conf_1 = np.zeros((len(self.y_translation), len(self.x_translation)))
         self.aggregate_avg_iou_1 = np.zeros((len(self.y_translation), len(self.x_translation)))
+        self.aggregate_avg_precision_1 = np.zeros((len(self.y_translation), len(self.x_translation)))
+        self.aggregate_avg_recall_1 = np.zeros((len(self.y_translation), len(self.x_translation)))
+        self.aggregate_avg_F_measure_1 = np.zeros((len(self.y_translation), len(self.x_translation)))
+
         self.aggregate_avg_conf_2 = np.zeros((len(self.y_translation), len(self.x_translation)))
         self.aggregate_avg_iou_2 = np.zeros((len(self.y_translation), len(self.x_translation)))
+        self.aggregate_avg_precision_2 = np.zeros((len(self.y_translation), len(self.x_translation)))
+        self.aggregate_avg_recall_2 = np.zeros((len(self.y_translation), len(self.x_translation)))
+        self.aggregate_avg_F_measure_2 = np.zeros((len(self.y_translation), len(self.x_translation)))
 
-        # different display class
-        if self.class_selection == 'all':
-            for y in range(len(self.y_translation)):
-                for x in range(len(self.x_translation)):
-                    all_samples_conf_sum_1 = []
-                    all_samples_iou_sum_1 = []
-                    all_samples_conf_sum_2 = []
-                    all_samples_iou_sum_2 = []
-                    for i in range(len(self.aggregate_outputs_1[y, x])):
+        for y in range(len(self.y_translation)):
+            for x in range(len(self.x_translation)):
+                all_samples_conf_sum_1 = []
+                all_samples_iou_sum_1 = []
+                all_samples_conf_sum_2 = []
+                all_samples_iou_sum_2 = []
+                all_samples_precision_sum_1 = []
+                all_samples_precision_sum_2 = []
+                all_samples_recall_sum_1 = []
+                all_samples_recall_sum_2 = []
+                all_samples_F_measure_sum_1 = []
+                all_samples_F_measure_sum_2 = []
+                for i in range(len(self.aggregate_outputs_1[y, x])):
+                    # either all the classes or one specific class
+                    if self.class_selection == 'all' or self.class_selection == self.loaded_images_labels[i]:
                         all_samples_conf_sum_1.append(self.aggregate_outputs_1[y, x][i][0, 4])
                         all_samples_iou_sum_1.append(self.aggregate_outputs_1[y, x][i][0, 6])
                         all_samples_conf_sum_2.append(self.aggregate_outputs_2[y, x][i][0, 4])
                         all_samples_iou_sum_2.append(self.aggregate_outputs_2[y, x][i][0, 6])
+                        all_samples_precision_sum_1.append(self.aggregate_precision_1[y, x][i])
+                        all_samples_precision_sum_2.append(self.aggregate_precision_2[y, x][i])
+                        all_samples_recall_sum_1.append(self.aggregate_recall_1[y, x][i])
+                        all_samples_recall_sum_2.append(self.aggregate_recall_2[y, x][i])
+                        all_samples_F_measure_sum_1.append(self.aggregate_F_measure_1[y, x][i])
+                        all_samples_F_measure_sum_2.append(self.aggregate_F_measure_2[y, x][i])
 
-                    self.aggregate_avg_conf_1[y, x] = np.mean(all_samples_conf_sum_1)
-                    self.aggregate_avg_conf_2[y, x] = np.mean(all_samples_conf_sum_2)
-                    self.aggregate_avg_iou_1[y, x] = np.mean(all_samples_iou_sum_1)
-                    self.aggregate_avg_iou_2[y, x] = np.mean(all_samples_iou_sum_2)
-                    self.aggregate_avg_precision_1 = np.mean(self.aggregate_precision_1, axis=2)
-                    self.aggregate_avg_precision_2 = np.mean(self.aggregate_precision_2, axis=2)
-                    self.aggregate_avg_recall_1 = np.mean(self.aggregate_recall_1, axis=2)
-                    self.aggregate_avg_recall_2 = np.mean(self.aggregate_recall_2, axis=2)
-                    self.aggregate_avg_F_measure_1 = np.mean(self.aggregate_F_measure_1, axis=2)
-                    self.aggregate_avg_F_measure_2 = np.mean(self.aggregate_F_measure_2, axis=2)
+                # take the average result
+                self.aggregate_avg_conf_1[y, x] = np.mean(all_samples_conf_sum_1)
+                self.aggregate_avg_iou_1[y, x] = np.mean(all_samples_iou_sum_1)
+                self.aggregate_avg_precision_1[y, x] = np.mean(all_samples_precision_sum_1)
+                self.aggregate_avg_recall_1[y, x] = np.mean(all_samples_recall_sum_1)
+                self.aggregate_avg_F_measure_1[y, x] = np.mean(all_samples_F_measure_sum_1)
 
-        # get the result of a specific class
-        else:
-            self.aggregate_avg_precision_1 = np.zeros((len(self.y_translation), len(self.x_translation)))
-            self.aggregate_avg_precision_2 = np.zeros((len(self.y_translation), len(self.x_translation)))
-            self.aggregate_avg_recall_1 = np.zeros((len(self.y_translation), len(self.x_translation)))
-            self.aggregate_avg_recall_2 = np.zeros((len(self.y_translation), len(self.x_translation)))
-            self.aggregate_avg_F_measure_1 = np.zeros((len(self.y_translation), len(self.x_translation)))
-            self.aggregate_avg_F_measure_2 = np.zeros((len(self.y_translation), len(self.x_translation)))
-
-            for y in range(len(self.y_translation)):
-                for x in range(len(self.x_translation)):
-                    all_samples_conf_sum_1 = []
-                    all_samples_iou_sum_1 = []
-                    all_samples_conf_sum_2 = []
-                    all_samples_iou_sum_2 = []
-                    all_samples_precision_sum_1 = []
-                    all_samples_precision_sum_2 = []
-                    all_samples_recall_sum_1 = []
-                    all_samples_recall_sum_2 = []
-                    all_samples_F_measure_sum_1 = []
-                    all_samples_F_measure_sum_2 = []
-                    for i in range(len(self.aggregate_outputs_1[y, x])):
-                        if self.class_selection == self.loaded_images_labels[i]:
-                            all_samples_conf_sum_1.append(self.aggregate_outputs_1[y, x][i][0, 4])
-                            all_samples_iou_sum_1.append(self.aggregate_outputs_1[y, x][i][0, 6])
-                            all_samples_conf_sum_2.append(self.aggregate_outputs_2[y, x][i][0, 4])
-                            all_samples_iou_sum_2.append(self.aggregate_outputs_2[y, x][i][0, 6])
-                            all_samples_precision_sum_1.append(self.aggregate_precision_1[y, x][i][0])
-                            all_samples_precision_sum_2.append(self.aggregate_precision_2[y, x][i][0])
-                            all_samples_recall_sum_1.append(self.aggregate_recall_1[y, x][i][0])
-                            all_samples_recall_sum_2.append(self.aggregate_recall_2[y, x][i][0])
-                            all_samples_F_measure_sum_1.append(self.aggregate_F_measure_1[y, x][i][0])
-                            all_samples_F_measure_sum_2.append(self.aggregate_F_measure_2[y, x][i][0])
-
-                    self.aggregate_avg_conf_1[y, x] = np.mean(all_samples_conf_sum_1)
-                    self.aggregate_avg_conf_2[y, x] = np.mean(all_samples_conf_sum_2)
-                    self.aggregate_avg_iou_1[y, x] = np.mean(all_samples_iou_sum_1)
-                    self.aggregate_avg_iou_2[y, x] = np.mean(all_samples_iou_sum_2)
-                    self.aggregate_avg_precision_1[y, x] = np.mean(all_samples_precision_sum_1)
-                    self.aggregate_avg_precision_2[y, x] = np.mean(all_samples_precision_sum_2)
-                    self.aggregate_avg_recall_1[y, x] = np.mean(all_samples_recall_sum_1)
-                    self.aggregate_avg_recall_2[y, x] = np.mean(all_samples_recall_sum_1)
-                    self.aggregate_avg_F_measure_1[y, x] = np.mean(all_samples_F_measure_sum_1)
-                    self.aggregate_avg_F_measure_2[y, x] = np.mean(all_samples_F_measure_sum_2)
+                self.aggregate_avg_conf_2[y, x] = np.mean(all_samples_conf_sum_2)
+                self.aggregate_avg_iou_2[y, x] = np.mean(all_samples_iou_sum_2)
+                self.aggregate_avg_precision_2[y, x] = np.mean(all_samples_precision_sum_2)
+                self.aggregate_avg_recall_2[y, x] = np.mean(all_samples_recall_sum_2)
+                self.aggregate_avg_F_measure_2[y, x] = np.mean(all_samples_F_measure_sum_2)
 
         # default plotting quantity is Confidence*IOU
         self.cur_plot_quantity_1 = self.aggregate_avg_conf_1 * self.aggregate_avg_iou_1
