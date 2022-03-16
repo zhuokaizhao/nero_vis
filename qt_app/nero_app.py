@@ -100,6 +100,7 @@ class UI_MainWindow(QWidget):
             return None
         # return getattr(self.cache, name)
 
+
     def save_to_cache(self, name, content):
         # replace if exists
         self.cache[name] = content
@@ -221,7 +222,6 @@ class UI_MainWindow(QWidget):
                 # heatmap and detailed image plot size
                 self.plot_size = 320
                 # image (input data) modification mode
-                self.rotation = False
                 self.translation = False
                 # translation step when evaluating
                 self.translation_step_aggregate = 4
@@ -264,47 +264,61 @@ class UI_MainWindow(QWidget):
         @QtCore.Slot()
         def piv_button_clicked():
             print('PIV button clicked')
-            self.mode = 'PIV'
+            self.mode = 'piv'
             self.radio_button_3.setChecked(True)
 
             # below layouts depend on mode selection
             if self.previous_mode != self.mode or not self.previous_mode:
-                # clear the previous method's layout
-                if self.previous_mode:
-                    self.clear_layout(self.load_menu_layout)
-                if self.aggregate_result_existed:
-                    self.clear_layout(self.aggregate_result_layout)
-                if self.image_existed:
-                    self.clear_layout(self.single_result_layout)
+                # clear previous mode's layout
+                self.switch_mode_cleanup()
 
-            self.init_load_layout()
+                self.init_load_layout()
 
-            # display mnist image size
-            self.display_image_size = 150
-            # image (input data) modification mode
-            self.rotation = False
-            # rotation angles
-            self.cur_rotation_angle = 0
+                # image (cropped) size that is fed into the model
+                self.image_size = 256
+                # image size that is used for display
+                self.display_image_size = 256
+                # heatmap and detailed image plot size
+                self.plot_size = 320
+                # image (input data) modification mode
+                self.rotation = False
+                self.flip = False
+                self.time_reverse = False
 
-            # predefined model paths
-            self.model_1_name = 'Simple model'
-            self.model_1_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'non_eqv', '*.pt'))[0]
-            self.model_2_name = 'Simple model with DA'
-            self.model_2_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'aug_rot_eqv', '*.pt'))[0]
-            # preload model
-            self.model_1 = nero_run_model.load_model(self.mode, 'non-eqv', self.model_1_path)
-            self.model_2 = nero_run_model.load_model(self.mode, 'aug-eqv', self.model_2_path)
+                # predefined model paths
+                self.model_1_name = 'PIV-LiteFlowNet-en'
+                # LiteFlowNet
+                self.model_1_cache_name = self.model_1_name.split('-')[1]
+                self.model_1_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'PIV-LiteFlowNet-en', f'*.pt'))[0]
+                # Horn-Schunck does not need model path
+                self.model_2_name = 'Horn-Schunck'
+                self.model_2_cache_name = self.model_2_name.split('(')[1].split(')')[0].split(' ')[0]
+                self.model_2_path = None
+                # preload model
+                self.model_1 = nero_run_model.load_model(self.mode, 'custom_trained', self.model_1_path)
+                self.model_2 = nero_run_model.load_model(self.mode, 'pre_trained', self.model_2_path)
 
-            # unique quantity of the result of current data
-            self.all_quantities_1 = []
-            self.all_quantities_2 = []
+                # different class names (original COCO classes, custom 5-class and the one that pretrained PyTorch model uses)
+                self.original_coco_names_path = os.path.join(os.getcwd(), 'example_data', self.mode, 'coco.names')
+                self.custom_coco_names_path = os.path.join(os.getcwd(), 'example_data', self.mode, 'custom.names')
+                self.pytorch_coco_names_path = os.path.join(os.getcwd(), 'example_data', self.mode, 'pytorch_coco.names')
 
-            # when doing highlighting
-            # last_clicked is not None when it is either clicked or during manual rotation
-            self.last_clicked = None
-            self.cur_line = None
+                # load these name files
+                self.original_coco_names = nero_utilities.load_coco_classes_file(self.original_coco_names_path)
+                self.custom_coco_names = nero_utilities.load_coco_classes_file(self.custom_coco_names_path)
+                self.pytorch_coco_names = nero_utilities.load_coco_classes_file(self.pytorch_coco_names_path)
 
-            self.previous_mode = self.mode
+                print(f'Custom 5 classes: {self.custom_coco_names}')
+
+                # unique quantity of the result of current data
+                self.all_quantities_1 = []
+                self.all_quantities_2 = []
+
+                # when doing highlighting
+                self.last_clicked = None
+                self.cur_line = None
+
+                self.previous_mode = self.mode
 
 
         # mode selection radio buttons
