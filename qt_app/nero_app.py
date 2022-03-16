@@ -128,16 +128,27 @@ class UI_MainWindow(QWidget):
         if self.previous_mode:
             print(f'Cleaned {self.previous_mode} control layout')
             self.clear_layout(self.load_menu_layout)
+
+        if self.image_existed:
+            self.clear_layout(self.single_result_layout)
+
+            if self.aggregate_result_existed:
+                self.clear_layout(self.aggregate_result_layout)
+                self.single_result_existed = False
+                self.aggregate_result_existed = False
+
         if self.run_button_existed:
             print(f'Cleaned previous run button')
             self.clear_layout(self.run_button_layout)
             self.run_button_existed = False
+
         if self.aggregate_result_existed:
             print(f'Cleaned {self.previous_mode} aggregate_result_layout')
             self.clear_layout(self.aggregate_result_layout)
             self.data_existed = False
             self.aggregate_result_existed = False
             self.single_result_existed = False
+
         if self.single_result_existed:
             print(f'Cleaned {self.previous_mode} single_result_layout')
             self.clear_layout(self.single_result_layout)
@@ -2064,7 +2075,7 @@ class UI_MainWindow(QWidget):
 
 
     def display_image(self):
-
+        print('displaying image')
         # add a new label for loaded image if no imager has existed
         if not self.image_existed:
             self.image_label = QLabel(self)
@@ -2072,6 +2083,19 @@ class UI_MainWindow(QWidget):
             self.image_existed = True
             # no additional content margin to prevent cutoff on images
             self.image_label.setContentsMargins(0, 0, 0, 0)
+
+            # add the image label to the layout
+            if self.data_mode == 'single':
+                self.single_result_layout.addWidget(self.image_label, 1, 0)
+
+            elif self.data_mode == 'aggregate':
+                if self.mode == 'digit_recognition':
+                    self.aggregate_result_layout.addWidget(self.image_label, 1, 4, 2, 1)
+                elif self.mode == 'object_detection':
+                    self.aggregate_result_layout.addWidget(self.image_label, 1, 3, 3, 1)
+                elif self.mode == 'piv':
+                    self.aggregate_result_layout.addWidget(self.image_label, 1, 3, 3, 1)
+
 
         if self.mode == 'digit_recognition' or self.mode == 'object_detection':
 
@@ -2182,6 +2206,12 @@ class UI_MainWindow(QWidget):
             # plot_size should be bigger than the display_size, so that some margins exist
             self.image_label.setFixedSize(self.plot_size, self.plot_size)
 
+            # prepare a pixmap for the image
+            self.image_pixmap = QPixmap(self.cur_display_image_2)
+
+            # add to the label
+            self.image_label.setPixmap(self.image_pixmap)
+
             # animation that repeatedly goes from image 1 -> image 2 -> blank image
             display_sequence_images = [self.cur_display_image_1, self.cur_display_image_2, self.blank_display_image]
             while True:
@@ -2191,6 +2221,9 @@ class UI_MainWindow(QWidget):
 
                     # add to the label
                     self.image_label.setPixmap(self.image_pixmap)
+
+                    # force repaint
+                    self.image_label.repaint()
 
                     # pause for 0.2 second
                     time.sleep(0.2)
@@ -2202,18 +2235,6 @@ class UI_MainWindow(QWidget):
         # self.name_label = QLabel(self.loaded_image_name)
         # self.name_label.setContentsMargins(0, 0, 0, 0)
         # self.name_label.setAlignment(QtCore.Qt.AlignCenter)
-
-        # add this image to the layout
-        if self.data_mode == 'single':
-            self.single_result_layout.addWidget(self.image_label, 1, 0)
-
-        elif self.data_mode == 'aggregate':
-            if self.mode == 'digit_recognition':
-                self.aggregate_result_layout.addWidget(self.image_label, 1, 4, 2, 1)
-            elif self.mode == 'object_detection':
-                self.aggregate_result_layout.addWidget(self.image_label, 1, 3, 3, 1)
-            elif self.mode == 'piv':
-                self.aggregate_result_layout.addWidget(self.image_label, 1, 3, 3, 1)
 
 
     # helper function on drawing mask on input COCO image (to highlight the current FOV)
