@@ -587,9 +587,11 @@ class UI_MainWindow(QWidget):
                 # convert to QImage for display purpose
                 self.cur_display_image_1 = nero_utilities.tensor_to_qt_image(self.cur_image_1_pt)
                 self.cur_display_image_2 = nero_utilities.tensor_to_qt_image(self.cur_image_2_pt)
+                self.blank_image = nero_utilities.tensor_to_qt_image(torch.zeros(self.cur_image_1_pt.shape))
                 # resize the display QImage
                 self.cur_display_image_1 = self.cur_display_image_1.scaledToWidth(self.display_image_size)
                 self.cur_display_image_2 = self.cur_display_image_2.scaledToWidth(self.display_image_size)
+                self.blank_display_image = self.blank_image.scaledToWidth(self.display_image_size)
 
             # display the image
             self.display_image()
@@ -888,7 +890,7 @@ class UI_MainWindow(QWidget):
             self.single_labels_paths = glob.glob(os.path.join(os.getcwd(), 'example_data', self.mode, 'single', f'*flow.flo'))
 
             for i in range(len(self.single_images_1_paths)):
-                self.image_menu.addItem(QtGui.QIcon(self.single_images_1_paths[i]), f'Image pair {i}')
+                self.image_menu.addItem(f'Image pair {i}')
 
             self.image_menu.setCurrentIndex(0)
 
@@ -2063,18 +2065,22 @@ class UI_MainWindow(QWidget):
 
     def display_image(self):
 
+        # add a new label for loaded image if no imager has existed
+        if not self.image_existed:
+            self.image_label = QLabel(self)
+            self.image_label.setAlignment(QtCore.Qt.AlignCenter)
+            self.image_existed = True
+            # no additional content margin to prevent cutoff on images
+            self.image_label.setContentsMargins(0, 0, 0, 0)
+
         if self.mode == 'digit_recognition' or self.mode == 'object_detection':
+
             # prepare a pixmap for the image
             self.image_pixmap = QPixmap(self.cur_display_image)
 
-            # add a new label for loaded image if no imager has existed
-            if not self.image_existed:
-                self.image_label = QLabel(self)
-                self.image_label.setAlignment(QtCore.Qt.AlignCenter)
-                self.image_existed = True
-
             # single pixmap in the label
             self.image_label.setPixmap(self.image_pixmap)
+
             if self.mode == 'digit_recognition':
                 # plot_size should be bigger than the display_size, so that some margins exist
                 self.image_label.setFixedSize(self.plot_size, self.plot_size)
@@ -2172,21 +2178,25 @@ class UI_MainWindow(QWidget):
                 self.image_label.mouseReleaseEvent = end_moving
 
         elif self.mode == 'piv':
-            # prepare a pixmap for the image
-            self.image_pixmap = QPixmap(self.cur_display_image)
-
-            # add a new label for loaded image if no imager has existed
-            if not self.image_existed:
-                self.image_label = QLabel(self)
-                self.image_label.setAlignment(QtCore.Qt.AlignCenter)
-                self.image_existed = True
 
             # plot_size should be bigger than the display_size, so that some margins exist
             self.image_label.setFixedSize(self.plot_size, self.plot_size)
 
+            # animation that repeatedly goes from image 1 -> image 2 -> blank image
+            display_sequence_images = [self.cur_display_image_1, self.cur_display_image_2, self.blank_display_image]
+            while True:
+                for i in range(3):
+                    # prepare a pixmap for the image
+                    self.image_pixmap = QPixmap(display_sequence_images[i])
 
-        # no additional content margin to prevent cutoff on images
-        self.image_label.setContentsMargins(0, 0, 0, 0)
+                    # add to the label
+                    self.image_label.setPixmap(self.image_pixmap)
+
+                    # pause for 0.2 second
+                    time.sleep(0.2)
+
+                # after the whole sequence, sleep 0.5
+                time.sleep(0.5)
 
         # display the name of the image
         # self.name_label = QLabel(self.loaded_image_name)
