@@ -2207,29 +2207,31 @@ class UI_MainWindow(QWidget):
             self.image_label.setFixedSize(self.plot_size, self.plot_size)
 
             # prepare a pixmap for the image
-            self.image_pixmap = QPixmap(self.cur_display_image_2)
+            image_pixmap = QPixmap(self.cur_display_image_1)
 
             # add to the label
-            self.image_label.setPixmap(self.image_pixmap)
+            self.image_label.setPixmap(image_pixmap)
 
             # animation that repeatedly goes from image 1 -> image 2 -> blank image
             display_sequence_images = [self.cur_display_image_1, self.cur_display_image_2, self.blank_display_image]
-            while True:
+            for a in range(10):
+                print(a)
                 for i in range(3):
+                    print(i)
                     # prepare a pixmap for the image
-                    self.image_pixmap = QPixmap(display_sequence_images[i])
+                    image_pixmap = QPixmap(display_sequence_images[i])
 
                     # add to the label
-                    self.image_label.setPixmap(self.image_pixmap)
+                    self.image_label.setPixmap(image_pixmap)
 
                     # force repaint
                     self.image_label.repaint()
 
-                    # pause for 0.2 second
-                    time.sleep(0.2)
+                # pause for 0.2 second
+                # time.sleep(0.2)
 
-                # after the whole sequence, sleep 0.5
-                time.sleep(0.5)
+            # after the whole sequence, sleep 0.5
+            # time.sleep(0.5)
 
         # display the name of the image
         # self.name_label = QLabel(self.loaded_image_name)
