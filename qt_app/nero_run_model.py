@@ -58,7 +58,6 @@ def load_model(mode, network_model, model_dir):
         num_classes = 5
         image_size = 128
         if network_model == 'custom_trained':
-            # model = models.Custom_Trained_FastRCNN()
             model = torchvision.models.detection.fasterrcnn_resnet50_fpn(pretrained=False,
                                                                             num_classes=num_classes+1,
                                                                             pretrained_backbone=True,
@@ -77,6 +76,16 @@ def load_model(mode, network_model, model_dir):
 
             print(f'{network_model} loaded from PyTorch')
 
+    elif mode == 'piv':
+        if network_model == 'PIV-LiteFlowNet-en':
+            model = models.PIV_LiteFlowNet_en()
+            model.to(device)
+            loaded_model = torch.load(model_dir, map_location=device)
+            model.load_state_dict(loaded_model['state_dict'])
+            print(f'{network_model} loaded from {model_dir}')
+
+    else:
+        raise Exception(f'Unrecognized mode {mode}')
 
     # set model in evaluation mode
     model.eval()

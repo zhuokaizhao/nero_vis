@@ -292,23 +292,11 @@ class UI_MainWindow(QWidget):
                 self.model_1_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'PIV-LiteFlowNet-en', f'*.pt'))[0]
                 # Horn-Schunck does not need model path
                 self.model_2_name = 'Horn-Schunck'
-                self.model_2_cache_name = self.model_2_name.split('(')[1].split(')')[0].split(' ')[0]
+                self.model_2_cache_name = self.model_2_name
                 self.model_2_path = None
                 # preload model
-                self.model_1 = nero_run_model.load_model(self.mode, 'custom_trained', self.model_1_path)
-                self.model_2 = nero_run_model.load_model(self.mode, 'pre_trained', self.model_2_path)
-
-                # different class names (original COCO classes, custom 5-class and the one that pretrained PyTorch model uses)
-                self.original_coco_names_path = os.path.join(os.getcwd(), 'example_data', self.mode, 'coco.names')
-                self.custom_coco_names_path = os.path.join(os.getcwd(), 'example_data', self.mode, 'custom.names')
-                self.pytorch_coco_names_path = os.path.join(os.getcwd(), 'example_data', self.mode, 'pytorch_coco.names')
-
-                # load these name files
-                self.original_coco_names = nero_utilities.load_coco_classes_file(self.original_coco_names_path)
-                self.custom_coco_names = nero_utilities.load_coco_classes_file(self.custom_coco_names_path)
-                self.pytorch_coco_names = nero_utilities.load_coco_classes_file(self.pytorch_coco_names_path)
-
-                print(f'Custom 5 classes: {self.custom_coco_names}')
+                self.model_1 = nero_run_model.load_model(self.mode, self.model_1_name, self.model_1_path)
+                self.model_2 = nero_run_model.load_model(self.mode, self.model_1_name, self.model_1_path)
 
                 # unique quantity of the result of current data
                 self.all_quantities_1 = []
@@ -316,7 +304,6 @@ class UI_MainWindow(QWidget):
 
                 # when doing highlighting
                 self.last_clicked = None
-                self.cur_line = None
 
                 self.previous_mode = self.mode
 
@@ -812,7 +799,6 @@ class UI_MainWindow(QWidget):
         if self.mode == 'digit_recognition':
             # load all images in the folder
             for i in range(len(self.aggregate_data_dirs)):
-                # TODO: icons for aggregated datasets
                 self.aggregate_image_menu.addItem(f'Test {i}')
 
             # set default to the prompt/description
@@ -821,14 +807,18 @@ class UI_MainWindow(QWidget):
         elif self.mode == 'object_detection':
             # load all images in the folder
             for i in range(len(self.aggregate_data_dirs)):
-                # TODO: icons for aggregated datasets
                 self.aggregate_image_menu.addItem(f'Test {i}')
 
             # set default to the prompt/description
             self.aggregate_image_menu.setCurrentIndex(0)
 
         elif self.mode == 'piv':
-            raise NotImplementedError('Not available for PIV yet')
+            # load all images in the folder
+            for i in range(len(self.aggregate_data_dirs)):
+                self.aggregate_image_menu.addItem(f'Test {i}')
+
+            # set default to the prompt/description
+            self.aggregate_image_menu.setCurrentIndex(0)
 
         # connect the drop down menu with actions
         self.aggregate_image_menu.currentTextChanged.connect(aggregate_dataset_selection_changed)
@@ -862,6 +852,14 @@ class UI_MainWindow(QWidget):
                 cur_image_path = glob.glob(os.path.join(os.getcwd(), 'example_data', self.mode, 'single', 'images', f'{cur_class}*.jpg'))[0]
                 self.single_images_paths.append(cur_image_path)
                 self.image_menu.addItem(QtGui.QIcon(cur_image_path), f'{cur_class} image')
+
+            self.image_menu.setCurrentIndex(0)
+
+        elif self.mode == 'piv':
+            # image pairs
+            self.single_images_1_paths = glob.glob(os.path.join(os.getcwd(), 'example_data', self.mode, 'single', f'*img1.tif'))[0]
+            self.single_images_2_paths = glob.glob(os.path.join(os.getcwd(), 'example_data', self.mode, 'single', f'*img2.tif'))[0]
+            self.single_labels_paths = glob.glob(os.path.join(os.getcwd(), 'example_data', self.mode, 'single', f'*flow.flo'))[0]
 
             self.image_menu.setCurrentIndex(0)
 
@@ -908,6 +906,10 @@ class UI_MainWindow(QWidget):
             self.model_1_menu.addItem(model_1_icon, 'FasterRCNN (100% jittering)')
             self.model_1_menu.addItem(model_1_icon, 'FasterRCNN (Pre-trained)')
             self.model_1_menu.setCurrentText('Custom-trained FasterRCNN')
+        elif self.mode == 'piv':
+            self.model_1_menu.addItem(model_1_icon, 'PIV-LiteFlowNet-en')
+            self.model_1_menu.addItem(model_1_icon, 'Horn-Schunck')
+            self.model_1_menu.setCurrentText('PIV-LiteFlowNet-en')
 
         # connect the drop down menu with actions
         self.model_1_menu.currentTextChanged.connect(model_1_selection_changed)
@@ -951,6 +953,10 @@ class UI_MainWindow(QWidget):
             self.model_2_menu.addItem(model_2_icon, 'FasterRCNN (100% jittering)')
             self.model_2_menu.addItem(model_2_icon, 'FasterRCNN (Pre-trained)')
             self.model_2_menu.setCurrentText('FasterRCNN (Pre-trained)')
+        elif self.mode == 'piv':
+            self.model_2_menu.addItem(model_2_icon, 'PIV-LiteFlowNet-en')
+            self.model_2_menu.addItem(model_2_icon, 'Horn-Schunck')
+            self.model_2_menu.setCurrentText('Horn-Schunck')
 
         # connect the drop down menu with actions
         self.model_2_menu.currentTextChanged.connect(model_2_selection_changed)
@@ -980,6 +986,7 @@ class UI_MainWindow(QWidget):
             self.layout.addLayout(self.aggregate_result_layout, 1, 0, 3, 3)
         elif self.mode == 'piv':
             self.batch_size = 16
+            self.layout.addLayout(self.aggregate_result_layout, 1, 0, 3, 3)
 
 
     def init_single_result_layout(self):
