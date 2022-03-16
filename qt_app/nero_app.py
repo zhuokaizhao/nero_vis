@@ -404,9 +404,11 @@ class UI_MainWindow(QWidget):
         elif self.mode == 'piv':
             self.loaded_image_1_pt = torch.from_numpy(np.asarray(Image.open(self.image_1_path)))[:, :, None]
             self.loaded_image_2_pt = torch.from_numpy(np.asarray(Image.open(self.image_2_path)))[:, :, None]
-            self.loaded_image_name = self.image_path.split('/')[-1]
-            # keep a copy to represent the current (rotated) version of the original images
-            self.cur_image_pt = self.loaded_image_pt.clone()
+            self.loaded_image_1_name = self.image_1_path.split('/')[-1]
+            self.loaded_image_2_name = self.image_2_path.split('/')[-1]
+            # a separate copy to represent the transformed version of the original images
+            self.cur_image_1_pt = self.loaded_image_1_pt.clone()
+            self.cur_image_2_pt = self.loaded_image_2_pt.clone()
 
 
     def init_load_layout(self):
@@ -552,29 +554,42 @@ class UI_MainWindow(QWidget):
 
             print('Loaded image:', text)
             if self.mode == 'digit_recognition':
+                # prepare image path
                 self.image_index = int(text.split(' ')[-1])
                 self.image_path = self.single_images_paths[self.image_index]
                 self.load_single_image()
 
+                # convert to QImage for display purpose
+                self.cur_display_image = nero_utilities.tensor_to_qt_image(self.cur_image_pt)
+                # resize the display QImage
+                self.cur_display_image = self.cur_display_image.scaledToWidth(self.display_image_size)
+                # additional preparation required for MNIST
+                self.cur_image_pt = nero_transform.prepare_mnist_image(self.cur_image_pt)
+
             elif self.mode == 'object_detection':
+                # prepare image path
                 self.image_index = self.coco_classes.index(text.split(' ')[0])
                 self.image_path = self.single_images_paths[self.image_index]
                 self.load_single_image()
 
+                # convert to QImage for display purpose
+                self.cur_display_image = nero_utilities.tensor_to_qt_image(self.cur_image_pt)
+                # resize the display QImage
+                self.cur_display_image = self.cur_display_image.scaledToWidth(self.display_image_size)
+
             elif self.mode == 'piv':
+                # prepare image paths
                 self.image_index = int(text.split(' ')[-1])
                 self.image_1_path = self.single_images_1_paths[self.image_index]
                 self.image_2_path = self.single_images_2_paths[self.image_index]
                 self.load_single_image()
 
-            # convert to QImage for display purpose
-            self.cur_display_image = nero_utilities.tensor_to_qt_image(self.cur_image_pt)
-            # resize the display QImage
-            self.cur_display_image = self.cur_display_image.scaledToWidth(self.display_image_size)
-
-            # prepare MNIST image tensor for model purpose
-            if self.mode == 'digit_recognition':
-                self.cur_image_pt = nero_transform.prepare_mnist_image(self.cur_image_pt)
+                # convert to QImage for display purpose
+                self.cur_display_image_1 = nero_utilities.tensor_to_qt_image(self.cur_image_1_pt)
+                self.cur_display_image_2 = nero_utilities.tensor_to_qt_image(self.cur_image_2_pt)
+                # resize the display QImage
+                self.cur_display_image_1 = self.cur_display_image_1.scaledToWidth(self.display_image_size)
+                self.cur_display_image_2 = self.cur_display_image_2.scaledToWidth(self.display_image_size)
 
             # display the image
             self.display_image()
@@ -868,9 +883,9 @@ class UI_MainWindow(QWidget):
 
         elif self.mode == 'piv':
             # image pairs
-            self.single_images_1_paths = glob.glob(os.path.join(os.getcwd(), 'example_data', self.mode, 'single', f'*img1.tif'))[0]
-            self.single_images_2_paths = glob.glob(os.path.join(os.getcwd(), 'example_data', self.mode, 'single', f'*img2.tif'))[0]
-            self.single_labels_paths = glob.glob(os.path.join(os.getcwd(), 'example_data', self.mode, 'single', f'*flow.flo'))[0]
+            self.single_images_1_paths = glob.glob(os.path.join(os.getcwd(), 'example_data', self.mode, 'single', f'*img1.tif'))
+            self.single_images_2_paths = glob.glob(os.path.join(os.getcwd(), 'example_data', self.mode, 'single', f'*img2.tif'))
+            self.single_labels_paths = glob.glob(os.path.join(os.getcwd(), 'example_data', self.mode, 'single', f'*flow.flo'))
 
             for i in range(len(self.single_images_1_paths)):
                 self.image_menu.addItem(QtGui.QIcon(self.single_images_1_paths[i]), f'Image pair {i}')
@@ -2048,117 +2063,132 @@ class UI_MainWindow(QWidget):
 
     def display_image(self):
 
-        # single image case
-        # prepare a pixmap for the image
-        self.image_pixmap = QPixmap(self.cur_display_image)
+        if self.mode == 'digit_recognition' or self.mode == 'object_detection':
+            # prepare a pixmap for the image
+            self.image_pixmap = QPixmap(self.cur_display_image)
 
-        # add a new label for loaded image if no imager has existed
-        if not self.image_existed:
-            self.image_label = QLabel(self)
-            self.image_label.setAlignment(QtCore.Qt.AlignCenter)
-            self.image_existed = True
+            # add a new label for loaded image if no imager has existed
+            if not self.image_existed:
+                self.image_label = QLabel(self)
+                self.image_label.setAlignment(QtCore.Qt.AlignCenter)
+                self.image_existed = True
 
-        # put pixmap in the label
-        self.image_label.setPixmap(self.image_pixmap)
-        if self.mode == 'digit_recognition':
+            # single pixmap in the label
+            self.image_label.setPixmap(self.image_pixmap)
+            if self.mode == 'digit_recognition':
+                # plot_size should be bigger than the display_size, so that some margins exist
+                self.image_label.setFixedSize(self.plot_size, self.plot_size)
+            elif self.mode == 'object_detection':
+                # set label to the size of pixmap so that when clicked it is wrt image
+                self.image_label.setFixedSize(self.image_pixmap.size())
+
+                # pixel mouse over for object detection mode
+                def start_moving(event):
+                    self.moving_pov = True
+
+                def update_model_pov(event):
+                    if self.moving_pov:
+                        rect_center_x = int(event.position().x())
+                        rect_center_y = int(event.position().y())
+
+                        # when the click selection is valid and model has been run before
+                        if self.single_result_existed:
+
+                            # re-load clean image
+                            self.image_pixmap = QPixmap(self.cur_display_image)
+                            self.image_label.setPixmap(self.image_pixmap)
+
+                            # draw the new FOV rectangle
+                            # width and height of the rectangle
+                            display_rect_width = self.display_image_size//2
+                            display_rect_height = self.display_image_size//2
+
+                            # restrict x and y value
+                            if rect_center_x + display_rect_width//2 >= self.display_image_size:
+                                rect_center_x = self.display_image_size - display_rect_width//2
+                            elif rect_center_x - display_rect_width//2 < 0:
+                                rect_center_x = display_rect_width//2
+
+                            if rect_center_y + display_rect_height//2 >= self.display_image_size:
+                                rect_center_y = self.display_image_size - display_rect_height//2
+                            elif rect_center_y - display_rect_height//2 < 0:
+                                rect_center_y = display_rect_height//2
+
+                            # draw rectangle on the displayed image to indicate scanning process
+                            painter = QtGui.QPainter(self.image_pixmap)
+                            # draw the rectangles
+                            cover_color = QtGui.QColor(65, 65, 65, 225)
+                            self.draw_fov_mask(painter, rect_center_x, rect_center_y, display_rect_width, display_rect_height, cover_color)
+
+                            # how much the clicked point is away from the image center
+                            x_dist = (rect_center_x - self.display_image_size/2) / (self.display_image_size/self.uncropped_image_size)
+                            y_dist = (rect_center_y - self.display_image_size/2) / (self.display_image_size/self.uncropped_image_size)
+                            # compute rectangle center wrt to the original image
+                            cur_center_x = self.center_x + x_dist
+                            cur_center_y = self.center_y + y_dist
+                            self.x_min = int(cur_center_x - display_rect_width/2)
+                            self.x_max = int(cur_center_x + display_rect_width/2)
+                            self.y_min = int(cur_center_y - display_rect_height/2)
+                            self.y_max = int(cur_center_y + display_rect_height/2)
+
+                            # re-compute the ground truth label bounding boxes of the cropped image
+                            for i in range(len(self.cur_image_label)):
+                                self.cur_image_label[i, 1:5] = self.compute_label(self.loaded_image_label[i, :4], self.x_min, self.y_min, (self.image_size, self.image_size))
+
+                            # draw the ground truth label
+                            gt_display_center_x = (self.cur_image_label[0, 1] + self.cur_image_label[0, 3]) / 2 * (self.display_image_size/self.uncropped_image_size) + (rect_center_x - display_rect_width/2)
+                            gt_display_center_y = (self.cur_image_label[0, 4] + self.cur_image_label[0, 2]) / 2 * (self.display_image_size/self.uncropped_image_size) + (rect_center_y - display_rect_height/2)
+                            gt_display_rect_width = (self.cur_image_label[0, 3] - self.cur_image_label[0, 1]) * (self.display_image_size/self.uncropped_image_size)
+                            gt_display_rect_height = (self.cur_image_label[0, 4] - self.cur_image_label[0, 2]) * (self.display_image_size/self.uncropped_image_size)
+                            self.draw_rectangle(painter, gt_display_center_x, gt_display_center_y, gt_display_rect_width, gt_display_rect_height, color='yellow', label='Ground Truth')
+                            painter.end()
+
+                            # update pixmap with the label
+                            self.image_label.setPixmap(self.image_pixmap)
+
+                            # force repaint
+                            self.image_label.repaint()
+
+                            # show corresponding translation amount on the heatmap
+                            # translation amout for plotting in heatmap
+                            self.cur_x_tran = -x_dist - self.x_translation[0]
+                            self.cur_y_tran = y_dist - self.y_translation[0]
+                            self.draw_heatmaps(mode='single')
+
+                            # run inference only when in the realtime mode
+                            if self.realtime_inference:
+                                # redisplay model output
+                                self.draw_model_output()
+
+                def end_moving(event):
+                    self.moving_pov = False
+                    # when not realtime-inferencing, run once after stop moving
+                    if not self.realtime_inference:
+                        # redisplay model output
+                        self.draw_model_output()
+
+                self.image_label.mousePressEvent = start_moving
+                self.image_label.mouseMoveEvent = update_model_pov
+                self.image_label.mouseReleaseEvent = end_moving
+
+        elif self.mode == 'piv':
+            # prepare a pixmap for the image
+            self.image_pixmap = QPixmap(self.cur_display_image)
+
+            # add a new label for loaded image if no imager has existed
+            if not self.image_existed:
+                self.image_label = QLabel(self)
+                self.image_label.setAlignment(QtCore.Qt.AlignCenter)
+                self.image_existed = True
+
+            # plot_size should be bigger than the display_size, so that some margins exist
             self.image_label.setFixedSize(self.plot_size, self.plot_size)
-        elif self.mode == 'object_detection':
-            # set label to the size of pixmap so that when clicked it is wrt image
-            self.image_label.setFixedSize(self.image_pixmap.size())
+
+
+        # no additional content margin to prevent cutoff on images
         self.image_label.setContentsMargins(0, 0, 0, 0)
 
-        # pixel mouse over for object detection mode
-        if self.mode == 'object_detection':
-            def start_moving(event):
-                self.moving_pov = True
-
-            def update_model_pov(event):
-                if self.moving_pov:
-                    rect_center_x = int(event.position().x())
-                    rect_center_y = int(event.position().y())
-
-                    # when the click selection is valid and model has been run before
-                    if self.single_result_existed:
-
-                        # re-load clean image
-                        self.image_pixmap = QPixmap(self.cur_display_image)
-                        self.image_label.setPixmap(self.image_pixmap)
-
-                        # draw the new FOV rectangle
-                        # width and height of the rectangle
-                        display_rect_width = self.display_image_size//2
-                        display_rect_height = self.display_image_size//2
-
-                        # restrict x and y value
-                        if rect_center_x + display_rect_width//2 >= self.display_image_size:
-                            rect_center_x = self.display_image_size - display_rect_width//2
-                        elif rect_center_x - display_rect_width//2 < 0:
-                            rect_center_x = display_rect_width//2
-
-                        if rect_center_y + display_rect_height//2 >= self.display_image_size:
-                            rect_center_y = self.display_image_size - display_rect_height//2
-                        elif rect_center_y - display_rect_height//2 < 0:
-                            rect_center_y = display_rect_height//2
-
-                        # draw rectangle on the displayed image to indicate scanning process
-                        painter = QtGui.QPainter(self.image_pixmap)
-                        # draw the rectangles
-                        cover_color = QtGui.QColor(65, 65, 65, 225)
-                        self.draw_fov_mask(painter, rect_center_x, rect_center_y, display_rect_width, display_rect_height, cover_color)
-
-                        # how much the clicked point is away from the image center
-                        x_dist = (rect_center_x - self.display_image_size/2) / (self.display_image_size/self.uncropped_image_size)
-                        y_dist = (rect_center_y - self.display_image_size/2) / (self.display_image_size/self.uncropped_image_size)
-                        # compute rectangle center wrt to the original image
-                        cur_center_x = self.center_x + x_dist
-                        cur_center_y = self.center_y + y_dist
-                        self.x_min = int(cur_center_x - display_rect_width/2)
-                        self.x_max = int(cur_center_x + display_rect_width/2)
-                        self.y_min = int(cur_center_y - display_rect_height/2)
-                        self.y_max = int(cur_center_y + display_rect_height/2)
-
-                        # re-compute the ground truth label bounding boxes of the cropped image
-                        for i in range(len(self.cur_image_label)):
-                            self.cur_image_label[i, 1:5] = self.compute_label(self.loaded_image_label[i, :4], self.x_min, self.y_min, (self.image_size, self.image_size))
-
-                        # draw the ground truth label
-                        gt_display_center_x = (self.cur_image_label[0, 1] + self.cur_image_label[0, 3]) / 2 * (self.display_image_size/self.uncropped_image_size) + (rect_center_x - display_rect_width/2)
-                        gt_display_center_y = (self.cur_image_label[0, 4] + self.cur_image_label[0, 2]) / 2 * (self.display_image_size/self.uncropped_image_size) + (rect_center_y - display_rect_height/2)
-                        gt_display_rect_width = (self.cur_image_label[0, 3] - self.cur_image_label[0, 1]) * (self.display_image_size/self.uncropped_image_size)
-                        gt_display_rect_height = (self.cur_image_label[0, 4] - self.cur_image_label[0, 2]) * (self.display_image_size/self.uncropped_image_size)
-                        self.draw_rectangle(painter, gt_display_center_x, gt_display_center_y, gt_display_rect_width, gt_display_rect_height, color='yellow', label='Ground Truth')
-                        painter.end()
-
-                        # update pixmap with the label
-                        self.image_label.setPixmap(self.image_pixmap)
-
-                        # force repaint
-                        self.image_label.repaint()
-
-                        # show corresponding translation amount on the heatmap
-                        # translation amout for plotting in heatmap
-                        self.cur_x_tran = -x_dist - self.x_translation[0]
-                        self.cur_y_tran = y_dist - self.y_translation[0]
-                        self.draw_heatmaps(mode='single')
-
-                        # run inference only when in the realtime mode
-                        if self.realtime_inference:
-                            # redisplay model output
-                            self.draw_model_output()
-
-
-            def end_moving(event):
-                self.moving_pov = False
-                # when not realtime-inferencing, run once after stop moving
-                if not self.realtime_inference:
-                    # redisplay model output
-                    self.draw_model_output()
-
-            self.image_label.mousePressEvent = start_moving
-            self.image_label.mouseMoveEvent = update_model_pov
-            self.image_label.mouseReleaseEvent = end_moving
-
-        # name of the image
+        # display the name of the image
         # self.name_label = QLabel(self.loaded_image_name)
         # self.name_label.setContentsMargins(0, 0, 0, 0)
         # self.name_label.setAlignment(QtCore.Qt.AlignCenter)
@@ -2171,6 +2201,8 @@ class UI_MainWindow(QWidget):
             if self.mode == 'digit_recognition':
                 self.aggregate_result_layout.addWidget(self.image_label, 1, 4, 2, 1)
             elif self.mode == 'object_detection':
+                self.aggregate_result_layout.addWidget(self.image_label, 1, 3, 3, 1)
+            elif self.mode == 'piv':
                 self.aggregate_result_layout.addWidget(self.image_label, 1, 3, 3, 1)
 
 
