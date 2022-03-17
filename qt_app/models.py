@@ -5,6 +5,7 @@ import torchvision
 from e2cnn import gspaces
 import torch.utils.model_zoo as model_zoo
 from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
+from scipy.ndimage.filters import convolve as filter2
 
 import correlation
 import layers
@@ -859,3 +860,60 @@ class PIV_LiteFlowNet_en(torch.nn.Module):
         flow_tensor = self.upsample_flow(flow_tensor)
 
         return flow_tensor
+
+
+# Horn-Schunck method
+def Horn_Schunck(im1, im2, alpha=1, Niter=100):
+    """
+    im1: image at t=0
+    im2: image at t=1
+    alpha: regularization constant
+    Niter: number of iteration
+    """
+    def computeDerivatives(im1, im2):
+        # build kernels for calculating derivatives
+        kernelX = np.array([[-1, 1],
+                            [-1, 1]]) * .25 #kernel for computing d/dx
+        kernelY = np.array([[-1,-1],
+                            [ 1, 1]]) * .25 #kernel for computing d/dy
+        kernelT = np.ones((2,2))*.25
+
+        fx = filter2(im1,kernelX) + filter2(im2,kernelX)
+        fy = filter2(im1,kernelY) + filter2(im2,kernelY)
+
+        #ft = im2 - im1
+        ft = filter2(im1,kernelT) + filter2(im2,-kernelT)
+
+        return fx,fy,ft
+
+	#set up initial velocities
+    uInitial = np.zeros([im1.shape[0],im1.shape[1]])
+    vInitial = np.zeros([im1.shape[0],im1.shape[1]])
+
+	# Set initial value for the flow vectors
+    U = uInitial
+    V = vInitial
+
+	# Estimate derivatives
+    [fx, fy, ft] = computeDerivatives(im1, im2)
+
+	# Averaging kernel
+    kernel=np.array([[1/12, 1/6, 1/12],
+                      [1/6,    0, 1/6],
+                      [1/12, 1/6, 1/12]],float)
+
+	# Iteration to reduce error
+    for _ in range(Niter):
+        # Compute local averages of the flow vectors
+        uAvg = filter2(U,kernel)
+        vAvg = filter2(V,kernel)
+        # common part of update step
+        der = (fx*uAvg + fy*vAvg + ft) / (alpha**2 + fx**2 + fy**2)
+        # iterative step
+        U = uAvg - fx * der
+        V = vAvg - fy * der
+
+    return U,V
+
+
+
