@@ -308,7 +308,9 @@ class UI_MainWindow(QWidget):
                 self.model_2_path = None
                 # preload model
                 self.model_1 = nero_run_model.load_model(self.mode, self.model_1_name, self.model_1_path)
-                self.model_2 = nero_run_model.load_model(self.mode, self.model_1_name, self.model_1_path)
+                # Horn-Schunck is not a model
+                # self.model_2 = nero_run_model.load_model(self.mode, self.model_1_name, self.model_1_path)
+                self.model_2 = None
 
                 # unique quantity of the result of current data
                 self.all_quantities_1 = []
@@ -716,6 +718,18 @@ class UI_MainWindow(QWidget):
                     self.model_1 = nero_run_model.load_model(self.mode, 'pre_trained', self.model_1_path)
                     print('Model 1 path: Downloaded from PyTorch')
 
+            elif self.mode == 'piv':
+                self.model_1_cache_name = self.model_1_name.split('-')[1]
+                if text == 'PIV-LiteFlowNet-en':
+                    self.model_1_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'PIV-LiteFlowNet-en', f'*.pt'))[0]
+                    self.model_1 = nero_run_model.load_model(self.mode, self.model_1_name, self.model_1_path)
+                    print('Model 1 path:', self.model_1_path)
+
+                elif text == 'Horn-Schunck':
+                    # Horn-Schunck does not need model path
+                    self.model_2_path = None
+                    self.model_2 = None
+
             # when loaded data is available, just show the result without clicking the button
             if self.use_cache:
                 if self.data_mode == 'aggregate':
@@ -789,6 +803,18 @@ class UI_MainWindow(QWidget):
                     self.model_2_path = None
                     self.model_2 = nero_run_model.load_model(self.mode, 'pre_trained', self.model_2_path)
                     print('Model 2 path: Downloaded from PyTorch')
+
+            elif self.mode == 'piv':
+                self.model_1_cache_name = self.model_1_name.split('-')[1]
+                if text == 'PIV-LiteFlowNet-en':
+                    self.model_1_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'PIV-LiteFlowNet-en', f'*.pt'))[0]
+                    self.model_1 = nero_run_model.load_model(self.mode, self.model_1_name, self.model_1_path)
+                    print('Model 1 path:', self.model_1_path)
+
+                elif text == 'Horn-Schunck':
+                    # Horn-Schunck does not need model path
+                    self.model_2_path = None
+                    self.model_2 = None
 
             # when loaded data is available, just show the result without clicking the button
             if self.use_cache:
@@ -1901,7 +1927,7 @@ class UI_MainWindow(QWidget):
             # 0 means no flip/time reverse, 1 means flip/time reverse
             all_flip = [0, 1]
             all_time_reversals = [0, 1]
-            num_transformations = len(all_rotation_degrees) * len(all_flip) * len(all_time_reversals)
+            self.num_transformations = len(all_rotation_degrees) * len(all_flip) * len(all_time_reversals)
 
             if self.data_mode == 'single':
                 # all_quantities has shape (16, 256, 256, 2)
@@ -1910,19 +1936,20 @@ class UI_MainWindow(QWidget):
                     self.all_quantities_2 = self.load_from_cache(name=f'{self.data_mode}_{self.model_2_cache_name}_{self.image_index}')
                 else:
                     # each model output are dense 2D velocity field of the input image
-                    self.all_quantities_1 = np.zeros((num_transformations, self.image_size, self.image_size, 2))
-                    self.all_quantities_2 = np.zeros((num_transformations, self.image_size, self.image_size, 2))
+                    self.all_quantities_1 = torch.zeros((self.num_transformations, self.image_size, self.image_size, 2))
+                    self.all_quantities_2 = torch.zeros((self.num_transformations, self.image_size, self.image_size, 2))
+                    self.all_ground_truths = torch.zeros((self.num_transformations, self.image_size, self.image_size, 2))
                     transformation_index = 0
                     for time_reverse in all_time_reversals:
                         for flip in all_flip:
                             for cur_rot_degree in all_rotation_degrees:
-
+                                print(f'Transformation {transformation_index}')
                                 # modify the input image tensor alone with its ground truth
                                 # rotation
                                 if cur_rot_degree:
                                     self.cur_image_1_pt, \
                                     self.cur_image_2_pt, \
-                                    self.cur_image_label_pt = nero_transform.rotate_piv_data(self.loaded_image_1_pt, self.loaded_image_2_pt, self.loaded_image_label_pt)
+                                    self.cur_image_label_pt = nero_transform.rotate_piv_data(self.loaded_image_1_pt, self.loaded_image_2_pt, self.loaded_image_label_pt, cur_rot_degree)
 
                                 # flip
                                 elif flip:
@@ -1942,6 +1969,9 @@ class UI_MainWindow(QWidget):
                                     self.cur_image_2_pt = self.loaded_image_2_pt
                                     self.cur_image_label_pt = self.loaded_image_label_pt
 
+                                # keep track of the different ground truths
+                                self.all_ground_truths[transformation_index] = self.cur_image_label_pt
+
                                 # run the model
                                 quantity_1 = nero_run_model.run_piv_once('single',
                                                                             self.model_1_name,
@@ -1957,8 +1987,8 @@ class UI_MainWindow(QWidget):
                                                                             self.cur_image_2_pt,
                                                                             batch_size=1)
 
-                                self.all_quantities_1[transformation_index] = quantity_1
-                                self.all_quantities_2[transformation_index] = quantity_2
+                                self.all_quantities_1[transformation_index] = quantity_1 / self.image_size
+                                self.all_quantities_2[transformation_index] = quantity_2 / self.image_size
 
                                 transformation_index += 1
 
@@ -2545,37 +2575,70 @@ class UI_MainWindow(QWidget):
         self.aggregate_result_layout.addWidget(polar_view, 1, 1, 2, 2)
 
 
+    def draw_triangle(self, painter, point_1, point_2, point_3, color, fill, boundary_width):
+
+        if color:
+            pen = QtGui.QPen()
+            pen.setWidth(boundary_width)
+            pen_color = QtGui.QColor(color)
+            # pen_color.setAlpha(alpha)
+            pen.setColor(pen_color)
+            painter.setPen(pen)
+            painter.drawRect(rectangle)
+
+        if fill:
+            brush = QtGui.QBrush()
+            brush.setColor(fill)
+            brush.setStyle(QtCore.Qt.SolidPattern)
+            # painter.setBrush(brush)
+            painter.fillRect(rectangle, brush)
+
     # draws a single D4 vis
-    def draw_individual_d4(self):
-        raise NotADirectoryError
+    def draw_individual_d4(self, mode, data):
+
+        if mode == 'single':
+            # initialize label and its pixmap
+            d4_label = QLabel(self)
+            d4_label.setContentsMargins(0, 0, 0, 0)
+            d4_label.setAlignment(QtCore.Qt.AlignCenter)
+
+            d4_pixmap = QPixmap(self.plot_size, self.plot_size)
+            d4_pixmap.fill(QtCore.Qt.white)
+            painter = QtGui.QPainter(d4_pixmap)
+
+            # each d4 NERO plot has 16 triangles
+
+
+
+
+            # draw arrow to indicate feeding
+            self.draw_triangle(painter, boundary_width)
+
+            # add to the label and layout
+            self.arrow_label.setPixmap(arrow_pixmap)
+
+            painter.end()
+
+            return d4_label
+
+
 
 
     # draws the dihedral 4 visualization to be the NERO plot for PIV experiment
     def draw_dihedral4(self, mode):
         # add to general layout
         if mode == 'single':
-            # heatmap view
-            self.d4_view_1 = pg.GraphicsLayoutWidget()
-            # left top right bottom
-            self.d4_view_1.ci.layout.setContentsMargins(0, 20, 0, 0)
-            self.d4_view_1.setFixedSize(self.plot_size*1.3, self.plot_size*1.3)
-            self.d4_view_2 = pg.GraphicsLayoutWidget()
-            # left top right bottom
-            self.d4_view_2.ci.layout.setContentsMargins(0, 20, 0, 0)
-            self.d4_view_2.setFixedSize(self.plot_size*1.3, self.plot_size*1.3)
-            self.dr_plot_1 = self.draw_individual_d4('single')
-            self.d4_plot_2 = self.draw_individual_d4('single')
 
-            # add to view
-            self.d4_view_1.addItem(self.dr_plot_1)
-            self.d4_view_2.addItem(self.dr_plot_2)
+            # individual NERO plot
+            self.d4_label_1 = self.draw_individual_d4('single', self.cur_plot_quantity_1)
+            self.d4_label_2 = self.draw_individual_d4('single')
 
             if self.data_mode == 'single':
-                self.single_result_layout.addWidget(self.d4_view_1, 1, 1)
-                self.single_result_layout.addWidget(self.d4_view_2, 1, 2)
+                self.single_result_layout.addWidget(self.d4_label_1, 1, 1)
+                self.single_result_layout.addWidget(self.d4_label_2, 1, 2)
             elif self.data_mode == 'aggregate':
-                self.aggregate_result_layout.addWidget(self.d4_view_1, 1, 4)
-                self.aggregate_result_layout.addWidget(self.d4_view_2, 1, 5)
+                self.aggregate_result_layout.addWidget(self.d4_label_1, 1, 4)
+                self.aggregate_result_layout.addWidget(self.d4_label_2, 1, 5)
 
 
     # display MNIST aggregated results
@@ -3245,8 +3308,19 @@ class UI_MainWindow(QWidget):
             # add plot control layout to general layout
             self.single_result_layout.addLayout(self.single_plot_control_layout, 0, 0)
             # by default the loss is RMSE
-            self.cur_plot_quantity_1 = nero_utilities.RMSELoss(self.cur_image_label, self.)
-            self.cur_plot_quantity_2 = self.all_quantities_2[:, :, 4] * self.all_quantities_2[:, :, 6]
+            self.cur_plot_quantity_1 = np.zeros(self.num_transformations)
+            self.cur_plot_quantity_2 = np.zeros(self.num_transformations)
+
+            # default loss is RMSE
+            loss_module = nero_utilities.RMSELoss()
+            for i in range(self.num_transformations):
+                self.cur_plot_quantity_1[i] = loss_module(self.all_ground_truths[i], self.all_quantities_1[i]).numpy()
+                self.cur_plot_quantity_2[i] = loss_module(self.all_ground_truths[i], self.all_quantities_2[i]).numpy()
+
+            print(self.cur_plot_quantity_1)
+            print(self.cur_plot_quantity_2)
+            exit()
+
         elif self.data_mode == 'aggregate':
             # add plot control layout to general layout
             self.aggregate_result_layout.addLayout(self.single_plot_control_layout, 0, 3)

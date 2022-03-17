@@ -319,7 +319,7 @@ class RMSELoss(torch.nn.Module):
     def __init__(self):
         super(RMSELoss,self).__init__()
 
-    def forward(self,x,y):
+    def forward(self, x, y):
         mse_loss = torch.nn.MSELoss()
         loss = torch.sqrt(mse_loss(x, y))
         return loss
