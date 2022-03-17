@@ -436,7 +436,7 @@ class UI_MainWindow(QWidget):
                                          format='GIF',
                                          append_images=other_images_pil,
                                          save_all=True,
-                                         duration=200,
+                                         duration=800,
                                          loop=0)
 
 
@@ -906,8 +906,8 @@ class UI_MainWindow(QWidget):
         elif self.mode == 'piv':
             # image pairs
             self.single_images_1_paths = glob.glob(os.path.join(os.getcwd(), 'example_data', self.mode, 'single', f'*img1.tif'))
-            self.single_images_2_paths = glob.glob(os.path.join(os.getcwd(), 'example_data', self.mode, 'single', f'*img2.tif'))
-            self.single_labels_paths = glob.glob(os.path.join(os.getcwd(), 'example_data', self.mode, 'single', f'*flow.flo'))
+            self.single_images_2_paths = [cur_path.replace('img1', 'img2') for cur_path in self.single_images_1_paths]
+            self.single_labels_paths = [cur_path.replace('img1', 'flow').replace('tif', 'flo') for cur_path in self.single_images_1_paths]
 
             for i in range(len(self.single_images_1_paths)):
                 self.image_menu.addItem(f'Image pair {i}')
@@ -2214,11 +2214,10 @@ class UI_MainWindow(QWidget):
 
             # plot_size should be bigger than the display_size, so that some margins exist
             self.image_label.setFixedSize(self.plot_size, self.plot_size)
-
             image_gif = QtGui.QMovie(self.gif_path)
-
             # add to the label
             self.image_label.setMovie(image_gif)
+            image_gif.start()
 
         # display the name of the image
         # self.name_label = QLabel(self.loaded_image_name)
