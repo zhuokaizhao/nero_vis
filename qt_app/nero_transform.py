@@ -246,54 +246,44 @@ class ToTensor(object):
         return img, bb_targets
 
 
-# rotates the PIV images and ground truths in terms of time (velocity only)
-def rotate_piv_data(all_images, all_labels, degree, sanity_check=False, vis=False):
+# rotates the PIV image pair and ground truth in terms of time (velocity only)
+def rotate_piv_data(image_1, image_2, label, degree):
 
-    # single input images case
-    if len(all_images.shape) == 3:
-        rotated_image = torch.rot90(all_images, int(degree//90))
-        # rotate the label (counterclock wise)
-        label_rotated_temp = torch.rot90(all_labels, int(degree//90), axes=(0, 1))
-        # rotate each velocity vector too (counterclock wise)
-        label_rotated = torch.zeros(all_labels.shape)
-        label_rotated[:, :, 0] = label_rotated_temp[:, :, 0] * np.cos(math.radians(degree)) + label_rotated_temp[:, :, 1] * np.sin(math.radians(degree))
-        label_rotated[:, :, 1] = -label_rotated_temp[:, :, 0] * np.sin(math.radians(degree)) + label_rotated_temp[:, :, 1] * np.cos(math.radians(degree))
+    # rotate the image (only support 90, 180, 270, etc) (counterclock wise)
+    image_1_rotated = torch.rot90(image_1, int(degree//90))
+    image_2_rotated = torch.rot90(image_2, int(degree//90))
 
-        return rotated_image, label_rotated
-
-    # multiple input images case
-    elif len(all_images.shape) == 4:
-        # check if lengths match
-        num_images = len(all_images)
-        num_labels = len(all_labels)
-        if (num_images != num_labels):
-            raise Exception(f'generate_pt_dataset: Images size {num_images} does not \
-                                match labels size {num_labels}')
-        else:
-            print(f'Number of images and labels is {num_images}')
+    # about labels
+    # rotate the label (counterclock wise)
+    label_rotated_temp = torch.rot90(label, int(degree//90), axes=(0, 1))
+    # rotate each velocity vector too (counterclock wise)
+    label_rotated = torch.zeros(label.shape)
+    label_rotated[:, :, 0] = label_rotated_temp[:, :, 0] * np.cos(math.radians(degree)) + label_rotated_temp[:, :, 1] * np.sin(math.radians(degree))
+    label_rotated[:, :, 1] = -label_rotated_temp[:, :, 0] * np.sin(math.radians(degree)) + label_rotated_temp[:, :, 1] * np.cos(math.radians(degree))
 
 
-        rotated_images = torch.zeros(all_images.shape)
-        rotated_labels = torch.zeros(all_labels.shape)
+    return image_1_rotated, image_2_rotated, label_rotated
 
 
-        # rotate the image and label
-        for i in range(num_images):
+def flip_piv_data(image_1, image_2, label):
 
-            # about image
-            cur_image = all_images[i]
-            # rotate the image (only support 90, 180, 270, etc) (counterclock wise)
-            rotated_images[i] = torch.rot90(cur_image, int(degree//90))
+    # flip the images (horizontally)
+    image_1_flipped = torch.flip(image_1, dims=1)
+    image_2_flipped = torch.flip(image_2, dims=1)
 
-            # about labels
-            cur_label = all_labels[i]
-            # rotate the label (counterclock wise)
-            cur_label_rotated_temp = torch.rot90(cur_label, int(degree//90), axes=(0, 1))
-            # rotate each velocity vector too (counterclock wise)
-            cur_label_rotated = torch.zeros(cur_label.shape)
-            cur_label_rotated[:, :, 0] = cur_label_rotated_temp[:, :, 0] * np.cos(math.radians(degree)) + cur_label_rotated_temp[:, :, 1] * np.sin(math.radians(degree))
-            cur_label_rotated[:, :, 1] = -cur_label_rotated_temp[:, :, 0] * np.sin(math.radians(degree)) + cur_label_rotated_temp[:, :, 1] * np.cos(math.radians(degree))
-            rotated_labels[i] = cur_label_rotated
+    # flip the ground truth
+    label_flipped_temp = torch.flip(label, dims=1)
+    # flip the velocity vecter too
+    label_flipped = torch.zeros(label)
+    label_flipped[:, :, 0] = -label_flipped_temp[:, :, 0]
+
+    return image_1_flipped, image_2_flipped, label_flipped
 
 
-        return rotated_images, rotated_labels
+# reverses the figures and ground truths in terms of time (velocity only)
+def reverse_piv_data(image_1, image_2, label):
+
+    # reverse the velocity label vector
+    label_reversed = -1 * label
+
+    return image_2, image_1, label_reversed

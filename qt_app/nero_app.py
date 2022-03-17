@@ -1895,14 +1895,15 @@ class UI_MainWindow(QWidget):
             self.display_coco_single_result()
 
         elif self.mode == 'piv':
-            if self.data_mode == 'single':
-                # Dihedral group4 transformations
-                all_rotation_degrees = [0, 90, 180, 270]
-                # 0 means no flip/time reverse, 1 means flip/time reverse
-                all_flip = [0, 1]
-                all_time_reversals = [0, 1]
-                num_transformations = len(all_rotation_degrees) * len(all_flip) * len(all_time_reversals)
 
+            # Dihedral group4 transformations
+            all_rotation_degrees = [0, 90, 180, 270]
+            # 0 means no flip/time reverse, 1 means flip/time reverse
+            all_flip = [0, 1]
+            all_time_reversals = [0, 1]
+            num_transformations = len(all_rotation_degrees) * len(all_flip) * len(all_time_reversals)
+
+            if self.data_mode == 'single':
                 # all_quantities has shape (16, 256, 256, 2)
                 if self.use_cache:
                     self.all_quantities_1 = self.load_from_cache(name=f'{self.data_mode}_{self.model_1_cache_name}_{self.image_index}')
@@ -1912,49 +1913,40 @@ class UI_MainWindow(QWidget):
                     self.all_quantities_1 = np.zeros((num_transformations, self.image_size, self.image_size, 2))
                     self.all_quantities_2 = np.zeros((num_transformations, self.image_size, self.image_size, 2))
 
-                for time_reverse in all_time_reversals:
-                    for flip in all_flip:
-                        for cur_rot_degree in all_rotation_degrees:
+                    for time_reverse in all_time_reversals:
+                        for flip in all_flip:
+                            for cur_rot_degree in all_rotation_degrees:
 
-                            # modify the input image tensor alone with its ground truth
-                            # rotation
-                            if cur_rot_degree:
-                                self.cur_image_1_pt = nero_transform.rotate_piv_data(self.loaded_image_1_pt, )
+                                # modify the input image tensor alone with its ground truth
+                                # rotation
+                                if cur_rot_degree:
+                                    self.cur_image_1_pt, \
+                                    self.cur_image_2_pt, \
+                                    self.cur_image_label = nero_transform.rotate_piv_data(self.loaded_image_1_pt, self.loaded_image_2_pt, self.loaded_image_label)
+
+                                # flip
+                                if flip:
+                                    self.cur_image_1_pt, \
+                                    self.cur_image_2_pt, \
+                                    self.cur_image_label = nero_transform.flip_piv_data(self.loaded_image_1_pt, self.loaded_image_2_pt, self.loaded_image_label)
+
+                                # time reverse
+                                if time_reverse:
+                                    self.cur_image_1_pt, \
+                                    self.cur_image_2_pt, \
+                                    self.cur_image_label = nero_transform.reverse_piv_data(self.loaded_image_1_pt, self.loaded_image_2_pt, self.loaded_image_label)
+
+                                # run the model
 
 
-                            # display as the final x_tran, y_tran
-                            if self.use_cache:
-                                self.display_image()
-                                display_rect_width = self.display_image_size/2
-                                display_rect_height = self.display_image_size/2
-                                # since the translation measures on the movement of object instead of the point of view, the sign is reversed
-                                rect_center_x = self.display_image_size/2 - x_tran * (self.display_image_size/self.uncropped_image_size)
-                                rect_center_y = self.display_image_size/2 - y_tran * (self.display_image_size/self.uncropped_image_size)
 
-                                # draw rectangles on the displayed image to indicate scanning process
-                                painter = QtGui.QPainter(self.image_pixmap)
-                                # draw the rectangles
-                                cover_color = QtGui.QColor(65, 65, 65, 225)
-                                self.draw_fov_mask(painter, rect_center_x, rect_center_y, display_rect_width, display_rect_height, cover_color)
 
-                                # draw ground truth label on the display image
-                                gt_display_center_x = (self.cur_image_label[0, 1] + self.cur_image_label[0, 3]) / 2 * (display_rect_width/self.image_size) + (rect_center_x - display_rect_width/2)
-                                gt_display_center_y = (self.cur_image_label[0, 2] + self.cur_image_label[0, 4]) / 2 * (display_rect_height/self.image_size) + (rect_center_y - display_rect_height/2)
-                                gt_display_rect_width = (self.cur_image_label[0, 3] - self.cur_image_label[0, 1]) * (display_rect_width/self.image_size)
-                                gt_display_rect_height = (self.cur_image_label[0, 4] - self.cur_image_label[0, 2]) * (display_rect_height/self.image_size)
-                                self.draw_rectangle(painter, gt_display_center_x, gt_display_center_y, gt_display_rect_width, gt_display_rect_height, color='yellow', label='Ground Truth')
-                                painter.end()
 
-                                # update pixmap with the label
-                                self.image_label.setPixmap(self.image_pixmap)
 
-                                # force repaint
-                                self.image_label.repaint()
-
-                            # save to cache
-                            else:
+                                # save to cache
                                 self.save_to_cache(name=f'{self.mode}_{self.data_mode}_{self.model_1_cache_name}_{self.image_index}', content=self.all_quantities_1)
                                 self.save_to_cache(name=f'{self.mode}_{self.data_mode}_{self.model_2_cache_name}_{self.image_index}', content=self.all_quantities_2)
+
             elif self.data_mode == 'aggregate':
                 raise NotImplementedError
 
