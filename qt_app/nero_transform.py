@@ -1,4 +1,5 @@
 # the script contains all the transformations applied within nero_app
+import math
 import torch
 import torchvision
 import numpy as np
@@ -243,3 +244,45 @@ class ToTensor(object):
         bb_targets[:, 1:] = torchvision.transforms.ToTensor()(boxes)
 
         return img, bb_targets
+
+
+# rotates the PIV images and ground truths in terms of time (velocity only)
+def rotate_piv_data(all_images, all_labels, degree, sanity_check=False, vis=False):
+
+    # ground truth (velocity only) dimension
+    target_dim = 2
+
+    # check if lengths match
+    num_images = len(all_images)
+    num_labels = len(all_labels)
+    if (num_images != num_labels):
+        raise Exception(f'generate_pt_dataset: Images size {num_images} does not \
+                            match labels size {num_labels}')
+    else:
+        print(f'Number of images and labels is {num_images}')
+
+
+    rotated_images = np.zeros(all_images.shape)
+    rotated_labels = np.zeros(all_labels.shape)
+
+
+    # rotate the image and label
+    for i in range(num_images):
+
+        # about image
+        cur_image = all_images[i]
+        # rotate the image (only support 90, 180, 270, etc) (counterclock wise)
+        rotated_images[i] = np.rot90(cur_image, int(degree//90))
+
+        # about labels
+        cur_label = all_labels[i]
+        # rotate the label (counterclock wise)
+        cur_label_rotated_temp = np.rot90(cur_label, int(degree//90), axes=(0, 1))
+        # rotate each velocity vector too (counterclock wise)
+        cur_label_rotated = np.zeros(cur_label.shape)
+        cur_label_rotated[:, :, 0] = cur_label_rotated_temp[:, :, 0] * np.cos(math.radians(degree)) + cur_label_rotated_temp[:, :, 1] * np.sin(math.radians(degree))
+        cur_label_rotated[:, :, 1] = -cur_label_rotated_temp[:, :, 0] * np.sin(math.radians(degree)) + cur_label_rotated_temp[:, :, 1] * np.cos(math.radians(degree))
+        rotated_labels[i] = cur_label_rotated
+
+
+    return rotated_images, rotated_labels
