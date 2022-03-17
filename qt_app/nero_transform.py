@@ -255,7 +255,7 @@ def rotate_piv_data(image_1, image_2, label, degree):
 
     # about labels
     # rotate the label (counterclock wise)
-    label_rotated_temp = torch.rot90(label, int(degree//90), axes=(0, 1))
+    label_rotated_temp = torch.rot90(label, int(degree//90), dims=(0, 1))
     # rotate each velocity vector too (counterclock wise)
     label_rotated = torch.zeros(label.shape)
     label_rotated[:, :, 0] = label_rotated_temp[:, :, 0] * np.cos(math.radians(degree)) + label_rotated_temp[:, :, 1] * np.sin(math.radians(degree))
@@ -268,13 +268,13 @@ def rotate_piv_data(image_1, image_2, label, degree):
 def flip_piv_data(image_1, image_2, label):
 
     # flip the images (horizontally)
-    image_1_flipped = torch.flip(image_1, dims=1)
-    image_2_flipped = torch.flip(image_2, dims=1)
+    image_1_flipped = torch.flip(image_1, dims=[1])
+    image_2_flipped = torch.flip(image_2, dims=[1])
 
     # flip the ground truth
-    label_flipped_temp = torch.flip(label, dims=1)
+    label_flipped_temp = torch.flip(label, dims=[1])
     # flip the velocity vecter too
-    label_flipped = torch.zeros(label)
+    label_flipped = torch.zeros(label.shape)
     label_flipped[:, :, 0] = -label_flipped_temp[:, :, 0]
 
     return image_1_flipped, image_2_flipped, label_flipped

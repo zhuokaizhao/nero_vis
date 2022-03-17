@@ -473,6 +473,16 @@ def run_piv_once(mode, model_name, model, image_1, image_2, batch_size=1):
             cur_label_pred_pt = cur_label_pred_pt.permute(0, 2, 3, 1)
             cur_label_pred_pt = cur_label_pred_pt[0]
 
+        elif model_name == 'Horn-Schunck':
+            img_height, img_width = image_1.shape[:2]
+            # prepare images for HS
+            first_image = image_1.reshape(img_height, img_width) * 1.0/255.0
+            second_image = image_2.reshape(img_height, img_width) * 1.0/255.0
+            u, v = models.Horn_Schunck(first_image, second_image)
+            cur_label_pred_pt = torch.zeros((img_height, img_width, 2))
+            cur_label_pred_pt[:, :, 0] = torch.from_numpy(u)
+            cur_label_pred_pt[:, :, 1] = torch.from_numpy(v)
+
 
         return cur_label_pred_pt
 
