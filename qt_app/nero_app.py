@@ -301,7 +301,7 @@ class UI_MainWindow(QWidget):
                 self.model_1_name = 'PIV-LiteFlowNet-en'
                 # LiteFlowNet
                 self.model_1_cache_name = self.model_1_name.split('-')[1]
-                self.model_1_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'PIV-LiteFlowNet-en', f'*.pt'))[0]
+                self.model_1_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'PIV-LiteFlowNet-en', f'*.paramOnly'))[0]
                 # Horn-Schunck does not need model path
                 self.model_2_name = 'Horn-Schunck'
                 self.model_2_cache_name = self.model_2_name
@@ -409,7 +409,7 @@ class UI_MainWindow(QWidget):
             self.center_y = int((self.loaded_image_label[0, 1] + self.loaded_image_label[0, 3]) // 2)
 
             # load the image
-            self.loaded_image_pt = torch.from_numpy(np.array(Image.open(self.image_path).convert('RGB'), dtype=np.uint8))
+            self.loaded_image_pt = torch.from_numpy(np.asarray(Image.open(self.image_path).convert('RGB'), dtype=np.uint8))
             self.loaded_image_name = self.image_path.split('/')[-1]
 
             # take the cropped part of the entire input image to put in display image
@@ -417,14 +417,16 @@ class UI_MainWindow(QWidget):
 
         elif self.mode == 'piv':
             # keep the PIL image version of the loaded images in this mode because they are saved as gif using PIL
-            self.loaded_image_1_pil = Image.open(self.image_1_path)
-            self.loaded_image_2_pil = Image.open(self.image_2_path)
+            # pre-trained PIV-LiteFlowNet-en takes 3 channel images
+            self.loaded_image_1_pil = Image.open(self.image_1_path).convert('RGB')
+            self.loaded_image_2_pil = Image.open(self.image_2_path).convert('RGB')
+
             # create a blank PIL image for gif purpose
-            self.blank_image_pil = Image.fromarray(np.zeros(np.asarray(self.loaded_image_1_pil).shape))
+            self.blank_image_pil = Image.fromarray(np.zeros((self.image_size, self.image_size, 3)), 'RGB')
 
             # convert to torch tensor
-            self.loaded_image_1_pt = torch.from_numpy(np.asarray(self.loaded_image_1_pil))[:, :, None]
-            self.loaded_image_2_pt = torch.from_numpy(np.asarray(self.loaded_image_2_pil))[:, :, None]
+            self.loaded_image_1_pt = torch.from_numpy(np.asarray(self.loaded_image_1_pil))
+            self.loaded_image_2_pt = torch.from_numpy(np.asarray(self.loaded_image_2_pil))
             self.loaded_image_1_name = self.image_1_path.split('/')[-1]
             self.loaded_image_2_name = self.image_2_path.split('/')[-1]
             # a separate copy to represent the transformed version of the original images
@@ -2622,10 +2624,53 @@ class UI_MainWindow(QWidget):
             # each d4 NERO plot has 16 triangles
             p = self.plot_size
             # first 4 are rotations with 0, 90, 180 and 270 degrees
+            # original
+            self.draw_triangle(painter, QtCore.QPointF(0, p/2),
+                                        QtCore.QPointF(p/4, p/4),
+                                        QtCore.QPointF(p/2, p/2),
+                                        d4_lut[int(data[0]*100)])
+
+            # rotated 90
+            self.draw_triangle(painter, QtCore.QPointF(p/2, p/2),
+                                        QtCore.QPointF(p/2, 0),
+                                        QtCore.QPointF(p*3/4, p*1/4),
+                                        d4_lut[int(data[1]*100)])
+
+            # rotated 180
+            self.draw_triangle(painter, QtCore.QPointF(p/2, p/2),
+                                        QtCore.QPointF(p, p/2),
+                                        QtCore.QPointF(p*3/4, p*3/4),
+                                        d4_lut[int(data[2]*100)])
+
+            # # rotated 270
+            self.draw_triangle(painter, QtCore.QPointF(p/4, p*3/4),
+                                        QtCore.QPointF(p/2, p/2),
+                                        QtCore.QPointF(p/2, p),
+                                        d4_lut[int(data[3]*100)])
+
+            # original + flip
+            self.draw_triangle(painter, QtCore.QPointF(p/4, p/4),
+                                        QtCore.QPointF(p/2, 0),
+                                        QtCore.QPointF(p/2, p/2),
+                                        d4_lut[int(data[4]*100)])
+
+            # rotated 90 + flip
+            self.draw_triangle(painter, QtCore.QPointF(p/2, p/2),
+                                        QtCore.QPointF(p*3/4, p/4),
+                                        QtCore.QPointF(p, p/2),
+                                        d4_lut[int(data[5]*100)])
+
+            # rotated 180 + flip
+            self.draw_triangle(painter, QtCore.QPointF(p/2, p/2),
+                                        QtCore.QPointF(p/2, p),
+                                        QtCore.QPointF(p*3/4, p*3/4),
+                                        d4_lut[int(data[6]*100)])
+
+            # rotated 270 + flip
             self.draw_triangle(painter, QtCore.QPointF(0, p/2),
                                         QtCore.QPointF(p/4, p*3/4),
                                         QtCore.QPointF(p/2, p/2),
-                                        d4_lut[int(data[0]*100)])
+                                        d4_lut[int(data[7]*100)])
 
             painter.end()
 

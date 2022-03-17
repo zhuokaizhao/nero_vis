@@ -7,7 +7,7 @@ import torch
 import torchvision
 import numpy as np
 from tqdm import tqdm
-from PIL import Image, ImageDraw
+from PIL import Image, ImageOps
 from torch.autograd import Variable
 from torchvision import transforms
 import torch.nn.functional as F
@@ -78,10 +78,11 @@ def load_model(mode, network_model, model_dir):
 
     elif mode == 'piv':
         if network_model == 'PIV-LiteFlowNet-en':
-            model = models.PIV_LiteFlowNet_en()
+            # model = models.PIV_LiteFlowNet_en()
+            model = models.piv_liteflownet()
             model.to(device)
             loaded_model = torch.load(model_dir, map_location=device)
-            model.load_state_dict(loaded_model['state_dict'])
+            model.load_state_dict(loaded_model)
             print(f'{network_model} loaded from {model_dir}')
 
     else:
@@ -460,12 +461,13 @@ def run_piv_once(mode, model_name, model, image_1, image_2, batch_size=1):
         Tensor = torch.FloatTensor
 
     if mode == 'single':
-        # permute from [index, height, width, dim] to [index, dim, height, width]
-        cur_image_pair = torch.cat((image_1, image_2), 2).float().permute(2, 0, 1).unsqueeze(0).to(device)
 
         if model_name == 'PIV-LiteFlowNet-en':
+            # permute from [index, height, width, dim] to [index, dim, height, width]
+            img1 = image_1.permute(2, 0, 1).unsqueeze(0).float().to(device)
+            img2 = image_2.permute(2, 0, 1).unsqueeze(0).float().to(device)
             # get prediction from loaded model
-            prediction = model(cur_image_pair)
+            prediction = model(img1, img2)
 
             # put on cpu and permute to channel last
             cur_label_pred_pt = prediction.cpu().data
@@ -474,11 +476,12 @@ def run_piv_once(mode, model_name, model, image_1, image_2, batch_size=1):
             cur_label_pred_pt = cur_label_pred_pt[0]
 
         elif model_name == 'Horn-Schunck':
-            img_height, img_width = image_1.shape[:2]
             # prepare images for HS
-            first_image = image_1.reshape(img_height, img_width) * 1.0/255.0
-            second_image = image_2.reshape(img_height, img_width) * 1.0/255.0
-            u, v = models.Horn_Schunck(first_image, second_image)
+            img1 = np.asarray(ImageOps.grayscale(Image.fromarray(image_1.numpy(), 'RGB'))) * 1.0/255.0
+            img2 = np.asarray(ImageOps.grayscale(Image.fromarray(image_2.numpy(), 'RGB'))) * 1.0/255.0
+            img_height, img_width = img1.shape[:2]
+
+            u, v = models.Horn_Schunck(img1, img2)
             cur_label_pred_pt = torch.zeros((img_height, img_width, 2))
             cur_label_pred_pt[:, :, 0] = torch.from_numpy(u)
             cur_label_pred_pt[:, :, 1] = torch.from_numpy(v)
