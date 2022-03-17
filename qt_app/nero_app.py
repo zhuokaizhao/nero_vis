@@ -440,7 +440,7 @@ class UI_MainWindow(QWidget):
                                          loop=0)
 
             # load the ground truth flow field
-            self.loaded_image_label = fz.read_flow(self.label_path)
+            self.loaded_image_label_pt = torch.from_numpy(fz.read_flow(self.label_path))
 
 
     def init_load_layout(self):
@@ -1922,25 +1922,25 @@ class UI_MainWindow(QWidget):
                                 if cur_rot_degree:
                                     self.cur_image_1_pt, \
                                     self.cur_image_2_pt, \
-                                    self.cur_image_label = nero_transform.rotate_piv_data(self.loaded_image_1_pt, self.loaded_image_2_pt, self.loaded_image_label)
+                                    self.cur_image_label_pt = nero_transform.rotate_piv_data(self.loaded_image_1_pt, self.loaded_image_2_pt, self.loaded_image_label_pt)
 
                                 # flip
                                 elif flip:
                                     self.cur_image_1_pt, \
                                     self.cur_image_2_pt, \
-                                    self.cur_image_label = nero_transform.flip_piv_data(self.loaded_image_1_pt, self.loaded_image_2_pt, self.loaded_image_label)
+                                    self.cur_image_label_pt = nero_transform.flip_piv_data(self.loaded_image_1_pt, self.loaded_image_2_pt, self.loaded_image_label_pt)
 
                                 # time reverse
                                 elif time_reverse:
                                     self.cur_image_1_pt, \
                                     self.cur_image_2_pt, \
-                                    self.cur_image_label = nero_transform.reverse_piv_data(self.loaded_image_1_pt, self.loaded_image_2_pt, self.loaded_image_label)
+                                    self.cur_image_label_pt = nero_transform.reverse_piv_data(self.loaded_image_1_pt, self.loaded_image_2_pt, self.loaded_image_label_pt)
 
                                 # no transformation at all
                                 else:
                                     self.cur_image_1_pt = self.loaded_image_1_pt
                                     self.cur_image_2_pt = self.loaded_image_2_pt
-                                    self.cur_image_label = self.loaded_image_label
+                                    self.cur_image_label_pt = self.loaded_image_label_pt
 
                                 # run the model
                                 quantity_1 = nero_run_model.run_piv_once('single',
@@ -1948,8 +1948,6 @@ class UI_MainWindow(QWidget):
                                                                             self.model_1,
                                                                             self.cur_image_1_pt,
                                                                             self.cur_image_2_pt,
-                                                                            self.cur_image_label,
-                                                                            image_size=256,
                                                                             batch_size=1)
 
                                 quantity_2 = nero_run_model.run_piv_once('single',
@@ -1957,8 +1955,6 @@ class UI_MainWindow(QWidget):
                                                                             self.model_2,
                                                                             self.cur_image_1_pt,
                                                                             self.cur_image_2_pt,
-                                                                            self.cur_image_label,
-                                                                            image_size=256,
                                                                             batch_size=1)
 
                                 self.all_quantities_1[transformation_index] = quantity_1
@@ -1970,6 +1966,9 @@ class UI_MainWindow(QWidget):
                     # save to cache
                     self.save_to_cache(name=f'{self.mode}_{self.data_mode}_{self.model_1_cache_name}_{self.image_index}', content=self.all_quantities_1)
                     self.save_to_cache(name=f'{self.mode}_{self.data_mode}_{self.model_2_cache_name}_{self.image_index}', content=self.all_quantities_2)
+
+                # display the piv single case result
+                self.display_piv_single_result()
 
             elif self.data_mode == 'aggregate':
                 raise NotImplementedError
@@ -2544,6 +2543,40 @@ class UI_MainWindow(QWidget):
 
         # add the plot view to the layout
         self.aggregate_result_layout.addWidget(polar_view, 1, 1, 2, 2)
+
+
+    # draws a single D4 vis
+    def draw_individual_d4(self):
+        raise NotADirectoryError
+
+
+    # draws the dihedral 4 visualization to be the NERO plot for PIV experiment
+    def draw_dihedral4(self, mode):
+        # add to general layout
+        if mode == 'single':
+            # heatmap view
+            self.d4_view_1 = pg.GraphicsLayoutWidget()
+            # left top right bottom
+            self.d4_view_1.ci.layout.setContentsMargins(0, 20, 0, 0)
+            self.d4_view_1.setFixedSize(self.plot_size*1.3, self.plot_size*1.3)
+            self.d4_view_2 = pg.GraphicsLayoutWidget()
+            # left top right bottom
+            self.d4_view_2.ci.layout.setContentsMargins(0, 20, 0, 0)
+            self.d4_view_2.setFixedSize(self.plot_size*1.3, self.plot_size*1.3)
+            self.dr_plot_1 = self.draw_individual_d4('single')
+            self.d4_plot_2 = self.draw_individual_d4('single')
+
+            # add to view
+            self.d4_view_1.addItem(self.dr_plot_1)
+            self.d4_view_2.addItem(self.dr_plot_2)
+
+            if self.data_mode == 'single':
+                self.single_result_layout.addWidget(self.d4_view_1, 1, 1)
+                self.single_result_layout.addWidget(self.d4_view_2, 1, 2)
+            elif self.data_mode == 'aggregate':
+                self.aggregate_result_layout.addWidget(self.d4_view_1, 1, 4)
+                self.aggregate_result_layout.addWidget(self.d4_view_2, 1, 5)
+
 
     # display MNIST aggregated results
     def display_mnist_aggregate_result(self):
@@ -3149,6 +3182,84 @@ class UI_MainWindow(QWidget):
 
         # draw the heatmap
         self.draw_heatmaps(mode='single')
+
+
+    # display PIV single results
+    def display_piv_single_result(self):
+        # if single mode, change control menus' locations
+        if self.data_mode == 'single':
+            # move the model menu on top of the each individual NERO plot when in single mode
+            self.single_result_layout.addWidget(self.model_1_menu, 0, 1, 1, 1, QtCore.Qt.AlignCenter)
+            self.single_result_layout.addWidget(self.model_2_menu, 0, 2, 1, 1, QtCore.Qt.AlignCenter)
+
+            # move run button below the displayed image
+            self.single_result_layout.addWidget(self.run_button, 2, 0)
+            self.single_result_layout.addWidget(self.use_cache_checkbox, 3, 0)
+
+        @QtCore.Slot()
+        def piv_plot_quantity_changed(text):
+            print('Plotting:', text, 'on heatmap')
+            self.quantity_name = text
+
+            if text == 'RMSE':
+                if self.data_mode == 'single':
+                    self.cur_plot_quantity_1 = self.all_quantities_1[:, :, 4] * self.all_quantities_1[:, :, 6]
+                    self.cur_plot_quantity_2 = self.all_quantities_2[:, :, 4] * self.all_quantities_2[:, :, 6]
+                elif self.data_mode == 'aggregate':
+                    raise NotImplementedError
+
+            elif text == 'AEE':
+                if self.data_mode == 'single':
+                    self.cur_plot_quantity_1 = self.all_quantities_1[:, :, 4]
+                    self.cur_plot_quantity_2 = self.all_quantities_2[:, :, 4]
+                elif self.data_mode == 'aggregate':
+                    raise NotImplementedError
+
+            elif text == 'Consensus':
+                raise NotImplementedError
+
+            # re-display the dihedral 4 visualization
+            self.draw_dihedral4(mode='single')
+
+        # drop down menu on selection which quantity to plot
+        # layout that controls the plotting items
+        self.single_plot_control_layout = QtWidgets.QVBoxLayout()
+        quantity_menu = QtWidgets.QComboBox()
+        quantity_menu.setFixedSize(QtCore.QSize(250, 50))
+        quantity_menu.setStyleSheet('font-size: 18px')
+        quantity_menu.setEditable(True)
+        quantity_menu.lineEdit().setReadOnly(True)
+        quantity_menu.lineEdit().setAlignment(QtCore.Qt.AlignCenter)
+
+        quantity_menu.addItem('RMSE')
+        quantity_menu.addItem('AEE')
+        # self.quantity_menu.setCurrentIndex(0)
+        quantity_menu.setCurrentText('RMSE')
+
+        # connect the drop down menu with actions
+        quantity_menu.currentTextChanged.connect(piv_plot_quantity_changed)
+        self.single_plot_control_layout.addWidget(quantity_menu)
+
+        # define default plotting quantity
+        if self.data_mode == 'single':
+            # add plot control layout to general layout
+            self.single_result_layout.addLayout(self.single_plot_control_layout, 0, 0)
+            # by default the loss is RMSE
+            self.cur_plot_quantity_1 = nero_utilities.RMSELoss(self.cur_image_label, self.)
+            self.cur_plot_quantity_2 = self.all_quantities_2[:, :, 4] * self.all_quantities_2[:, :, 6]
+        elif self.data_mode == 'aggregate':
+            # add plot control layout to general layout
+            self.aggregate_result_layout.addLayout(self.single_plot_control_layout, 0, 3)
+            # current selected individual images' result on all transformations
+            self.cur_plot_quantity_1 = np.zeros((len(self.y_translation), len(self.x_translation)))
+            self.cur_plot_quantity_2 = np.zeros((len(self.y_translation), len(self.x_translation)))
+            for y in range(len(self.y_translation)):
+                for x in range(len(self.x_translation)):
+                    self.cur_plot_quantity_1[y, x] = self.aggregate_outputs_1[y, x][self.image_index][0, 4] * self.aggregate_outputs_1[y, x][self.image_index][0, 6]
+                    self.cur_plot_quantity_2[y, x] = self.aggregate_outputs_2[y, x][self.image_index][0, 4] * self.aggregate_outputs_2[y, x][self.image_index][0, 6]
+
+        # draw the heatmap
+        self.draw_dihedral4(mode='single')
 
 
     def mouseMoveEvent(self, event):

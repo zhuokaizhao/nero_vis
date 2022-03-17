@@ -448,7 +448,7 @@ def run_coco_once(mode, model_name, model, test_image, custom_names, pytorch_nam
 
 
 # run model on either one pair of PIV images or a batch of pairs
-def run_piv_once(mode, model_name, model, image_1, image_2, test_label, image_size=256, batch_size=1):
+def run_piv_once(mode, model_name, model, image_1, image_2, batch_size=1):
 
     # basic settings for pytorch
     if torch.cuda.is_available():
@@ -462,19 +462,18 @@ def run_piv_once(mode, model_name, model, image_1, image_2, test_label, image_si
     if mode == 'single':
         # permute from [index, height, width, dim] to [index, dim, height, width]
         cur_image_pair = torch.cat((image_1, image_2), 2).float().permute(2, 0, 1).unsqueeze(0).to(device)
-        cur_label_true = test_label / image_size
 
         if model_name == 'PIV-LiteFlowNet-en':
             # get prediction from loaded model
             prediction = model(cur_image_pair)
 
             # put on cpu and permute to channel last
-            cur_label_pred = prediction.cpu().data
+            cur_label_pred_pt = prediction.cpu().data
             # change label shape to (height, width, dim)
-            cur_label_pred = cur_label_pred.permute(0, 2, 3, 1).numpy()
-            cur_label_pred = cur_label_pred[0] / image_size
+            cur_label_pred_pt = cur_label_pred_pt.permute(0, 2, 3, 1)
+            cur_label_pred_pt = cur_label_pred_pt[0]
 
 
-        return cur_label_pred
+        return cur_label_pred_pt
 
 
