@@ -1925,19 +1925,32 @@ class UI_MainWindow(QWidget):
                                     self.cur_image_label = nero_transform.rotate_piv_data(self.loaded_image_1_pt, self.loaded_image_2_pt, self.loaded_image_label)
 
                                 # flip
-                                if flip:
+                                elif flip:
                                     self.cur_image_1_pt, \
                                     self.cur_image_2_pt, \
                                     self.cur_image_label = nero_transform.flip_piv_data(self.loaded_image_1_pt, self.loaded_image_2_pt, self.loaded_image_label)
 
                                 # time reverse
-                                if time_reverse:
+                                elif time_reverse:
                                     self.cur_image_1_pt, \
                                     self.cur_image_2_pt, \
                                     self.cur_image_label = nero_transform.reverse_piv_data(self.loaded_image_1_pt, self.loaded_image_2_pt, self.loaded_image_label)
 
-                                # run the model
+                                # no transformation at all
+                                else:
+                                    self.cur_image_1_pt = self.loaded_image_1_pt
+                                    self.cur_image_2_pt = self.loaded_image_2_pt
+                                    self.cur_image_label = self.loaded_image_label
 
+                                # run the model
+                                nero_run_model.run_piv_once('single',
+                                                            self.model_1_name,
+                                                            self.model_1,
+                                                            self.cur_image_1_pt,
+                                                            self.cur_image_2_pt,
+                                                            self.cur_image_label,
+                                                            image_size=256,
+                                                            batch_size=1)
 
 
 
