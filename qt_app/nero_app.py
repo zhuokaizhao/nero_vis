@@ -1932,8 +1932,9 @@ class UI_MainWindow(QWidget):
             if self.data_mode == 'single':
                 # all_quantities has shape (16, 256, 256, 2)
                 if self.use_cache:
-                    self.all_quantities_1 = self.load_from_cache(name=f'{self.data_mode}_{self.model_1_cache_name}_{self.image_index}')
-                    self.all_quantities_2 = self.load_from_cache(name=f'{self.data_mode}_{self.model_2_cache_name}_{self.image_index}')
+                    self.all_quantities_1 = self.load_from_cache(name=f'{self.mode}_{self.data_mode}_{self.model_1_cache_name}_{self.image_index}')
+                    self.all_quantities_2 = self.load_from_cache(name=f'{self.mode}_{self.data_mode}_{self.model_2_cache_name}_{self.image_index}')
+                    self.all_ground_truths = self.load_from_cache(name=f'{self.mode}_{self.data_mode}_ground_truths_{self.image_index}')
                 else:
                     # each model output are dense 2D velocity field of the input image
                     self.all_quantities_1 = torch.zeros((self.num_transformations, self.image_size, self.image_size, 2))
@@ -1996,6 +1997,7 @@ class UI_MainWindow(QWidget):
                     # save to cache
                     self.save_to_cache(name=f'{self.mode}_{self.data_mode}_{self.model_1_cache_name}_{self.image_index}', content=self.all_quantities_1)
                     self.save_to_cache(name=f'{self.mode}_{self.data_mode}_{self.model_2_cache_name}_{self.image_index}', content=self.all_quantities_2)
+                    self.save_to_cache(name=f'{self.mode}_{self.data_mode}_ground_truths_{self.image_index}', content=self.all_ground_truths)
 
                 # display the piv single case result
                 self.display_piv_single_result()
@@ -2580,13 +2582,13 @@ class UI_MainWindow(QWidget):
         # define pen and brush
         pen = QtGui.QPen()
         pen.setWidth(boundary_width)
-        pen_color = QtGui.QColor(color)
+        pen_color = QtGui.QColor(color[0], color[1], color[2])
         # pen_color.setAlpha(alpha)
         pen.setColor(pen_color)
         painter.setPen(pen)
 
         brush = QtGui.QBrush()
-        brush.setColor(color)
+        brush.setColor(pen_color)
         brush.setStyle(QtCore.Qt.SolidPattern)
         painter.setBrush(brush)
 
@@ -2615,15 +2617,20 @@ class UI_MainWindow(QWidget):
 
             # define a colormap and lookup table to use as fill color
             d4_color_map = pg.colormap.get('viridis')
-            d4_lut = d4_color_map.getLookupTable(start=0, stop=1, nPts=1001, alpha=False)
+            d4_lut = d4_color_map.getLookupTable(start=0, stop=1, nPts=101, alpha=False)
 
             # each d4 NERO plot has 16 triangles
             p = self.plot_size
             # first 4 are rotations with 0, 90, 180 and 270 degrees
-            self.draw_triangle(painter, (0, p/2), (p/4, p*3/4), (p/2, p/2), d4_lut[int(data[0]*1000)])
+            self.draw_triangle(painter, QtCore.QPointF(0, p/2),
+                                        QtCore.QPointF(p/4, p*3/4),
+                                        QtCore.QPointF(p/2, p/2),
+                                        d4_lut[int(data[0]*100)])
 
             painter.end()
 
+            # set pixmap to label
+            d4_label.setPixmap(d4_pixmap)
 
             return d4_label
 
