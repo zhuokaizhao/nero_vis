@@ -1912,7 +1912,7 @@ class UI_MainWindow(QWidget):
                     # each model output are dense 2D velocity field of the input image
                     self.all_quantities_1 = np.zeros((num_transformations, self.image_size, self.image_size, 2))
                     self.all_quantities_2 = np.zeros((num_transformations, self.image_size, self.image_size, 2))
-
+                    transformation_index = 0
                     for time_reverse in all_time_reversals:
                         for flip in all_flip:
                             for cur_rot_degree in all_rotation_degrees:
@@ -1943,22 +1943,33 @@ class UI_MainWindow(QWidget):
                                     self.cur_image_label = self.loaded_image_label
 
                                 # run the model
-                                nero_run_model.run_piv_once('single',
-                                                            self.model_1_name,
-                                                            self.model_1,
-                                                            self.cur_image_1_pt,
-                                                            self.cur_image_2_pt,
-                                                            self.cur_image_label,
-                                                            image_size=256,
-                                                            batch_size=1)
+                                quantity_1 = nero_run_model.run_piv_once('single',
+                                                                            self.model_1_name,
+                                                                            self.model_1,
+                                                                            self.cur_image_1_pt,
+                                                                            self.cur_image_2_pt,
+                                                                            self.cur_image_label,
+                                                                            image_size=256,
+                                                                            batch_size=1)
+
+                                quantity_2 = nero_run_model.run_piv_once('single',
+                                                                            self.model_2_name,
+                                                                            self.model_2,
+                                                                            self.cur_image_1_pt,
+                                                                            self.cur_image_2_pt,
+                                                                            self.cur_image_label,
+                                                                            image_size=256,
+                                                                            batch_size=1)
+
+                                self.all_quantities_1[transformation_index] = quantity_1
+                                self.all_quantities_2[transformation_index] = quantity_2
+
+                                transformation_index += 1
 
 
-
-
-
-                                # save to cache
-                                self.save_to_cache(name=f'{self.mode}_{self.data_mode}_{self.model_1_cache_name}_{self.image_index}', content=self.all_quantities_1)
-                                self.save_to_cache(name=f'{self.mode}_{self.data_mode}_{self.model_2_cache_name}_{self.image_index}', content=self.all_quantities_2)
+                    # save to cache
+                    self.save_to_cache(name=f'{self.mode}_{self.data_mode}_{self.model_1_cache_name}_{self.image_index}', content=self.all_quantities_1)
+                    self.save_to_cache(name=f'{self.mode}_{self.data_mode}_{self.model_2_cache_name}_{self.image_index}', content=self.all_quantities_2)
 
             elif self.data_mode == 'aggregate':
                 raise NotImplementedError

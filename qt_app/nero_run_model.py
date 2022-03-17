@@ -472,6 +472,9 @@ def run_piv_once(mode, model_name, model, image_1, image_2, test_label, image_si
             cur_label_pred = prediction.cpu().data
             # change label shape to (height, width, dim)
             cur_label_pred = cur_label_pred.permute(0, 2, 3, 1).numpy()
-            # cur_label_pred = cur_label_pred[0] / final_size
-            cur_label_pred = cur_label_pred[0]
+            cur_label_pred = cur_label_pred[0] / image_size
+
+
+        return cur_label_pred
+
 
