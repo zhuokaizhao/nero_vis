@@ -2672,6 +2672,54 @@ class UI_MainWindow(QWidget):
                                         QtCore.QPointF(p/2, p/2),
                                         d4_lut[int(data[7]*100)])
 
+            # time reverse
+            self.draw_triangle(painter, QtCore.QPointF(0, 0),
+                                        QtCore.QPointF(p/4, p/4),
+                                        QtCore.QPointF(0, p/2),
+                                        d4_lut[int(data[8]*100)])
+
+            # time reverse + rot 90
+            self.draw_triangle(painter, QtCore.QPointF(p/2, 0),
+                                        QtCore.QPointF(p*3/4, p/4),
+                                        QtCore.QPointF(p, 0),
+                                        d4_lut[int(data[9]*100)])
+
+            # time reverse + rot 180
+            self.draw_triangle(painter, QtCore.QPointF(p, p/2),
+                                        QtCore.QPointF(p*3/4, p*3/4),
+                                        QtCore.QPointF(p, p),
+                                        d4_lut[int(data[10]*100)])
+
+            # time reverse + rot 270
+            self.draw_triangle(painter, QtCore.QPointF(0, p),
+                                        QtCore.QPointF(p/4, p*3/4),
+                                        QtCore.QPointF(p/2, p),
+                                        d4_lut[int(data[11]*100)])
+
+            # time reverse + flip
+            self.draw_triangle(painter, QtCore.QPointF(0, 0),
+                                        QtCore.QPointF(p/4, p/4),
+                                        QtCore.QPointF(p/2, 0),
+                                        d4_lut[int(data[12]*100)])
+
+            # time reverse + rot 90 + flip
+            self.draw_triangle(painter, QtCore.QPointF(p, 0),
+                                        QtCore.QPointF(p*3/4, p/4),
+                                        QtCore.QPointF(p, p/2),
+                                        d4_lut[int(data[13]*100)])
+
+            # time reverse + rot 180 + flip
+            self.draw_triangle(painter, QtCore.QPointF(p/2, p),
+                                        QtCore.QPointF(p*3/4, p*3/4),
+                                        QtCore.QPointF(p, p),
+                                        d4_lut[int(data[14]*100)])
+
+            # time reverse + rot 270 + flip
+            self.draw_triangle(painter, QtCore.QPointF(0, p),
+                                        QtCore.QPointF(0, p/2),
+                                        QtCore.QPointF(p/4, p*3/4),
+                                        d4_lut[int(data[14]*100)])
+
             painter.end()
 
             # set pixmap to label
