@@ -7,6 +7,7 @@ import glob
 import time
 import torch
 import numpy as np
+import flowiz as fz
 from PIL import Image, ImageDraw
 import pyqtgraph as pg
 from PySide6 import QtCore, QtWidgets, QtGui
@@ -14,7 +15,6 @@ from PySide6.QtGui  import QPixmap, QFont
 # from PySide6.QtCore import QEvent
 from PySide6.QtWidgets import QWidget, QLabel, QRadioButton
 
-from sklearn.compose import ColumnTransformer
 from sklearn.decomposition import PCA
 from sklearn.decomposition import FastICA
 from sklearn import manifold
@@ -439,6 +439,9 @@ class UI_MainWindow(QWidget):
                                          duration=800,
                                          loop=0)
 
+            # load the ground truth flow field
+            self.loaded_image_label = fz.read_flow(self.label_path)
+
 
     def init_load_layout(self):
 
@@ -611,6 +614,7 @@ class UI_MainWindow(QWidget):
                 self.image_index = int(text.split(' ')[-1])
                 self.image_1_path = self.single_images_1_paths[self.image_index]
                 self.image_2_path = self.single_images_2_paths[self.image_index]
+                self.label_path = self.single_labels_paths[self.image_index]
                 self.load_single_image()
 
             # display the image
@@ -1911,6 +1915,11 @@ class UI_MainWindow(QWidget):
                 for time_reverse in all_time_reversals:
                     for flip in all_flip:
                         for cur_rot_degree in all_rotation_degrees:
+
+                            # modify the input image tensor alone with its ground truth
+                            # rotation
+                            if cur_rot_degree:
+                                self.cur_image_1_pt = nero_transform.rotate_piv_data(self.loaded_image_1_pt, )
 
 
                             # display as the final x_tran, y_tran
