@@ -72,11 +72,11 @@ class UI_MainWindow(QWidget):
 
         # load/initialize program cache
         self.use_cache = False
-        cache_dir = os.path.join(os.getcwd(), 'cache')
-        if not os.path.isdir(cache_dir):
-            os.mkdir(cache_dir)
+        self.cache_dir = os.path.join(os.getcwd(), 'cache')
+        if not os.path.isdir(self.cache_dir):
+            os.mkdir(self.cache_dir)
 
-        self.cache_path = os.path.join(cache_dir, 'nero_cache.npz')
+        self.cache_path = os.path.join(self.cache_dir, 'nero_cache.npz')
         # if not exist, creat one
         if not os.path.isfile(self.cache_path):
             np.savez(self.cache_path)
@@ -129,13 +129,14 @@ class UI_MainWindow(QWidget):
             print(f'Cleaned {self.previous_mode} control layout')
             self.clear_layout(self.load_menu_layout)
 
-        if self.image_existed:
+        # for cases where only image is loaded but no other things
+        if self.image_existed and not self.aggregate_result_existed:
             self.clear_layout(self.single_result_layout)
 
-            if self.aggregate_result_existed:
-                self.clear_layout(self.aggregate_result_layout)
-                self.single_result_existed = False
-                self.aggregate_result_existed = False
+        if self.aggregate_result_existed:
+            self.clear_layout(self.aggregate_result_layout)
+            self.single_result_existed = False
+            self.aggregate_result_existed = False
 
         if self.run_button_existed:
             print(f'Cleaned previous run button')
@@ -413,13 +414,30 @@ class UI_MainWindow(QWidget):
             self.cur_image_pt = self.loaded_image_pt[self.center_y-self.display_image_size//2:self.center_y+self.display_image_size//2, self.center_x-self.display_image_size//2:self.center_x+self.display_image_size//2, :]
 
         elif self.mode == 'piv':
-            self.loaded_image_1_pt = torch.from_numpy(np.asarray(Image.open(self.image_1_path)))[:, :, None]
-            self.loaded_image_2_pt = torch.from_numpy(np.asarray(Image.open(self.image_2_path)))[:, :, None]
+            # keep the PIL image version of the loaded images in this mode because they are saved as gif using PIL
+            self.loaded_image_1_pil = Image.open(self.image_1_path)
+            self.loaded_image_2_pil = Image.open(self.image_2_path)
+            # create a blank PIL image for gif purpose
+            self.blank_image_pil = Image.fromarray(np.zeros(np.asarray(self.loaded_image_1_pil).shape))
+
+            # convert to torch tensor
+            self.loaded_image_1_pt = torch.from_numpy(np.asarray(self.loaded_image_1_pil))[:, :, None]
+            self.loaded_image_2_pt = torch.from_numpy(np.asarray(self.loaded_image_2_pil))[:, :, None]
             self.loaded_image_1_name = self.image_1_path.split('/')[-1]
             self.loaded_image_2_name = self.image_2_path.split('/')[-1]
             # a separate copy to represent the transformed version of the original images
             self.cur_image_1_pt = self.loaded_image_1_pt.clone()
             self.cur_image_2_pt = self.loaded_image_2_pt.clone()
+
+            # save the pil images as gif to cache
+            other_images_pil = [self.loaded_image_2_pil, self.blank_image_pil]
+            self.gif_path = os.path.join(self.cache_dir, self.loaded_image_1_name.split('.')[0] + '.gif')
+            self.loaded_image_1_pil.save(fp=self.gif_path,
+                                         format='GIF',
+                                         append_images=other_images_pil,
+                                         save_all=True,
+                                         duration=200,
+                                         loop=0)
 
 
     def init_load_layout(self):
@@ -594,15 +612,6 @@ class UI_MainWindow(QWidget):
                 self.image_1_path = self.single_images_1_paths[self.image_index]
                 self.image_2_path = self.single_images_2_paths[self.image_index]
                 self.load_single_image()
-
-                # convert to QImage for display purpose
-                self.cur_display_image_1 = nero_utilities.tensor_to_qt_image(self.cur_image_1_pt)
-                self.cur_display_image_2 = nero_utilities.tensor_to_qt_image(self.cur_image_2_pt)
-                self.blank_image = nero_utilities.tensor_to_qt_image(torch.zeros(self.cur_image_1_pt.shape))
-                # resize the display QImage
-                self.cur_display_image_1 = self.cur_display_image_1.scaledToWidth(self.display_image_size)
-                self.cur_display_image_2 = self.cur_display_image_2.scaledToWidth(self.display_image_size)
-                self.blank_display_image = self.blank_image.scaledToWidth(self.display_image_size)
 
             # display the image
             self.display_image()
@@ -2206,32 +2215,10 @@ class UI_MainWindow(QWidget):
             # plot_size should be bigger than the display_size, so that some margins exist
             self.image_label.setFixedSize(self.plot_size, self.plot_size)
 
-            # prepare a pixmap for the image
-            image_pixmap = QPixmap(self.cur_display_image_1)
+            image_gif = QtGui.QMovie(self.gif_path)
 
             # add to the label
-            self.image_label.setPixmap(image_pixmap)
-
-            # animation that repeatedly goes from image 1 -> image 2 -> blank image
-            display_sequence_images = [self.cur_display_image_1, self.cur_display_image_2, self.blank_display_image]
-            for a in range(10):
-                print(a)
-                for i in range(3):
-                    print(i)
-                    # prepare a pixmap for the image
-                    image_pixmap = QPixmap(display_sequence_images[i])
-
-                    # add to the label
-                    self.image_label.setPixmap(image_pixmap)
-
-                    # force repaint
-                    self.image_label.repaint()
-
-                # pause for 0.2 second
-                # time.sleep(0.2)
-
-            # after the whole sequence, sleep 0.5
-            # time.sleep(0.5)
+            self.image_label.setMovie(image_gif)
 
         # display the name of the image
         # self.name_label = QLabel(self.loaded_image_name)
