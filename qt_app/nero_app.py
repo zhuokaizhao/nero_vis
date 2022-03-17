@@ -2575,23 +2575,30 @@ class UI_MainWindow(QWidget):
         self.aggregate_result_layout.addWidget(polar_view, 1, 1, 2, 2)
 
 
-    def draw_triangle(self, painter, point_1, point_2, point_3, color, fill, boundary_width):
+    def draw_triangle(self, painter, point_1, point_2, point_3, color, boundary_width=3):
 
-        if color:
-            pen = QtGui.QPen()
-            pen.setWidth(boundary_width)
-            pen_color = QtGui.QColor(color)
-            # pen_color.setAlpha(alpha)
-            pen.setColor(pen_color)
-            painter.setPen(pen)
-            painter.drawRect(rectangle)
+        # define pen and brush
+        pen = QtGui.QPen()
+        pen.setWidth(boundary_width)
+        pen_color = QtGui.QColor(color)
+        # pen_color.setAlpha(alpha)
+        pen.setColor(pen_color)
+        painter.setPen(pen)
 
-        if fill:
-            brush = QtGui.QBrush()
-            brush.setColor(fill)
-            brush.setStyle(QtCore.Qt.SolidPattern)
-            # painter.setBrush(brush)
-            painter.fillRect(rectangle, brush)
+        brush = QtGui.QBrush()
+        brush.setColor(color)
+        brush.setStyle(QtCore.Qt.SolidPattern)
+        painter.setBrush(brush)
+
+        # define triangle
+        triangle = QtGui.QPolygonF()
+        triangle.append(QtCore.QPointF(point_1))
+        triangle.append(QtCore.QPointF(point_2))
+        triangle.append(QtCore.QPointF(point_3))
+
+        # draw triangle
+        painter.drawPolygon(triangle)
+
 
     # draws a single D4 vis
     def draw_individual_d4(self, mode, data):
@@ -2606,32 +2613,29 @@ class UI_MainWindow(QWidget):
             d4_pixmap.fill(QtCore.Qt.white)
             painter = QtGui.QPainter(d4_pixmap)
 
+            # define a colormap and lookup table to use as fill color
+            d4_color_map = pg.colormap.get('viridis')
+            d4_lut = d4_color_map.getLookupTable(start=0, stop=1, nPts=1001, alpha=False)
+
             # each d4 NERO plot has 16 triangles
-
-
-
-
-            # draw arrow to indicate feeding
-            self.draw_triangle(painter, boundary_width)
-
-            # add to the label and layout
-            self.arrow_label.setPixmap(arrow_pixmap)
+            p = self.plot_size
+            # first 4 are rotations with 0, 90, 180 and 270 degrees
+            self.draw_triangle(painter, (0, p/2), (p/4, p*3/4), (p/2, p/2), d4_lut[int(data[0]*1000)])
 
             painter.end()
+
 
             return d4_label
 
 
-
-
-    # draws the dihedral 4 visualization to be the NERO plot for PIV experiment
-    def draw_dihedral4(self, mode):
+    # draws dihedral 4 visualization to be the NERO plot for PIV experiment
+    def draw_d4_nero(self, mode):
         # add to general layout
         if mode == 'single':
 
             # individual NERO plot
             self.d4_label_1 = self.draw_individual_d4('single', self.cur_plot_quantity_1)
-            self.d4_label_2 = self.draw_individual_d4('single')
+            self.d4_label_2 = self.draw_individual_d4('single', self.cur_plot_quantity_2)
 
             if self.data_mode == 'single':
                 self.single_result_layout.addWidget(self.d4_label_1, 1, 1)
@@ -3313,27 +3317,23 @@ class UI_MainWindow(QWidget):
 
             # default loss is RMSE
             loss_module = nero_utilities.RMSELoss()
+            all_loss_1 = np.zeros(self.num_transformations)
+            all_loss_2 = np.zeros(self.num_transformations)
             for i in range(self.num_transformations):
-                self.cur_plot_quantity_1[i] = loss_module(self.all_ground_truths[i], self.all_quantities_1[i]).numpy()
-                self.cur_plot_quantity_2[i] = loss_module(self.all_ground_truths[i], self.all_quantities_2[i]).numpy()
+                all_loss_1[i] = loss_module(self.all_ground_truths[i], self.all_quantities_1[i]).numpy()
+                all_loss_2[i] = loss_module(self.all_ground_truths[i], self.all_quantities_2[i]).numpy()
 
-            print(self.cur_plot_quantity_1)
-            print(self.cur_plot_quantity_2)
-            exit()
+            # normalize between 0 and 1
+            loss_max = max(np.max(all_loss_1), np.max(all_loss_2))
+            loss_min = min(np.min(all_loss_1), np.min(all_loss_2))
+            self.cur_plot_quantity_1 = 1 - nero_utilities.lerp(all_loss_1, loss_min, loss_max, 0, 1)
+            self.cur_plot_quantity_2 = 1 - nero_utilities.lerp(all_loss_2, loss_min, loss_max, 0, 1)
 
         elif self.data_mode == 'aggregate':
-            # add plot control layout to general layout
-            self.aggregate_result_layout.addLayout(self.single_plot_control_layout, 0, 3)
-            # current selected individual images' result on all transformations
-            self.cur_plot_quantity_1 = np.zeros((len(self.y_translation), len(self.x_translation)))
-            self.cur_plot_quantity_2 = np.zeros((len(self.y_translation), len(self.x_translation)))
-            for y in range(len(self.y_translation)):
-                for x in range(len(self.x_translation)):
-                    self.cur_plot_quantity_1[y, x] = self.aggregate_outputs_1[y, x][self.image_index][0, 4] * self.aggregate_outputs_1[y, x][self.image_index][0, 6]
-                    self.cur_plot_quantity_2[y, x] = self.aggregate_outputs_2[y, x][self.image_index][0, 4] * self.aggregate_outputs_2[y, x][self.image_index][0, 6]
+            raise NotImplementedError
 
-        # draw the heatmap
-        self.draw_dihedral4(mode='single')
+        # visualize the individual NERO plot of current input
+        self.draw_d4_nero(mode='single')
 
 
     def mouseMoveEvent(self, event):
