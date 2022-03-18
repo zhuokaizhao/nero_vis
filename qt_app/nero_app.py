@@ -2002,7 +2002,8 @@ class UI_MainWindow(QWidget):
 
             # add buttons for controlling the GIF
             self.gif_control_layout = QtWidgets.QHBoxLayout()
-            self.gif_control_layout.setContentsMargins(50, 0, 50, 0)
+            self.gif_control_layout.setAlignment(QtGui.Qt.AlignTop)
+            self.gif_control_layout.setContentsMargins(50, 0, 50, 50)
             if self.data_mode == 'single':
                 self.single_result_layout.addLayout(self.gif_control_layout, 2, 0)
 
@@ -3469,8 +3470,8 @@ class UI_MainWindow(QWidget):
             self.single_result_layout.addWidget(self.model_2_menu, 0, 2, 1, 1, QtCore.Qt.AlignCenter)
 
             # move run button below the displayed image
-            self.single_result_layout.addWidget(self.run_button, 2, 0)
-            self.single_result_layout.addWidget(self.use_cache_checkbox, 3, 0)
+            self.single_result_layout.addWidget(self.run_button, 3, 0)
+            self.single_result_layout.addWidget(self.use_cache_checkbox, 4, 0)
 
         @QtCore.Slot()
         def piv_plot_quantity_changed(text):
