@@ -449,7 +449,7 @@ def run_coco_once(mode, model_name, model, test_image, custom_names, pytorch_nam
 
 
 # run model on either one pair of PIV images or a batch of pairs
-def run_piv_once(mode, model_name, model, image_1, image_2, batch_size=1):
+def run_piv_once(mode, model_name, model, image_1, image_2):
 
     # basic settings for pytorch
     if torch.cuda.is_available():
@@ -489,4 +489,37 @@ def run_piv_once(mode, model_name, model, image_1, image_2, batch_size=1):
 
         return cur_label_pred_pt
 
+    elif mode == 'aggregate':
 
+        if model_name == 'PIV-LiteFlowNet-en':
+            # permute from [index, height, width, dim] to [index, dim, height, width]
+            img1 = image_1.permute(0, 3, 1, 2).float().to(device)
+            img2 = image_2.permute(0, 3, 1, 2).float().to(device)
+            # get prediction from loaded model
+            prediction = model(img1, img2)
+
+            # put on cpu and permute to channel last
+            cur_labels_pred_pt = prediction.cpu().data
+            # change label shape to (height, width, dim)
+            cur_labels_pred_pt = cur_label_pred_pt.permute(0, 2, 3, 1)
+
+        elif model_name == 'Horn-Schunck':
+            # number of images
+            num_images = len(image_1)
+            cur_labels_pred_pt = torch.zeros((num_images, image_1.shape[1], image_1.shape[2], 2))
+
+            # prepare images for HS, HS does not run in batch
+            for i in range(num_images):
+                img1 = np.asarray(ImageOps.grayscale(Image.fromarray(image_1[i].numpy(), 'RGB'))) * 1.0/255.0
+                img2 = np.asarray(ImageOps.grayscale(Image.fromarray(image_2[i].numpy(), 'RGB'))) * 1.0/255.0
+                img_height, img_width = img1.shape[:2]
+
+                u, v = models.Horn_Schunck(img1, img2)
+                cur_label_pred_pt = torch.zeros((img_height, img_width, 2))
+                cur_label_pred_pt[:, :, 0] = torch.from_numpy(u)
+                cur_label_pred_pt[:, :, 1] = torch.from_numpy(v)
+
+                cur_labels_pred_pt[i] = cur_label_pred_pt
+
+
+        return cur_labels_pred_pt

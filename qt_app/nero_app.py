@@ -1658,8 +1658,8 @@ class UI_MainWindow(QWidget):
             # output are dense 2D velocity field of the input image pairs
             # output for all transformation, has shape (num_transformations, num_samples, image_size, image_size, 2)
             self.aggregate_outputs_1 = torch.zeros((self.num_transformations, len(self.all_images_1_paths),  self.image_size, self.image_size, 2))
-            self.aggregate_outputs_2 = torch.zeros((self.num_transformations, len(self.all_images_1_paths), self.image_size, self.image_size, 2))
-            self.aggregate_ground_truths = torch.zeros((self.num_transformations, len(self.all_images_1_paths), self.image_size, self.image_size, 2))
+            self.aggregate_outputs_2 = torch.zeros((self.num_transformations, len(self.all_images_2_paths), self.image_size, self.image_size, 2))
+            self.aggregate_ground_truths = torch.zeros((self.num_transformations, len(self.all_labels_paths), self.image_size, self.image_size, 2))
 
             if self.use_cache:
                 self.aggregate_outputs_1 = self.load_from_cache(f'{self.mode}_{self.data_mode}_{self.model_1_cache_name}_outputs')
@@ -1667,42 +1667,77 @@ class UI_MainWindow(QWidget):
                 self.aggregate_ground_truths = self.load_from_cache(f'{self.mode}_{self.data_mode}_{self.model_2_cache_name}_ground_truths')
             else:
                 transformation_index = 0
-                for time_reverse in all_time_reversals:
-                    for flip in all_flip:
-                        for cur_rot_degree in all_rotation_degrees:
+                # take a batch of images
+                num_batches = int(len(self.all_images_1_paths) / self.batch_size)
+                if len(self.all_images_1_paths) % self.batch_size != 0:
+                    num_batches += 1
+                # construct sample indices for each batch
+                batch_indices = []
+                for i in range(num_batches):
+                    batch_indices.append((i*self.batch_size, min((i+1)*self.batch_size, len(self.all_images_1_paths))))
 
-                            # take a batch of images
-                            num_batches = int(len(self.all_images_1_paths) / self.batch_size)
-                            if len(self.all_images_1_paths) % self.batch_size != 0:
-                                num_batches += 1
-                            # construct sample indices for each batch
-                            batch_indices = []
-                            for i in range(num_batches):
-                                batch_indices.append((i*self.batch_size, min((i+1)*self.batch_size, len(self.all_images_1_paths))))
+                # go through each transformation type
+                for is_time_reversed in all_time_reversals:
+                    for is_flipped in all_flip:
+                        for cur_rotation_angle in all_rotation_degrees:
 
                             # modify the data and run model in batch
+                            for index_range in batch_indices:
+                                cur_images_1_paths = self.all_images_1_paths[index_range[0]:index_range[1]]
+                                cur_images_2_paths = self.all_images_2_paths[index_range[0]:index_range[1]]
+                                cur_labels_paths = self.all_labels_paths[index_range[0]:index_range[1]]
+
+                                cur_images_1_pt = torch.zeros((len(cur_images_1_paths), self.image_size, self.image_size, 3))
+                                cur_images_2_pt = torch.zeros((len(cur_images_2_paths), self.image_size, self.image_size, 3))
+                                cur_labels = torch.zeros((len(cur_images_1_paths), self.image_size, self.image_size, 2))
+
+                                # load and modify data of the current batch
+                                for i in range(len(cur_images_1_paths)):
+                                    # load the data
+                                    cur_image_1_pil = Image.open(cur_images_1_paths[i]).convert('RGB')
+                                    cur_image_2_pil = Image.open(cur_images_2_paths[i]).convert('RGB')
+                                    # convert to torch tensor
+                                    cur_image_1_pt = torch.from_numpy(np.asarray(cur_image_1_pil))
+                                    cur_image_2_pt = torch.from_numpy(np.asarray(cur_image_2_pil))
+                                    # load the ground truth flow field
+                                    cur_label = torch.from_numpy(fz.read_flow(cur_labels_paths[i]))
+
+                                    # modify the data
+                                    if is_time_reversed:
+                                        cur_image_1_pt, cur_image_2_pt, cur_label = nero_transform.reverse_piv_data(cur_image_1_pt, cur_image_2_pt, cur_label)
+
+                                    if is_flipped:
+                                        cur_image_1_pt, cur_image_2_pt, cur_label = nero_transform.flip_piv_data(cur_image_1_pt, cur_image_2_pt, cur_label)
+
+                                    if cur_rotation_angle != 0:
+                                        cur_image_1_pt, cur_image_2_pt, cur_label = nero_transform.rotate_piv_data(cur_image_1_pt, cur_image_2_pt, cur_label, cur_rotation_angle)
+
+                                    # add to batch
+                                    cur_images_1_pt[i] = cur_image_1_pt
+                                    cur_images_2_pt[i] = cur_image_2_pt
+                                    cur_labels[i] = cur_label
+
+                                # run models on the current batch
+                                cur_outputs_1 = nero_run_model.run_piv_once('aggregate',
+                                                                            self.model_1_name,
+                                                                            self.model_1,
+                                                                            cur_images_1_pt,
+                                                                            cur_images_2_pt)
+                                print(cur_outputs_1.shape)
+                                cur_outputs_2 = nero_run_model.run_piv_once('aggregate',
+                                                                            self.model_2_name,
+                                                                            self.model_2,
+                                                                            cur_images_1_pt,
+                                                                            cur_images_2_pt)
 
 
+                                print(cur_outputs_2.shape)
+                                exit()
 
-                            # run the model
-                            cur_output_1 = nero_run_model.run_piv_once('aggregate',
-                                                                        self.model_1_name,
-                                                                        self.model_1,
-                                                                        self.all_images_1_paths,
-                                                                        self.all_images_2_paths,
-                                                                        batch_size=self.batch_size)
-
-                            cur_output_2 = nero_run_model.run_piv_once('aggregate',
-                                                                        self.model_2_name,
-                                                                        self.model_2,
-                                                                        self.all_images_1_paths,
-                                                                        self.all_images_2_paths,
-                                                                        batch_size=self.batch_size)
-
-                            # cur_ground_truth =
-
-                            self.aggregate_outputs_1[transformation_index] = cur_output_1 / self.image_size
-                            self.aggregate_outputs_1[transformation_index] = cur_output_2 / self.image_size
+                            # add to all outputs
+                            self.aggregate_outputs_1[transformation_index, index_range[0]:index_range[1]] = cur_outputs_1 / self.image_size
+                            self.aggregate_outputs_1[transformation_index, index_range[0]:index_range[1]] = cur_outputs_2 / self.image_size
+                            self.aggregate_ground_truths[transformation_index, index_range[0]:index_range[1]] = cur_labels
 
                             transformation_index += 1
 
@@ -1710,8 +1745,6 @@ class UI_MainWindow(QWidget):
                 self.save_to_cache(name=f'{self.mode}_{self.data_mode}_{self.model_1_cache_name}_outputs', content=self.aggregate_outputs_1)
                 self.save_to_cache(name=f'{self.mode}_{self.data_mode}_{self.model_1_cache_name}_outputs', content=self.aggregate_outputs_1)
                 self.save_to_cache(name=f'{self.mode}_{self.data_mode}_{self.model_1_cache_name}_outputs', content=self.aggregate_outputs_1)
-
-
 
             # display the result
             self.display_piv_aggregate_result()
