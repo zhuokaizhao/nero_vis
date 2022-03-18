@@ -2862,18 +2862,19 @@ class UI_MainWindow(QWidget):
 
         point_1, point_2, point_3 = points
         # define pen and brush
+        pen = QtGui.QPen()
         if pen_color:
-            pen = QtGui.QPen()
-            # pen_color.setAlpha(alpha)
-            pen.setColor(pen_color)
             pen.setWidth(boundary_width)
-            painter.setPen(pen)
+            pen.setColor(pen_color)
+        painter.setPen(pen)
 
+        brush = QtGui.QBrush()
         if brush_color:
-            brush = QtGui.QBrush()
             brush.setColor(brush_color)
             brush.setStyle(QtCore.Qt.SolidPattern)
-            painter.setBrush(brush)
+        else:
+            brush.setStyle(QtCore.Qt.NoBrush)
+        painter.setBrush(brush)
 
         # define triangle
         triangle = QtGui.QPolygonF()
@@ -2973,8 +2974,8 @@ class UI_MainWindow(QWidget):
 
         # prepare data for the visualization, using current triangle index
         if self.piv_loss == 'RMSE':
-            data_1 = torch.sqrt(torch.square(self.all_ground_truths[self.triangle_index] - self.all_quantities_1[self.triangle_index])).numpy().mean(axis=2)
-            data_2 = torch.sqrt(torch.square(self.all_ground_truths[self.triangle_index] - self.all_quantities_2[self.triangle_index])).numpy().mean(axis=2)
+            data_1 = torch.sqrt(torch.square(self.all_ground_truths[self.triangle_index] - self.all_quantities_1[self.triangle_index]).mean(axis=2)).numpy()
+            data_2 = torch.sqrt(torch.square(self.all_ground_truths[self.triangle_index] - self.all_quantities_2[self.triangle_index]).mean(axis=2)).numpy()
         elif self.piv_loss == 'MSE':
             data_1 = torch.square(self.all_ground_truths[self.triangle_index] - self.all_quantities_1[self.triangle_index]).numpy().mean(axis=2)
             data_2 = torch.square(self.all_ground_truths[self.triangle_index] - self.all_quantities_2[self.triangle_index]).numpy().mean(axis=2)
@@ -2985,12 +2986,9 @@ class UI_MainWindow(QWidget):
             data_1 = torch.sqrt((self.all_ground_truths[self.triangle_index][:, :, 0]-self.all_quantities_1[self.triangle_index][:,:,0])**2 + (self.all_ground_truths[self.triangle_index][:,:,1]-self.all_quantities_1[self.triangle_index][:,:,1])**2).numpy().mean(axis=2)
             data_2 = torch.sqrt((self.all_ground_truths[self.triangle_index][:, :, 0]-self.all_quantities_1[self.triangle_index][:,:,0])**2 + (self.all_ground_truths[self.triangle_index][:,:,1]-self.all_quantities_1[self.triangle_index][:,:,1])**2).numpy().mean(axis=2)
 
-        # normalize to 0 and 1
-        data_min = min(np.min(data_1), np.min(data_2))
-        data_max = max(np.max(data_1), np.max(data_2))
-
-        data_1 = 1 - nero_utilities.lerp(data_1, data_min, data_max, 0, 1)
-        data_2 = 1 - nero_utilities.lerp(data_2, data_min, data_max, 0, 1)
+        # normalize current detailed heatmap
+        data_1 = 1 - nero_utilities.lerp(data_1, self.error_min, self.error_max, 0, 1)
+        data_2 = 1 - nero_utilities.lerp(data_2, self.error_min, self.error_max, 0, 1)
 
         self.piv_detail_plot_1 = self.draw_individual_heatmap('single', data_1)
         self.piv_detail_plot_2 = self.draw_individual_heatmap('single', data_2)
@@ -3617,14 +3615,22 @@ class UI_MainWindow(QWidget):
                 elif self.piv_loss == 'MAE':
                     loss_module = torch.nn.L1Loss()
 
-                # compute loss using torch loss module
-                for i in range(self.num_transformations):
-                    all_loss_1[i] = loss_module(self.all_ground_truths[i], self.all_quantities_1[i]).numpy()
-                    all_loss_2[i] = loss_module(self.all_ground_truths[i], self.all_quantities_2[i]).numpy()
+            # compute loss using torch loss module
+            for i in range(self.num_transformations):
+                all_loss_1[i] = loss_module(self.all_ground_truths[i], self.all_quantities_1[i]).numpy()
+                all_loss_2[i] = loss_module(self.all_ground_truths[i], self.all_quantities_2[i]).numpy()
 
-            elif self.piv_loss == 'AEE':
-                for i in range(self.num_transformations):
+            print(all_loss_1[0])
+
+            for i in range(self.num_transformations):
+                if self.piv_loss == 'RMSE':
+                    all_loss_1[i] = np.mean(torch.sqrt(torch.square(self.all_ground_truths[self.triangle_index] - self.all_quantities_1[self.triangle_index]).mean(axis=2)).numpy())
+                    all_loss_2[i] = np.mean(torch.sqrt(torch.square(self.all_ground_truths[self.triangle_index] - self.all_quantities_2[self.triangle_index]).mean(axis=2)).numpy())
+                    print(all_loss_1[0])
+                    exit()
+                elif self.piv_loss == 'AEE':
                     all_loss_1[i] = np.sqrt((self.all_ground_truths[i][:,:,0] - self.all_quantities_1[i][:,:,0])**2 + (self.all_ground_truths[i][:,:,1] - self.all_quantities_1[i][:,:,1])**2).mean()
+                    all_loss_2[i] = np.sqrt((self.all_ground_truths[i][:,:,0] - self.all_quantities_2[i][:,:,0])**2 + (self.all_ground_truths[i][:,:,1] - self.all_quantities_2[i][:,:,1])**2).mean()
 
             # normalize these errors between 0 and 1
             loss_max = max(np.max(all_loss_1), np.max(all_loss_2))
@@ -3763,6 +3769,7 @@ class UI_MainWindow(QWidget):
             all_loss_1 = np.zeros(self.num_transformations)
             all_loss_2 = np.zeros(self.num_transformations)
 
+            # compute loss using torch loss module
             if self.piv_loss == 'RMSE' or self.piv_loss == 'MSE' or self.piv_loss == 'MAE':
                 if self.piv_loss == 'RMSE':
                     loss_module = nero_utilities.RMSELoss()
@@ -3771,7 +3778,6 @@ class UI_MainWindow(QWidget):
                 elif self.piv_loss == 'MAE':
                     loss_module = torch.nn.L1Loss()
 
-                # compute loss using torch loss module
                 for i in range(self.num_transformations):
                     all_loss_1[i] = loss_module(self.all_ground_truths[i], self.all_quantities_1[i]).numpy()
                     all_loss_2[i] = loss_module(self.all_ground_truths[i], self.all_quantities_2[i]).numpy()
@@ -3844,18 +3850,37 @@ class UI_MainWindow(QWidget):
 
             # default loss is RMSE
             self.piv_loss = 'RMSE'
-            loss_module = nero_utilities.RMSELoss()
+            # compute individual pixel error as the largest and smallest for normalization purpose
+            # get global min and max to later normalize to 0 and 1
+            all_min_temps = []
+            all_max_temps = []
+            for i in range(len(self.all_ground_truths)):
+                if self.piv_loss == 'RMSE' or self.piv_loss == 'MSE':
+                    temp_1 = torch.sqrt(torch.square(self.all_ground_truths[i] - self.all_quantities_1[i]).mean(axis=2)).numpy()
+                    temp_2 = torch.sqrt(torch.square(self.all_ground_truths[i] - self.all_quantities_2[i]).mean(axis=2)).numpy()
+                elif self.piv_loss == 'MAE':
+                    temp_1 = torch.abs(self.all_ground_truths[i] - self.all_quantities_1[i]).numpy().mean(axis=2)
+                    temp_2 = torch.abs(self.all_ground_truths[i] - self.all_quantities_2[i]).numpy().mean(axis=2)
+                elif self.piv_loss == 'AEE':
+                    temp_1 = torch.sqrt((self.all_ground_truths[i][:, :, 0]-self.all_quantities_1[i][:,:,0])**2 + (self.all_ground_truths[i][:,:,1]-self.all_quantities_1[i][:,:,1])**2).numpy().mean(axis=2)
+                    temp_2 = torch.sqrt((self.all_ground_truths[i][:, :, 0]-self.all_quantities_1[i][:,:,0])**2 + (self.all_ground_truths[i][:,:,1]-self.all_quantities_1[i][:,:,1])**2).numpy().mean(axis=2)
+
+                all_min_temps.append(min(np.mean(temp_1), np.mean(temp_2)))
+                all_max_temps.append(max(np.mean(temp_1), np.mean(temp_2)))
+
+            self.error_min = min(all_min_temps)
+            self.error_max = max(all_max_temps)
+
+            # compute loss for individual NERO plot, default loss is RMSE
             all_loss_1 = np.zeros(self.num_transformations)
             all_loss_2 = np.zeros(self.num_transformations)
             for i in range(self.num_transformations):
-                all_loss_1[i] = loss_module(self.all_ground_truths[i], self.all_quantities_1[i]).numpy()
-                all_loss_2[i] = loss_module(self.all_ground_truths[i], self.all_quantities_2[i]).numpy()
+                all_loss_1[i] = np.mean(torch.sqrt(torch.square(self.all_ground_truths[i] - self.all_quantities_1[i]).mean(axis=2)).numpy())
+                all_loss_2[i] = np.mean(torch.sqrt(torch.square(self.all_ground_truths[i] - self.all_quantities_2[i]).mean(axis=2)).numpy())
 
             # normalize between 0 and 1
-            loss_max = max(np.max(all_loss_1), np.max(all_loss_2))
-            loss_min = min(np.min(all_loss_1), np.min(all_loss_2))
-            self.cur_plot_quantity_1 = 1 - nero_utilities.lerp(all_loss_1, loss_min, loss_max, 0, 1)
-            self.cur_plot_quantity_2 = 1 - nero_utilities.lerp(all_loss_2, loss_min, loss_max, 0, 1)
+            self.cur_plot_quantity_1 = 1 - nero_utilities.lerp(all_loss_1, self.error_min, self.error_max, 0, 1)
+            self.cur_plot_quantity_2 = 1 - nero_utilities.lerp(all_loss_2, self.error_min, self.error_max, 0, 1)
 
         elif self.data_mode == 'aggregate':
             raise NotImplementedError
