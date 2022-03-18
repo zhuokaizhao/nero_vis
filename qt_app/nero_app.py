@@ -1979,8 +1979,11 @@ class UI_MainWindow(QWidget):
                 else:
                     rot_index = -self.cur_rotation_angle//90
                 self.triangle_index = self.is_time_reversed*8 + self.is_flipped*4 + rot_index
-                print(f'triangle index {self.triangle_index}')
+                print(f'triangle index {self.triangle_index}, nero number {self.cur_plot_quantity_1[self.triangle_index]}')
+                # redraw the nero plot with new triangle display
                 self.draw_d4_nero('single')
+                # update detailed plot of PIV
+                self.draw_piv_details()
 
 
             @QtCore.Slot()
@@ -1996,8 +1999,11 @@ class UI_MainWindow(QWidget):
                 else:
                     rot_index = -self.cur_rotation_angle//90
                 self.triangle_index = self.is_time_reversed*8 + self.is_flipped*4 + rot_index
-                print(f'triangle index {self.triangle_index}')
+                print(f'triangle index {self.triangle_index}, nero number {self.cur_plot_quantity_1[self.triangle_index]}')
+                # redraw the nero plot with new triangle display
                 self.draw_d4_nero('single')
+                # update detailed plot of PIV
+                self.draw_piv_details()
 
             @QtCore.Slot()
             def flip():
@@ -2012,8 +2018,11 @@ class UI_MainWindow(QWidget):
                 else:
                     rot_index = -self.cur_rotation_angle//90
                 self.triangle_index = self.is_time_reversed*8 + self.is_flipped*4 + rot_index
-                print(f'triangle index {self.triangle_index}')
+                print(f'triangle index {self.triangle_index}, nero number {self.cur_plot_quantity_1[self.triangle_index]}')
+                # redraw the nero plot with new triangle display
                 self.draw_d4_nero('single')
+                # update detailed plot of PIV
+                self.draw_piv_details()
 
             @QtCore.Slot()
             def time_reverse():
@@ -2028,8 +2037,11 @@ class UI_MainWindow(QWidget):
                 else:
                     rot_index = -self.cur_rotation_angle//90
                 self.triangle_index = self.is_time_reversed*8 + self.is_flipped*4 + rot_index
-                print(f'triangle index {self.triangle_index}')
+                print(f'triangle index {self.triangle_index}, nero number {self.cur_plot_quantity_1[self.triangle_index]}')
+                # redraw the nero plot with new triangle display
                 self.draw_d4_nero('single')
+                # update detailed plot of PIV
+                self.draw_piv_details()
 
 
             # add buttons for controlling the GIF
@@ -2525,7 +2537,7 @@ class UI_MainWindow(QWidget):
         view_box.setAspectLocked(lock=True)
         view_box.addItem(heatmap)
 
-        if mode == 'single':
+        if self.mode == 'object_detection' and mode == 'single':
             # small indicator on where the translation is at
             scatter_item = pg.ScatterPlotItem(pxMode=False)
             scatter_point = []
@@ -2540,10 +2552,17 @@ class UI_MainWindow(QWidget):
             view_box.addItem(scatter_item)
 
         heatmap_plot = pg.PlotItem(viewBox=view_box, title=title)
-        heatmap_plot.getAxis('bottom').setLabel('Translation in x')
-        heatmap_plot.getAxis('bottom').setStyle(tickLength=0, showValues=False)
-        heatmap_plot.getAxis('left').setLabel('Translation in y')
-        heatmap_plot.getAxis('left').setStyle(tickLength=0, showValues=False)
+        if self.mode == 'object_detection':
+            heatmap_plot.getAxis('bottom').setLabel('Translation in x')
+            heatmap_plot.getAxis('bottom').setStyle(tickLength=0, showValues=False)
+            heatmap_plot.getAxis('left').setLabel('Translation in y')
+            heatmap_plot.getAxis('left').setStyle(tickLength=0, showValues=False)
+        elif self.mode == 'piv':
+            heatmap_plot.getAxis('bottom').setLabel('x')
+            heatmap_plot.getAxis('bottom').setStyle(tickLength=0, showValues=False)
+            heatmap_plot.getAxis('left').setLabel('y')
+            heatmap_plot.getAxis('left').setStyle(tickLength=0, showValues=False)
+
         # disable being able to move plot around
         heatmap_plot.setMouseEnabled(x=False, y=False)
 
@@ -2722,25 +2741,22 @@ class UI_MainWindow(QWidget):
         self.aggregate_result_layout.addWidget(polar_view, 1, 1, 2, 2)
 
 
-    def draw_triangle(self, index, painter, point_1, point_2, point_3, color, boundary_width=3):
+    def draw_triangle(self, painter, points, pen_color=None, brush_color=None, boundary_width=None):
 
+        point_1, point_2, point_3 = points
         # define pen and brush
-        pen = QtGui.QPen()
-        if index == self.triangle_index:
-            pen.setWidth(boundary_width*3)
-            pen_color = QtGui.QColor('red')
-        else:
+        if pen_color:
+            pen = QtGui.QPen()
+            # pen_color.setAlpha(alpha)
+            pen.setColor(pen_color)
             pen.setWidth(boundary_width)
-            pen_color = QtGui.QColor(color[0], color[1], color[2])
+            painter.setPen(pen)
 
-        # pen_color.setAlpha(alpha)
-        pen.setColor(pen_color)
-        painter.setPen(pen)
-
-        brush = QtGui.QBrush()
-        brush.setColor(pen_color)
-        brush.setStyle(QtCore.Qt.SolidPattern)
-        painter.setBrush(brush)
+        if brush_color:
+            brush = QtGui.QBrush()
+            brush.setColor(brush_color)
+            brush.setStyle(QtCore.Qt.SolidPattern)
+            painter.setBrush(brush)
 
         # define triangle
         triangle = QtGui.QPolygonF()
@@ -2771,102 +2787,29 @@ class UI_MainWindow(QWidget):
 
             # each d4 NERO plot has 16 triangles
             p = self.plot_size
-            # first 4 are rotations with 0, 90, 180 and 270 degrees
-            # original
-            self.draw_triangle(0, painter, QtCore.QPointF(0, p/2),
-                                        QtCore.QPointF(p/4, p/4),
-                                        QtCore.QPointF(p/2, p/2),
-                                        d4_lut[int(data[0]*100)])
+            # points of all triangles
+            all_triangle_points = [[QtCore.QPointF(0, p/2), QtCore.QPointF(p/4, p/4), QtCore.QPointF(p/2, p/2)], # original
+                                   [QtCore.QPointF(p/2, p/2), QtCore.QPointF(p/2, 0), QtCore.QPointF(p*3/4, p*1/4)], # rotated 90
+                                   [QtCore.QPointF(p/2, p/2), QtCore.QPointF(p, p/2), QtCore.QPointF(p*3/4, p*3/4)], # rotated 180
+                                   [QtCore.QPointF(p/4, p*3/4), QtCore.QPointF(p/2, p/2), QtCore.QPointF(p/2, p)], # rotated 270
+                                   [QtCore.QPointF(p/4, p/4), QtCore.QPointF(p/2, 0), QtCore.QPointF(p/2, p/2)], # original + flip
+                                   [QtCore.QPointF(p/2, p/2), QtCore.QPointF(p*3/4, p/4), QtCore.QPointF(p, p/2)], # rotated 90 + flip
+                                   [QtCore.QPointF(p/2, p/2), QtCore.QPointF(p/2, p), QtCore.QPointF(p*3/4, p*3/4)], # rotated 180 + flip
+                                   [QtCore.QPointF(0, p/2), QtCore.QPointF(p/4, p*3/4), QtCore.QPointF(p/2, p/2)], # rotated 270 + flip
+                                   [QtCore.QPointF(0, 0), QtCore.QPointF(p/4, p/4), QtCore.QPointF(0, p/2)], # time reverse
+                                   [QtCore.QPointF(p/2, 0), QtCore.QPointF(p*3/4, p/4), QtCore.QPointF(p, 0)], # time reverse + rot 90
+                                   [QtCore.QPointF(p, p/2), QtCore.QPointF(p*3/4, p*3/4), QtCore.QPointF(p, p)], # time reverse + rot 180
+                                   [QtCore.QPointF(0, p), QtCore.QPointF(p/4, p*3/4), QtCore.QPointF(p/2, p)], # time reverse + rot 270
+                                   [QtCore.QPointF(0, 0), QtCore.QPointF(p/4, p/4), QtCore.QPointF(p/2, 0)], # time reverse + flip
+                                   [QtCore.QPointF(p, 0), QtCore.QPointF(p*3/4, p/4), QtCore.QPointF(p, p/2)], # time reverse + rot 90 + flip
+                                   [QtCore.QPointF(p/2, p), QtCore.QPointF(p*3/4, p*3/4), QtCore.QPointF(p, p)], # time reverse + rot 180 + flip
+                                   [QtCore.QPointF(0, p), QtCore.QPointF(0, p/2), QtCore.QPointF(p/4, p*3/4)]] # time reverse + rot 270 + flip
 
-            # rotated 90
-            self.draw_triangle(1, painter, QtCore.QPointF(p/2, p/2),
-                                        QtCore.QPointF(p/2, 0),
-                                        QtCore.QPointF(p*3/4, p*1/4),
-                                        d4_lut[int(data[1]*100)])
+            for i, cur_points in enumerate(all_triangle_points):
+                self.draw_triangle(painter, cur_points, brush_color=QtGui.QColor(d4_lut[int(data[i]*100)][0], d4_lut[int(data[i]*100)][1], d4_lut[int(data[i]*100)][2]))
 
-            # rotated 180
-            self.draw_triangle(2, painter, QtCore.QPointF(p/2, p/2),
-                                        QtCore.QPointF(p, p/2),
-                                        QtCore.QPointF(p*3/4, p*3/4),
-                                        d4_lut[int(data[2]*100)])
-
-            # # rotated 270
-            self.draw_triangle(3, painter, QtCore.QPointF(p/4, p*3/4),
-                                        QtCore.QPointF(p/2, p/2),
-                                        QtCore.QPointF(p/2, p),
-                                        d4_lut[int(data[3]*100)])
-
-            # original + flip
-            self.draw_triangle(4, painter, QtCore.QPointF(p/4, p/4),
-                                        QtCore.QPointF(p/2, 0),
-                                        QtCore.QPointF(p/2, p/2),
-                                        d4_lut[int(data[4]*100)])
-
-            # rotated 90 + flip
-            self.draw_triangle(5, painter, QtCore.QPointF(p/2, p/2),
-                                        QtCore.QPointF(p*3/4, p/4),
-                                        QtCore.QPointF(p, p/2),
-                                        d4_lut[int(data[5]*100)])
-
-            # rotated 180 + flip
-            self.draw_triangle(6, painter, QtCore.QPointF(p/2, p/2),
-                                        QtCore.QPointF(p/2, p),
-                                        QtCore.QPointF(p*3/4, p*3/4),
-                                        d4_lut[int(data[6]*100)])
-
-            # rotated 270 + flip
-            self.draw_triangle(7, painter, QtCore.QPointF(0, p/2),
-                                        QtCore.QPointF(p/4, p*3/4),
-                                        QtCore.QPointF(p/2, p/2),
-                                        d4_lut[int(data[7]*100)])
-
-            # time reverse
-            self.draw_triangle(8, painter, QtCore.QPointF(0, 0),
-                                        QtCore.QPointF(p/4, p/4),
-                                        QtCore.QPointF(0, p/2),
-                                        d4_lut[int(data[8]*100)])
-
-            # time reverse + rot 90
-            self.draw_triangle(9, painter, QtCore.QPointF(p/2, 0),
-                                        QtCore.QPointF(p*3/4, p/4),
-                                        QtCore.QPointF(p, 0),
-                                        d4_lut[int(data[9]*100)])
-
-            # time reverse + rot 180
-            self.draw_triangle(10, painter, QtCore.QPointF(p, p/2),
-                                        QtCore.QPointF(p*3/4, p*3/4),
-                                        QtCore.QPointF(p, p),
-                                        d4_lut[int(data[10]*100)])
-
-            # time reverse + rot 270
-            self.draw_triangle(11, painter, QtCore.QPointF(0, p),
-                                        QtCore.QPointF(p/4, p*3/4),
-                                        QtCore.QPointF(p/2, p),
-                                        d4_lut[int(data[11]*100)])
-
-            # time reverse + flip
-            self.draw_triangle(12, painter, QtCore.QPointF(0, 0),
-                                        QtCore.QPointF(p/4, p/4),
-                                        QtCore.QPointF(p/2, 0),
-                                        d4_lut[int(data[12]*100)])
-
-            # time reverse + rot 90 + flip
-            self.draw_triangle(13, painter, QtCore.QPointF(p, 0),
-                                        QtCore.QPointF(p*3/4, p/4),
-                                        QtCore.QPointF(p, p/2),
-                                        d4_lut[int(data[13]*100)])
-
-            # time reverse + rot 180 + flip
-            self.draw_triangle(14, painter, QtCore.QPointF(p/2, p),
-                                        QtCore.QPointF(p*3/4, p*3/4),
-                                        QtCore.QPointF(p, p),
-                                        d4_lut[int(data[14]*100)])
-
-            # time reverse + rot 270 + flip
-            self.draw_triangle(15, painter, QtCore.QPointF(0, p),
-                                        QtCore.QPointF(0, p/2),
-                                        QtCore.QPointF(p/4, p*3/4),
-                                        d4_lut[int(data[14]*100)])
+            # draw the red triangle selector
+            self.draw_triangle(painter, all_triangle_points[self.triangle_index], pen_color=QtGui.QColor('red'), boundary_width=3)
 
             painter.end()
 
@@ -2906,32 +2849,42 @@ class UI_MainWindow(QWidget):
         self.piv_detail_view_2.ci.layout.setContentsMargins(0, 20, 0, 0)
         self.piv_detail_view_2.setFixedSize(self.plot_size*1.3, self.plot_size*1.3)
 
-        # prepare data for the visualization
-        # if self.piv_loss == 'MAE':
-        #     cur_loss = np.abs(ground_truth[str(i)] - results_all_methods[cur_method][str(i)])
-        # elif self.piv_loss == 'MSE':
-        #     cur_loss = np.square(ground_truth[str(i)] - results_all_methods[cur_method][str(i)])
-        # elif self.piv_loss == 'RMSE':
-        #     cur_loss = np.sqrt(np.square(ground_truth[str(i)] - results_all_methods[cur_method][str(i)]))
-        # elif self.piv_loss == 'AEE':
-        #     cur_loss = np.sqrt((results_all_methods[cur_method][str(i)][:,:,0]-ground_truth[str(i)][:,:,0])**2 + (results_all_methods[cur_method][str(i)][:,:,1]-ground_truth[str(i)][:,:,1])**2)
+        # prepare data for the visualization, using current triangle index
+        if self.piv_loss == 'RMSE':
+            data_1 = torch.sqrt(torch.square(self.all_ground_truths[self.triangle_index] - self.all_quantities_1[self.triangle_index])).numpy().mean(axis=2)
+            data_2 = torch.sqrt(torch.square(self.all_ground_truths[self.triangle_index] - self.all_quantities_2[self.triangle_index])).numpy().mean(axis=2)
+        elif self.piv_loss == 'MSE':
+            data_1 = torch.square(self.all_ground_truths[self.triangle_index] - self.all_quantities_1[self.triangle_index]).numpy().mean(axis=2)
+            data_2 = torch.square(self.all_ground_truths[self.triangle_index] - self.all_quantities_2[self.triangle_index]).numpy().mean(axis=2)
+        elif self.piv_loss == 'MAE':
+            data_1 = torch.abs(self.all_ground_truths[self.triangle_index] - self.all_quantities_1[self.triangle_index]).numpy().mean(axis=2)
+            data_2 = torch.abs(self.all_ground_truths[self.triangle_index] - self.all_quantities_2[self.triangle_index]).numpy().mean(axis=2)
+        elif self.piv_loss == 'AEE':
+            data_1 = torch.sqrt((self.all_ground_truths[self.triangle_index][:, :, 0]-self.all_quantities_1[self.triangle_index][:,:,0])**2 + (self.all_ground_truths[self.triangle_index][:,:,1]-self.all_quantities_1[self.triangle_index][:,:,1])**2).numpy().mean(axis=2)
+            data_2 = torch.sqrt((self.all_ground_truths[self.triangle_index][:, :, 0]-self.all_quantities_1[self.triangle_index][:,:,0])**2 + (self.all_ground_truths[self.triangle_index][:,:,1]-self.all_quantities_1[self.triangle_index][:,:,1])**2).numpy().mean(axis=2)
 
+        # normalize to 0 and 1
+        data_min = min(np.min(data_1), np.min(data_2))
+        data_max = max(np.max(data_1), np.max(data_2))
 
-        self.piv_detail_view_1 = self.draw_individual_heatmap('single', data_1)
-        self.piv_detail_view_2 = self.draw_individual_heatmap('single', data_2)
+        data_1 = 1 - nero_utilities.lerp(data_1, data_min, data_max, 0, 1)
+        data_2 = 1 - nero_utilities.lerp(data_2, data_min, data_max, 0, 1)
+
+        self.piv_detail_plot_1 = self.draw_individual_heatmap('single', data_1)
+        self.piv_detail_plot_2 = self.draw_individual_heatmap('single', data_2)
         # self.view_box_1.scene().sigMouseClicked.connect(heatmap_mouse_clicked(self.view_box_1))
         # self.view_box_2.scene().sigMouseClicked.connect(heatmap_mouse_clicked(self.view_box_2))
 
         # add to view
-        self.heatmap_view_1.addItem(self.heatmap_plot_1)
-        self.heatmap_view_2.addItem(self.heatmap_plot_2)
+        self.piv_detail_view_1.addItem(self.piv_detail_plot_1)
+        self.piv_detail_view_2.addItem(self.piv_detail_plot_2)
 
         if self.data_mode == 'single':
-            self.single_result_layout.addWidget(self.heatmap_view_1, 1, 1)
-            self.single_result_layout.addWidget(self.heatmap_view_2, 1, 2)
+            self.single_result_layout.addWidget(self.piv_detail_view_1, 2, 1)
+            self.single_result_layout.addWidget(self.piv_detail_view_2, 2, 2)
         elif self.data_mode == 'aggregate':
-            self.aggregate_result_layout.addWidget(self.heatmap_view_1, 1, 4)
-            self.aggregate_result_layout.addWidget(self.heatmap_view_2, 1, 5)
+            self.aggregate_result_layout.addWidget(self.piv_detail_view_1, 2, 4)
+            self.aggregate_result_layout.addWidget(self.piv_detail_view_2, 2, 5)
 
 
     # display MNIST aggregated results
@@ -3611,6 +3564,9 @@ class UI_MainWindow(QWidget):
 
             # re-display the dihedral 4 visualization
             self.draw_d4_nero(mode='single')
+
+            # update detailed plot of PIV
+            self.draw_piv_details()
 
         # drop down menu on selection which quantity to plot
         # layout that controls the plotting items
