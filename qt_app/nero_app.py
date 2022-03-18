@@ -2895,17 +2895,30 @@ class UI_MainWindow(QWidget):
 
     # draw error plots of PIV
     def draw_piv_details(self):
+        # the detailed view are two heatmaps showing the error
         # heatmap view
-        self.heatmap_view_1 = pg.GraphicsLayoutWidget()
+        self.piv_detail_view_1 = pg.GraphicsLayoutWidget()
         # left top right bottom
-        self.heatmap_view_1.ci.layout.setContentsMargins(0, 20, 0, 0)
-        self.heatmap_view_1.setFixedSize(self.plot_size*1.3, self.plot_size*1.3)
-        self.heatmap_view_2 = pg.GraphicsLayoutWidget()
+        self.piv_detail_view_1.ci.layout.setContentsMargins(0, 20, 0, 0)
+        self.piv_detail_view_1.setFixedSize(self.plot_size*1.3, self.plot_size*1.3)
+        self.piv_detail_view_2 = pg.GraphicsLayoutWidget()
         # left top right bottom
-        self.heatmap_view_2.ci.layout.setContentsMargins(0, 20, 0, 0)
-        self.heatmap_view_2.setFixedSize(self.plot_size*1.3, self.plot_size*1.3)
-        self.heatmap_plot_1 = self.draw_individual_heatmap('single', data_1)
-        self.heatmap_plot_2 = self.draw_individual_heatmap('single', data_2)
+        self.piv_detail_view_2.ci.layout.setContentsMargins(0, 20, 0, 0)
+        self.piv_detail_view_2.setFixedSize(self.plot_size*1.3, self.plot_size*1.3)
+
+        # prepare data for the visualization
+        # if self.piv_loss == 'MAE':
+        #     cur_loss = np.abs(ground_truth[str(i)] - results_all_methods[cur_method][str(i)])
+        # elif self.piv_loss == 'MSE':
+        #     cur_loss = np.square(ground_truth[str(i)] - results_all_methods[cur_method][str(i)])
+        # elif self.piv_loss == 'RMSE':
+        #     cur_loss = np.sqrt(np.square(ground_truth[str(i)] - results_all_methods[cur_method][str(i)]))
+        # elif self.piv_loss == 'AEE':
+        #     cur_loss = np.sqrt((results_all_methods[cur_method][str(i)][:,:,0]-ground_truth[str(i)][:,:,0])**2 + (results_all_methods[cur_method][str(i)][:,:,1]-ground_truth[str(i)][:,:,1])**2)
+
+
+        self.piv_detail_view_1 = self.draw_individual_heatmap('single', data_1)
+        self.piv_detail_view_2 = self.draw_individual_heatmap('single', data_2)
         # self.view_box_1.scene().sigMouseClicked.connect(heatmap_mouse_clicked(self.view_box_1))
         # self.view_box_2.scene().sigMouseClicked.connect(heatmap_mouse_clicked(self.view_box_2))
 
@@ -3527,6 +3540,11 @@ class UI_MainWindow(QWidget):
         self.draw_heatmaps(mode='single')
 
 
+    # display COCO aggregate result
+    def display_piv_aggregate_result(self):
+        raise NotImplementedError
+
+
     # display PIV single results
     def display_piv_single_result(self):
         # if single mode, change control menus' locations
@@ -3539,27 +3557,57 @@ class UI_MainWindow(QWidget):
             self.single_result_layout.addWidget(self.run_button, 3, 0)
             self.single_result_layout.addWidget(self.use_cache_checkbox, 4, 0)
 
+        # helper function on compute, normalize the loss and display quantity
+        def compute_nero_display_quantity():
+
+            all_loss_1 = np.zeros(self.num_transformations)
+            all_loss_2 = np.zeros(self.num_transformations)
+
+            if self.piv_loss == 'RMSE' or self.piv_loss == 'MSE' or self.piv_loss == 'MAE':
+                if self.piv_loss == 'RMSE':
+                    loss_module = nero_utilities.RMSELoss()
+                elif self.piv_loss == 'MSE':
+                    loss_module = torch.nn.MSELoss()
+                elif self.piv_loss == 'MAE':
+                    loss_module = torch.nn.L1Loss()
+
+                # compute loss using torch loss module
+                for i in range(self.num_transformations):
+                    all_loss_1[i] = loss_module(self.all_ground_truths[i], self.all_quantities_1[i]).numpy()
+                    all_loss_2[i] = loss_module(self.all_ground_truths[i], self.all_quantities_2[i]).numpy()
+
+            elif self.piv_loss == 'AEE':
+                for i in range(self.num_transformations):
+                    all_loss_1[i] = np.sqrt((self.all_ground_truths[i][:,:,0] - self.all_quantities_1[i][:,:,0])**2 + (self.all_ground_truths[i][:,:,1] - self.all_quantities_1[i][:,:,1])**2).mean()
+
+            # normalize these errors between 0 and 1
+            loss_max = max(np.max(all_loss_1), np.max(all_loss_2))
+            loss_min = min(np.min(all_loss_1), np.min(all_loss_2))
+            normalized_loss_1 = nero_utilities.lerp(all_loss_1, loss_min, loss_max, 0, 1)
+            normalized_loss_2 = nero_utilities.lerp(all_loss_2, loss_min, loss_max, 0, 1)
+            self.cur_plot_quantity_1 = 1 - normalized_loss_1
+            self.cur_plot_quantity_2 = 1 - normalized_loss_2
+
+
+
         @QtCore.Slot()
         def piv_plot_quantity_changed(text):
             print('Plotting:', text, 'on heatmap')
             self.quantity_name = text
 
             if text == 'RMSE':
-                if self.data_mode == 'single':
-                    self.cur_plot_quantity_1 = self.all_quantities_1[:, :, 4] * self.all_quantities_1[:, :, 6]
-                    self.cur_plot_quantity_2 = self.all_quantities_2[:, :, 4] * self.all_quantities_2[:, :, 6]
-                elif self.data_mode == 'aggregate':
-                    raise NotImplementedError
+                self.piv_loss = text
+
+            elif text == 'MSE':
+                self.piv_loss = text
+
+            elif text == 'MAE':
+                self.piv_loss = text
 
             elif text == 'AEE':
-                if self.data_mode == 'single':
-                    self.cur_plot_quantity_1 = self.all_quantities_1[:, :, 4]
-                    self.cur_plot_quantity_2 = self.all_quantities_2[:, :, 4]
-                elif self.data_mode == 'aggregate':
-                    raise NotImplementedError
+                self.piv_loss = text
 
-            elif text == 'Consensus':
-                raise NotImplementedError
+            compute_nero_display_quantity()
 
             # re-display the dihedral 4 visualization
             self.draw_d4_nero(mode='single')
@@ -3575,6 +3623,8 @@ class UI_MainWindow(QWidget):
         quantity_menu.lineEdit().setAlignment(QtCore.Qt.AlignCenter)
 
         quantity_menu.addItem('RMSE')
+        quantity_menu.addItem('MSE')
+        quantity_menu.addItem('MAE')
         quantity_menu.addItem('AEE')
         # self.quantity_menu.setCurrentIndex(0)
         quantity_menu.setCurrentText('RMSE')
@@ -3592,6 +3642,7 @@ class UI_MainWindow(QWidget):
             self.cur_plot_quantity_2 = np.zeros(self.num_transformations)
 
             # default loss is RMSE
+            self.piv_loss = 'RMSE'
             loss_module = nero_utilities.RMSELoss()
             all_loss_1 = np.zeros(self.num_transformations)
             all_loss_2 = np.zeros(self.num_transformations)
@@ -3608,10 +3659,10 @@ class UI_MainWindow(QWidget):
         elif self.data_mode == 'aggregate':
             raise NotImplementedError
 
-        # visualize the individual NERO plot of current input
+        # visualize the individual NERO plot of the current input
         self.draw_d4_nero(mode='single')
 
-        # visualize squared error as the detailed plot
+        # the detailed plot of PIV
         self.draw_piv_details()
 
 
