@@ -2212,9 +2212,10 @@ class UI_MainWindow(QWidget):
             if self.data_mode == 'single':
                 # all_quantities has shape (16, 256, 256, 2)
                 if self.use_cache:
-                    self.all_quantities_1 = self.load_from_cache(name=f'{self.mode}_{self.data_mode}_{self.model_1_cache_name}_{self.image_index}')
-                    self.all_quantities_2 = self.load_from_cache(name=f'{self.mode}_{self.data_mode}_{self.model_2_cache_name}_{self.image_index}')
-                    self.all_ground_truths = self.load_from_cache(name=f'{self.mode}_{self.data_mode}_ground_truths_{self.image_index}')
+                    self.all_quantities_1 = torch.from_numpy(self.load_from_cache(name=f'{self.mode}_{self.data_mode}_{self.model_1_cache_name}_{self.image_index}'))
+                    self.all_quantities_2 = torch.from_numpy(self.load_from_cache(name=f'{self.mode}_{self.data_mode}_{self.model_2_cache_name}_{self.image_index}'))
+                    self.all_ground_truths = torch.from_numpy(self.load_from_cache(name=f'{self.mode}_{self.data_mode}_{self.image_index}_ground_truths'))
+                    print(self.all_ground_truths.shape)
                 else:
                     # each model output are dense 2D velocity field of the input image
                     self.all_quantities_1 = torch.zeros((self.num_transformations, self.image_size, self.image_size, 2))
@@ -2271,11 +2272,10 @@ class UI_MainWindow(QWidget):
 
                                 transformation_index += 1
 
-
                     # save to cache
-                    self.save_to_cache(name=f'{self.mode}_{self.data_mode}_{self.model_1_cache_name}_{self.image_index}', content=self.all_quantities_1)
-                    self.save_to_cache(name=f'{self.mode}_{self.data_mode}_{self.model_2_cache_name}_{self.image_index}', content=self.all_quantities_2)
-                    self.save_to_cache(name=f'{self.mode}_{self.data_mode}_ground_truths_{self.image_index}', content=self.all_ground_truths)
+                    self.save_to_cache(name=f'{self.mode}_{self.data_mode}_{self.model_1_cache_name}_{self.image_index}', content=self.all_quantities_1.numpy())
+                    self.save_to_cache(name=f'{self.mode}_{self.data_mode}_{self.model_2_cache_name}_{self.image_index}', content=self.all_quantities_2.numpy())
+                    self.save_to_cache(name=f'{self.mode}_{self.data_mode}_{self.image_index}_ground_truths', content=self.all_ground_truths.numpy())
 
                 # display the piv single case result
                 self.triangle_index = 0
@@ -2886,71 +2886,76 @@ class UI_MainWindow(QWidget):
 
 
     # draws a single D4 vis
-    def draw_individual_d4(self, mode, data):
+    def draw_individual_d4(self, data):
 
-        if mode == 'single':
-            # initialize label and its pixmap
-            d4_label = QLabel(self)
-            d4_label.setContentsMargins(0, 0, 0, 0)
-            d4_label.setAlignment(QtCore.Qt.AlignCenter)
+        # initialize label and its pixmap
+        d4_label = QLabel(self)
+        d4_label.setContentsMargins(0, 0, 0, 0)
+        d4_label.setAlignment(QtCore.Qt.AlignCenter)
 
-            d4_pixmap = QPixmap(self.plot_size, self.plot_size)
-            d4_pixmap.fill(QtCore.Qt.white)
-            painter = QtGui.QPainter(d4_pixmap)
+        d4_pixmap = QPixmap(self.plot_size, self.plot_size)
+        d4_pixmap.fill(QtCore.Qt.white)
+        painter = QtGui.QPainter(d4_pixmap)
 
-            # define a colormap and lookup table to use as fill color
-            d4_color_map = pg.colormap.get('viridis')
-            d4_lut = d4_color_map.getLookupTable(start=0, stop=1, nPts=101, alpha=False)
+        # define a colormap and lookup table to use as fill color
+        d4_color_map = pg.colormap.get('viridis')
+        d4_lut = d4_color_map.getLookupTable(start=0, stop=1, nPts=101, alpha=False)
 
-            # each d4 NERO plot has 16 triangles
-            p = self.plot_size
-            # points of all triangles
-            all_triangle_points = [[QtCore.QPointF(0, p/2), QtCore.QPointF(p/4, p/4), QtCore.QPointF(p/2, p/2)], # original
-                                   [QtCore.QPointF(p/2, p/2), QtCore.QPointF(p/2, 0), QtCore.QPointF(p*3/4, p*1/4)], # rotated 90
-                                   [QtCore.QPointF(p/2, p/2), QtCore.QPointF(p, p/2), QtCore.QPointF(p*3/4, p*3/4)], # rotated 180
-                                   [QtCore.QPointF(p/4, p*3/4), QtCore.QPointF(p/2, p/2), QtCore.QPointF(p/2, p)], # rotated 270
-                                   [QtCore.QPointF(p/4, p/4), QtCore.QPointF(p/2, 0), QtCore.QPointF(p/2, p/2)], # original + flip
-                                   [QtCore.QPointF(p/2, p/2), QtCore.QPointF(p*3/4, p/4), QtCore.QPointF(p, p/2)], # rotated 90 + flip
-                                   [QtCore.QPointF(p/2, p/2), QtCore.QPointF(p/2, p), QtCore.QPointF(p*3/4, p*3/4)], # rotated 180 + flip
-                                   [QtCore.QPointF(0, p/2), QtCore.QPointF(p/4, p*3/4), QtCore.QPointF(p/2, p/2)], # rotated 270 + flip
-                                   [QtCore.QPointF(0, 0), QtCore.QPointF(p/4, p/4), QtCore.QPointF(0, p/2)], # time reverse
-                                   [QtCore.QPointF(p/2, 0), QtCore.QPointF(p*3/4, p/4), QtCore.QPointF(p, 0)], # time reverse + rot 90
-                                   [QtCore.QPointF(p, p/2), QtCore.QPointF(p*3/4, p*3/4), QtCore.QPointF(p, p)], # time reverse + rot 180
-                                   [QtCore.QPointF(0, p), QtCore.QPointF(p/4, p*3/4), QtCore.QPointF(p/2, p)], # time reverse + rot 270
-                                   [QtCore.QPointF(0, 0), QtCore.QPointF(p/4, p/4), QtCore.QPointF(p/2, 0)], # time reverse + flip
-                                   [QtCore.QPointF(p, 0), QtCore.QPointF(p*3/4, p/4), QtCore.QPointF(p, p/2)], # time reverse + rot 90 + flip
-                                   [QtCore.QPointF(p/2, p), QtCore.QPointF(p*3/4, p*3/4), QtCore.QPointF(p, p)], # time reverse + rot 180 + flip
-                                   [QtCore.QPointF(0, p), QtCore.QPointF(0, p/2), QtCore.QPointF(p/4, p*3/4)]] # time reverse + rot 270 + flip
+        # each d4 NERO plot has 16 triangles
+        p = self.plot_size
+        # points of all triangles
+        all_triangle_points = [[QtCore.QPointF(0, p/2), QtCore.QPointF(p/4, p/4), QtCore.QPointF(p/2, p/2)], # original
+                                [QtCore.QPointF(p/2, p/2), QtCore.QPointF(p/2, 0), QtCore.QPointF(p*3/4, p*1/4)], # rotated 90
+                                [QtCore.QPointF(p/2, p/2), QtCore.QPointF(p, p/2), QtCore.QPointF(p*3/4, p*3/4)], # rotated 180
+                                [QtCore.QPointF(p/4, p*3/4), QtCore.QPointF(p/2, p/2), QtCore.QPointF(p/2, p)], # rotated 270
+                                [QtCore.QPointF(p/4, p/4), QtCore.QPointF(p/2, 0), QtCore.QPointF(p/2, p/2)], # original + flip
+                                [QtCore.QPointF(p/2, p/2), QtCore.QPointF(p*3/4, p/4), QtCore.QPointF(p, p/2)], # rotated 90 + flip
+                                [QtCore.QPointF(p/2, p/2), QtCore.QPointF(p/2, p), QtCore.QPointF(p*3/4, p*3/4)], # rotated 180 + flip
+                                [QtCore.QPointF(0, p/2), QtCore.QPointF(p/4, p*3/4), QtCore.QPointF(p/2, p/2)], # rotated 270 + flip
+                                [QtCore.QPointF(0, 0), QtCore.QPointF(p/4, p/4), QtCore.QPointF(0, p/2)], # time reverse
+                                [QtCore.QPointF(p/2, 0), QtCore.QPointF(p*3/4, p/4), QtCore.QPointF(p, 0)], # time reverse + rot 90
+                                [QtCore.QPointF(p, p/2), QtCore.QPointF(p*3/4, p*3/4), QtCore.QPointF(p, p)], # time reverse + rot 180
+                                [QtCore.QPointF(0, p), QtCore.QPointF(p/4, p*3/4), QtCore.QPointF(p/2, p)], # time reverse + rot 270
+                                [QtCore.QPointF(0, 0), QtCore.QPointF(p/4, p/4), QtCore.QPointF(p/2, 0)], # time reverse + flip
+                                [QtCore.QPointF(p, 0), QtCore.QPointF(p*3/4, p/4), QtCore.QPointF(p, p/2)], # time reverse + rot 90 + flip
+                                [QtCore.QPointF(p/2, p), QtCore.QPointF(p*3/4, p*3/4), QtCore.QPointF(p, p)], # time reverse + rot 180 + flip
+                                [QtCore.QPointF(0, p), QtCore.QPointF(0, p/2), QtCore.QPointF(p/4, p*3/4)]] # time reverse + rot 270 + flip
 
-            for i, cur_points in enumerate(all_triangle_points):
-                self.draw_triangle(painter, cur_points, brush_color=QtGui.QColor(d4_lut[int(data[i]*100)][0], d4_lut[int(data[i]*100)][1], d4_lut[int(data[i]*100)][2]))
+        for i, cur_points in enumerate(all_triangle_points):
+            self.draw_triangle(painter, cur_points, brush_color=QtGui.QColor(d4_lut[int(data[i]*100)][0], d4_lut[int(data[i]*100)][1], d4_lut[int(data[i]*100)][2]))
 
-            # draw the red triangle selector
-            self.draw_triangle(painter, all_triangle_points[self.triangle_index], pen_color=QtGui.QColor('red'), boundary_width=3)
+        # draw the red triangle selector
+        self.draw_triangle(painter, all_triangle_points[self.triangle_index], pen_color=QtGui.QColor('red'), boundary_width=3)
 
-            painter.end()
+        painter.end()
 
-            # set pixmap to label
-            d4_label.setPixmap(d4_pixmap)
+        # set pixmap to label
+        d4_label.setPixmap(d4_pixmap)
 
-            return d4_label
+        return d4_label
 
 
     # draws dihedral 4 visualization to be the NERO plot for PIV experiment
     def draw_d4_nero(self, mode):
-        # add to general layout
+
+        # NERO plot
+        self.d4_label_1 = self.draw_individual_d4(self.cur_plot_quantity_1)
+        self.d4_label_2 = self.draw_individual_d4(self.cur_plot_quantity_2)
+
+        # single mode layout can be used for both single and aggresingle
         if mode == 'single':
-
-            # individual NERO plot
-            self.d4_label_1 = self.draw_individual_d4('single', self.cur_plot_quantity_1)
-            self.d4_label_2 = self.draw_individual_d4('single', self.cur_plot_quantity_2)
-
-            if self.data_mode == 'single':
-                self.single_result_layout.addWidget(self.d4_label_1, 1, 1)
-                self.single_result_layout.addWidget(self.d4_label_2, 1, 2)
-            elif self.data_mode == 'aggregate':
+            if self.data_mode == 'aggregate':
                 self.aggregate_result_layout.addWidget(self.d4_label_1, 1, 4)
                 self.aggregate_result_layout.addWidget(self.d4_label_2, 1, 5)
+            elif self.data_mode == 'single':
+                self.single_result_layout.addWidget(self.d4_label_1, 1, 1)
+                self.single_result_layout.addWidget(self.d4_label_2, 1, 2)
+
+        # aggregate
+        elif mode == 'aggregate':
+            self.aggregate_result_layout.addWidget(self.d4_label_1, 1, 1)
+            self.aggregate_result_layout.addWidget(self.d4_label_2, 1, 2)
+
 
 
     # draw error plots of PIV
@@ -3588,7 +3593,156 @@ class UI_MainWindow(QWidget):
 
     # display COCO aggregate result
     def display_piv_aggregate_result(self):
-        raise NotImplementedError
+        # move the model menu on top of the each aggregate NERO plot
+        self.aggregate_result_layout.addWidget(self.model_1_menu, 0, 1, 1, 1, QtCore.Qt.AlignCenter)
+        self.aggregate_result_layout.addWidget(self.model_2_menu, 0, 2, 1, 1, QtCore.Qt.AlignCenter)
+
+        # move run button in the first column (after aggregate heatmap control)
+        self.aggregate_plot_control_layout.addWidget(self.run_button, 4, 0)
+        self.aggregate_plot_control_layout.addWidget(self.use_cache_checkbox, 5, 0)
+
+        self.aggregate_result_existed = True
+
+        # helper function on compute, normalize the loss and display quantity
+        def compute_nero_display_quantity():
+
+            all_loss_1 = np.zeros(self.num_transformations)
+            all_loss_2 = np.zeros(self.num_transformations)
+
+            if self.piv_loss == 'RMSE' or self.piv_loss == 'MSE' or self.piv_loss == 'MAE':
+                if self.piv_loss == 'RMSE':
+                    loss_module = nero_utilities.RMSELoss()
+                elif self.piv_loss == 'MSE':
+                    loss_module = torch.nn.MSELoss()
+                elif self.piv_loss == 'MAE':
+                    loss_module = torch.nn.L1Loss()
+
+                # compute loss using torch loss module
+                for i in range(self.num_transformations):
+                    all_loss_1[i] = loss_module(self.all_ground_truths[i], self.all_quantities_1[i]).numpy()
+                    all_loss_2[i] = loss_module(self.all_ground_truths[i], self.all_quantities_2[i]).numpy()
+
+            elif self.piv_loss == 'AEE':
+                for i in range(self.num_transformations):
+                    all_loss_1[i] = np.sqrt((self.all_ground_truths[i][:,:,0] - self.all_quantities_1[i][:,:,0])**2 + (self.all_ground_truths[i][:,:,1] - self.all_quantities_1[i][:,:,1])**2).mean()
+
+            # normalize these errors between 0 and 1
+            loss_max = max(np.max(all_loss_1), np.max(all_loss_2))
+            loss_min = min(np.min(all_loss_1), np.min(all_loss_2))
+            normalized_loss_1 = nero_utilities.lerp(all_loss_1, loss_min, loss_max, 0, 1)
+            normalized_loss_2 = nero_utilities.lerp(all_loss_2, loss_min, loss_max, 0, 1)
+            self.cur_plot_quantity_1 = 1 - normalized_loss_1
+            self.cur_plot_quantity_2 = 1 - normalized_loss_2
+
+        @QtCore.Slot()
+        def piv_plot_quantity_changed(text):
+            print('Plotting:', text, 'on heatmap')
+            self.quantity_name = text
+
+            if text == 'RMSE':
+                self.piv_loss = text
+
+            elif text == 'MSE':
+                self.piv_loss = text
+
+            elif text == 'MAE':
+                self.piv_loss = text
+
+            elif text == 'AEE':
+                self.piv_loss = text
+
+            # compute the quantity to plot
+            compute_nero_display_quantity()
+
+            # re-display the heatmap
+            self.draw_d4_nero(mode='aggregate')
+
+            # re-run dimension reduction and show result
+            if self.dr_result_existed:
+                self.run_dimension_reduction()
+
+        # drop down menu on selection which quantity to plot
+        quantity_menu = QtWidgets.QComboBox()
+        quantity_menu.setFixedSize(QtCore.QSize(250, 50))
+        quantity_menu.setStyleSheet('font-size: 18px')
+        quantity_menu.setEditable(True)
+        quantity_menu.lineEdit().setReadOnly(True)
+        quantity_menu.lineEdit().setAlignment(QtCore.Qt.AlignCenter)
+
+        quantity_menu.addItem('Confidence*IOU')
+        quantity_menu.addItem('Confidence')
+        quantity_menu.addItem('IOU')
+        quantity_menu.addItem('Precision')
+        quantity_menu.addItem('Recall')
+        quantity_menu.addItem('AP')
+        quantity_menu.addItem('F1 Score')
+        # self.quantity_menu.setCurrentIndex(0)
+        quantity_menu.setCurrentText('Confidence*IOU')
+
+        # connect the drop down menu with actions
+        quantity_menu.currentTextChanged.connect(piv_plot_quantity_changed)
+        self.aggregate_plot_control_layout.addWidget(quantity_menu, 1, 0)
+
+        # define default plotting quantity (IOU*Confidence)
+        self.quantity_name = 'Confidence*IOU'
+        # averaged (depends on selected class) confidence and iou of the top results (ranked by IOU)
+        self.aggregate_avg_conf_1 = np.zeros((len(self.y_translation), len(self.x_translation)))
+        self.aggregate_avg_iou_1 = np.zeros((len(self.y_translation), len(self.x_translation)))
+        self.aggregate_avg_precision_1 = np.zeros((len(self.y_translation), len(self.x_translation)))
+        self.aggregate_avg_recall_1 = np.zeros((len(self.y_translation), len(self.x_translation)))
+        self.aggregate_avg_F_measure_1 = np.zeros((len(self.y_translation), len(self.x_translation)))
+
+        self.aggregate_avg_conf_2 = np.zeros((len(self.y_translation), len(self.x_translation)))
+        self.aggregate_avg_iou_2 = np.zeros((len(self.y_translation), len(self.x_translation)))
+        self.aggregate_avg_precision_2 = np.zeros((len(self.y_translation), len(self.x_translation)))
+        self.aggregate_avg_recall_2 = np.zeros((len(self.y_translation), len(self.x_translation)))
+        self.aggregate_avg_F_measure_2 = np.zeros((len(self.y_translation), len(self.x_translation)))
+
+        for y in range(len(self.y_translation)):
+            for x in range(len(self.x_translation)):
+                all_samples_conf_sum_1 = []
+                all_samples_iou_sum_1 = []
+                all_samples_conf_sum_2 = []
+                all_samples_iou_sum_2 = []
+                all_samples_precision_sum_1 = []
+                all_samples_precision_sum_2 = []
+                all_samples_recall_sum_1 = []
+                all_samples_recall_sum_2 = []
+                all_samples_F_measure_sum_1 = []
+                all_samples_F_measure_sum_2 = []
+                for i in range(len(self.aggregate_outputs_1[y, x])):
+                    # either all the classes or one specific class
+                    if self.class_selection == 'all' or self.class_selection == self.loaded_images_labels[i]:
+                        all_samples_conf_sum_1.append(self.aggregate_outputs_1[y, x][i][0, 4])
+                        all_samples_iou_sum_1.append(self.aggregate_outputs_1[y, x][i][0, 6])
+                        all_samples_conf_sum_2.append(self.aggregate_outputs_2[y, x][i][0, 4])
+                        all_samples_iou_sum_2.append(self.aggregate_outputs_2[y, x][i][0, 6])
+                        all_samples_precision_sum_1.append(self.aggregate_precision_1[y, x][i])
+                        all_samples_precision_sum_2.append(self.aggregate_precision_2[y, x][i])
+                        all_samples_recall_sum_1.append(self.aggregate_recall_1[y, x][i])
+                        all_samples_recall_sum_2.append(self.aggregate_recall_2[y, x][i])
+                        all_samples_F_measure_sum_1.append(self.aggregate_F_measure_1[y, x][i])
+                        all_samples_F_measure_sum_2.append(self.aggregate_F_measure_2[y, x][i])
+
+                # take the average result
+                self.aggregate_avg_conf_1[y, x] = np.mean(all_samples_conf_sum_1)
+                self.aggregate_avg_iou_1[y, x] = np.mean(all_samples_iou_sum_1)
+                self.aggregate_avg_precision_1[y, x] = np.mean(all_samples_precision_sum_1)
+                self.aggregate_avg_recall_1[y, x] = np.mean(all_samples_recall_sum_1)
+                self.aggregate_avg_F_measure_1[y, x] = np.mean(all_samples_F_measure_sum_1)
+
+                self.aggregate_avg_conf_2[y, x] = np.mean(all_samples_conf_sum_2)
+                self.aggregate_avg_iou_2[y, x] = np.mean(all_samples_iou_sum_2)
+                self.aggregate_avg_precision_2[y, x] = np.mean(all_samples_precision_sum_2)
+                self.aggregate_avg_recall_2[y, x] = np.mean(all_samples_recall_sum_2)
+                self.aggregate_avg_F_measure_2[y, x] = np.mean(all_samples_F_measure_sum_2)
+
+        # default plotting quantity is Confidence*IOU
+        self.cur_plot_quantity_1 = self.aggregate_avg_conf_1 * self.aggregate_avg_iou_1
+        self.cur_plot_quantity_2 = self.aggregate_avg_conf_2 * self.aggregate_avg_iou_2
+
+        # draw the heatmap
+        self.draw_heatmaps(mode='aggregate')
 
 
     # display PIV single results
@@ -3633,8 +3787,6 @@ class UI_MainWindow(QWidget):
             normalized_loss_2 = nero_utilities.lerp(all_loss_2, loss_min, loss_max, 0, 1)
             self.cur_plot_quantity_1 = 1 - normalized_loss_1
             self.cur_plot_quantity_2 = 1 - normalized_loss_2
-
-
 
         @QtCore.Slot()
         def piv_plot_quantity_changed(text):
