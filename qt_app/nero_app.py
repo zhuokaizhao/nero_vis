@@ -616,7 +616,7 @@ class UI_MainWindow(QWidget):
 
             elif self.mode == 'piv':
                 # prepare image paths
-                self.image_index = int(text.split(' ')[-1])
+                self.image_index = int(text.split(' ')[2])
                 self.image_1_path = self.single_images_1_paths[self.image_index]
                 self.image_2_path = self.single_images_2_paths[self.image_index]
                 self.label_path = self.single_labels_paths[self.image_index]
@@ -937,13 +937,20 @@ class UI_MainWindow(QWidget):
             self.image_menu.setCurrentIndex(0)
 
         elif self.mode == 'piv':
+            # different flow types
+            self.flow_types = ['uniform', 'backstep', 'cylinder', 'SQG', 'DNS', 'JHTDB']
+            self.single_images_1_paths = []
+            self.single_images_2_paths = []
+            self.single_labels_paths = []
             # image pairs
-            self.single_images_1_paths = glob.glob(os.path.join(os.getcwd(), 'example_data', self.mode, 'single', f'*img1.tif'))
-            self.single_images_2_paths = [cur_path.replace('img1', 'img2') for cur_path in self.single_images_1_paths]
-            self.single_labels_paths = [cur_path.replace('img1', 'flow').replace('tif', 'flo') for cur_path in self.single_images_1_paths]
+            for i, flow_type in enumerate(self.flow_types):
+                cur_image_1_path = glob.glob(os.path.join(os.getcwd(), 'example_data', self.mode, 'single', f'{flow_type}*img1.tif'))[0]
+                self.single_images_1_paths.append(cur_image_1_path)
+                self.single_images_2_paths.append(cur_image_1_path.replace('img1', 'img2'))
+                self.single_labels_paths.append(cur_image_1_path.replace('img1', 'flow').replace('tif', 'flo'))
 
-            for i in range(len(self.single_images_1_paths)):
-                self.image_menu.addItem(f'Image pair {i}')
+                # add flow to the menu
+                self.image_menu.addItem(f'Image pair {i} - {flow_type}')
 
             self.image_menu.setCurrentIndex(0)
 
