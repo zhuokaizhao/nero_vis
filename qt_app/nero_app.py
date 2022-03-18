@@ -434,13 +434,14 @@ class UI_MainWindow(QWidget):
             self.cur_image_2_pt = self.loaded_image_2_pt.clone()
 
             # save the pil images as gif to cache
-            other_images_pil = [self.loaded_image_2_pil, self.blank_image_pil]
+            # use multiple copies of image 1 and 2 to make blank smaller portion in time
+            other_images_pil = [self.loaded_image_1_pil, self.loaded_image_2_pil, self.loaded_image_2_pil, self.blank_image_pil]
             self.gif_path = os.path.join(self.cache_dir, self.loaded_image_1_name.split('.')[0] + '.gif')
             self.loaded_image_1_pil.save(fp=self.gif_path,
                                          format='GIF',
                                          append_images=other_images_pil,
                                          save_all=True,
-                                         duration=800,
+                                         duration=600,
                                          loop=0)
 
             # load the ground truth flow field
@@ -1923,6 +1924,112 @@ class UI_MainWindow(QWidget):
             self.display_coco_single_result()
 
         elif self.mode == 'piv':
+            # button clicked counter
+            self.cur_rotation_angle = 0
+            self.is_flipped = False
+            self.is_time_reversed = False
+
+            def modify_display_gif():
+                display_image_1_pt = self.loaded_image_1_pt.clone()
+                display_image_2_pt = self.loaded_image_2_pt.clone()
+
+                if self.is_time_reversed:
+                    temp = display_image_1_pt.clone()
+                    display_image_1_pt = display_image_2_pt.clone()
+                    display_image_2_pt = temp
+
+                if self.is_flipped:
+                    display_image_1_pt = torch.flip(display_image_1_pt, [0])
+                    display_image_2_pt = torch.flip(display_image_2_pt, [0])
+
+                if self.cur_rotation_angle != 0:
+                    display_image_1_pt = torch.rot90(display_image_1_pt, self.cur_rotation_angle//90)
+                    display_image_2_pt = torch.rot90(display_image_2_pt, self.cur_rotation_angle//90)
+
+
+                # create new GIF
+                display_image_1_pil = Image.fromarray(display_image_1_pt.numpy(), 'RGB')
+                display_image_2_pil = Image.fromarray(display_image_2_pt.numpy(), 'RGB')
+                other_images_pil = [display_image_1_pil, display_image_2_pil, display_image_2_pil, self.blank_image_pil]
+                self.gif_path = os.path.join(self.cache_dir, self.loaded_image_1_name.split('.')[0] + '.gif')
+                display_image_1_pil.save(fp=self.gif_path,
+                                            format='GIF',
+                                            append_images=other_images_pil,
+                                            save_all=True,
+                                            duration=600,
+                                            loop=0)
+
+            @QtCore.Slot()
+            def rotate_90_ccw():
+                self.cur_rotation_angle = (self.cur_rotation_angle + 90) % 360
+                print(f'Cur rotation angle: {self.cur_rotation_angle}')
+                # modify the image and display
+                modify_display_gif()
+                self.display_image()
+
+
+            @QtCore.Slot()
+            def rotate_90_cw():
+                self.cur_rotation_angle = (self.cur_rotation_angle - 90) % 360
+                print(f'Cur rotation angle: {self.cur_rotation_angle}')
+                # modify the image and display
+                modify_display_gif()
+                self.display_image()
+
+            @QtCore.Slot()
+            def flip():
+                self.is_flipped = not self.is_flipped
+                print(f'Image flipped: {self.is_flipped}')
+                # modify the image and display
+                modify_display_gif()
+                self.display_image()
+
+            @QtCore.Slot()
+            def time_reverse():
+                self.is_time_reversed = not self.is_time_reversed
+                print(f'Image time-reversed: {self.is_time_reversed}')
+                # modify the image and display
+                modify_display_gif()
+                self.display_image()
+
+
+            # add buttons for controlling the GIF
+            self.gif_control_layout = QtWidgets.QHBoxLayout()
+            self.gif_control_layout.setContentsMargins(50, 0, 50, 0)
+            if self.data_mode == 'single':
+                self.single_result_layout.addLayout(self.gif_control_layout, 2, 0)
+
+            # rotate 90 degrees counter-closewise
+            self.rotate_90_ccw_button = QtWidgets.QPushButton(self)
+            self.rotate_90_ccw_button.setFixedSize(QtCore.QSize(50, 50))
+            self.rotate_90_ccw_button.setIcon(QtGui.QIcon('symbols/rotate_90_ccw.png'))
+            self.rotate_90_ccw_button.setIconSize(QtCore.QSize(40, 40))
+            self.rotate_90_ccw_button.clicked.connect(rotate_90_ccw)
+            self.gif_control_layout.addWidget(self.rotate_90_ccw_button)
+
+            # rotate 90 degrees closewise
+            self.rotate_90_cw_button = QtWidgets.QPushButton(self)
+            self.rotate_90_cw_button.setFixedSize(QtCore.QSize(50, 50))
+            self.rotate_90_cw_button.setIcon(QtGui.QIcon('symbols/rotate_90_cw.png'))
+            self.rotate_90_cw_button.setIconSize(QtCore.QSize(40, 40))
+            self.rotate_90_cw_button.clicked.connect(rotate_90_cw)
+            self.gif_control_layout.addWidget(self.rotate_90_cw_button)
+
+            # flip the iamge horizontally
+            self.flip_button = QtWidgets.QPushButton(self)
+            self.flip_button.setFixedSize(QtCore.QSize(50, 50))
+            self.flip_button.setIcon(QtGui.QIcon('symbols/flip.png'))
+            self.flip_button.setIconSize(QtCore.QSize(40, 40))
+            self.flip_button.clicked.connect(flip)
+            self.gif_control_layout.addWidget(self.flip_button)
+
+            # time reverse
+            self.time_reverse_button = QtWidgets.QPushButton(self)
+            self.time_reverse_button.setFixedSize(QtCore.QSize(50, 50))
+            self.time_reverse_button.setIcon(QtGui.QIcon('symbols/time_reverse.png'))
+            self.time_reverse_button.setIconSize(QtCore.QSize(40, 40))
+            self.time_reverse_button.clicked.connect(time_reverse)
+            self.gif_control_layout.addWidget(self.time_reverse_button)
 
             # Dihedral group4 transformations
             all_rotation_degrees = [0, 90, 180, 270]
@@ -2334,11 +2441,6 @@ class UI_MainWindow(QWidget):
             # add to the label
             self.image_label.setMovie(image_gif)
             image_gif.start()
-
-        # display the name of the image
-        # self.name_label = QLabel(self.loaded_image_name)
-        # self.name_label.setContentsMargins(0, 0, 0, 0)
-        # self.name_label.setAlignment(QtCore.Qt.AlignCenter)
 
 
     # helper function on drawing mask on input COCO image (to highlight the current FOV)
