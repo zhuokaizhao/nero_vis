@@ -255,6 +255,11 @@ class _FunctionCorrelation(torch.autograd.Function):
 
         self.intStride = intStride
 
+        if not first.is_contiguous():
+            first = first.contiguous()
+        if not second.is_contiguous():
+            second = second.contiguous()
+
         assert (first.is_contiguous() == True)
         assert (second.is_contiguous() == True)
 

@@ -495,13 +495,14 @@ def run_piv_once(mode, model_name, model, image_1, image_2):
             # permute from [index, height, width, dim] to [index, dim, height, width]
             img1 = image_1.permute(0, 3, 1, 2).float().to(device)
             img2 = image_2.permute(0, 3, 1, 2).float().to(device)
+
             # get prediction from loaded model
             prediction = model(img1, img2)
 
             # put on cpu and permute to channel last
             cur_labels_pred_pt = prediction.cpu().data
             # change label shape to (height, width, dim)
-            cur_labels_pred_pt = cur_label_pred_pt.permute(0, 2, 3, 1)
+            cur_labels_pred_pt = cur_labels_pred_pt.permute(0, 2, 3, 1)
 
         elif model_name == 'Horn-Schunck':
             # number of images

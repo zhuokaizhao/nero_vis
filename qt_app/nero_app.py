@@ -1082,7 +1082,7 @@ class UI_MainWindow(QWidget):
             # add to general layout
             self.layout.addLayout(self.aggregate_result_layout, 1, 0, 3, 3)
         elif self.mode == 'piv':
-            self.batch_size = 64
+            self.batch_size = 16
             self.layout.addLayout(self.aggregate_result_layout, 1, 0, 3, 3)
 
 
@@ -1664,7 +1664,7 @@ class UI_MainWindow(QWidget):
             if self.use_cache:
                 self.aggregate_outputs_1 = self.load_from_cache(f'{self.mode}_{self.data_mode}_{self.model_1_cache_name}_outputs')
                 self.aggregate_outputs_2 = self.load_from_cache(f'{self.mode}_{self.data_mode}_{self.model_2_cache_name}_outputs')
-                self.aggregate_ground_truths = self.load_from_cache(f'{self.mode}_{self.data_mode}_{self.model_2_cache_name}_ground_truths')
+                self.aggregate_ground_truths = self.load_from_cache(f'{self.mode}_{self.data_mode}_ground_truths')
             else:
                 transformation_index = 0
                 # take a batch of images
@@ -1680,6 +1680,8 @@ class UI_MainWindow(QWidget):
                 for is_time_reversed in all_time_reversals:
                     for is_flipped in all_flip:
                         for cur_rotation_angle in all_rotation_degrees:
+
+                            print(f'Transformation {transformation_index}')
 
                             # modify the data and run model in batch
                             for index_range in batch_indices:
@@ -1723,16 +1725,12 @@ class UI_MainWindow(QWidget):
                                                                             self.model_1,
                                                                             cur_images_1_pt,
                                                                             cur_images_2_pt)
-                                print(cur_outputs_1.shape)
+
                                 cur_outputs_2 = nero_run_model.run_piv_once('aggregate',
                                                                             self.model_2_name,
                                                                             self.model_2,
                                                                             cur_images_1_pt,
                                                                             cur_images_2_pt)
-
-
-                                print(cur_outputs_2.shape)
-                                exit()
 
                             # add to all outputs
                             self.aggregate_outputs_1[transformation_index, index_range[0]:index_range[1]] = cur_outputs_1 / self.image_size
@@ -1743,12 +1741,11 @@ class UI_MainWindow(QWidget):
 
                 # save to cache
                 self.save_to_cache(name=f'{self.mode}_{self.data_mode}_{self.model_1_cache_name}_outputs', content=self.aggregate_outputs_1)
-                self.save_to_cache(name=f'{self.mode}_{self.data_mode}_{self.model_1_cache_name}_outputs', content=self.aggregate_outputs_1)
-                self.save_to_cache(name=f'{self.mode}_{self.data_mode}_{self.model_1_cache_name}_outputs', content=self.aggregate_outputs_1)
+                self.save_to_cache(name=f'{self.mode}_{self.data_mode}_{self.model_2_cache_name}_outputs', content=self.aggregate_outputs_2)
+                self.save_to_cache(name=f'{self.mode}_{self.data_mode}_ground_truths', content=self.aggregate_ground_truths)
 
             # display the result
             self.display_piv_aggregate_result()
-
 
 
     # run model on a single test sample with no transfomations
@@ -2261,15 +2258,13 @@ class UI_MainWindow(QWidget):
                                                                             self.model_1_name,
                                                                             self.model_1,
                                                                             self.cur_image_1_pt,
-                                                                            self.cur_image_2_pt,
-                                                                            batch_size=1)
+                                                                            self.cur_image_2_pt)
 
                                 quantity_2 = nero_run_model.run_piv_once('single',
                                                                             self.model_2_name,
                                                                             self.model_2,
                                                                             self.cur_image_1_pt,
-                                                                            self.cur_image_2_pt,
-                                                                            batch_size=1)
+                                                                            self.cur_image_2_pt)
 
                                 self.all_quantities_1[transformation_index] = quantity_1 / self.image_size
                                 self.all_quantities_2[transformation_index] = quantity_2 / self.image_size
