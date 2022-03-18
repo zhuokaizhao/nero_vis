@@ -1082,7 +1082,7 @@ class UI_MainWindow(QWidget):
             # add to general layout
             self.layout.addLayout(self.aggregate_result_layout, 1, 0, 3, 3)
         elif self.mode == 'piv':
-            self.batch_size = 16
+            self.batch_size = 64
             self.layout.addLayout(self.aggregate_result_layout, 1, 0, 3, 3)
 
 
@@ -1106,10 +1106,13 @@ class UI_MainWindow(QWidget):
     # run button execution that could be used by all modes
     @QtCore.Slot()
     def run_button_clicked(self):
+
+        # aggregate (dataset selected) case
         if self.data_mode == 'aggregate':
             self.run_model_aggregated()
             self.aggregate_result_existed = True
 
+        # single (single image selected) case
         elif self.data_mode == 'single':
             if self.mode == 'digit_recognition':
                 # run model once and display bar result
@@ -1652,105 +1655,62 @@ class UI_MainWindow(QWidget):
             all_time_reversals = [0, 1]
             self.num_transformations = len(all_rotation_degrees) * len(all_flip) * len(all_time_reversals)
 
-            # each model output are dense 2D velocity field of the input image
-            # output of each sample for all translations, has shape (num_y_trans, num_x_trans, num_samples, num_samples, 7)
-            self.all_quantities_1 = torch.zeros((self.num_transformations,  self.image_size, self.image_size, 2))
-            self.all_quantities_2 = torch.zeros((self.num_transformations, self.image_size, self.image_size, 2))
-            self.all_ground_truths = torch.zeros((self.num_transformations, self.image_size, self.image_size, 2))
-            transformation_index = 0
-            # for time_reverse in all_time_reversals:
-            #     for flip in all_flip:
-            #         for cur_rot_degree in all_rotation_degrees:
-
-
-            self.aggregate_outputs_1 = np.zeros((len(self.y_translation), len(self.x_translation)), dtype=np.ndarray)
-            self.aggregate_outputs_2 = np.zeros((len(self.y_translation), len(self.x_translation)), dtype=np.ndarray)
-
-            # individual precision, recall, F measure and AP
-            self.aggregate_precision_1 = np.zeros((len(self.y_translation), len(self.x_translation)), dtype=np.ndarray)
-            self.aggregate_recall_1 = np.zeros((len(self.y_translation), len(self.x_translation)), dtype=np.ndarray)
-            self.aggregate_F_measure_1 = np.zeros((len(self.y_translation), len(self.x_translation)), dtype=np.ndarray)
-            # mAP does not have individuals
-            self.aggregate_mAP_1 = np.zeros((len(self.y_translation), len(self.x_translation)))
-
-            self.aggregate_precision_2 = np.zeros((len(self.y_translation), len(self.x_translation)), dtype=np.ndarray)
-            self.aggregate_recall_2 = np.zeros((len(self.y_translation), len(self.x_translation)), dtype=np.ndarray)
-            self.aggregate_F_measure_2 = np.zeros((len(self.y_translation), len(self.x_translation)), dtype=np.ndarray)
-            # mAP does not have individuals
-            self.aggregate_mAP_2 = np.zeros((len(self.y_translation), len(self.x_translation)))
+            # output are dense 2D velocity field of the input image pairs
+            # output for all transformation, has shape (num_transformations, num_samples, image_size, image_size, 2)
+            self.aggregate_outputs_1 = torch.zeros((self.num_transformations, len(self.all_images_1_paths),  self.image_size, self.image_size, 2))
+            self.aggregate_outputs_2 = torch.zeros((self.num_transformations, len(self.all_images_1_paths), self.image_size, self.image_size, 2))
+            self.aggregate_ground_truths = torch.zeros((self.num_transformations, len(self.all_images_1_paths), self.image_size, self.image_size, 2))
 
             if self.use_cache:
                 self.aggregate_outputs_1 = self.load_from_cache(f'{self.mode}_{self.data_mode}_{self.model_1_cache_name}_outputs')
-                self.aggregate_precision_1 = self.load_from_cache(f'{self.mode}_{self.data_mode}_{self.model_1_cache_name}_precision')
-                self.aggregate_recall_1 = self.load_from_cache(f'{self.mode}_{self.data_mode}_{self.model_1_cache_name}_recall')
-                self.aggregate_mAP_1 = self.load_from_cache(f'{self.mode}_{self.data_mode}_{self.model_1_cache_name}_mAP')
-                self.aggregate_F_measure_1 = self.load_from_cache(f'{self.mode}_{self.data_mode}_{self.model_1_cache_name}_F_measure')
-
                 self.aggregate_outputs_2 = self.load_from_cache(f'{self.mode}_{self.data_mode}_{self.model_2_cache_name}_outputs')
-                self.aggregate_precision_2 = self.load_from_cache(f'{self.mode}_{self.data_mode}_{self.model_2_cache_name}_precision')
-                self.aggregate_recall_2 = self.load_from_cache(f'{self.mode}_{self.data_mode}_{self.model_2_cache_name}_recall')
-                self.aggregate_mAP_2 = self.load_from_cache(f'{self.mode}_{self.data_mode}_{self.model_2_cache_name}_mAP')
-                self.aggregate_F_measure_2 = self.load_from_cache(f'{self.mode}_{self.data_mode}_{self.model_2_cache_name}_F_measure')
+                self.aggregate_ground_truths = self.load_from_cache(f'{self.mode}_{self.data_mode}_{self.model_2_cache_name}_ground_truths')
             else:
-                # for all the loaded images
-                for y, y_tran in enumerate(self.y_translation):
-                    for x, x_tran in enumerate(self.x_translation):
-                        print(f'y_tran = {y_tran}, x_tran = {x_tran}')
-                        # model 1 output
-                        cur_qualified_output_1, \
-                        cur_precision_1, \
-                        cur_recall_1, \
-                        cur_F_measure_1 = nero_run_model.run_coco_once('aggregate',
+                transformation_index = 0
+                for time_reverse in all_time_reversals:
+                    for flip in all_flip:
+                        for cur_rot_degree in all_rotation_degrees:
+
+                            # take a batch of images
+                            num_batches = int(len(self.all_images_1_paths) / self.batch_size)
+                            if len(self.all_images_1_paths) % self.batch_size != 0:
+                                num_batches += 1
+                            # construct sample indices for each batch
+                            batch_indices = []
+                            for i in range(num_batches):
+                                batch_indices.append((i*self.batch_size, min((i+1)*self.batch_size, len(self.all_images_1_paths))))
+
+                            # modify the data and run model in batch
+
+
+
+                            # run the model
+                            cur_output_1 = nero_run_model.run_piv_once('aggregate',
                                                                         self.model_1_name,
                                                                         self.model_1,
-                                                                        self.all_images_paths,
-                                                                        self.custom_coco_names,
-                                                                        self.pytorch_coco_names,
-                                                                        batch_size=self.batch_size,
-                                                                        x_tran=x_tran,
-                                                                        y_tran=y_tran,
-                                                                        coco_names=self.original_coco_names)
+                                                                        self.all_images_1_paths,
+                                                                        self.all_images_2_paths,
+                                                                        batch_size=self.batch_size)
 
-                        # save to result arrays
-                        self.aggregate_outputs_1[y, x] = cur_qualified_output_1
-                        self.aggregate_precision_1[y, x] = cur_precision_1
-                        self.aggregate_recall_1[y, x] = cur_recall_1
-                        self.aggregate_F_measure_1[y, x] = cur_F_measure_1
-                        self.aggregate_mAP_1[y, x] = nero_utilities.compute_ap(cur_recall_1, cur_precision_1)
-
-                        # model 2 output
-                        cur_qualified_output_2, \
-                        cur_precision_2, \
-                        cur_recall_2, \
-                        cur_F_measure_2 = nero_run_model.run_coco_once('aggregate',
+                            cur_output_2 = nero_run_model.run_piv_once('aggregate',
                                                                         self.model_2_name,
                                                                         self.model_2,
-                                                                        self.all_images_paths,
-                                                                        self.custom_coco_names,
-                                                                        self.pytorch_coco_names,
-                                                                        batch_size=self.batch_size,
-                                                                        x_tran=x_tran,
-                                                                        y_tran=y_tran,
-                                                                        coco_names=self.original_coco_names)
+                                                                        self.all_images_1_paths,
+                                                                        self.all_images_2_paths,
+                                                                        batch_size=self.batch_size)
 
-                        # save to result arrays
-                        self.aggregate_outputs_2[y, x] = cur_qualified_output_2
-                        self.aggregate_precision_2[y, x] = cur_precision_2
-                        self.aggregate_recall_2[y, x] = cur_recall_2
-                        self.aggregate_F_measure_2[y, x] = cur_F_measure_2
-                        self.aggregate_mAP_2[y, x] = nero_utilities.compute_ap(cur_recall_2, cur_precision_2)
+                            # cur_ground_truth =
 
+                            self.aggregate_outputs_1[transformation_index] = cur_output_1 / self.image_size
+                            self.aggregate_outputs_1[transformation_index] = cur_output_2 / self.image_size
+
+                            transformation_index += 1
+
+                # save to cache
                 self.save_to_cache(name=f'{self.mode}_{self.data_mode}_{self.model_1_cache_name}_outputs', content=self.aggregate_outputs_1)
-                self.save_to_cache(name=f'{self.mode}_{self.data_mode}_{self.model_1_cache_name}_precision', content=self.aggregate_precision_1)
-                self.save_to_cache(name=f'{self.mode}_{self.data_mode}_{self.model_1_cache_name}_recall', content=self.aggregate_recall_1)
-                self.save_to_cache(name=f'{self.mode}_{self.data_mode}_{self.model_1_cache_name}_mAP', content=self.aggregate_mAP_1)
-                self.save_to_cache(name=f'{self.mode}_{self.data_mode}_{self.model_1_cache_name}_F_measure', content=self.aggregate_F_measure_1)
+                self.save_to_cache(name=f'{self.mode}_{self.data_mode}_{self.model_1_cache_name}_outputs', content=self.aggregate_outputs_1)
+                self.save_to_cache(name=f'{self.mode}_{self.data_mode}_{self.model_1_cache_name}_outputs', content=self.aggregate_outputs_1)
 
-                self.save_to_cache(name=f'{self.mode}_{self.data_mode}_{self.model_2_cache_name}_outputs', content=self.aggregate_outputs_2)
-                self.save_to_cache(name=f'{self.mode}_{self.data_mode}_{self.model_2_cache_name}_precision', content=self.aggregate_precision_2)
-                self.save_to_cache(name=f'{self.mode}_{self.data_mode}_{self.model_2_cache_name}_recall', content=self.aggregate_recall_2)
-                self.save_to_cache(name=f'{self.mode}_{self.data_mode}_{self.model_2_cache_name}_mAP', content=self.aggregate_mAP_2)
-                self.save_to_cache(name=f'{self.mode}_{self.data_mode}_{self.model_2_cache_name}_F_measure', content=self.aggregate_F_measure_2)
 
 
             # display the result
