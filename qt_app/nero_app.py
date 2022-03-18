@@ -1933,8 +1933,8 @@ class UI_MainWindow(QWidget):
         elif self.mode == 'piv':
             # button clicked counter
             self.cur_rotation_angle = 0
-            self.is_flipped = False
-            self.is_time_reversed = False
+            self.is_flipped = 0
+            self.is_time_reversed = 0
 
             def modify_display_gif():
                 display_image_1_pt = self.loaded_image_1_pt.clone()
@@ -1973,6 +1973,14 @@ class UI_MainWindow(QWidget):
                 # modify the image and display
                 modify_display_gif()
                 self.display_image()
+                # showing indication on the individual NERO plot
+                if -self.cur_rotation_angle//90 < 0:
+                    rot_index = 4 - self.cur_rotation_angle//90
+                else:
+                    rot_index = -self.cur_rotation_angle//90
+                self.triangle_index = self.is_time_reversed*8 + self.is_flipped*4 + rot_index
+                print(f'triangle index {self.triangle_index}')
+                self.draw_d4_nero('single')
 
 
             @QtCore.Slot()
@@ -1982,6 +1990,14 @@ class UI_MainWindow(QWidget):
                 # modify the image and display
                 modify_display_gif()
                 self.display_image()
+                # showing indication on the individual NERO plot
+                if -self.cur_rotation_angle//90 < 0:
+                    rot_index = 4 - self.cur_rotation_angle//90
+                else:
+                    rot_index = -self.cur_rotation_angle//90
+                self.triangle_index = self.is_time_reversed*8 + self.is_flipped*4 + rot_index
+                print(f'triangle index {self.triangle_index}')
+                self.draw_d4_nero('single')
 
             @QtCore.Slot()
             def flip():
@@ -1990,6 +2006,14 @@ class UI_MainWindow(QWidget):
                 # modify the image and display
                 modify_display_gif()
                 self.display_image()
+                # showing indication on the individual NERO plot
+                if -self.cur_rotation_angle//90 < 0:
+                    rot_index = 4 - self.cur_rotation_angle//90
+                else:
+                    rot_index = -self.cur_rotation_angle//90
+                self.triangle_index = self.is_time_reversed*8 + self.is_flipped*4 + rot_index
+                print(f'triangle index {self.triangle_index}')
+                self.draw_d4_nero('single')
 
             @QtCore.Slot()
             def time_reverse():
@@ -1998,6 +2022,14 @@ class UI_MainWindow(QWidget):
                 # modify the image and display
                 modify_display_gif()
                 self.display_image()
+                # showing indication on the individual NERO plot
+                if -self.cur_rotation_angle//90 < 0:
+                    rot_index = 4 - self.cur_rotation_angle//90
+                else:
+                    rot_index = -self.cur_rotation_angle//90
+                self.triangle_index = self.is_time_reversed*8 + self.is_flipped*4 + rot_index
+                print(f'triangle index {self.triangle_index}')
+                self.draw_d4_nero('single')
 
 
             # add buttons for controlling the GIF
@@ -2117,6 +2149,7 @@ class UI_MainWindow(QWidget):
                     self.save_to_cache(name=f'{self.mode}_{self.data_mode}_ground_truths_{self.image_index}', content=self.all_ground_truths)
 
                 # display the piv single case result
+                self.triangle_index = 0
                 self.display_piv_single_result()
 
             elif self.data_mode == 'aggregate':
@@ -2689,12 +2722,17 @@ class UI_MainWindow(QWidget):
         self.aggregate_result_layout.addWidget(polar_view, 1, 1, 2, 2)
 
 
-    def draw_triangle(self, painter, point_1, point_2, point_3, color, boundary_width=3):
+    def draw_triangle(self, index, painter, point_1, point_2, point_3, color, boundary_width=3):
 
         # define pen and brush
         pen = QtGui.QPen()
-        pen.setWidth(boundary_width)
-        pen_color = QtGui.QColor(color[0], color[1], color[2])
+        if index == self.triangle_index:
+            pen.setWidth(boundary_width*3)
+            pen_color = QtGui.QColor('red')
+        else:
+            pen.setWidth(boundary_width)
+            pen_color = QtGui.QColor(color[0], color[1], color[2])
+
         # pen_color.setAlpha(alpha)
         pen.setColor(pen_color)
         painter.setPen(pen)
@@ -2735,97 +2773,97 @@ class UI_MainWindow(QWidget):
             p = self.plot_size
             # first 4 are rotations with 0, 90, 180 and 270 degrees
             # original
-            self.draw_triangle(painter, QtCore.QPointF(0, p/2),
+            self.draw_triangle(0, painter, QtCore.QPointF(0, p/2),
                                         QtCore.QPointF(p/4, p/4),
                                         QtCore.QPointF(p/2, p/2),
                                         d4_lut[int(data[0]*100)])
 
             # rotated 90
-            self.draw_triangle(painter, QtCore.QPointF(p/2, p/2),
+            self.draw_triangle(1, painter, QtCore.QPointF(p/2, p/2),
                                         QtCore.QPointF(p/2, 0),
                                         QtCore.QPointF(p*3/4, p*1/4),
                                         d4_lut[int(data[1]*100)])
 
             # rotated 180
-            self.draw_triangle(painter, QtCore.QPointF(p/2, p/2),
+            self.draw_triangle(2, painter, QtCore.QPointF(p/2, p/2),
                                         QtCore.QPointF(p, p/2),
                                         QtCore.QPointF(p*3/4, p*3/4),
                                         d4_lut[int(data[2]*100)])
 
             # # rotated 270
-            self.draw_triangle(painter, QtCore.QPointF(p/4, p*3/4),
+            self.draw_triangle(3, painter, QtCore.QPointF(p/4, p*3/4),
                                         QtCore.QPointF(p/2, p/2),
                                         QtCore.QPointF(p/2, p),
                                         d4_lut[int(data[3]*100)])
 
             # original + flip
-            self.draw_triangle(painter, QtCore.QPointF(p/4, p/4),
+            self.draw_triangle(4, painter, QtCore.QPointF(p/4, p/4),
                                         QtCore.QPointF(p/2, 0),
                                         QtCore.QPointF(p/2, p/2),
                                         d4_lut[int(data[4]*100)])
 
             # rotated 90 + flip
-            self.draw_triangle(painter, QtCore.QPointF(p/2, p/2),
+            self.draw_triangle(5, painter, QtCore.QPointF(p/2, p/2),
                                         QtCore.QPointF(p*3/4, p/4),
                                         QtCore.QPointF(p, p/2),
                                         d4_lut[int(data[5]*100)])
 
             # rotated 180 + flip
-            self.draw_triangle(painter, QtCore.QPointF(p/2, p/2),
+            self.draw_triangle(6, painter, QtCore.QPointF(p/2, p/2),
                                         QtCore.QPointF(p/2, p),
                                         QtCore.QPointF(p*3/4, p*3/4),
                                         d4_lut[int(data[6]*100)])
 
             # rotated 270 + flip
-            self.draw_triangle(painter, QtCore.QPointF(0, p/2),
+            self.draw_triangle(7, painter, QtCore.QPointF(0, p/2),
                                         QtCore.QPointF(p/4, p*3/4),
                                         QtCore.QPointF(p/2, p/2),
                                         d4_lut[int(data[7]*100)])
 
             # time reverse
-            self.draw_triangle(painter, QtCore.QPointF(0, 0),
+            self.draw_triangle(8, painter, QtCore.QPointF(0, 0),
                                         QtCore.QPointF(p/4, p/4),
                                         QtCore.QPointF(0, p/2),
                                         d4_lut[int(data[8]*100)])
 
             # time reverse + rot 90
-            self.draw_triangle(painter, QtCore.QPointF(p/2, 0),
+            self.draw_triangle(9, painter, QtCore.QPointF(p/2, 0),
                                         QtCore.QPointF(p*3/4, p/4),
                                         QtCore.QPointF(p, 0),
                                         d4_lut[int(data[9]*100)])
 
             # time reverse + rot 180
-            self.draw_triangle(painter, QtCore.QPointF(p, p/2),
+            self.draw_triangle(10, painter, QtCore.QPointF(p, p/2),
                                         QtCore.QPointF(p*3/4, p*3/4),
                                         QtCore.QPointF(p, p),
                                         d4_lut[int(data[10]*100)])
 
             # time reverse + rot 270
-            self.draw_triangle(painter, QtCore.QPointF(0, p),
+            self.draw_triangle(11, painter, QtCore.QPointF(0, p),
                                         QtCore.QPointF(p/4, p*3/4),
                                         QtCore.QPointF(p/2, p),
                                         d4_lut[int(data[11]*100)])
 
             # time reverse + flip
-            self.draw_triangle(painter, QtCore.QPointF(0, 0),
+            self.draw_triangle(12, painter, QtCore.QPointF(0, 0),
                                         QtCore.QPointF(p/4, p/4),
                                         QtCore.QPointF(p/2, 0),
                                         d4_lut[int(data[12]*100)])
 
             # time reverse + rot 90 + flip
-            self.draw_triangle(painter, QtCore.QPointF(p, 0),
+            self.draw_triangle(13, painter, QtCore.QPointF(p, 0),
                                         QtCore.QPointF(p*3/4, p/4),
                                         QtCore.QPointF(p, p/2),
                                         d4_lut[int(data[13]*100)])
 
             # time reverse + rot 180 + flip
-            self.draw_triangle(painter, QtCore.QPointF(p/2, p),
+            self.draw_triangle(14, painter, QtCore.QPointF(p/2, p),
                                         QtCore.QPointF(p*3/4, p*3/4),
                                         QtCore.QPointF(p, p),
                                         d4_lut[int(data[14]*100)])
 
             # time reverse + rot 270 + flip
-            self.draw_triangle(painter, QtCore.QPointF(0, p),
+            self.draw_triangle(15, painter, QtCore.QPointF(0, p),
                                         QtCore.QPointF(0, p/2),
                                         QtCore.QPointF(p/4, p*3/4),
                                         d4_lut[int(data[14]*100)])
