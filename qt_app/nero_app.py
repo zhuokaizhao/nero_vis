@@ -524,6 +524,15 @@ class UI_MainWindow(QWidget):
                     cur_label = cur_label_path.split('/')[-1].split('_')[0]
                     self.loaded_images_labels.append(cur_label)
 
+            # in piv, only the paths are loaded
+            elif self.mode == 'piv':
+                # all the image pairs and labels paths
+                self.all_images_1_paths = glob.glob(os.path.join(self.dataset_dir, '*img1.tif'))
+                self.all_images_2_paths = [cur_path.replace('img1', 'img2') for cur_path in self.all_images_1_paths]
+                self.all_labels_paths = [cur_path.replace('img1', 'flow').replace('tif', 'flo') for cur_path in self.all_images_1_paths]
+                # flow type of each image pair
+                self.all_individual_flow_types = [cur_path.split('/')[-1].split('_')[0] for cur_path in self.all_images_1_paths]
+
             # check the data to be ready
             self.data_existed = True
 
@@ -651,14 +660,12 @@ class UI_MainWindow(QWidget):
             else:
                 self.run_button.setText(self.run_button_text)
 
-
         @QtCore.Slot()
         def run_cache_checkbox_clicked(state):
             if state == QtCore.Qt.Checked:
                 self.use_cache = True
             else:
                 self.use_cache = False
-
 
         # two drop down menus that let user choose models
         @QtCore.Slot()
@@ -832,7 +839,6 @@ class UI_MainWindow(QWidget):
                 elif self.data_mode == 'single':
                     self.run_model_all()
                     self.single_result_existed = True
-
 
         # function used as model icon
         def draw_circle(painter, center_x, center_y, radius, color):
@@ -1151,6 +1157,12 @@ class UI_MainWindow(QWidget):
 
             # for piv
             elif self.mode == 'piv':
+                # select different flows
+                if text.split(' ')[0] == 'Averaged':
+                    self.class_selection = 'all'
+                else:
+                    self.class_selection = text
+
                 # display the plot
                 self.display_piv_aggregate_result()
 
@@ -1185,6 +1197,11 @@ class UI_MainWindow(QWidget):
             # add all classes as items
             for cur_class in self.coco_classes:
                 self.class_selection_menu.addItem(f'{cur_class}')
+        elif self.mode == 'piv':
+            self.class_selection_menu.addItem(f'Averaged over all types of flows')
+            # add all classes as items
+            for cur_type in self.flow_types:
+                self.class_selection_menu.addItem(f'{cur_type}')
 
         # set default to 'all', which means the average one
         self.class_selection = 'all'
@@ -1627,6 +1644,118 @@ class UI_MainWindow(QWidget):
             # display the result
             self.display_coco_aggregate_result()
 
+        elif self.mode == 'piv':
+            # Dihedral group4 transformations
+            all_rotation_degrees = [0, 90, 180, 270]
+            # 0 means no flip/time reverse, 1 means flip/time reverse
+            all_flip = [0, 1]
+            all_time_reversals = [0, 1]
+            self.num_transformations = len(all_rotation_degrees) * len(all_flip) * len(all_time_reversals)
+
+            # each model output are dense 2D velocity field of the input image
+            # output of each sample for all translations, has shape (num_y_trans, num_x_trans, num_samples, num_samples, 7)
+            self.all_quantities_1 = torch.zeros((self.num_transformations,  self.image_size, self.image_size, 2))
+            self.all_quantities_2 = torch.zeros((self.num_transformations, self.image_size, self.image_size, 2))
+            self.all_ground_truths = torch.zeros((self.num_transformations, self.image_size, self.image_size, 2))
+            transformation_index = 0
+            # for time_reverse in all_time_reversals:
+            #     for flip in all_flip:
+            #         for cur_rot_degree in all_rotation_degrees:
+
+
+            self.aggregate_outputs_1 = np.zeros((len(self.y_translation), len(self.x_translation)), dtype=np.ndarray)
+            self.aggregate_outputs_2 = np.zeros((len(self.y_translation), len(self.x_translation)), dtype=np.ndarray)
+
+            # individual precision, recall, F measure and AP
+            self.aggregate_precision_1 = np.zeros((len(self.y_translation), len(self.x_translation)), dtype=np.ndarray)
+            self.aggregate_recall_1 = np.zeros((len(self.y_translation), len(self.x_translation)), dtype=np.ndarray)
+            self.aggregate_F_measure_1 = np.zeros((len(self.y_translation), len(self.x_translation)), dtype=np.ndarray)
+            # mAP does not have individuals
+            self.aggregate_mAP_1 = np.zeros((len(self.y_translation), len(self.x_translation)))
+
+            self.aggregate_precision_2 = np.zeros((len(self.y_translation), len(self.x_translation)), dtype=np.ndarray)
+            self.aggregate_recall_2 = np.zeros((len(self.y_translation), len(self.x_translation)), dtype=np.ndarray)
+            self.aggregate_F_measure_2 = np.zeros((len(self.y_translation), len(self.x_translation)), dtype=np.ndarray)
+            # mAP does not have individuals
+            self.aggregate_mAP_2 = np.zeros((len(self.y_translation), len(self.x_translation)))
+
+            if self.use_cache:
+                self.aggregate_outputs_1 = self.load_from_cache(f'{self.mode}_{self.data_mode}_{self.model_1_cache_name}_outputs')
+                self.aggregate_precision_1 = self.load_from_cache(f'{self.mode}_{self.data_mode}_{self.model_1_cache_name}_precision')
+                self.aggregate_recall_1 = self.load_from_cache(f'{self.mode}_{self.data_mode}_{self.model_1_cache_name}_recall')
+                self.aggregate_mAP_1 = self.load_from_cache(f'{self.mode}_{self.data_mode}_{self.model_1_cache_name}_mAP')
+                self.aggregate_F_measure_1 = self.load_from_cache(f'{self.mode}_{self.data_mode}_{self.model_1_cache_name}_F_measure')
+
+                self.aggregate_outputs_2 = self.load_from_cache(f'{self.mode}_{self.data_mode}_{self.model_2_cache_name}_outputs')
+                self.aggregate_precision_2 = self.load_from_cache(f'{self.mode}_{self.data_mode}_{self.model_2_cache_name}_precision')
+                self.aggregate_recall_2 = self.load_from_cache(f'{self.mode}_{self.data_mode}_{self.model_2_cache_name}_recall')
+                self.aggregate_mAP_2 = self.load_from_cache(f'{self.mode}_{self.data_mode}_{self.model_2_cache_name}_mAP')
+                self.aggregate_F_measure_2 = self.load_from_cache(f'{self.mode}_{self.data_mode}_{self.model_2_cache_name}_F_measure')
+            else:
+                # for all the loaded images
+                for y, y_tran in enumerate(self.y_translation):
+                    for x, x_tran in enumerate(self.x_translation):
+                        print(f'y_tran = {y_tran}, x_tran = {x_tran}')
+                        # model 1 output
+                        cur_qualified_output_1, \
+                        cur_precision_1, \
+                        cur_recall_1, \
+                        cur_F_measure_1 = nero_run_model.run_coco_once('aggregate',
+                                                                        self.model_1_name,
+                                                                        self.model_1,
+                                                                        self.all_images_paths,
+                                                                        self.custom_coco_names,
+                                                                        self.pytorch_coco_names,
+                                                                        batch_size=self.batch_size,
+                                                                        x_tran=x_tran,
+                                                                        y_tran=y_tran,
+                                                                        coco_names=self.original_coco_names)
+
+                        # save to result arrays
+                        self.aggregate_outputs_1[y, x] = cur_qualified_output_1
+                        self.aggregate_precision_1[y, x] = cur_precision_1
+                        self.aggregate_recall_1[y, x] = cur_recall_1
+                        self.aggregate_F_measure_1[y, x] = cur_F_measure_1
+                        self.aggregate_mAP_1[y, x] = nero_utilities.compute_ap(cur_recall_1, cur_precision_1)
+
+                        # model 2 output
+                        cur_qualified_output_2, \
+                        cur_precision_2, \
+                        cur_recall_2, \
+                        cur_F_measure_2 = nero_run_model.run_coco_once('aggregate',
+                                                                        self.model_2_name,
+                                                                        self.model_2,
+                                                                        self.all_images_paths,
+                                                                        self.custom_coco_names,
+                                                                        self.pytorch_coco_names,
+                                                                        batch_size=self.batch_size,
+                                                                        x_tran=x_tran,
+                                                                        y_tran=y_tran,
+                                                                        coco_names=self.original_coco_names)
+
+                        # save to result arrays
+                        self.aggregate_outputs_2[y, x] = cur_qualified_output_2
+                        self.aggregate_precision_2[y, x] = cur_precision_2
+                        self.aggregate_recall_2[y, x] = cur_recall_2
+                        self.aggregate_F_measure_2[y, x] = cur_F_measure_2
+                        self.aggregate_mAP_2[y, x] = nero_utilities.compute_ap(cur_recall_2, cur_precision_2)
+
+                self.save_to_cache(name=f'{self.mode}_{self.data_mode}_{self.model_1_cache_name}_outputs', content=self.aggregate_outputs_1)
+                self.save_to_cache(name=f'{self.mode}_{self.data_mode}_{self.model_1_cache_name}_precision', content=self.aggregate_precision_1)
+                self.save_to_cache(name=f'{self.mode}_{self.data_mode}_{self.model_1_cache_name}_recall', content=self.aggregate_recall_1)
+                self.save_to_cache(name=f'{self.mode}_{self.data_mode}_{self.model_1_cache_name}_mAP', content=self.aggregate_mAP_1)
+                self.save_to_cache(name=f'{self.mode}_{self.data_mode}_{self.model_1_cache_name}_F_measure', content=self.aggregate_F_measure_1)
+
+                self.save_to_cache(name=f'{self.mode}_{self.data_mode}_{self.model_2_cache_name}_outputs', content=self.aggregate_outputs_2)
+                self.save_to_cache(name=f'{self.mode}_{self.data_mode}_{self.model_2_cache_name}_precision', content=self.aggregate_precision_2)
+                self.save_to_cache(name=f'{self.mode}_{self.data_mode}_{self.model_2_cache_name}_recall', content=self.aggregate_recall_2)
+                self.save_to_cache(name=f'{self.mode}_{self.data_mode}_{self.model_2_cache_name}_mAP', content=self.aggregate_mAP_2)
+                self.save_to_cache(name=f'{self.mode}_{self.data_mode}_{self.model_2_cache_name}_F_measure', content=self.aggregate_F_measure_2)
+
+
+            # display the result
+            self.display_piv_aggregate_result()
+
 
 
     # run model on a single test sample with no transfomations
@@ -1936,6 +2065,7 @@ class UI_MainWindow(QWidget):
             self.is_flipped = 0
             self.is_time_reversed = 0
 
+            # modify the gif as user rotates, flips or time-reverses
             def modify_display_gif():
                 display_image_1_pt = self.loaded_image_1_pt.clone()
                 display_image_2_pt = self.loaded_image_2_pt.clone()
@@ -1984,7 +2114,6 @@ class UI_MainWindow(QWidget):
                 self.draw_d4_nero('single')
                 # update detailed plot of PIV
                 self.draw_piv_details()
-
 
             @QtCore.Slot()
             def rotate_90_cw():
@@ -3318,30 +3447,6 @@ class UI_MainWindow(QWidget):
     # display COCO single results
     def display_coco_single_result(self):
 
-        # aggregate mode does not draw arrow
-        # if self.data_mode == 'single':
-        #     # draw arrow
-        #     # add a new label for result if no result has existed
-        #     if not self.single_result_existed:
-        #         self.arrow_label = QLabel(self)
-        #         self.arrow_label.setContentsMargins(0, 0, 0, 0)
-        #         self.arrow_label.setAlignment(QtCore.Qt.AlignCenter)
-        #         self.arrow_label.setWordWrap(True)
-        #         self.arrow_label.setTextFormat(QtGui.Qt.AutoText)
-
-        #     arrow_pixmap = QPixmap(100, 50)
-        #     arrow_pixmap.fill(QtCore.Qt.white)
-        #     painter = QtGui.QPainter(arrow_pixmap)
-        #     # set pen (used to draw outlines of shapes) and brush (draw the background of a shape)
-        #     pen = QtGui.QPen()
-        #     # draw arrow to indicate feeding
-        #     self.draw_arrow(painter, pen, 100, 50, boundary_width)
-
-        #     # add to the label and layout
-        #     self.arrow_label.setPixmap(arrow_pixmap)
-        #     self.single_result_layout.addWidget(self.arrow_label, 1, 1)
-        #     painter.end()
-
         # if single mode, change control menus' locations
         if self.data_mode == 'single':
             # move the model menu on top of the each individual NERO plot when in single mode
@@ -3715,109 +3820,3 @@ if __name__ == "__main__":
     widget.show()
 
     sys.exit(app.exec())
-
-
-
-
-
-
-
-
-# def init_title_layout(self):
-#     # title
-#     self.title_layout = QtWidgets.QVBoxLayout()
-#     self.title_layout.setContentsMargins(0, 0, 0, 20)
-#     # title of the application
-#     self.title = QLabel('Non-Equivariance Revealed on Orbits',
-#                         alignment=QtCore.Qt.AlignCenter)
-#     self.title.setFont(QFont('Helvetica', 24))
-#     self.title_layout.addWidget(self.title)
-#     self.title_layout.setContentsMargins(0, 0, 0, 50)
-
-#     # add to general layout
-#     self.layout.addLayout(self.title_layout, 0, 0)
-
-# # load data button
-# self.data_button = QtWidgets.QPushButton('Load Test Image')
-# self.data_button.setStyleSheet('font-size: 18px')
-# data_button_size = QtCore.QSize(500, 50)
-# self.data_button.setMinimumSize(data_button_size)
-# self.mode_control_layout.addWidget(self.data_button)
-# self.data_button.clicked.connect(load_image_clicked)
-
-# @QtCore.Slot()
-# def image_text_clicked():
-#     self.image_paths, _ = QFileDialog.getOpenFileNames(self, QObject.tr('Load Test Image'))
-#     # in case user did not load any image
-#     if self.image_paths == []:
-#         return
-#     print(f'Loaded image(s) {self.image_paths}')
-
-#     # load the image and scale the size
-#     self.loaded_images_pt = []
-#     self.cur_images_pt = []
-#     self.display_images = []
-#     self.loaded_image_names = []
-#     # get the label of the image(s)
-#     self.loaded_image_labels = []
-#     for i in range(len(self.image_paths)):
-#         self.loaded_images_pt.append(torch.from_numpy(np.asarray(Image.open(self.image_paths[i])))[:, :, None])
-#         self.loaded_image_names.append(self.image_paths[i].split('/')[-1])
-#         self.loaded_image_labels.append(int(self.image_paths[i].split('/')[-1].split('_')[1]))
-
-#         # keep a copy to represent the current (rotated) version of the original images
-#         self.cur_images_pt.append(self.loaded_images_pt[-1].clone())
-#         # convert to QImage for display purpose
-#         self.cur_display_image = nero_utilities.tensor_to_qt_image(self.cur_images_pt[-1])
-#         # resize the display QImage
-#         self.display_images.append(self.cur_display_image.scaledToWidth(self.display_image_size))
-
-
-
-
-# draw model diagram, return model pixmap
-# def draw_model_diagram(self, painter, pen, name, font_size, width, height, boundary_width):
-
-#     # draw rectangle to represent model
-#     pen.setWidth(boundary_width)
-#     pen.setColor(QtGui.QColor('red'))
-#     painter.setPen(pen)
-#     rectangle = QtCore.QRect(int(width//3)+boundary_width, boundary_width, width//3*2-2*boundary_width, height-2*boundary_width)
-#     painter.drawRect(rectangle)
-
-#     # draw model name
-#     painter.setFont(QFont('Helvetica', font_size))
-#     if len(name) > 20:
-#         name = name[:20] + '\n' + name[20:]
-#         painter.drawText(int(width//3)+boundary_width, height//2-6*boundary_width, width//3*2, height, QtGui.Qt.AlignHCenter, name)
-#     else:
-#         painter.drawText(int(width//3)+boundary_width, height//2-2*boundary_width, width//3*2, height, QtGui.Qt.AlignHCenter, name)
-
-# might be useful later
-# def display_model(self, model_name, width, height, boundary_width):
-#     # add a new label for loaded image if no image has existed
-#     if not self.model_existed:
-#         self.model_label = QLabel(self)
-#         self.model_label.setWordWrap(True)
-#         self.model_label.setTextFormat(QtGui.Qt.AutoText)
-#         self.model_label.setAlignment(QtCore.Qt.AlignLeft)
-#         self.model_existed = True
-
-#     # total model pixmap size
-#     model_pixmap = QPixmap(width, height)
-#     model_pixmap.fill(QtCore.Qt.white)
-
-#     # define painter that is working on the pixmap
-#     painter = QtGui.QPainter(model_pixmap)
-#     # set pen (used to draw outlines of shapes) and brush (draw the background of a shape)
-#     pen = QtGui.QPen()
-
-#     # draw standard arrow
-#     self.draw_arrow(painter, pen, 80, 150, boundary_width)
-#     # draw the model diagram
-#     self.draw_model_diagram(painter, pen, model_name, 12, width, 150, boundary_width)
-#     painter.end()
-
-#     # add to the label and layout
-#     self.model_label.setPixmap(model_pixmap)
-#     self.result_layout.addWidget(self.model_label, 0, 2)
