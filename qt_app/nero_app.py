@@ -2893,6 +2893,34 @@ class UI_MainWindow(QWidget):
                 self.aggregate_result_layout.addWidget(self.d4_label_2, 1, 5)
 
 
+    # draw error plots of PIV
+    def draw_piv_details(self):
+        # heatmap view
+        self.heatmap_view_1 = pg.GraphicsLayoutWidget()
+        # left top right bottom
+        self.heatmap_view_1.ci.layout.setContentsMargins(0, 20, 0, 0)
+        self.heatmap_view_1.setFixedSize(self.plot_size*1.3, self.plot_size*1.3)
+        self.heatmap_view_2 = pg.GraphicsLayoutWidget()
+        # left top right bottom
+        self.heatmap_view_2.ci.layout.setContentsMargins(0, 20, 0, 0)
+        self.heatmap_view_2.setFixedSize(self.plot_size*1.3, self.plot_size*1.3)
+        self.heatmap_plot_1 = self.draw_individual_heatmap('single', data_1)
+        self.heatmap_plot_2 = self.draw_individual_heatmap('single', data_2)
+        # self.view_box_1.scene().sigMouseClicked.connect(heatmap_mouse_clicked(self.view_box_1))
+        # self.view_box_2.scene().sigMouseClicked.connect(heatmap_mouse_clicked(self.view_box_2))
+
+        # add to view
+        self.heatmap_view_1.addItem(self.heatmap_plot_1)
+        self.heatmap_view_2.addItem(self.heatmap_plot_2)
+
+        if self.data_mode == 'single':
+            self.single_result_layout.addWidget(self.heatmap_view_1, 1, 1)
+            self.single_result_layout.addWidget(self.heatmap_view_2, 1, 2)
+        elif self.data_mode == 'aggregate':
+            self.aggregate_result_layout.addWidget(self.heatmap_view_1, 1, 4)
+            self.aggregate_result_layout.addWidget(self.heatmap_view_2, 1, 5)
+
+
     # display MNIST aggregated results
     def display_mnist_aggregate_result(self):
 
@@ -3534,7 +3562,7 @@ class UI_MainWindow(QWidget):
                 raise NotImplementedError
 
             # re-display the dihedral 4 visualization
-            self.draw_dihedral4(mode='single')
+            self.draw_d4_nero(mode='single')
 
         # drop down menu on selection which quantity to plot
         # layout that controls the plotting items
@@ -3582,6 +3610,9 @@ class UI_MainWindow(QWidget):
 
         # visualize the individual NERO plot of current input
         self.draw_d4_nero(mode='single')
+
+        # visualize squared error as the detailed plot
+        self.draw_piv_details()
 
 
     def mouseMoveEvent(self, event):
