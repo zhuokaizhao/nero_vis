@@ -317,10 +317,23 @@ def compute_ap(recall, precision):
 # loss that might be used during training or testing
 class RMSELoss(torch.nn.Module):
     def __init__(self):
-        super(RMSELoss,self).__init__()
+        super(RMSELoss, self).__init__()
 
-    def forward(self, x, y):
-        mse_loss = torch.nn.MSELoss()
+    # to align with MSELoss's convention on reduction setting
+    def forward(self, x, y, reduction='mean'):
+        mse_loss = torch.nn.MSELoss(reduction=reduction)
         loss = torch.sqrt(mse_loss(x, y))
         return loss
 
+
+class AEELoss(torch.nn.Module):
+    def __init__(self):
+        super(AEELoss, self).__init__()
+
+    def forward(self, x, y, reduction='mean'):
+        aee_loss = ((x[:, :, 0] - y[:, :, 0]).square() + (x[:, :, 1] - y[:, :, 1]).square()).sqrt()
+
+        if reduction == 'mean':
+            return aee_loss.mean()
+        elif reduction == 'none':
+            return aee_loss
