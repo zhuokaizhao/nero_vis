@@ -1202,7 +1202,7 @@ class UI_MainWindow(QWidget):
             for cur_class in self.coco_classes:
                 self.class_selection_menu.addItem(f'{cur_class}')
         elif self.mode == 'piv':
-            self.class_selection_menu.addItem(f'Averaged over all types of flows')
+            self.class_selection_menu.addItem(f'Averaged over all types')
             # add all classes as items
             for cur_type in self.flow_types:
                 self.class_selection_menu.addItem(f'{cur_type}')
@@ -1663,9 +1663,9 @@ class UI_MainWindow(QWidget):
             self.aggregate_ground_truths = torch.zeros((self.num_transformations, len(self.all_labels_paths), self.image_size, self.image_size, 2))
 
             if self.use_cache:
-                self.aggregate_outputs_1 = self.load_from_cache(f'{self.mode}_{self.data_mode}_{self.model_1_cache_name}_outputs')
-                self.aggregate_outputs_2 = self.load_from_cache(f'{self.mode}_{self.data_mode}_{self.model_2_cache_name}_outputs')
-                self.aggregate_ground_truths = self.load_from_cache(f'{self.mode}_{self.data_mode}_ground_truths')
+                self.aggregate_outputs_1 = torch.from_numpy(self.load_from_cache(f'{self.mode}_{self.data_mode}_{self.model_1_cache_name}_outputs'))
+                self.aggregate_outputs_2 = torch.from_numpy(self.load_from_cache(f'{self.mode}_{self.data_mode}_{self.model_2_cache_name}_outputs'))
+                self.aggregate_ground_truths = torch.from_numpy(self.load_from_cache(f'{self.mode}_{self.data_mode}_ground_truths'))
             else:
                 transformation_index = 0
                 # take a batch of images
@@ -2938,7 +2938,7 @@ class UI_MainWindow(QWidget):
 
 
     # draws a single D4 vis
-    def draw_individual_d4(self, data):
+    def draw_individual_d4(self, mode, data):
 
         # initialize label and its pixmap
         d4_label = QLabel(self)
@@ -2957,27 +2957,28 @@ class UI_MainWindow(QWidget):
         p = self.plot_size
         # points of all triangles
         all_triangle_points = [[QtCore.QPointF(0, p/2), QtCore.QPointF(p/4, p/4), QtCore.QPointF(p/2, p/2)], # original
-                                [QtCore.QPointF(p/2, p/2), QtCore.QPointF(p/2, 0), QtCore.QPointF(p*3/4, p*1/4)], # rotated 90
-                                [QtCore.QPointF(p/2, p/2), QtCore.QPointF(p, p/2), QtCore.QPointF(p*3/4, p*3/4)], # rotated 180
-                                [QtCore.QPointF(p/4, p*3/4), QtCore.QPointF(p/2, p/2), QtCore.QPointF(p/2, p)], # rotated 270
+                                [QtCore.QPointF(p/2, p/2), QtCore.QPointF(p/2, 0), QtCore.QPointF(p*3/4, p*1/4)], # rotated 90 clockwise
+                                [QtCore.QPointF(p/2, p/2), QtCore.QPointF(p, p/2), QtCore.QPointF(p*3/4, p*3/4)], # rotated 180 clockwise
+                                [QtCore.QPointF(p/4, p*3/4), QtCore.QPointF(p/2, p/2), QtCore.QPointF(p/2, p)], # rotated 270 clockwise
                                 [QtCore.QPointF(p/4, p/4), QtCore.QPointF(p/2, 0), QtCore.QPointF(p/2, p/2)], # original + flip
-                                [QtCore.QPointF(p/2, p/2), QtCore.QPointF(p*3/4, p/4), QtCore.QPointF(p, p/2)], # rotated 90 + flip
-                                [QtCore.QPointF(p/2, p/2), QtCore.QPointF(p/2, p), QtCore.QPointF(p*3/4, p*3/4)], # rotated 180 + flip
-                                [QtCore.QPointF(0, p/2), QtCore.QPointF(p/4, p*3/4), QtCore.QPointF(p/2, p/2)], # rotated 270 + flip
+                                [QtCore.QPointF(p/2, p/2), QtCore.QPointF(p*3/4, p/4), QtCore.QPointF(p, p/2)], # rotated 90 clockwise + flip
+                                [QtCore.QPointF(p/2, p/2), QtCore.QPointF(p/2, p), QtCore.QPointF(p*3/4, p*3/4)], # rotated 180 clockwise + flip
+                                [QtCore.QPointF(0, p/2), QtCore.QPointF(p/4, p*3/4), QtCore.QPointF(p/2, p/2)], # rotated 270 clockwise + flip
                                 [QtCore.QPointF(0, 0), QtCore.QPointF(p/4, p/4), QtCore.QPointF(0, p/2)], # time reverse
-                                [QtCore.QPointF(p/2, 0), QtCore.QPointF(p*3/4, p/4), QtCore.QPointF(p, 0)], # time reverse + rot 90
-                                [QtCore.QPointF(p, p/2), QtCore.QPointF(p*3/4, p*3/4), QtCore.QPointF(p, p)], # time reverse + rot 180
-                                [QtCore.QPointF(0, p), QtCore.QPointF(p/4, p*3/4), QtCore.QPointF(p/2, p)], # time reverse + rot 270
-                                [QtCore.QPointF(0, 0), QtCore.QPointF(p/4, p/4), QtCore.QPointF(p/2, 0)], # time reverse + flip
-                                [QtCore.QPointF(p, 0), QtCore.QPointF(p*3/4, p/4), QtCore.QPointF(p, p/2)], # time reverse + rot 90 + flip
-                                [QtCore.QPointF(p/2, p), QtCore.QPointF(p*3/4, p*3/4), QtCore.QPointF(p, p)], # time reverse + rot 180 + flip
-                                [QtCore.QPointF(0, p), QtCore.QPointF(0, p/2), QtCore.QPointF(p/4, p*3/4)]] # time reverse + rot 270 + flip
+                                [QtCore.QPointF(p/2, 0), QtCore.QPointF(p*3/4, p/4), QtCore.QPointF(p, 0)], # rot 90 clockwise + time reverse
+                                [QtCore.QPointF(p, p/2), QtCore.QPointF(p*3/4, p*3/4), QtCore.QPointF(p, p)], # rot 180 clockwise + time reverse
+                                [QtCore.QPointF(0, p), QtCore.QPointF(p/4, p*3/4), QtCore.QPointF(p/2, p)], # rot 270 clockwise + time reverse
+                                [QtCore.QPointF(0, 0), QtCore.QPointF(p/4, p/4), QtCore.QPointF(p/2, 0)], # flip + time reverse
+                                [QtCore.QPointF(p, 0), QtCore.QPointF(p*3/4, p/4), QtCore.QPointF(p, p/2)], # rot 90 clockwise + flip + time reverse
+                                [QtCore.QPointF(p/2, p), QtCore.QPointF(p*3/4, p*3/4), QtCore.QPointF(p, p)], # rot 180 clockwise + flip + time reverse
+                                [QtCore.QPointF(0, p), QtCore.QPointF(0, p/2), QtCore.QPointF(p/4, p*3/4)]] # rot 270 clockwise + flip + time reverse
 
         for i, cur_points in enumerate(all_triangle_points):
             self.draw_triangle(painter, cur_points, brush_color=QtGui.QColor(d4_lut[int(data[i]*100)][0], d4_lut[int(data[i]*100)][1], d4_lut[int(data[i]*100)][2]))
 
         # draw the red triangle selector
-        self.draw_triangle(painter, all_triangle_points[self.triangle_index], pen_color=QtGui.QColor('red'), boundary_width=3)
+        if mode == 'single':
+            self.draw_triangle(painter, all_triangle_points[self.triangle_index], pen_color=QtGui.QColor('red'), boundary_width=3)
 
         painter.end()
 
@@ -2991,8 +2992,8 @@ class UI_MainWindow(QWidget):
     def draw_d4_nero(self, mode):
 
         # NERO plot
-        self.d4_label_1 = self.draw_individual_d4(self.cur_plot_quantity_1)
-        self.d4_label_2 = self.draw_individual_d4(self.cur_plot_quantity_2)
+        self.d4_label_1 = self.draw_individual_d4(mode, self.cur_plot_quantity_1)
+        self.d4_label_2 = self.draw_individual_d4(mode, self.cur_plot_quantity_2)
 
         # single mode layout can be used for both single and aggresingle
         if mode == 'single':
@@ -3711,25 +3712,23 @@ class UI_MainWindow(QWidget):
         self.aggregate_loss_module = nero_utilities.RMSELoss()
 
         # averaged (depends on selected class) quantity
-        self.aggregate_avg_loss_1 = np.zeros((self.num_transformations, self.image_size, self.image_size))
-        self.aggregate_avg_loss_2 = np.zeros((self.num_transformations, self.image_size, self.image_size))
-
+        self.aggregate_avg_loss_1 = np.zeros((self.num_transformations))
+        self.aggregate_avg_loss_2 = np.zeros((self.num_transformations))
+        print(self.class_selection)
         for i in range(self.num_transformations):
             # sum of plot quantities of all or certain class
-            all_samples_loss_sum_1 = []
-            all_samples_loss_sum_2 = []
+            all_samples_loss_1 = []
+            all_samples_loss_2 = []
             for j in range(len(self.aggregate_outputs_1[i])):
                 # either all the classes or one specific class
-                if self.class_selection == 'all' or self.class_selection == self.all_individual_flow_types[i]:
-                    # compute the plot quantity
-                    all_samples_loss_sum_1.append(self.aggregate_loss_module(self.aggregate_ground_truths[i][j], self.aggregate_outputs_1[i][j]).numpy())
-                    all_samples_loss_sum_2.append(self.aggregate_loss_module(self.aggregate_ground_truths[i][j], self.aggregate_outputs_1[i][j]).numpy())
+                if self.class_selection == 'all' or self.class_selection == self.all_individual_flow_types[j]:
+                    # compute the loss of current sample
+                    all_samples_loss_1.append(self.aggregate_loss_module(self.aggregate_ground_truths[i][j], self.aggregate_outputs_1[i][j]).item())
+                    all_samples_loss_2.append(self.aggregate_loss_module(self.aggregate_ground_truths[i][j], self.aggregate_outputs_1[i][j]).item())
 
             # take the average result
-            all_samples_loss_sum_1 = np.array(all_samples_loss_sum_1)
-            all_samples_loss_sum_2 = np.array(all_samples_loss_sum_2)
-            self.aggregate_avg_loss_1[i] = np.mean(all_samples_loss_sum_1)
-            self.aggregate_avg_loss_2[i] = np.mean(all_samples_loss_sum_2)
+            self.aggregate_avg_loss_1[i] = np.mean(all_samples_loss_1)
+            self.aggregate_avg_loss_2[i] = np.mean(all_samples_loss_2)
 
         # get the max and min of all the loss and normalize to between 0 and 1
         self.error_min = min(np.min(self.aggregate_avg_loss_1), np.min(self.aggregate_avg_loss_2))
@@ -3737,8 +3736,8 @@ class UI_MainWindow(QWidget):
         self.cur_plot_quantity_1 = 1 - nero_utilities.lerp(self.aggregate_avg_loss_1, self.error_min, self.error_max, 0, 1)
         self.cur_plot_quantity_2 = 1 -  nero_utilities.lerp(self.aggregate_avg_loss_2, self.error_min, self.error_max, 0, 1)
 
-        # draw the heatmap
-        self.draw_heatmaps(mode='aggregate')
+        # draw the aggregate NERO plot
+        self.draw_d4_nero(mode='aggregate')
 
 
     # display PIV single results
