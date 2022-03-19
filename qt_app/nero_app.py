@@ -2051,66 +2051,70 @@ class UI_MainWindow(QWidget):
             self.display_coco_single_result()
 
         elif self.mode == 'piv':
-            # button clicked counter
-            self.cur_rotation_angle = 0
-            self.is_flipped = 0
-            self.is_time_reversed = 0
 
-            # modify the gif as user rotates, flips or time-reverses
+            # flags on controlling current image tensor
+            self.rotate_ccw = False
+            self.rotate_cw = False
+            self.vertical_flip = False
+            self.horizontal_flip = False
+            self.time_reverse = False
+
+            # modify the image tensor and the associated GIF as user rotates, flips or time-reverses
             def modify_display_gif():
-                display_image_1_pt = self.loaded_image_1_pt.clone()
-                display_image_2_pt = self.loaded_image_2_pt.clone()
 
-                if self.cur_rotation_angle != 0:
-                    display_image_1_pt = torch.rot90(display_image_1_pt, self.cur_rotation_angle//90)
-                    display_image_2_pt = torch.rot90(display_image_2_pt, self.cur_rotation_angle//90)
+                # torch rot treats ccw as positive
+                if self.rotate_ccw:
+                    self.cur_image_1_pt = torch.rot90(self.cur_image_1_pt, 1)
+                    self.cur_image_2_pt = torch.rot90(self.cur_image_2_pt, 1)
+                if self.rotate_cw:
+                    self.cur_image_1_pt = torch.rot90(self.cur_image_1_pt, -1)
+                    self.cur_image_2_pt = torch.rot90(self.cur_image_2_pt, -1)
 
-                if self.is_flipped:
-                    display_image_1_pt = torch.flip(display_image_1_pt, [0])
-                    display_image_2_pt = torch.flip(display_image_2_pt, [0])
+                # vertical flip is by x axis
+                if self.vertical_flip:
+                    self.cur_image_1_pt = torch.flip(self.cur_image_1_pt, [0])
+                    self.cur_image_2_pt = torch.flip(self.cur_image_2_pt, [0])
 
-                if self.is_time_reversed:
-                    temp = display_image_1_pt.clone()
-                    display_image_1_pt = display_image_2_pt.clone()
-                    display_image_2_pt = temp
+                # horizontal flip is by y axis
+                if self.horizontal_flip:
+                    self.cur_image_1_pt = torch.flip(self.cur_image_1_pt, [1])
+                    self.cur_image_2_pt = torch.flip(self.cur_image_2_pt, [1])
+
+                # reverse the order in pair
+                if self.time_reverse:
+                    self.cur_image_2_pt, self.cur_image_1_pt = self.cur_image_1_pt, self.cur_image_2_pt
 
                 # create new GIF
-                display_image_1_pil = Image.fromarray(display_image_1_pt.numpy(), 'RGB')
-                display_image_2_pil = Image.fromarray(display_image_2_pt.numpy(), 'RGB')
+                display_image_1_pil = Image.fromarray(self.cur_image_1_pt.numpy(), 'RGB')
+                display_image_2_pil = Image.fromarray(self.cur_image_2_pt.numpy(), 'RGB')
                 other_images_pil = [display_image_1_pil, display_image_2_pil, display_image_2_pil, self.blank_image_pil]
                 self.gif_path = os.path.join(self.cache_dir, self.loaded_image_1_name.split('.')[0] + '.gif')
                 display_image_1_pil.save(fp=self.gif_path,
                                             format='GIF',
                                             append_images=other_images_pil,
                                             save_all=True,
-                                            duration=600,
+                                            duration=400,
                                             loop=0)
 
                 # compute the triangle index by comparing current matrix and the D4 orbit matrix
-                for i, cur_image_1_pt in enumerate(self.all_images_1_pt):
-                    print(i, torch.eq(display_image_1_pt, cur_image_1_pt))
-                    if torch.eq(display_image_1_pt, cur_image_1_pt).all():
+                for i, d4_image_1_pt in enumerate(self.all_images_1_pt):
+                    if np.array_equal(self.cur_image_1_pt.numpy(), d4_image_1_pt.numpy()):
                         self.triangle_index = i
                         print('matched', self.triangle_index)
                         break
-                exit()
-                print(self.triangle_index)
 
 
             @QtCore.Slot()
             def rotate_90_ccw():
-                self.cur_rotation_angle = (self.cur_rotation_angle + 90) % 360
-                print(f'Cur rotation angle: {self.cur_rotation_angle}')
+                self.rotate_ccw = True
+                print(f'Rotate 90 degrees counter clockwise')
+
                 # modify the image, display and current triangle index
                 modify_display_gif()
+
+                # display the image
                 self.display_image()
-                # showing indication on the individual NERO plot
-                # if -self.cur_rotation_angle//90 < 0:
-                #     rot_index = 4 - self.cur_rotation_angle//90
-                # else:
-                #     rot_index = -self.cur_rotation_angle//90
-                # self.triangle_index = self.is_time_reversed*8 + self.is_flipped*4 + rot_index
-                # print(f'triangle index {self.triangle_index}, nero number {self.cur_plot_quantity_1[self.triangle_index]}')
+
                 # redraw the nero plot with new triangle display
                 self.draw_d4_nero('single')
                 # update detailed plot of PIV
@@ -2118,18 +2122,15 @@ class UI_MainWindow(QWidget):
 
             @QtCore.Slot()
             def rotate_90_cw():
-                self.cur_rotation_angle = (self.cur_rotation_angle - 90) % 360
+                self.rotate_cw = True
                 print(f'Cur rotation angle: {self.cur_rotation_angle}')
-                # modify the image and display
+
+                # modify the image, display and current triangle index
                 modify_display_gif()
+
+                # display the image
                 self.display_image()
-                # showing indication on the individual NERO plot
-                # if -self.cur_rotation_angle//90 < 0:
-                #     rot_index = 4 - self.cur_rotation_angle//90
-                # else:
-                #     rot_index = -self.cur_rotation_angle//90
-                # self.triangle_index = self.is_time_reversed*8 + self.is_flipped*4 + rot_index
-                # print(f'triangle index {self.triangle_index}, nero number {self.cur_plot_quantity_1[self.triangle_index]}')
+
                 # redraw the nero plot with new triangle display
                 self.draw_d4_nero('single')
                 # update detailed plot of PIV
@@ -2137,18 +2138,13 @@ class UI_MainWindow(QWidget):
 
             @QtCore.Slot()
             def vertical_flip():
-                # self.is_flipped = not self.is_flipped
                 print(f'Vertical flipped')
-                # modify the image and display
+                # modify the image, display and current triangle index
                 modify_display_gif()
+
+                # display the image
                 self.display_image()
-                # showing indication on the individual NERO plot
-                # if -self.cur_rotation_angle//90 < 0:
-                #     rot_index = 4 - self.cur_rotation_angle//90
-                # else:
-                #     rot_index = -self.cur_rotation_angle//90
-                # self.triangle_index = self.is_time_reversed*8 + self.is_flipped*4 + rot_index
-                # print(f'triangle index {self.triangle_index}, nero number {self.cur_plot_quantity_1[self.triangle_index]}')
+
                 # redraw the nero plot with new triangle display
                 self.draw_d4_nero('single')
                 # update detailed plot of PIV
@@ -2158,16 +2154,12 @@ class UI_MainWindow(QWidget):
             def horizontal_flip():
                 # self.is_flipped = not self.is_flipped
                 print(f'Horizontal flipped')
-                # modify the image and display
+                # modify the image, display and current triangle index
                 modify_display_gif()
+
+                # display the image
                 self.display_image()
-                # showing indication on the individual NERO plot
-                # if -self.cur_rotation_angle//90 < 0:
-                #     rot_index = 4 - self.cur_rotation_angle//90
-                # else:
-                #     rot_index = -self.cur_rotation_angle//90
-                # self.triangle_index = self.is_time_reversed*8 + self.is_flipped*4 + rot_index
-                # print(f'triangle index {self.triangle_index}, nero number {self.cur_plot_quantity_1[self.triangle_index]}')
+
                 # redraw the nero plot with new triangle display
                 self.draw_d4_nero('single')
                 # update detailed plot of PIV
@@ -2177,16 +2169,12 @@ class UI_MainWindow(QWidget):
             def time_reverse():
                 self.is_time_reversed = not self.is_time_reversed
                 print(f'Image time-reversed: {self.is_time_reversed}')
-                # modify the image and display
+                # modify the image, display and current triangle index
                 modify_display_gif()
+
+                # display the image
                 self.display_image()
-                # showing indication on the individual NERO plot
-                # if -self.cur_rotation_angle//90 < 0:
-                #     rot_index = 4 - self.cur_rotation_angle//90
-                # else:
-                #     rot_index = -self.cur_rotation_angle//90
-                # self.triangle_index = self.is_time_reversed*8 + self.is_flipped*4 + rot_index
-                # print(f'triangle index {self.triangle_index}, nero number {self.cur_plot_quantity_1[self.triangle_index]}')
+
                 # redraw the nero plot with new triangle display
                 self.draw_d4_nero('single')
                 # update detailed plot of PIV
@@ -2262,7 +2250,6 @@ class UI_MainWindow(QWidget):
                                     self.cur_image_1_pt, \
                                     self.cur_image_2_pt, \
                                     self.cur_image_label_pt = nero_transform.rotate_piv_data(self.loaded_image_1_pt, self.loaded_image_2_pt, self.loaded_image_label_pt, cur_rot_degree)
-
                                 # flip
                                 elif is_flipped:
                                     self.cur_image_1_pt, \
@@ -2285,7 +2272,7 @@ class UI_MainWindow(QWidget):
                                 self.all_images_1_pt[transformation_index] = self.cur_image_1_pt
                                 self.all_images_2_pt[transformation_index] = self.cur_image_2_pt
 
-                                transformation_index += 0
+                                transformation_index += 1
 
                 # all_quantities has shape (16, 256, 256, 2)
                 if self.use_cache:
