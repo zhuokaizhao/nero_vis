@@ -2066,23 +2066,29 @@ class UI_MainWindow(QWidget):
                 if self.rotate_ccw:
                     self.cur_image_1_pt = torch.rot90(self.cur_image_1_pt, 1)
                     self.cur_image_2_pt = torch.rot90(self.cur_image_2_pt, 1)
-                if self.rotate_cw:
+                    self.rotate_ccw = False
+
+                elif self.rotate_cw:
                     self.cur_image_1_pt = torch.rot90(self.cur_image_1_pt, -1)
                     self.cur_image_2_pt = torch.rot90(self.cur_image_2_pt, -1)
+                    self.rotate_cw = False
 
                 # vertical flip is by x axis
-                if self.vertical_flip:
+                elif self.vertical_flip:
                     self.cur_image_1_pt = torch.flip(self.cur_image_1_pt, [0])
                     self.cur_image_2_pt = torch.flip(self.cur_image_2_pt, [0])
+                    self.vertical_flip = False
 
                 # horizontal flip is by y axis
-                if self.horizontal_flip:
+                elif self.horizontal_flip:
                     self.cur_image_1_pt = torch.flip(self.cur_image_1_pt, [1])
                     self.cur_image_2_pt = torch.flip(self.cur_image_2_pt, [1])
+                    self.horizontal_flip = False
 
                 # reverse the order in pair
-                if self.time_reverse:
+                elif self.time_reverse:
                     self.cur_image_2_pt, self.cur_image_1_pt = self.cur_image_1_pt, self.cur_image_2_pt
+                    self.time_reverse = False
 
                 # create new GIF
                 display_image_1_pil = Image.fromarray(self.cur_image_1_pt.numpy(), 'RGB')
@@ -2097,8 +2103,12 @@ class UI_MainWindow(QWidget):
                                             loop=0)
 
                 # compute the triangle index by comparing current matrix and the D4 orbit matrix
-                for i, d4_image_1_pt in enumerate(self.all_images_1_pt):
-                    if np.array_equal(self.cur_image_1_pt.numpy(), d4_image_1_pt.numpy()):
+                for i in range(len(self.all_d4_images_1_pt)):
+                    d4_image_1_pt = self.all_d4_images_1_pt[i]
+                    d4_image_2_pt = self.all_d4_images_2_pt[i]
+                    if (np.array_equal(self.cur_image_1_pt.numpy(), d4_image_1_pt.numpy())
+                        and np.array_equal(self.cur_image_2_pt.numpy(), d4_image_2_pt.numpy())):
+
                         self.triangle_index = i
                         print('matched', self.triangle_index)
                         break
@@ -2123,7 +2133,7 @@ class UI_MainWindow(QWidget):
             @QtCore.Slot()
             def rotate_90_cw():
                 self.rotate_cw = True
-                print(f'Cur rotation angle: {self.cur_rotation_angle}')
+                print(f'Rotate 90 degrees clockwise')
 
                 # modify the image, display and current triangle index
                 modify_display_gif()
@@ -2138,7 +2148,8 @@ class UI_MainWindow(QWidget):
 
             @QtCore.Slot()
             def vertical_flip():
-                print(f'Vertical flipped')
+                self.vertical_flip = True
+                print(f'Flip vertically')
                 # modify the image, display and current triangle index
                 modify_display_gif()
 
@@ -2152,8 +2163,8 @@ class UI_MainWindow(QWidget):
 
             @QtCore.Slot()
             def horizontal_flip():
-                # self.is_flipped = not self.is_flipped
-                print(f'Horizontal flipped')
+                self.horizontal_flip = True
+                print(f'Flip horizontally')
                 # modify the image, display and current triangle index
                 modify_display_gif()
 
@@ -2167,8 +2178,8 @@ class UI_MainWindow(QWidget):
 
             @QtCore.Slot()
             def time_reverse():
-                self.is_time_reversed = not self.is_time_reversed
-                print(f'Image time-reversed: {self.is_time_reversed}')
+                self.time_reverse = True
+                print(f'Time reverse')
                 # modify the image, display and current triangle index
                 modify_display_gif()
 
@@ -2181,52 +2192,52 @@ class UI_MainWindow(QWidget):
                 self.draw_piv_details()
 
 
-            # add buttons for controlling the GIF
-            self.gif_control_layout = QtWidgets.QHBoxLayout()
-            self.gif_control_layout.setAlignment(QtGui.Qt.AlignTop)
-            self.gif_control_layout.setContentsMargins(50, 0, 50, 50)
-            if self.data_mode == 'single':
+            # add buttons for controlling the single GIF
+            if self.image_existed:
+                self.gif_control_layout = QtWidgets.QHBoxLayout()
+                self.gif_control_layout.setAlignment(QtGui.Qt.AlignTop)
+                self.gif_control_layout.setContentsMargins(50, 0, 50, 50)
                 self.single_result_layout.addLayout(self.gif_control_layout, 2, 0)
 
-            # rotate 90 degrees counter-closewise
-            self.rotate_90_ccw_button = QtWidgets.QPushButton(self)
-            self.rotate_90_ccw_button.setFixedSize(QtCore.QSize(50, 50))
-            self.rotate_90_ccw_button.setIcon(QtGui.QIcon('symbols/rotate_90_ccw.png'))
-            self.rotate_90_ccw_button.setIconSize(QtCore.QSize(40, 40))
-            self.rotate_90_ccw_button.clicked.connect(rotate_90_ccw)
-            self.gif_control_layout.addWidget(self.rotate_90_ccw_button)
+                # rotate 90 degrees counter-closewise
+                self.rotate_90_ccw_button = QtWidgets.QPushButton(self)
+                self.rotate_90_ccw_button.setFixedSize(QtCore.QSize(50, 50))
+                self.rotate_90_ccw_button.setIcon(QtGui.QIcon('symbols/rotate_90_ccw.png'))
+                self.rotate_90_ccw_button.setIconSize(QtCore.QSize(40, 40))
+                self.rotate_90_ccw_button.clicked.connect(rotate_90_ccw)
+                self.gif_control_layout.addWidget(self.rotate_90_ccw_button)
 
-            # rotate 90 degrees closewise
-            self.rotate_90_cw_button = QtWidgets.QPushButton(self)
-            self.rotate_90_cw_button.setFixedSize(QtCore.QSize(50, 50))
-            self.rotate_90_cw_button.setIcon(QtGui.QIcon('symbols/rotate_90_cw.png'))
-            self.rotate_90_cw_button.setIconSize(QtCore.QSize(40, 40))
-            self.rotate_90_cw_button.clicked.connect(rotate_90_cw)
-            self.gif_control_layout.addWidget(self.rotate_90_cw_button)
+                # rotate 90 degrees closewise
+                self.rotate_90_cw_button = QtWidgets.QPushButton(self)
+                self.rotate_90_cw_button.setFixedSize(QtCore.QSize(50, 50))
+                self.rotate_90_cw_button.setIcon(QtGui.QIcon('symbols/rotate_90_cw.png'))
+                self.rotate_90_cw_button.setIconSize(QtCore.QSize(40, 40))
+                self.rotate_90_cw_button.clicked.connect(rotate_90_cw)
+                self.gif_control_layout.addWidget(self.rotate_90_cw_button)
 
-            # flip the iamge vertically (by x axis)
-            self.vertical_flip_button = QtWidgets.QPushButton(self)
-            self.vertical_flip_button.setFixedSize(QtCore.QSize(50, 50))
-            self.vertical_flip_button.setIcon(QtGui.QIcon('symbols/vertical_flip.png'))
-            self.vertical_flip_button.setIconSize(QtCore.QSize(40, 40))
-            self.vertical_flip_button.clicked.connect(vertical_flip)
-            self.gif_control_layout.addWidget(self.vertical_flip_button)
+                # flip the iamge vertically (by x axis)
+                self.vertical_flip_button = QtWidgets.QPushButton(self)
+                self.vertical_flip_button.setFixedSize(QtCore.QSize(50, 50))
+                self.vertical_flip_button.setIcon(QtGui.QIcon('symbols/vertical_flip.png'))
+                self.vertical_flip_button.setIconSize(QtCore.QSize(40, 40))
+                self.vertical_flip_button.clicked.connect(vertical_flip)
+                self.gif_control_layout.addWidget(self.vertical_flip_button)
 
-            # flip the iamge horizontally (by y axis)
-            self.horizontal_flip_button = QtWidgets.QPushButton(self)
-            self.horizontal_flip_button.setFixedSize(QtCore.QSize(50, 50))
-            self.horizontal_flip_button.setIcon(QtGui.QIcon('symbols/horizontal_flip.png'))
-            self.horizontal_flip_button.setIconSize(QtCore.QSize(40, 40))
-            self.horizontal_flip_button.clicked.connect(horizontal_flip)
-            self.gif_control_layout.addWidget(self.horizontal_flip_button)
+                # flip the iamge horizontally (by y axis)
+                self.horizontal_flip_button = QtWidgets.QPushButton(self)
+                self.horizontal_flip_button.setFixedSize(QtCore.QSize(50, 50))
+                self.horizontal_flip_button.setIcon(QtGui.QIcon('symbols/horizontal_flip.png'))
+                self.horizontal_flip_button.setIconSize(QtCore.QSize(40, 40))
+                self.horizontal_flip_button.clicked.connect(horizontal_flip)
+                self.gif_control_layout.addWidget(self.horizontal_flip_button)
 
-            # time reverse
-            self.time_reverse_button = QtWidgets.QPushButton(self)
-            self.time_reverse_button.setFixedSize(QtCore.QSize(50, 50))
-            self.time_reverse_button.setIcon(QtGui.QIcon('symbols/time_reverse.png'))
-            self.time_reverse_button.setIconSize(QtCore.QSize(40, 40))
-            self.time_reverse_button.clicked.connect(time_reverse)
-            self.gif_control_layout.addWidget(self.time_reverse_button)
+                # time reverse
+                self.time_reverse_button = QtWidgets.QPushButton(self)
+                self.time_reverse_button.setFixedSize(QtCore.QSize(50, 50))
+                self.time_reverse_button.setIcon(QtGui.QIcon('symbols/time_reverse.png'))
+                self.time_reverse_button.setIconSize(QtCore.QSize(40, 40))
+                self.time_reverse_button.clicked.connect(time_reverse)
+                self.gif_control_layout.addWidget(self.time_reverse_button)
 
             # Dihedral group4 transformations
             all_rotation_degrees = [0, 90, 180, 270]
@@ -2236,116 +2247,85 @@ class UI_MainWindow(QWidget):
             self.num_transformations = len(all_rotation_degrees) * len(all_flip) * len(all_time_reversals)
 
             if self.data_mode == 'single':
-                # keep track for all transformation's output
-                self.all_images_1_pt = torch.zeros((self.num_transformations, self.image_size, self.image_size, 3))
-                self.all_images_2_pt = torch.zeros((self.num_transformations, self.image_size, self.image_size, 3))
-                transformation_index = 0
+                # keep track for all D4 transformation
+                self.all_d4_images_1_pt = torch.zeros((self.num_transformations, self.image_size, self.image_size, 3))
+                self.all_d4_images_2_pt = torch.zeros((self.num_transformations, self.image_size, self.image_size, 3))
+                self.all_ground_truths = torch.zeros((self.num_transformations, self.image_size, self.image_size, 2))
+
+                d4_index = 0
                 for is_time_reversed in all_time_reversals:
                         for is_flipped in all_flip:
                             for cur_rot_degree in all_rotation_degrees:
-                                print(f'Transformation {transformation_index}')
+
                                 # modify the input image tensor alone with its ground truth
                                 # rotation
                                 if cur_rot_degree:
-                                    self.cur_image_1_pt, \
-                                    self.cur_image_2_pt, \
-                                    self.cur_image_label_pt = nero_transform.rotate_piv_data(self.loaded_image_1_pt, self.loaded_image_2_pt, self.loaded_image_label_pt, cur_rot_degree)
+                                    self.all_d4_images_1_pt[d4_index], \
+                                    self.all_d4_images_2_pt[d4_index], \
+                                    self.all_ground_truths[d4_index] = nero_transform.rotate_piv_data(self.loaded_image_1_pt,
+                                                                                                        self.loaded_image_2_pt,
+                                                                                                        self.loaded_image_label_pt,
+                                                                                                        cur_rot_degree)
                                 # flip
                                 elif is_flipped:
-                                    self.cur_image_1_pt, \
-                                    self.cur_image_2_pt, \
-                                    self.cur_image_label_pt = nero_transform.flip_piv_data(self.loaded_image_1_pt, self.loaded_image_2_pt, self.loaded_image_label_pt)
+                                    self.all_d4_images_1_pt[d4_index], \
+                                    self.all_d4_images_2_pt[d4_index], \
+                                    self.all_ground_truths[d4_index] = nero_transform.flip_piv_data(self.loaded_image_1_pt,
+                                                                                                    self.loaded_image_2_pt,
+                                                                                                    self.loaded_image_label_pt)
 
                                 # time reverse
                                 elif is_time_reversed:
-                                    self.cur_image_1_pt, \
-                                    self.cur_image_2_pt, \
-                                    self.cur_image_label_pt = nero_transform.reverse_piv_data(self.loaded_image_1_pt, self.loaded_image_2_pt, self.loaded_image_label_pt)
+                                    self.all_d4_images_1_pt[d4_index], \
+                                    self.all_d4_images_2_pt[d4_index], \
+                                    self.all_ground_truths[d4_index] = nero_transform.reverse_piv_data(self.loaded_image_1_pt,
+                                                                                                        self.loaded_image_2_pt,
+                                                                                                        self.loaded_image_label_pt)
 
                                 # no transformation at all
                                 else:
-                                    self.cur_image_1_pt = self.loaded_image_1_pt
-                                    self.cur_image_2_pt = self.loaded_image_2_pt
-                                    self.cur_image_label_pt = self.loaded_image_label_pt
+                                    self.all_d4_images_1_pt[d4_index] = self.loaded_image_1_pt
+                                    self.all_d4_images_2_pt[d4_index] = self.loaded_image_2_pt
+                                    self.all_ground_truths[d4_index] = self.loaded_image_label_pt
 
-                                # keep track of the different tranformed image and ground truths
-                                self.all_images_1_pt[transformation_index] = self.cur_image_1_pt
-                                self.all_images_2_pt[transformation_index] = self.cur_image_2_pt
-
-                                transformation_index += 1
+                                # update index
+                                d4_index += 1
 
                 # all_quantities has shape (16, 256, 256, 2)
                 if self.use_cache:
                     self.all_quantities_1 = torch.from_numpy(self.load_from_cache(name=f'{self.mode}_{self.data_mode}_{self.model_1_cache_name}_{self.image_index}'))
                     self.all_quantities_2 = torch.from_numpy(self.load_from_cache(name=f'{self.mode}_{self.data_mode}_{self.model_2_cache_name}_{self.image_index}'))
-                    self.all_ground_truths = torch.from_numpy(self.load_from_cache(name=f'{self.mode}_{self.data_mode}_{self.image_index}_ground_truths'))
                 else:
                     # each model output are dense 2D velocity field of the input image
                     self.all_quantities_1 = torch.zeros((self.num_transformations, self.image_size, self.image_size, 2))
                     self.all_quantities_2 = torch.zeros((self.num_transformations, self.image_size, self.image_size, 2))
-                    self.all_ground_truths = torch.zeros((self.num_transformations, self.image_size, self.image_size, 2))
 
-                    # keep track for all transformation's output
-                    self.all_images_1_pt = torch.zeros((self.num_transformations, self.image_size, self.image_size, 3))
-                    self.all_images_2_pt = torch.zeros((self.num_transformations, self.image_size, self.image_size, 3))
-                    transformation_index = 0
+                    # compute the result
+                    for i in range(self.num_transformations):
+                        image_1_pt = self.all_d4_images_1_pt[i]
+                        image_2_pt = self.all_d4_images_2_pt[i]
 
-                    for is_time_reversed in all_time_reversals:
-                        for is_flipped in all_flip:
-                            for cur_rot_degree in all_rotation_degrees:
-                                print(f'Transformation {transformation_index}')
-                                # modify the input image tensor alone with its ground truth
-                                # rotation
-                                if cur_rot_degree:
-                                    self.cur_image_1_pt, \
-                                    self.cur_image_2_pt, \
-                                    self.cur_image_label_pt = nero_transform.rotate_piv_data(self.loaded_image_1_pt, self.loaded_image_2_pt, self.loaded_image_label_pt, cur_rot_degree)
+                        print(f'Compute model outputs for D4 transformation {i}')
 
-                                # flip
-                                elif is_flipped:
-                                    self.cur_image_1_pt, \
-                                    self.cur_image_2_pt, \
-                                    self.cur_image_label_pt = nero_transform.flip_piv_data(self.loaded_image_1_pt, self.loaded_image_2_pt, self.loaded_image_label_pt)
+                        # run the model
+                        quantity_1 = nero_run_model.run_piv_once('single',
+                                                                    self.model_1_name,
+                                                                    self.model_1,
+                                                                    image_1_pt,
+                                                                    image_2_pt)
 
-                                # time reverse
-                                elif is_time_reversed:
-                                    self.cur_image_1_pt, \
-                                    self.cur_image_2_pt, \
-                                    self.cur_image_label_pt = nero_transform.reverse_piv_data(self.loaded_image_1_pt, self.loaded_image_2_pt, self.loaded_image_label_pt)
+                        quantity_2 = nero_run_model.run_piv_once('single',
+                                                                    self.model_2_name,
+                                                                    self.model_2,
+                                                                    image_1_pt,
+                                                                    image_2_pt)
 
-                                # no transformation at all
-                                else:
-                                    self.cur_image_1_pt = self.loaded_image_1_pt
-                                    self.cur_image_2_pt = self.loaded_image_2_pt
-                                    self.cur_image_label_pt = self.loaded_image_label_pt
-
-                                # keep track of the different tranformed image and ground truths
-                                self.all_images_1_pt[transformation_index] = self.cur_image_1_pt
-                                self.all_images_2_pt[transformation_index] = self.cur_image_2_pt
-                                self.all_ground_truths[transformation_index] = self.cur_image_label_pt
-
-                                # run the model
-                                quantity_1 = nero_run_model.run_piv_once('single',
-                                                                            self.model_1_name,
-                                                                            self.model_1,
-                                                                            self.cur_image_1_pt,
-                                                                            self.cur_image_2_pt)
-
-                                quantity_2 = nero_run_model.run_piv_once('single',
-                                                                            self.model_2_name,
-                                                                            self.model_2,
-                                                                            self.cur_image_1_pt,
-                                                                            self.cur_image_2_pt)
-
-                                self.all_quantities_1[transformation_index] = quantity_1 / self.image_size
-                                self.all_quantities_2[transformation_index] = quantity_2 / self.image_size
-
-                                transformation_index += 1
+                        self.all_quantities_1[i] = quantity_1 / self.image_size
+                        self.all_quantities_2[i] = quantity_2 / self.image_size
 
                     # save to cache
                     self.save_to_cache(name=f'{self.mode}_{self.data_mode}_{self.model_1_cache_name}_{self.image_index}', content=self.all_quantities_1.numpy())
                     self.save_to_cache(name=f'{self.mode}_{self.data_mode}_{self.model_2_cache_name}_{self.image_index}', content=self.all_quantities_2.numpy())
-                    self.save_to_cache(name=f'{self.mode}_{self.data_mode}_{self.image_index}_ground_truths', content=self.all_ground_truths.numpy())
 
                 # display the piv single case result
                 self.triangle_index = 0
