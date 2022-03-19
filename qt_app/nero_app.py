@@ -3734,8 +3734,8 @@ class UI_MainWindow(QWidget):
         # get the max and min of all the loss and normalize to between 0 and 1
         self.error_min = min(np.min(self.aggregate_avg_loss_1), np.min(self.aggregate_avg_loss_2))
         self.error_max = max(np.max(self.aggregate_avg_loss_1), np.max(self.aggregate_avg_loss_2))
-        self.cur_plot_quantity_1 = 1 - nero_utilities.lerp(aggregate_avg_loss_1, self.error_min, self.error_max, 0, 1)
-        self.cur_plot_quantity_2 = 1 -  nero_utilities.lerp(aggregate_avg_loss_2, self.error_min, self.error_max, 0, 1)
+        self.cur_plot_quantity_1 = 1 - nero_utilities.lerp(self.aggregate_avg_loss_1, self.error_min, self.error_max, 0, 1)
+        self.cur_plot_quantity_2 = 1 -  nero_utilities.lerp(self.aggregate_avg_loss_2, self.error_min, self.error_max, 0, 1)
 
         # draw the heatmap
         self.draw_heatmaps(mode='aggregate')
