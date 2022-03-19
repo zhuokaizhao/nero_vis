@@ -532,7 +532,7 @@ class UI_MainWindow(QWidget):
                 self.all_images_2_paths = [cur_path.replace('img1', 'img2') for cur_path in self.all_images_1_paths]
                 self.all_labels_paths = [cur_path.replace('img1', 'flow').replace('tif', 'flo') for cur_path in self.all_images_1_paths]
                 # flow type of each image pair
-                self.all_individual_flow_types = [cur_path.split('/')[-1].split('_')[0] for cur_path in self.all_images_1_paths]
+                self.loaded_images_labels = [cur_path.split('/')[-1].split('_')[0] for cur_path in self.all_images_1_paths]
 
             # check the data to be ready
             self.data_existed = True
@@ -1348,6 +1348,8 @@ class UI_MainWindow(QWidget):
             num_transformations = len(self.all_aggregate_angles)
         elif self.mode == 'object_detection':
             num_transformations = len(self.x_translation) * len(self.y_translation)
+        elif self.mode == 'piv':
+            num_transformations = 16
 
         all_high_dim_points_1 = np.zeros((len(cur_class_indices), num_transformations))
         all_high_dim_points_2 = np.zeros((len(cur_class_indices), num_transformations))
@@ -1396,6 +1398,11 @@ class UI_MainWindow(QWidget):
 
                     all_high_dim_points_1[i, j] = cur_value_1
                     all_high_dim_points_2[i, j] = cur_value_2
+
+                elif self.mode == 'piv':
+
+                    all_high_dim_points_1[i, j] = self.cur_plot_quantity_1[j, index]
+                    all_high_dim_points_2[i, j] = self.cur_plot_quantity_2[j, index]
 
         # get the average intensity of each sample
         all_intensity_1 = np.mean(all_high_dim_points_1, axis=1)
@@ -3646,22 +3653,45 @@ class UI_MainWindow(QWidget):
         # helper function on compute, normalize the loss and display quantity
         def compute_nero_plot_quantity():
             # compute loss using torch loss module
-            if self.aggregate_plot_quantity_name == 'RMSE':
+            if self.quantity_name == 'RMSE':
                 self.aggregate_loss_module = nero_utilities.RMSELoss()
-            elif self.aggregate_plot_quantity_name == 'MSE':
+            elif self.quantity_name == 'MSE':
                 self.aggregate_loss_module = torch.nn.MSELoss()
-            elif self.aggregate_plot_quantity_name == 'MAE':
+            elif self.quantity_name == 'MAE':
                 self.aggregate_loss_module = torch.nn.L1Loss()
-            elif self.aggregate_plot_quantity_name == 'AEE':
+            elif self.quantity_name == 'AEE':
                 self.aggregate_loss_module = nero_utilities.AEELoss()
 
+            self.aggregate_avg_loss_1 = np.zeros((self.num_transformations))
+            self.aggregate_avg_loss_2 = np.zeros((self.num_transformations))
+            self.error_min = 1000000
+            self.error_max = 0
             for i in range(self.num_transformations):
-                self.aggregate_plot_quantity_1[i] = self.aggregate_loss_module(self.all_ground_truths[i], self.all_quantities_1[i]).numpy()
-                self.aggregate_plot_quantity_2[i] = self.aggregate_loss_module(self.all_ground_truths[i], self.all_quantities_2[i]).numpy()
+                # sum of plot quantities of all or certain class
+                all_samples_loss_1 = []
+                all_samples_loss_2 = []
+                for j in range(len(self.aggregate_outputs_1[i])):
+                    # either all the classes or one specific class
+                    if self.class_selection == 'all' or self.class_selection == self.loaded_images_labels[j]:
+                        # compute the loss of current sample
+                        cur_sample_loss_1 = self.aggregate_loss_module(self.aggregate_ground_truths[i][j], self.aggregate_outputs_1[i][j]).item()
+                        cur_sample_loss_2 = self.aggregate_loss_module(self.aggregate_ground_truths[i][j], self.aggregate_outputs_2[i][j]).item()
+                        # print(cur_sample_loss_1, cur_sample_loss_2)
+                        all_samples_loss_1.append(cur_sample_loss_1)
+                        all_samples_loss_2.append(cur_sample_loss_2)
+                # print(cur_sample_loss_1)
+                # print(cur_sample_loss_2)
+                # exit()
+                self.error_min = min(self.error_min, np.min(all_samples_loss_1), np.min(all_samples_loss_2))
+                self.error_max = max(self.error_min, np.max(all_samples_loss_1), np.max(all_samples_loss_2))
 
-            # normalize these errors between 0 and 1
-            self.aggregate_plot_quantity_1 = 1- nero_utilities.lerp(self.aggregate_plot_quantity_1, self.error_min, self.error_max, 0, 1)
-            self.aggregate_plot_quantity_2 = 1 - nero_utilities.lerp(self.aggregate_plot_quantity_2, self.error_min, self.error_max, 0, 1)
+                # take the average result
+                self.aggregate_avg_loss_1[i] = np.mean(all_samples_loss_1)
+                self.aggregate_avg_loss_2[i] = np.mean(all_samples_loss_2)
+            # print(self.error_min, self.error_max)
+            # normalize the loss to be between 0 and 1 and flip it
+            self.cur_plot_quantity_1 = 1 - nero_utilities.lerp(self.aggregate_avg_loss_1, self.error_min, self.error_max, 0, 1)
+            self.cur_plot_quantity_2 = 1 - nero_utilities.lerp(self.aggregate_avg_loss_2, self.error_min, self.error_max, 0, 1)
 
 
         @QtCore.Slot()
@@ -3708,40 +3738,11 @@ class UI_MainWindow(QWidget):
         self.aggregate_plot_control_layout.addWidget(quantity_menu, 1, 0)
 
         # define default plotting quantity (RMSE)
-        self.aggregate_plot_quantity_name = 'RMSE'
+        self.quantity_name = 'RMSE'
         self.aggregate_loss_module = nero_utilities.RMSELoss()
 
-        # averaged (depends on selected class) quantity
-        self.aggregate_avg_loss_1 = np.zeros((self.num_transformations))
-        self.aggregate_avg_loss_2 = np.zeros((self.num_transformations))
-        self.error_min = 1000000
-        self.error_max = 0
-        for i in range(self.num_transformations):
-            # sum of plot quantities of all or certain class
-            all_samples_loss_1 = []
-            all_samples_loss_2 = []
-            for j in range(len(self.aggregate_outputs_1[i])):
-                # either all the classes or one specific class
-                if self.class_selection == 'all' or self.class_selection == self.all_individual_flow_types[j]:
-                    # compute the loss of current sample
-                    cur_sample_loss_1 = self.aggregate_loss_module(self.aggregate_ground_truths[i][j], self.aggregate_outputs_1[i][j]).item()
-                    cur_sample_loss_2 = self.aggregate_loss_module(self.aggregate_ground_truths[i][j], self.aggregate_outputs_2[i][j]).item()
-                    # print(cur_sample_loss_1, cur_sample_loss_2)
-                    all_samples_loss_1.append(cur_sample_loss_1)
-                    all_samples_loss_2.append(cur_sample_loss_2)
-            # print(cur_sample_loss_1)
-            # print(cur_sample_loss_2)
-            # exit()
-            self.error_min = min(self.error_min, np.min(all_samples_loss_1), np.min(all_samples_loss_2))
-            self.error_max = max(self.error_min, np.max(all_samples_loss_1), np.max(all_samples_loss_2))
-
-            # take the average result
-            self.aggregate_avg_loss_1[i] = np.mean(all_samples_loss_1)
-            self.aggregate_avg_loss_2[i] = np.mean(all_samples_loss_2)
-        # print(self.error_min, self.error_max)
-        # normalize the loss to be between 0 and 1 and flip it
-        self.cur_plot_quantity_1 = 1 - nero_utilities.lerp(self.aggregate_avg_loss_1, self.error_min, self.error_max, 0, 1)
-        self.cur_plot_quantity_2 = 1 -  nero_utilities.lerp(self.aggregate_avg_loss_2, self.error_min, self.error_max, 0, 1)
+        # compute aggregate plot quantity
+        compute_nero_plot_quantity()
 
         # draw the aggregate NERO plot
         self.draw_d4_nero(mode='aggregate')
