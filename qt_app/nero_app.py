@@ -1735,7 +1735,7 @@ class UI_MainWindow(QWidget):
 
                             # add to all outputs
                             self.aggregate_outputs_1[transformation_index, index_range[0]:index_range[1]] = cur_outputs_1 / self.image_size
-                            self.aggregate_outputs_1[transformation_index, index_range[0]:index_range[1]] = cur_outputs_2 / self.image_size
+                            self.aggregate_outputs_2[transformation_index, index_range[0]:index_range[1]] = cur_outputs_2 / self.image_size
                             self.aggregate_ground_truths[transformation_index, index_range[0]:index_range[1]] = cur_labels
 
                             transformation_index += 1
@@ -3724,16 +3724,21 @@ class UI_MainWindow(QWidget):
                 # either all the classes or one specific class
                 if self.class_selection == 'all' or self.class_selection == self.all_individual_flow_types[j]:
                     # compute the loss of current sample
-                    all_samples_loss_1.append(self.aggregate_loss_module(self.aggregate_ground_truths[i][j], self.aggregate_outputs_1[i][j]).item())
-                    all_samples_loss_2.append(self.aggregate_loss_module(self.aggregate_ground_truths[i][j], self.aggregate_outputs_1[i][j]).item())
-
+                    cur_sample_loss_1 = self.aggregate_loss_module(self.aggregate_ground_truths[i][j], self.aggregate_outputs_1[i][j]).item()
+                    cur_sample_loss_2 = self.aggregate_loss_module(self.aggregate_ground_truths[i][j], self.aggregate_outputs_2[i][j]).item()
+                    # print(cur_sample_loss_1, cur_sample_loss_2)
+                    all_samples_loss_1.append(cur_sample_loss_1)
+                    all_samples_loss_2.append(cur_sample_loss_2)
+            # print(cur_sample_loss_1)
+            # print(cur_sample_loss_2)
+            # exit()
             self.error_min = min(self.error_min, np.min(all_samples_loss_1), np.min(all_samples_loss_2))
             self.error_max = max(self.error_min, np.max(all_samples_loss_1), np.max(all_samples_loss_2))
 
             # take the average result
             self.aggregate_avg_loss_1[i] = np.mean(all_samples_loss_1)
             self.aggregate_avg_loss_2[i] = np.mean(all_samples_loss_2)
-        print(self.error_min, self.error_max)
+        # print(self.error_min, self.error_max)
         # normalize the loss to be between 0 and 1 and flip it
         self.cur_plot_quantity_1 = 1 - nero_utilities.lerp(self.aggregate_avg_loss_1, self.error_min, self.error_max, 0, 1)
         self.cur_plot_quantity_2 = 1 -  nero_utilities.lerp(self.aggregate_avg_loss_2, self.error_min, self.error_max, 0, 1)
