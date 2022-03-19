@@ -3714,7 +3714,8 @@ class UI_MainWindow(QWidget):
         # averaged (depends on selected class) quantity
         self.aggregate_avg_loss_1 = np.zeros((self.num_transformations))
         self.aggregate_avg_loss_2 = np.zeros((self.num_transformations))
-        print(self.class_selection)
+        self.error_min = 1000000
+        self.error_max = 0
         for i in range(self.num_transformations):
             # sum of plot quantities of all or certain class
             all_samples_loss_1 = []
@@ -3726,13 +3727,14 @@ class UI_MainWindow(QWidget):
                     all_samples_loss_1.append(self.aggregate_loss_module(self.aggregate_ground_truths[i][j], self.aggregate_outputs_1[i][j]).item())
                     all_samples_loss_2.append(self.aggregate_loss_module(self.aggregate_ground_truths[i][j], self.aggregate_outputs_1[i][j]).item())
 
+            self.error_min = min(self.error_min, np.min(all_samples_loss_1), np.min(all_samples_loss_2))
+            self.error_max = max(self.error_min, np.max(all_samples_loss_1), np.max(all_samples_loss_2))
+
             # take the average result
             self.aggregate_avg_loss_1[i] = np.mean(all_samples_loss_1)
             self.aggregate_avg_loss_2[i] = np.mean(all_samples_loss_2)
-
-        # get the max and min of all the loss and normalize to between 0 and 1
-        self.error_min = min(np.min(self.aggregate_avg_loss_1), np.min(self.aggregate_avg_loss_2))
-        self.error_max = max(np.max(self.aggregate_avg_loss_1), np.max(self.aggregate_avg_loss_2))
+        print(self.error_min, self.error_max)
+        # normalize the loss to be between 0 and 1 and flip it
         self.cur_plot_quantity_1 = 1 - nero_utilities.lerp(self.aggregate_avg_loss_1, self.error_min, self.error_max, 0, 1)
         self.cur_plot_quantity_2 = 1 -  nero_utilities.lerp(self.aggregate_avg_loss_2, self.error_min, self.error_max, 0, 1)
 
