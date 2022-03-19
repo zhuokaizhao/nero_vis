@@ -1733,10 +1733,10 @@ class UI_MainWindow(QWidget):
                                                                             cur_images_1_pt,
                                                                             cur_images_2_pt)
 
-                            # add to all outputs
-                            self.aggregate_outputs_1[transformation_index, index_range[0]:index_range[1]] = cur_outputs_1 / self.image_size
-                            self.aggregate_outputs_2[transformation_index, index_range[0]:index_range[1]] = cur_outputs_2 / self.image_size
-                            self.aggregate_ground_truths[transformation_index, index_range[0]:index_range[1]] = cur_labels
+                                # add to all outputs
+                                self.aggregate_outputs_1[transformation_index, index_range[0]:index_range[1]] = cur_outputs_1 / self.image_size
+                                self.aggregate_outputs_2[transformation_index, index_range[0]:index_range[1]] = cur_outputs_2 / self.image_size
+                                self.aggregate_ground_truths[transformation_index, index_range[0]:index_range[1]] = cur_labels
 
                             transformation_index += 1
 
