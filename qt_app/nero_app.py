@@ -2061,18 +2061,18 @@ class UI_MainWindow(QWidget):
                 display_image_1_pt = self.loaded_image_1_pt.clone()
                 display_image_2_pt = self.loaded_image_2_pt.clone()
 
-                if self.is_time_reversed:
-                    temp = display_image_1_pt.clone()
-                    display_image_1_pt = display_image_2_pt.clone()
-                    display_image_2_pt = temp
+                if self.cur_rotation_angle != 0:
+                    display_image_1_pt = torch.rot90(display_image_1_pt, self.cur_rotation_angle//90)
+                    display_image_2_pt = torch.rot90(display_image_2_pt, self.cur_rotation_angle//90)
 
                 if self.is_flipped:
                     display_image_1_pt = torch.flip(display_image_1_pt, [0])
                     display_image_2_pt = torch.flip(display_image_2_pt, [0])
 
-                if self.cur_rotation_angle != 0:
-                    display_image_1_pt = torch.rot90(display_image_1_pt, self.cur_rotation_angle//90)
-                    display_image_2_pt = torch.rot90(display_image_2_pt, self.cur_rotation_angle//90)
+                if self.is_time_reversed:
+                    temp = display_image_1_pt.clone()
+                    display_image_1_pt = display_image_2_pt.clone()
+                    display_image_2_pt = temp
 
                 # create new GIF
                 display_image_1_pil = Image.fromarray(display_image_1_pt.numpy(), 'RGB')
@@ -2086,20 +2086,31 @@ class UI_MainWindow(QWidget):
                                             duration=600,
                                             loop=0)
 
+                # compute the triangle index by comparing current matrix and the D4 orbit matrix
+                for i, cur_image_1_pt in enumerate(self.all_images_1_pt):
+                    print(i, torch.eq(display_image_1_pt, cur_image_1_pt))
+                    if torch.eq(display_image_1_pt, cur_image_1_pt).all():
+                        self.triangle_index = i
+                        print('matched', self.triangle_index)
+                        break
+                exit()
+                print(self.triangle_index)
+
+
             @QtCore.Slot()
             def rotate_90_ccw():
                 self.cur_rotation_angle = (self.cur_rotation_angle + 90) % 360
                 print(f'Cur rotation angle: {self.cur_rotation_angle}')
-                # modify the image and display
+                # modify the image, display and current triangle index
                 modify_display_gif()
                 self.display_image()
                 # showing indication on the individual NERO plot
-                if -self.cur_rotation_angle//90 < 0:
-                    rot_index = 4 - self.cur_rotation_angle//90
-                else:
-                    rot_index = -self.cur_rotation_angle//90
-                self.triangle_index = self.is_time_reversed*8 + self.is_flipped*4 + rot_index
-                print(f'triangle index {self.triangle_index}, nero number {self.cur_plot_quantity_1[self.triangle_index]}')
+                # if -self.cur_rotation_angle//90 < 0:
+                #     rot_index = 4 - self.cur_rotation_angle//90
+                # else:
+                #     rot_index = -self.cur_rotation_angle//90
+                # self.triangle_index = self.is_time_reversed*8 + self.is_flipped*4 + rot_index
+                # print(f'triangle index {self.triangle_index}, nero number {self.cur_plot_quantity_1[self.triangle_index]}')
                 # redraw the nero plot with new triangle display
                 self.draw_d4_nero('single')
                 # update detailed plot of PIV
@@ -2113,31 +2124,50 @@ class UI_MainWindow(QWidget):
                 modify_display_gif()
                 self.display_image()
                 # showing indication on the individual NERO plot
-                if -self.cur_rotation_angle//90 < 0:
-                    rot_index = 4 - self.cur_rotation_angle//90
-                else:
-                    rot_index = -self.cur_rotation_angle//90
-                self.triangle_index = self.is_time_reversed*8 + self.is_flipped*4 + rot_index
-                print(f'triangle index {self.triangle_index}, nero number {self.cur_plot_quantity_1[self.triangle_index]}')
+                # if -self.cur_rotation_angle//90 < 0:
+                #     rot_index = 4 - self.cur_rotation_angle//90
+                # else:
+                #     rot_index = -self.cur_rotation_angle//90
+                # self.triangle_index = self.is_time_reversed*8 + self.is_flipped*4 + rot_index
+                # print(f'triangle index {self.triangle_index}, nero number {self.cur_plot_quantity_1[self.triangle_index]}')
                 # redraw the nero plot with new triangle display
                 self.draw_d4_nero('single')
                 # update detailed plot of PIV
                 self.draw_piv_details()
 
             @QtCore.Slot()
-            def flip():
-                self.is_flipped = not self.is_flipped
-                print(f'Image flipped: {self.is_flipped}')
+            def vertical_flip():
+                # self.is_flipped = not self.is_flipped
+                print(f'Vertical flipped')
                 # modify the image and display
                 modify_display_gif()
                 self.display_image()
                 # showing indication on the individual NERO plot
-                if -self.cur_rotation_angle//90 < 0:
-                    rot_index = 4 - self.cur_rotation_angle//90
-                else:
-                    rot_index = -self.cur_rotation_angle//90
-                self.triangle_index = self.is_time_reversed*8 + self.is_flipped*4 + rot_index
-                print(f'triangle index {self.triangle_index}, nero number {self.cur_plot_quantity_1[self.triangle_index]}')
+                # if -self.cur_rotation_angle//90 < 0:
+                #     rot_index = 4 - self.cur_rotation_angle//90
+                # else:
+                #     rot_index = -self.cur_rotation_angle//90
+                # self.triangle_index = self.is_time_reversed*8 + self.is_flipped*4 + rot_index
+                # print(f'triangle index {self.triangle_index}, nero number {self.cur_plot_quantity_1[self.triangle_index]}')
+                # redraw the nero plot with new triangle display
+                self.draw_d4_nero('single')
+                # update detailed plot of PIV
+                self.draw_piv_details()
+
+            @QtCore.Slot()
+            def horizontal_flip():
+                # self.is_flipped = not self.is_flipped
+                print(f'Horizontal flipped')
+                # modify the image and display
+                modify_display_gif()
+                self.display_image()
+                # showing indication on the individual NERO plot
+                # if -self.cur_rotation_angle//90 < 0:
+                #     rot_index = 4 - self.cur_rotation_angle//90
+                # else:
+                #     rot_index = -self.cur_rotation_angle//90
+                # self.triangle_index = self.is_time_reversed*8 + self.is_flipped*4 + rot_index
+                # print(f'triangle index {self.triangle_index}, nero number {self.cur_plot_quantity_1[self.triangle_index]}')
                 # redraw the nero plot with new triangle display
                 self.draw_d4_nero('single')
                 # update detailed plot of PIV
@@ -2151,12 +2181,12 @@ class UI_MainWindow(QWidget):
                 modify_display_gif()
                 self.display_image()
                 # showing indication on the individual NERO plot
-                if -self.cur_rotation_angle//90 < 0:
-                    rot_index = 4 - self.cur_rotation_angle//90
-                else:
-                    rot_index = -self.cur_rotation_angle//90
-                self.triangle_index = self.is_time_reversed*8 + self.is_flipped*4 + rot_index
-                print(f'triangle index {self.triangle_index}, nero number {self.cur_plot_quantity_1[self.triangle_index]}')
+                # if -self.cur_rotation_angle//90 < 0:
+                #     rot_index = 4 - self.cur_rotation_angle//90
+                # else:
+                #     rot_index = -self.cur_rotation_angle//90
+                # self.triangle_index = self.is_time_reversed*8 + self.is_flipped*4 + rot_index
+                # print(f'triangle index {self.triangle_index}, nero number {self.cur_plot_quantity_1[self.triangle_index]}')
                 # redraw the nero plot with new triangle display
                 self.draw_d4_nero('single')
                 # update detailed plot of PIV
@@ -2186,13 +2216,21 @@ class UI_MainWindow(QWidget):
             self.rotate_90_cw_button.clicked.connect(rotate_90_cw)
             self.gif_control_layout.addWidget(self.rotate_90_cw_button)
 
-            # flip the iamge horizontally
-            self.flip_button = QtWidgets.QPushButton(self)
-            self.flip_button.setFixedSize(QtCore.QSize(50, 50))
-            self.flip_button.setIcon(QtGui.QIcon('symbols/flip.png'))
-            self.flip_button.setIconSize(QtCore.QSize(40, 40))
-            self.flip_button.clicked.connect(flip)
-            self.gif_control_layout.addWidget(self.flip_button)
+            # flip the iamge vertically (by x axis)
+            self.vertical_flip_button = QtWidgets.QPushButton(self)
+            self.vertical_flip_button.setFixedSize(QtCore.QSize(50, 50))
+            self.vertical_flip_button.setIcon(QtGui.QIcon('symbols/vertical_flip.png'))
+            self.vertical_flip_button.setIconSize(QtCore.QSize(40, 40))
+            self.vertical_flip_button.clicked.connect(vertical_flip)
+            self.gif_control_layout.addWidget(self.vertical_flip_button)
+
+            # flip the iamge horizontally (by y axis)
+            self.horizontal_flip_button = QtWidgets.QPushButton(self)
+            self.horizontal_flip_button.setFixedSize(QtCore.QSize(50, 50))
+            self.horizontal_flip_button.setIcon(QtGui.QIcon('symbols/horizontal_flip.png'))
+            self.horizontal_flip_button.setIconSize(QtCore.QSize(40, 40))
+            self.horizontal_flip_button.clicked.connect(horizontal_flip)
+            self.gif_control_layout.addWidget(self.horizontal_flip_button)
 
             # time reverse
             self.time_reverse_button = QtWidgets.QPushButton(self)
@@ -2210,20 +2248,12 @@ class UI_MainWindow(QWidget):
             self.num_transformations = len(all_rotation_degrees) * len(all_flip) * len(all_time_reversals)
 
             if self.data_mode == 'single':
-                # all_quantities has shape (16, 256, 256, 2)
-                if self.use_cache:
-                    self.all_quantities_1 = torch.from_numpy(self.load_from_cache(name=f'{self.mode}_{self.data_mode}_{self.model_1_cache_name}_{self.image_index}'))
-                    self.all_quantities_2 = torch.from_numpy(self.load_from_cache(name=f'{self.mode}_{self.data_mode}_{self.model_2_cache_name}_{self.image_index}'))
-                    self.all_ground_truths = torch.from_numpy(self.load_from_cache(name=f'{self.mode}_{self.data_mode}_{self.image_index}_ground_truths'))
-                    print(self.all_ground_truths.shape)
-                else:
-                    # each model output are dense 2D velocity field of the input image
-                    self.all_quantities_1 = torch.zeros((self.num_transformations, self.image_size, self.image_size, 2))
-                    self.all_quantities_2 = torch.zeros((self.num_transformations, self.image_size, self.image_size, 2))
-                    self.all_ground_truths = torch.zeros((self.num_transformations, self.image_size, self.image_size, 2))
-                    transformation_index = 0
-                    for time_reverse in all_time_reversals:
-                        for flip in all_flip:
+                # keep track for all transformation's output
+                self.all_images_1_pt = torch.zeros((self.num_transformations, self.image_size, self.image_size, 3))
+                self.all_images_2_pt = torch.zeros((self.num_transformations, self.image_size, self.image_size, 3))
+                transformation_index = 0
+                for is_time_reversed in all_time_reversals:
+                        for is_flipped in all_flip:
                             for cur_rot_degree in all_rotation_degrees:
                                 print(f'Transformation {transformation_index}')
                                 # modify the input image tensor alone with its ground truth
@@ -2234,13 +2264,13 @@ class UI_MainWindow(QWidget):
                                     self.cur_image_label_pt = nero_transform.rotate_piv_data(self.loaded_image_1_pt, self.loaded_image_2_pt, self.loaded_image_label_pt, cur_rot_degree)
 
                                 # flip
-                                elif flip:
+                                elif is_flipped:
                                     self.cur_image_1_pt, \
                                     self.cur_image_2_pt, \
                                     self.cur_image_label_pt = nero_transform.flip_piv_data(self.loaded_image_1_pt, self.loaded_image_2_pt, self.loaded_image_label_pt)
 
                                 # time reverse
-                                elif time_reverse:
+                                elif is_time_reversed:
                                     self.cur_image_1_pt, \
                                     self.cur_image_2_pt, \
                                     self.cur_image_label_pt = nero_transform.reverse_piv_data(self.loaded_image_1_pt, self.loaded_image_2_pt, self.loaded_image_label_pt)
@@ -2251,7 +2281,60 @@ class UI_MainWindow(QWidget):
                                     self.cur_image_2_pt = self.loaded_image_2_pt
                                     self.cur_image_label_pt = self.loaded_image_label_pt
 
-                                # keep track of the different ground truths
+                                # keep track of the different tranformed image and ground truths
+                                self.all_images_1_pt[transformation_index] = self.cur_image_1_pt
+                                self.all_images_2_pt[transformation_index] = self.cur_image_2_pt
+
+                                transformation_index += 0
+
+                # all_quantities has shape (16, 256, 256, 2)
+                if self.use_cache:
+                    self.all_quantities_1 = torch.from_numpy(self.load_from_cache(name=f'{self.mode}_{self.data_mode}_{self.model_1_cache_name}_{self.image_index}'))
+                    self.all_quantities_2 = torch.from_numpy(self.load_from_cache(name=f'{self.mode}_{self.data_mode}_{self.model_2_cache_name}_{self.image_index}'))
+                    self.all_ground_truths = torch.from_numpy(self.load_from_cache(name=f'{self.mode}_{self.data_mode}_{self.image_index}_ground_truths'))
+                else:
+                    # each model output are dense 2D velocity field of the input image
+                    self.all_quantities_1 = torch.zeros((self.num_transformations, self.image_size, self.image_size, 2))
+                    self.all_quantities_2 = torch.zeros((self.num_transformations, self.image_size, self.image_size, 2))
+                    self.all_ground_truths = torch.zeros((self.num_transformations, self.image_size, self.image_size, 2))
+
+                    # keep track for all transformation's output
+                    self.all_images_1_pt = torch.zeros((self.num_transformations, self.image_size, self.image_size, 3))
+                    self.all_images_2_pt = torch.zeros((self.num_transformations, self.image_size, self.image_size, 3))
+                    transformation_index = 0
+
+                    for is_time_reversed in all_time_reversals:
+                        for is_flipped in all_flip:
+                            for cur_rot_degree in all_rotation_degrees:
+                                print(f'Transformation {transformation_index}')
+                                # modify the input image tensor alone with its ground truth
+                                # rotation
+                                if cur_rot_degree:
+                                    self.cur_image_1_pt, \
+                                    self.cur_image_2_pt, \
+                                    self.cur_image_label_pt = nero_transform.rotate_piv_data(self.loaded_image_1_pt, self.loaded_image_2_pt, self.loaded_image_label_pt, cur_rot_degree)
+
+                                # flip
+                                elif is_flipped:
+                                    self.cur_image_1_pt, \
+                                    self.cur_image_2_pt, \
+                                    self.cur_image_label_pt = nero_transform.flip_piv_data(self.loaded_image_1_pt, self.loaded_image_2_pt, self.loaded_image_label_pt)
+
+                                # time reverse
+                                elif is_time_reversed:
+                                    self.cur_image_1_pt, \
+                                    self.cur_image_2_pt, \
+                                    self.cur_image_label_pt = nero_transform.reverse_piv_data(self.loaded_image_1_pt, self.loaded_image_2_pt, self.loaded_image_label_pt)
+
+                                # no transformation at all
+                                else:
+                                    self.cur_image_1_pt = self.loaded_image_1_pt
+                                    self.cur_image_2_pt = self.loaded_image_2_pt
+                                    self.cur_image_label_pt = self.loaded_image_label_pt
+
+                                # keep track of the different tranformed image and ground truths
+                                self.all_images_1_pt[transformation_index] = self.cur_image_1_pt
+                                self.all_images_2_pt[transformation_index] = self.cur_image_2_pt
                                 self.all_ground_truths[transformation_index] = self.cur_image_label_pt
 
                                 # run the model
@@ -2685,7 +2768,7 @@ class UI_MainWindow(QWidget):
 
         # create colorbar
         color_map = pg.colormap.get('viridis')
-        color_bar = pg.ColorBarItem(values= range, colorMap=color_map)
+        color_bar = pg.ColorBarItem(values=range, colorMap=color_map)
         color_bar.setImageItem(heatmap, insert_in=heatmap_plot)
 
         return heatmap_plot
@@ -2972,10 +3055,16 @@ class UI_MainWindow(QWidget):
         self.piv_detail_view_2.setFixedSize(self.plot_size*1.3, self.plot_size*1.3)
 
         # prepare data for the visualization, using current triangle index
-        detail_data_1 = self.loss_module(self.all_ground_truths[self.triangle_index], self.all_quantities_1[self.triangle_index], reduction='none').numpy()
-        detail_data_2 = self.loss_module(self.all_ground_truths[self.triangle_index], self.all_quantities_2[self.triangle_index], reduction='none').numpy()
-        self.piv_detail_plot_1 = self.draw_individual_heatmap('single', detail_data_1.mean(axis=2))
-        self.piv_detail_plot_2 = self.draw_individual_heatmap('single', detail_data_2.mean(axis=2))
+        detail_data_1 = self.loss_module(self.all_ground_truths[self.triangle_index], self.all_quantities_1[self.triangle_index], reduction='none').numpy().mean(axis=2)
+        detail_data_2 = self.loss_module(self.all_ground_truths[self.triangle_index], self.all_quantities_2[self.triangle_index], reduction='none').numpy().mean(axis=2)
+
+        # normalize the detailed data and take flip
+        detail_data_1 = 1 - nero_utilities.lerp(detail_data_1, self.error_min, self.error_max, 0, 1)
+        detail_data_2 = 1 - nero_utilities.lerp(detail_data_2, self.error_min, self.error_max, 0, 1)
+
+        # draw the heatmap that represent detailed view
+        self.piv_detail_plot_1 = self.draw_individual_heatmap('single', detail_data_1)
+        self.piv_detail_plot_2 = self.draw_individual_heatmap('single', detail_data_2)
         # self.view_box_1.scene().sigMouseClicked.connect(heatmap_mouse_clicked(self.view_box_1))
         # self.view_box_2.scene().sigMouseClicked.connect(heatmap_mouse_clicked(self.view_box_2))
 
@@ -3625,16 +3714,12 @@ class UI_MainWindow(QWidget):
 
             if text == 'RMSE':
                 self.cur_plot_quantity_1 = text
-
-
             elif text == 'MSE':
-                self.piv_loss = text
-
+                self.cur_plot_quantity_1 = text
             elif text == 'MAE':
-                self.piv_loss = text
-
+                self.cur_plot_quantity_1 = text
             elif text == 'AEE':
-                self.piv_loss = text
+                self.cur_plot_quantity_1 = text
 
             # compute the quantity to plot
             compute_nero_display_quantity()
@@ -3838,6 +3923,7 @@ class UI_MainWindow(QWidget):
         self.draw_piv_details()
 
 
+    # mouse move event only applies in the MNIST case
     def mouseMoveEvent(self, event):
         # print("mouseMoveEvent")
         # when in translation mode
@@ -3906,16 +3992,6 @@ class UI_MainWindow(QWidget):
         # different key pressed
         if 'h' == key_pressed or '?' == key_pressed:
             self.print_help()
-        if 'r' == key_pressed:
-            print('Rotation mode ON')
-            self.rotation = True
-            self.translation = False
-        if 't' == key_pressed:
-            print('Translation mode ON')
-            self.translation = True
-            self.rotation = False
-        if 'q' == key_pressed:
-            app.quit()
 
 
     # print help message
