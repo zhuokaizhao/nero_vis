@@ -1650,7 +1650,7 @@ class UI_MainWindow(QWidget):
 
         elif self.mode == 'piv':
             # Dihedral group4 transformations
-            all_rotation_degrees = [0, 90, 180, 270]
+            all_rotation_degrees = [0, -90, -180, -270]
             # 0 means no flip/time reverse, 1 means flip/time reverse
             all_flip = [0, 1]
             all_time_reversals = [0, 1]
@@ -1706,14 +1706,14 @@ class UI_MainWindow(QWidget):
                                     cur_label = torch.from_numpy(fz.read_flow(cur_labels_paths[i]))
 
                                     # modify the data
-                                    if is_time_reversed:
-                                        cur_image_1_pt, cur_image_2_pt, cur_label = nero_transform.reverse_piv_data(cur_image_1_pt, cur_image_2_pt, cur_label)
+                                    if cur_rotation_angle != 0:
+                                        cur_image_1_pt, cur_image_2_pt, cur_label = nero_transform.rotate_piv_data(cur_image_1_pt, cur_image_2_pt, cur_label, cur_rotation_angle)
 
                                     if is_flipped:
                                         cur_image_1_pt, cur_image_2_pt, cur_label = nero_transform.flip_piv_data(cur_image_1_pt, cur_image_2_pt, cur_label)
 
-                                    if cur_rotation_angle != 0:
-                                        cur_image_1_pt, cur_image_2_pt, cur_label = nero_transform.rotate_piv_data(cur_image_1_pt, cur_image_2_pt, cur_label, cur_rotation_angle)
+                                    if is_time_reversed:
+                                        cur_image_1_pt, cur_image_2_pt, cur_label = nero_transform.reverse_piv_data(cur_image_1_pt, cur_image_2_pt, cur_label)
 
                                     # add to batch
                                     cur_images_1_pt[i] = cur_image_1_pt
@@ -2245,6 +2245,7 @@ class UI_MainWindow(QWidget):
             all_time_reversals = [0, 1]
             self.num_transformations = len(all_rotation_degrees) * len(all_flip) * len(all_time_reversals)
 
+            # when in single mode
             if self.data_mode == 'single':
                 # keep track for all D4 transformation
                 self.all_d4_images_1_pt = torch.zeros((self.num_transformations, self.image_size, self.image_size, 3))
@@ -2330,6 +2331,7 @@ class UI_MainWindow(QWidget):
                 self.triangle_index = 0
                 self.display_piv_single_result()
 
+            # when in aggregate mode but a certain sample has been selected
             elif self.data_mode == 'aggregate':
                 raise NotImplementedError
 
@@ -3641,37 +3643,25 @@ class UI_MainWindow(QWidget):
         self.aggregate_result_existed = True
 
         # helper function on compute, normalize the loss and display quantity
-        def compute_nero_display_quantity():
-
-            if self.cur_plot_quantity == 'RMSE':
-                self.loss_module = nero_utilities.RMSELoss()
-            elif self.cur_plot_quantity == 'MSE':
-                self.loss_module = torch.nn.MSELoss()
-            elif self.cur_plot_quantity == 'MAE':
-                self.loss_module = torch.nn.L1Loss()
-            elif self.cur_plot_quantity == 'AEE':
-                self.loss_module = nero_utilities.AEELoss()
-
+        def compute_nero_plot_quantity():
             # compute loss using torch loss module
+            if self.aggregate_plot_quantity_name == 'RMSE':
+                self.aggregate_loss_module = nero_utilities.RMSELoss()
+            elif self.aggregate_plot_quantity_name == 'MSE':
+                self.aggregate_loss_module = torch.nn.MSELoss()
+            elif self.aggregate_plot_quantity_name == 'MAE':
+                self.aggregate_loss_module = torch.nn.L1Loss()
+            elif self.aggregate_plot_quantity_name == 'AEE':
+                self.aggregate_loss_module = nero_utilities.AEELoss()
+
             for i in range(self.num_transformations):
-                loss_1 = self.loss_module(self.all_ground_truths[i], self.all_quantities_1[i], reduction='none').numpy()
-                loss_2 = self.loss_module(self.all_ground_truths[i], self.all_quantities_2[i], reduction='none').numpy()
+                self.aggregate_plot_quantity_1[i] = self.aggregate_loss_module(self.all_ground_truths[i], self.all_quantities_1[i]).numpy()
+                self.aggregate_plot_quantity_2[i] = self.aggregate_loss_module(self.all_ground_truths[i], self.all_quantities_2[i]).numpy()
 
-                # average the x and y
-                self.all_losses_1[i] = loss_1.mean(axis=2)
-                self.all_losses_2[i] = loss_2.mean(axis=2)
+            # normalize these errors between 0 and 1
+            self.aggregate_plot_quantity_1 = 1- nero_utilities.lerp(self.aggregate_plot_quantity_1, self.error_min, self.error_max, 0, 1)
+            self.aggregate_plot_quantity_2 = 1 - nero_utilities.lerp(self.aggregate_plot_quantity_2, self.error_min, self.error_max, 0, 1)
 
-            # get the max and min for normalization purpose
-            self.error_min = np.min(self.all_losses_1)
-            self.error_max = np.max(self.all_losses_2)
-
-            # normalize the losses
-            self.all_losses_1 = nero_utilities.lerp(self.all_losses_1.mean(axis=(1, 2)), self.error_min, self.error_max, 0, 1)
-            self.all_losses_2 = nero_utilities.lerp(self.all_losses_2.mean(axis=(1, 2)), self.error_min, self.error_max, 0, 1)
-
-            # average element-wise loss to scalar and normalize between 0 and 1
-            self.cur_plot_quantity_1 = 1 - self.all_losses_1
-            self.cur_plot_quantity_2 = 1 - self.all_losses_2
 
         @QtCore.Slot()
         def piv_plot_quantity_changed(text):
@@ -3688,7 +3678,7 @@ class UI_MainWindow(QWidget):
                 self.cur_plot_quantity_1 = text
 
             # compute the quantity to plot
-            compute_nero_display_quantity()
+            compute_nero_plot_quantity()
 
             # re-display the heatmap
             self.draw_d4_nero(mode='aggregate')
@@ -3705,77 +3695,47 @@ class UI_MainWindow(QWidget):
         quantity_menu.lineEdit().setReadOnly(True)
         quantity_menu.lineEdit().setAlignment(QtCore.Qt.AlignCenter)
 
-        quantity_menu.addItem('Confidence*IOU')
-        quantity_menu.addItem('Confidence')
-        quantity_menu.addItem('IOU')
-        quantity_menu.addItem('Precision')
-        quantity_menu.addItem('Recall')
-        quantity_menu.addItem('AP')
-        quantity_menu.addItem('F1 Score')
+        quantity_menu.addItem('RMSE')
+        quantity_menu.addItem('MSE')
+        quantity_menu.addItem('MAE')
+        quantity_menu.addItem('AEE')
         # self.quantity_menu.setCurrentIndex(0)
-        quantity_menu.setCurrentText('Confidence*IOU')
+        quantity_menu.setCurrentText('RMSE')
 
         # connect the drop down menu with actions
         quantity_menu.currentTextChanged.connect(piv_plot_quantity_changed)
         self.aggregate_plot_control_layout.addWidget(quantity_menu, 1, 0)
 
-        # define default plotting quantity (IOU*Confidence)
-        self.quantity_name = 'Confidence*IOU'
-        # averaged (depends on selected class) confidence and iou of the top results (ranked by IOU)
-        self.aggregate_avg_conf_1 = np.zeros((len(self.y_translation), len(self.x_translation)))
-        self.aggregate_avg_iou_1 = np.zeros((len(self.y_translation), len(self.x_translation)))
-        self.aggregate_avg_precision_1 = np.zeros((len(self.y_translation), len(self.x_translation)))
-        self.aggregate_avg_recall_1 = np.zeros((len(self.y_translation), len(self.x_translation)))
-        self.aggregate_avg_F_measure_1 = np.zeros((len(self.y_translation), len(self.x_translation)))
+        # define default plotting quantity (RMSE)
+        self.aggregate_plot_quantity_name = 'RMSE'
+        self.aggregate_loss_module = nero_utilities.RMSELoss()
 
-        self.aggregate_avg_conf_2 = np.zeros((len(self.y_translation), len(self.x_translation)))
-        self.aggregate_avg_iou_2 = np.zeros((len(self.y_translation), len(self.x_translation)))
-        self.aggregate_avg_precision_2 = np.zeros((len(self.y_translation), len(self.x_translation)))
-        self.aggregate_avg_recall_2 = np.zeros((len(self.y_translation), len(self.x_translation)))
-        self.aggregate_avg_F_measure_2 = np.zeros((len(self.y_translation), len(self.x_translation)))
+        # averaged (depends on selected class) quantity
+        self.aggregate_avg_loss_1 = np.zeros((self.num_transformations, self.image_size, self.image_size))
+        self.aggregate_avg_loss_2 = np.zeros((self.num_transformations, self.image_size, self.image_size))
 
-        for y in range(len(self.y_translation)):
-            for x in range(len(self.x_translation)):
-                all_samples_conf_sum_1 = []
-                all_samples_iou_sum_1 = []
-                all_samples_conf_sum_2 = []
-                all_samples_iou_sum_2 = []
-                all_samples_precision_sum_1 = []
-                all_samples_precision_sum_2 = []
-                all_samples_recall_sum_1 = []
-                all_samples_recall_sum_2 = []
-                all_samples_F_measure_sum_1 = []
-                all_samples_F_measure_sum_2 = []
-                for i in range(len(self.aggregate_outputs_1[y, x])):
-                    # either all the classes or one specific class
-                    if self.class_selection == 'all' or self.class_selection == self.loaded_images_labels[i]:
-                        all_samples_conf_sum_1.append(self.aggregate_outputs_1[y, x][i][0, 4])
-                        all_samples_iou_sum_1.append(self.aggregate_outputs_1[y, x][i][0, 6])
-                        all_samples_conf_sum_2.append(self.aggregate_outputs_2[y, x][i][0, 4])
-                        all_samples_iou_sum_2.append(self.aggregate_outputs_2[y, x][i][0, 6])
-                        all_samples_precision_sum_1.append(self.aggregate_precision_1[y, x][i])
-                        all_samples_precision_sum_2.append(self.aggregate_precision_2[y, x][i])
-                        all_samples_recall_sum_1.append(self.aggregate_recall_1[y, x][i])
-                        all_samples_recall_sum_2.append(self.aggregate_recall_2[y, x][i])
-                        all_samples_F_measure_sum_1.append(self.aggregate_F_measure_1[y, x][i])
-                        all_samples_F_measure_sum_2.append(self.aggregate_F_measure_2[y, x][i])
+        for i in range(self.num_transformations):
+            # sum of plot quantities of all or certain class
+            all_samples_loss_sum_1 = []
+            all_samples_loss_sum_2 = []
+            for j in range(len(self.aggregate_outputs_1[i])):
+                # either all the classes or one specific class
+                if self.class_selection == 'all' or self.class_selection == self.all_individual_flow_types[i]:
+                    # compute the plot quantity
+                    all_samples_loss_sum_1.append(self.aggregate_loss_module(self.aggregate_ground_truths[i][j], self.aggregate_outputs_1[i][j]).numpy())
+                    all_samples_loss_sum_2.append(self.aggregate_loss_module(self.aggregate_ground_truths[i][j], self.aggregate_outputs_1[i][j]).numpy())
 
-                # take the average result
-                self.aggregate_avg_conf_1[y, x] = np.mean(all_samples_conf_sum_1)
-                self.aggregate_avg_iou_1[y, x] = np.mean(all_samples_iou_sum_1)
-                self.aggregate_avg_precision_1[y, x] = np.mean(all_samples_precision_sum_1)
-                self.aggregate_avg_recall_1[y, x] = np.mean(all_samples_recall_sum_1)
-                self.aggregate_avg_F_measure_1[y, x] = np.mean(all_samples_F_measure_sum_1)
+            # take the average result
+            all_samples_loss_sum_1 = np.array(all_samples_loss_sum_1)
+            all_samples_loss_sum_2 = np.array(all_samples_loss_sum_2)
+            self.aggregate_avg_loss_1[i] = np.mean(all_samples_loss_sum_1)
+            self.aggregate_avg_loss_2[i] = np.mean(all_samples_loss_sum_2)
 
-                self.aggregate_avg_conf_2[y, x] = np.mean(all_samples_conf_sum_2)
-                self.aggregate_avg_iou_2[y, x] = np.mean(all_samples_iou_sum_2)
-                self.aggregate_avg_precision_2[y, x] = np.mean(all_samples_precision_sum_2)
-                self.aggregate_avg_recall_2[y, x] = np.mean(all_samples_recall_sum_2)
-                self.aggregate_avg_F_measure_2[y, x] = np.mean(all_samples_F_measure_sum_2)
-
-        # default plotting quantity is Confidence*IOU
-        self.cur_plot_quantity_1 = self.aggregate_avg_conf_1 * self.aggregate_avg_iou_1
-        self.cur_plot_quantity_2 = self.aggregate_avg_conf_2 * self.aggregate_avg_iou_2
+        # get the max and min of all the loss and normalize to between 0 and 1
+        self.error_min = min(np.min(self.aggregate_avg_loss_1), np.min(self.aggregate_avg_loss_2))
+        self.error_max = max(np.max(self.aggregate_avg_loss_1), np.max(self.aggregate_avg_loss_2))
+        self.cur_plot_quantity_1 = 1 - nero_utilities.lerp(aggregate_avg_loss_1, self.error_min, self.error_max, 0, 1)
+        self.cur_plot_quantity_2 = 1 -  nero_utilities.lerp(aggregate_avg_loss_2, self.error_min, self.error_max, 0, 1)
 
         # draw the heatmap
         self.draw_heatmaps(mode='aggregate')
@@ -3853,7 +3813,7 @@ class UI_MainWindow(QWidget):
         quantity_menu.currentTextChanged.connect(piv_plot_quantity_changed)
         self.single_plot_control_layout.addWidget(quantity_menu)
 
-        # define default plotting quantity
+        # single mode visualization
         if self.data_mode == 'single':
             # add plot control layout to general layout
             self.single_result_layout.addLayout(self.single_plot_control_layout, 0, 0)
