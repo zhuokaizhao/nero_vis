@@ -2104,10 +2104,9 @@ class UI_MainWindow(QWidget):
 
                 # compute the triangle index by comparing current matrix and the D4 orbit matrix
                 for i in range(len(self.all_d4_images_1_pt)):
-                    d4_image_1_pt = self.all_d4_images_1_pt[i]
-                    d4_image_2_pt = self.all_d4_images_2_pt[i]
-                    if (np.array_equal(self.cur_image_1_pt.numpy(), d4_image_1_pt.numpy())
-                        and np.array_equal(self.cur_image_2_pt.numpy(), d4_image_2_pt.numpy())):
+
+                    if (np.array_equal(self.cur_image_1_pt.numpy(), self.all_d4_images_1_pt[i].numpy())
+                        and np.array_equal(self.cur_image_2_pt.numpy(), self.all_d4_images_2_pt[i].numpy())):
 
                         self.triangle_index = i
                         print('matched', self.triangle_index)
@@ -2239,8 +2238,8 @@ class UI_MainWindow(QWidget):
                 self.time_reverse_button.clicked.connect(time_reverse)
                 self.gif_control_layout.addWidget(self.time_reverse_button)
 
-            # Dihedral group4 transformations
-            all_rotation_degrees = [0, 90, 180, 270]
+            # Dihedral group4 transformations (clockwise first)
+            all_rotation_degrees = [0, -90, -180, -270]
             # 0 means no flip/time reverse, 1 means flip/time reverse
             all_flip = [0, 1]
             all_time_reversals = [0, 1]

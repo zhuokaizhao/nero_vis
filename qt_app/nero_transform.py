@@ -268,14 +268,15 @@ def rotate_piv_data(image_1, image_2, label, degree):
 def flip_piv_data(image_1, image_2, label):
 
     # flip the images ()
-    image_1_flipped = torch.flip(image_1, dims=[1])
-    image_2_flipped = torch.flip(image_2, dims=[1])
+    image_1_flipped = torch.flip(image_1, dims=[0, 1])
+    image_2_flipped = torch.flip(image_2, dims=[0, 1])
 
     # flip the ground truth horizontally (by y axis)
-    label_flipped_temp = torch.flip(label, dims=[1])
+    label_flipped_temp = torch.flip(label, dims=[0, 1])
     # flip the velocity vecter too
     label_flipped = torch.zeros(label.shape)
     label_flipped[:, :, 0] = -label_flipped_temp[:, :, 0]
+    label_flipped[:, :, 1] = -label_flipped_temp[:, :, 1]
 
     return image_1_flipped, image_2_flipped, label_flipped
 
