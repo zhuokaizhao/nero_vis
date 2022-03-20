@@ -1400,10 +1400,10 @@ class UI_MainWindow(QWidget):
                     all_high_dim_points_2[i, j] = cur_value_2
 
                 elif self.mode == 'piv':
-                    all_high_dim_points_1[i, j] = self.cur_plot_quantity_1_loss[j][i]
-                    all_high_dim_points_2[i, j] = self.cur_plot_quantity_2_loss[j][i]
+                    all_high_dim_points_1[i, j] = 1 - nero_utilities.lerp(self.cur_plot_quantity_1_loss[j][i], self.error_min, self.error_max, 0, 1)
+                    all_high_dim_points_2[i, j] = 1 - nero_utilities.lerp(self.cur_plot_quantity_2_loss[j][i], self.error_min, self.error_max, 0, 1)
 
-        # get the average intensity of each sample
+        # compute each sample's average across all transformations as intensity
         all_intensity_1 = np.mean(all_high_dim_points_1, axis=1)
         all_intensity_2 = np.mean(all_high_dim_points_2, axis=1)
 
@@ -1437,13 +1437,13 @@ class UI_MainWindow(QWidget):
 
         # save colorbar as used in aggregate NERO plot, to be used in color encode scatter points
         scatter_color_map = pg.colormap.get('viridis')
-        scatter_lut = scatter_color_map.getLookupTable(start=0, stop=1, nPts=101, alpha=False)
+        scatter_lut = scatter_color_map.getLookupTable(start=0, stop=1, nPts=501, alpha=False)
         # quantize all the intensity into color
         color_indices_1 = []
         color_indices_2 = []
         for i in range(len(all_intensity_1)):
-            color_indices_1.append(scatter_lut[int(all_intensity_1[i]*100)])
-            color_indices_2.append(scatter_lut[int(all_intensity_2[i]*100)])
+            color_indices_1.append(scatter_lut[int(all_intensity_1[i]*500)])
+            color_indices_2.append(scatter_lut[int(all_intensity_2[i]*500)])
 
         for i, index in enumerate(cur_class_indices):
             # all the points to be plotted
@@ -1480,6 +1480,10 @@ class UI_MainWindow(QWidget):
             self.aggregate_result_layout.addWidget(low_dim_scatter_view_1, 1, 3)
             self.aggregate_result_layout.addWidget(low_dim_scatter_view_2, 2, 3)
         elif self.mode == 'object_detection':
+            # aggregate result layout at the very left
+            self.aggregate_result_layout.addWidget(low_dim_scatter_view_1, 2, 1)
+            self.aggregate_result_layout.addWidget(low_dim_scatter_view_2, 2, 2)
+        elif self.mode == 'piv':
             # aggregate result layout at the very left
             self.aggregate_result_layout.addWidget(low_dim_scatter_view_1, 2, 1)
             self.aggregate_result_layout.addWidget(low_dim_scatter_view_2, 2, 2)
@@ -3697,7 +3701,7 @@ class UI_MainWindow(QWidget):
                 self.aggregate_avg_loss_1[i] = np.mean(all_samples_loss_1)
                 self.aggregate_avg_loss_2[i] = np.mean(all_samples_loss_2)
 
-            print(self.error_min, self.error_max)
+            # print(self.error_min, self.error_max)
 
             # normalize the loss to be between 0 and 1 and flip it
             self.cur_plot_quantity_1 = 1 - nero_utilities.lerp(self.aggregate_avg_loss_1, self.error_min, self.error_max, 0, 1)
@@ -3868,12 +3872,8 @@ class UI_MainWindow(QWidget):
 
     # mouse move event only applies in the MNIST case
     def mouseMoveEvent(self, event):
-        # print("mouseMoveEvent")
-        # when in translation mode
-        if self.translation:
-            print('translating')
-        # when in rotation mode
-        elif self.rotation and self.image_existed:
+
+        if self.mode == 'digit_recognition' and self.image_existed:
             cur_mouse_pos = [event.position().x()-self.image_center_x, event.position().y()-self.image_center_y]
 
             angle_change = -((self.prev_mouse_pos[0]*cur_mouse_pos[1] - self.prev_mouse_pos[1]*cur_mouse_pos[0])
@@ -3917,15 +3917,10 @@ class UI_MainWindow(QWidget):
 
 
     def mousePressEvent(self, event):
-        print('\nmousePressEvent')
-        # used for rotating the input image
-        if self.image_existed:
+        if self.mode == 'digit_recognition' and self.image_existed:
             self.image_center_x = self.image_label.x() + self.image_label.width()/2
             self.image_center_y = self.image_label.y() + self.image_label.height()/2
             self.prev_mouse_pos = [event.position().x()-self.image_center_x, event.position().y()-self.image_center_y]
-
-    # def mouseReleaseEvent(self, event):
-    #     print("mouseReleaseEvent")
 
 
     # called when a key is pressed
