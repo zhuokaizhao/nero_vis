@@ -2773,6 +2773,9 @@ class UI_MainWindow(QWidget):
                 # update the input image with FOV mask and ground truth labelling
                 outer_class_self.display_coco_image()
 
+                # redisplay model output
+                outer_class_self.draw_model_output()
+
 
         # subclass of ImageItem that reimplements the control methods
         class PIV_heatmap(pg.ImageItem):
