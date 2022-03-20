@@ -4002,4 +4002,13 @@ if __name__ == "__main__":
     # widget.resize(1920, 1080)
     widget.show()
 
-    sys.exit(app.exec())
+    # run the app
+    app.exec()
+
+    # remove all .GIF from cache
+    all_gif_paths = glob.glob(os.path.join(os.getcwd(), 'cache', '*.gif'))
+    for gif_path in all_gif_paths:
+        os.remove(gif_path)
+
+    # exit the app
+    sys.exit()
