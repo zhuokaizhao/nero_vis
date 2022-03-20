@@ -1296,10 +1296,15 @@ class UI_MainWindow(QWidget):
                 self.image_path = self.all_images_paths[self.image_index]
                 print(f'Selected image at {self.image_path}')
             elif self.mode == 'piv':
+                # single case images paths
                 self.image_1_path = self.all_images_1_paths[self.image_index]
                 self.image_2_path = self.all_images_2_paths[self.image_index]
                 print(f'Selected image 1 at {self.image_1_path}')
                 print(f'Selected image 2 at {self.image_2_path}')
+
+                # single case model outputs
+                self.all_quantities_1 = self.aggregate_outputs_1[:, self.image_index]
+                self.all_quantities_2 = self.aggregate_outputs_2[:, self.image_index]
                 self.all_ground_truths = self.aggregate_ground_truths[:, self.image_index]
 
             # load the image
@@ -1833,15 +1838,15 @@ class UI_MainWindow(QWidget):
     # run model on all the available transformations on a single sample
     def run_model_all(self):
 
-        # quantity that is displayed in the individual NERO plot
-        self.all_quantities_1 = []
-        self.all_quantities_2 = []
-
         if self.mode == 'digit_recognition':
             # display the image
             self.display_image()
 
             self.all_angles = []
+            # quantity that is displayed in the individual NERO plot
+            self.all_quantities_1 = []
+            self.all_quantities_2 = []
+
             # run all rotation test with 5 degree increment
             for self.cur_rotation_angle in range(0, 360+self.rotation_step, self.rotation_step):
                 # print(f'\nRotated {self.cur_rotation_angle} degrees')
@@ -3911,7 +3916,7 @@ class UI_MainWindow(QWidget):
             self.cur_plot_quantity_2 = 1 - self.cur_plot_quantity_2
 
         # visualize the individual NERO plot of the current input
-        self.draw_d4_nero(mode='aggregate')
+        self.draw_d4_nero(mode='single')
 
         # the detailed plot of PIV
         self.draw_piv_details()
