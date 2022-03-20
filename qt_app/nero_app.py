@@ -2094,6 +2094,57 @@ class UI_MainWindow(QWidget):
             self.horizontal_flip = False
             self.time_reverse = False
 
+            # prepare input image transformations
+            def init_input_control():
+                # add buttons for controlling the single GIF
+                self.gif_control_layout = QtWidgets.QHBoxLayout()
+                self.gif_control_layout.setAlignment(QtGui.Qt.AlignTop)
+                self.gif_control_layout.setContentsMargins(50, 0, 50, 50)
+                if self.data_mode == 'single':
+                    self.single_result_layout.addLayout(self.gif_control_layout, 2, 0)
+                elif self.data_mode == 'aggregate':
+                    self.aggregate_result_layout.addLayout(self.gif_control_layout, 2, 3)
+
+                # rotate 90 degrees counter-closewise
+                self.rotate_90_ccw_button = QtWidgets.QPushButton(self)
+                self.rotate_90_ccw_button.setFixedSize(QtCore.QSize(50, 50))
+                self.rotate_90_ccw_button.setIcon(QtGui.QIcon('symbols/rotate_90_ccw.png'))
+                self.rotate_90_ccw_button.setIconSize(QtCore.QSize(40, 40))
+                self.rotate_90_ccw_button.clicked.connect(rotate_90_ccw)
+                self.gif_control_layout.addWidget(self.rotate_90_ccw_button)
+
+                # rotate 90 degrees closewise
+                self.rotate_90_cw_button = QtWidgets.QPushButton(self)
+                self.rotate_90_cw_button.setFixedSize(QtCore.QSize(50, 50))
+                self.rotate_90_cw_button.setIcon(QtGui.QIcon('symbols/rotate_90_cw.png'))
+                self.rotate_90_cw_button.setIconSize(QtCore.QSize(40, 40))
+                self.rotate_90_cw_button.clicked.connect(rotate_90_cw)
+                self.gif_control_layout.addWidget(self.rotate_90_cw_button)
+
+                # flip the iamge vertically (by x axis)
+                self.vertical_flip_button = QtWidgets.QPushButton(self)
+                self.vertical_flip_button.setFixedSize(QtCore.QSize(50, 50))
+                self.vertical_flip_button.setIcon(QtGui.QIcon('symbols/vertical_flip.png'))
+                self.vertical_flip_button.setIconSize(QtCore.QSize(40, 40))
+                self.vertical_flip_button.clicked.connect(vertical_flip)
+                self.gif_control_layout.addWidget(self.vertical_flip_button)
+
+                # flip the iamge horizontally (by y axis)
+                self.horizontal_flip_button = QtWidgets.QPushButton(self)
+                self.horizontal_flip_button.setFixedSize(QtCore.QSize(50, 50))
+                self.horizontal_flip_button.setIcon(QtGui.QIcon('symbols/horizontal_flip.png'))
+                self.horizontal_flip_button.setIconSize(QtCore.QSize(40, 40))
+                self.horizontal_flip_button.clicked.connect(horizontal_flip)
+                self.gif_control_layout.addWidget(self.horizontal_flip_button)
+
+                # time reverse
+                self.time_reverse_button = QtWidgets.QPushButton(self)
+                self.time_reverse_button.setFixedSize(QtCore.QSize(50, 50))
+                self.time_reverse_button.setIcon(QtGui.QIcon('symbols/time_reverse.png'))
+                self.time_reverse_button.setIconSize(QtCore.QSize(40, 40))
+                self.time_reverse_button.clicked.connect(time_reverse)
+                self.gif_control_layout.addWidget(self.time_reverse_button)
+
             # modify the image tensor and the associated GIF as user rotates, flips or time-reverses
             def modify_display_gif():
 
@@ -2146,7 +2197,6 @@ class UI_MainWindow(QWidget):
                         self.triangle_index = i
                         print('matched', self.triangle_index)
                         break
-
 
             @QtCore.Slot()
             def rotate_90_ccw():
@@ -2226,56 +2276,6 @@ class UI_MainWindow(QWidget):
                 self.draw_piv_details()
 
 
-            # add buttons for controlling the single GIF
-            if self.image_existed:
-                self.gif_control_layout = QtWidgets.QHBoxLayout()
-                self.gif_control_layout.setAlignment(QtGui.Qt.AlignTop)
-                self.gif_control_layout.setContentsMargins(50, 0, 50, 50)
-                if self.data_mode == 'single':
-                    self.single_result_layout.addLayout(self.gif_control_layout, 2, 0)
-                elif self.data_mode == 'aggregate':
-                    self.aggregate_result_layout.addLayout(self.gif_control_layout, 2, 3)
-
-                # rotate 90 degrees counter-closewise
-                self.rotate_90_ccw_button = QtWidgets.QPushButton(self)
-                self.rotate_90_ccw_button.setFixedSize(QtCore.QSize(50, 50))
-                self.rotate_90_ccw_button.setIcon(QtGui.QIcon('symbols/rotate_90_ccw.png'))
-                self.rotate_90_ccw_button.setIconSize(QtCore.QSize(40, 40))
-                self.rotate_90_ccw_button.clicked.connect(rotate_90_ccw)
-                self.gif_control_layout.addWidget(self.rotate_90_ccw_button)
-
-                # rotate 90 degrees closewise
-                self.rotate_90_cw_button = QtWidgets.QPushButton(self)
-                self.rotate_90_cw_button.setFixedSize(QtCore.QSize(50, 50))
-                self.rotate_90_cw_button.setIcon(QtGui.QIcon('symbols/rotate_90_cw.png'))
-                self.rotate_90_cw_button.setIconSize(QtCore.QSize(40, 40))
-                self.rotate_90_cw_button.clicked.connect(rotate_90_cw)
-                self.gif_control_layout.addWidget(self.rotate_90_cw_button)
-
-                # flip the iamge vertically (by x axis)
-                self.vertical_flip_button = QtWidgets.QPushButton(self)
-                self.vertical_flip_button.setFixedSize(QtCore.QSize(50, 50))
-                self.vertical_flip_button.setIcon(QtGui.QIcon('symbols/vertical_flip.png'))
-                self.vertical_flip_button.setIconSize(QtCore.QSize(40, 40))
-                self.vertical_flip_button.clicked.connect(vertical_flip)
-                self.gif_control_layout.addWidget(self.vertical_flip_button)
-
-                # flip the iamge horizontally (by y axis)
-                self.horizontal_flip_button = QtWidgets.QPushButton(self)
-                self.horizontal_flip_button.setFixedSize(QtCore.QSize(50, 50))
-                self.horizontal_flip_button.setIcon(QtGui.QIcon('symbols/horizontal_flip.png'))
-                self.horizontal_flip_button.setIconSize(QtCore.QSize(40, 40))
-                self.horizontal_flip_button.clicked.connect(horizontal_flip)
-                self.gif_control_layout.addWidget(self.horizontal_flip_button)
-
-                # time reverse
-                self.time_reverse_button = QtWidgets.QPushButton(self)
-                self.time_reverse_button.setFixedSize(QtCore.QSize(50, 50))
-                self.time_reverse_button.setIcon(QtGui.QIcon('symbols/time_reverse.png'))
-                self.time_reverse_button.setIconSize(QtCore.QSize(40, 40))
-                self.time_reverse_button.clicked.connect(time_reverse)
-                self.gif_control_layout.addWidget(self.time_reverse_button)
-
             # Dihedral group4 transformations (clockwise first)
             all_rotation_degrees = [0, -90, -180, -270]
             # 0 means no flip/time reverse, 1 means flip/time reverse
@@ -2283,51 +2283,54 @@ class UI_MainWindow(QWidget):
             all_time_reversals = [0, 1]
             self.num_transformations = len(all_rotation_degrees) * len(all_flip) * len(all_time_reversals)
 
-            # when in single mode
-            if self.data_mode == 'single':
-                # keep track for all D4 transformation
-                self.all_d4_images_1_pt = torch.zeros((self.num_transformations, self.image_size, self.image_size, 3))
-                self.all_d4_images_2_pt = torch.zeros((self.num_transformations, self.image_size, self.image_size, 3))
-                self.all_ground_truths = torch.zeros((self.num_transformations, self.image_size, self.image_size, 2))
+            # keep track for all D4 transformation
+            self.all_d4_images_1_pt = torch.zeros((self.num_transformations, self.image_size, self.image_size, 3))
+            self.all_d4_images_2_pt = torch.zeros((self.num_transformations, self.image_size, self.image_size, 3))
+            self.all_ground_truths = torch.zeros((self.num_transformations, self.image_size, self.image_size, 2))
 
-                d4_index = 0
-                for is_time_reversed in all_time_reversals:
-                        for is_flipped in all_flip:
-                            for cur_rot_degree in all_rotation_degrees:
+            d4_index = 0
+            for is_time_reversed in all_time_reversals:
+                    for is_flipped in all_flip:
+                        for cur_rot_degree in all_rotation_degrees:
 
-                                # modify the input image tensor alone with its ground truth
-                                # rotation
-                                if cur_rot_degree:
-                                    self.all_d4_images_1_pt[d4_index], \
-                                    self.all_d4_images_2_pt[d4_index], \
-                                    self.all_ground_truths[d4_index] = nero_transform.rotate_piv_data(self.loaded_image_1_pt,
-                                                                                                        self.loaded_image_2_pt,
-                                                                                                        self.loaded_image_label_pt,
-                                                                                                        cur_rot_degree)
-                                # flip
-                                elif is_flipped:
-                                    self.all_d4_images_1_pt[d4_index], \
-                                    self.all_d4_images_2_pt[d4_index], \
-                                    self.all_ground_truths[d4_index] = nero_transform.flip_piv_data(self.loaded_image_1_pt,
+                            # modify the input image tensor alone with its ground truth
+                            # rotation
+                            if cur_rot_degree:
+                                self.all_d4_images_1_pt[d4_index], \
+                                self.all_d4_images_2_pt[d4_index], \
+                                self.all_ground_truths[d4_index] = nero_transform.rotate_piv_data(self.loaded_image_1_pt,
+                                                                                                    self.loaded_image_2_pt,
+                                                                                                    self.loaded_image_label_pt,
+                                                                                                    cur_rot_degree)
+                            # flip
+                            elif is_flipped:
+                                self.all_d4_images_1_pt[d4_index], \
+                                self.all_d4_images_2_pt[d4_index], \
+                                self.all_ground_truths[d4_index] = nero_transform.flip_piv_data(self.loaded_image_1_pt,
+                                                                                                self.loaded_image_2_pt,
+                                                                                                self.loaded_image_label_pt)
+
+                            # time reverse
+                            elif is_time_reversed:
+                                self.all_d4_images_1_pt[d4_index], \
+                                self.all_d4_images_2_pt[d4_index], \
+                                self.all_ground_truths[d4_index] = nero_transform.reverse_piv_data(self.loaded_image_1_pt,
                                                                                                     self.loaded_image_2_pt,
                                                                                                     self.loaded_image_label_pt)
 
-                                # time reverse
-                                elif is_time_reversed:
-                                    self.all_d4_images_1_pt[d4_index], \
-                                    self.all_d4_images_2_pt[d4_index], \
-                                    self.all_ground_truths[d4_index] = nero_transform.reverse_piv_data(self.loaded_image_1_pt,
-                                                                                                        self.loaded_image_2_pt,
-                                                                                                        self.loaded_image_label_pt)
+                            # no transformation at all
+                            else:
+                                self.all_d4_images_1_pt[d4_index] = self.loaded_image_1_pt
+                                self.all_d4_images_2_pt[d4_index] = self.loaded_image_2_pt
+                                self.all_ground_truths[d4_index] = self.loaded_image_label_pt
 
-                                # no transformation at all
-                                else:
-                                    self.all_d4_images_1_pt[d4_index] = self.loaded_image_1_pt
-                                    self.all_d4_images_2_pt[d4_index] = self.loaded_image_2_pt
-                                    self.all_ground_truths[d4_index] = self.loaded_image_label_pt
+                            # update index
+                            d4_index += 1
 
-                                # update index
-                                d4_index += 1
+            # when in single mode
+            if self.data_mode == 'single':
+                # initialize input image control
+                init_input_control()
 
                 # all_quantities has shape (16, 256, 256, 2)
                 if self.use_cache:
@@ -2373,6 +2376,9 @@ class UI_MainWindow(QWidget):
             elif self.data_mode == 'aggregate':
                 # display the GIF
                 self.display_image()
+
+                # initialize input image control
+                init_input_control()
 
                 # display the piv single case result
                 self.triangle_index = 0
