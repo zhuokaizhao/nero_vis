@@ -1400,9 +1400,8 @@ class UI_MainWindow(QWidget):
                     all_high_dim_points_2[i, j] = cur_value_2
 
                 elif self.mode == 'piv':
-
-                    all_high_dim_points_1[i, j] = self.cur_plot_quantity_1[j, index]
-                    all_high_dim_points_2[i, j] = self.cur_plot_quantity_2[j, index]
+                    all_high_dim_points_1[i, j] = self.cur_plot_quantity_1_loss[j][i]
+                    all_high_dim_points_2[i, j] = self.cur_plot_quantity_2_loss[j][i]
 
         # get the average intensity of each sample
         all_intensity_1 = np.mean(all_high_dim_points_1, axis=1)
@@ -1650,7 +1649,6 @@ class UI_MainWindow(QWidget):
                 self.save_to_cache(name=f'{self.mode}_{self.data_mode}_{self.model_2_cache_name}_recall', content=self.aggregate_recall_2)
                 self.save_to_cache(name=f'{self.mode}_{self.data_mode}_{self.model_2_cache_name}_mAP', content=self.aggregate_mAP_2)
                 self.save_to_cache(name=f'{self.mode}_{self.data_mode}_{self.model_2_cache_name}_F_measure', content=self.aggregate_F_measure_2)
-
 
             # display the result
             self.display_coco_aggregate_result()
@@ -3652,6 +3650,7 @@ class UI_MainWindow(QWidget):
 
         # helper function on compute, normalize the loss and display quantity
         def compute_nero_plot_quantity():
+            print('compute nero plot quantity')
             # compute loss using torch loss module
             if self.quantity_name == 'RMSE':
                 self.aggregate_loss_module = nero_utilities.RMSELoss()
@@ -3662,10 +3661,18 @@ class UI_MainWindow(QWidget):
             elif self.quantity_name == 'AEE':
                 self.aggregate_loss_module = nero_utilities.AEELoss()
 
+            # quantities used to plot aggregate
             self.aggregate_avg_loss_1 = np.zeros((self.num_transformations))
             self.aggregate_avg_loss_2 = np.zeros((self.num_transformations))
+            self.cur_plot_quantity_1 = np.zeros((self.num_transformations))
+            self.cur_plot_quantity_2 = np.zeros((self.num_transformations))
             self.error_min = 1000000
             self.error_max = 0
+
+            # detailed information used to do dimension reduction and later individual NERO plot
+            self.cur_plot_quantity_1_loss = np.zeros(self.num_transformations, dtype=np.ndarray)
+            self.cur_plot_quantity_2_loss = np.zeros(self.num_transformations, dtype=np.ndarray)
+
             for i in range(self.num_transformations):
                 # sum of plot quantities of all or certain class
                 all_samples_loss_1 = []
@@ -3673,22 +3680,25 @@ class UI_MainWindow(QWidget):
                 for j in range(len(self.aggregate_outputs_1[i])):
                     # either all the classes or one specific class
                     if self.class_selection == 'all' or self.class_selection == self.loaded_images_labels[j]:
-                        # compute the loss of current sample
+                        # compute the loss of current single sample
                         cur_sample_loss_1 = self.aggregate_loss_module(self.aggregate_ground_truths[i][j], self.aggregate_outputs_1[i][j]).item()
                         cur_sample_loss_2 = self.aggregate_loss_module(self.aggregate_ground_truths[i][j], self.aggregate_outputs_2[i][j]).item()
                         # print(cur_sample_loss_1, cur_sample_loss_2)
                         all_samples_loss_1.append(cur_sample_loss_1)
                         all_samples_loss_2.append(cur_sample_loss_2)
-                # print(cur_sample_loss_1)
-                # print(cur_sample_loss_2)
-                # exit()
-                self.error_min = min(self.error_min, np.min(all_samples_loss_1), np.min(all_samples_loss_2))
-                self.error_max = max(self.error_min, np.max(all_samples_loss_1), np.max(all_samples_loss_2))
 
+                        self.error_min = min(self.error_min, cur_sample_loss_1, cur_sample_loss_2)
+                        self.error_max = max(self.error_max, cur_sample_loss_1, cur_sample_loss_2)
+
+                # save the detailed result
+                self.cur_plot_quantity_1_loss[i] = all_samples_loss_1
+                self.cur_plot_quantity_2_loss[i] = all_samples_loss_2
                 # take the average result
                 self.aggregate_avg_loss_1[i] = np.mean(all_samples_loss_1)
                 self.aggregate_avg_loss_2[i] = np.mean(all_samples_loss_2)
-            # print(self.error_min, self.error_max)
+
+            print(self.error_min, self.error_max)
+
             # normalize the loss to be between 0 and 1 and flip it
             self.cur_plot_quantity_1 = 1 - nero_utilities.lerp(self.aggregate_avg_loss_1, self.error_min, self.error_max, 0, 1)
             self.cur_plot_quantity_2 = 1 - nero_utilities.lerp(self.aggregate_avg_loss_2, self.error_min, self.error_max, 0, 1)
@@ -3700,13 +3710,13 @@ class UI_MainWindow(QWidget):
             self.quantity_name = text
 
             if text == 'RMSE':
-                self.cur_plot_quantity_1 = text
+                self.quantity_name = text
             elif text == 'MSE':
-                self.cur_plot_quantity_1 = text
+                self.quantity_name = text
             elif text == 'MAE':
-                self.cur_plot_quantity_1 = text
+                self.quantity_name = text
             elif text == 'AEE':
-                self.cur_plot_quantity_1 = text
+                self.quantity_name = text
 
             # compute the quantity to plot
             compute_nero_plot_quantity()
@@ -3763,13 +3773,13 @@ class UI_MainWindow(QWidget):
         # helper function on compute, normalize the loss and display quantity
         def compute_nero_plot_quantity():
             # compute loss using torch loss module
-            if self.cur_plot_quantity == 'RMSE':
+            if self.quantity_name == 'RMSE':
                 self.loss_module = nero_utilities.RMSELoss()
-            elif self.cur_plot_quantity == 'MSE':
+            elif self.quantity_name == 'MSE':
                 self.loss_module = torch.nn.MSELoss()
-            elif self.cur_plot_quantity == 'MAE':
+            elif self.quantity_name == 'MAE':
                 self.loss_module = torch.nn.L1Loss()
-            elif self.cur_plot_quantity == 'AEE':
+            elif self.quantity_name == 'AEE':
                 self.loss_module = nero_utilities.AEELoss()
 
             for i in range(self.num_transformations):
@@ -3785,7 +3795,7 @@ class UI_MainWindow(QWidget):
         @QtCore.Slot()
         def piv_plot_quantity_changed(text):
             print('Plotting:', text, 'on detailed PIV plots')
-            self.cur_plot_quantity = text
+            self.quantity_name = text
 
             # compute the quantity needed to plot individual NERO plot
             compute_nero_plot_quantity()
