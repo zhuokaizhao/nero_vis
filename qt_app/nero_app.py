@@ -2735,112 +2735,19 @@ class UI_MainWindow(QWidget):
 
 
     # helper function on drawing individual heatmap (called by both individual and aggregate cases)
-    def draw_individual_heatmap(self, mode, data, title=None, range=(0, 1)):
-
-        outer_class_self = self
-        # subclass of ImageItem that reimplements the control methods
-        class COCO_heatmap(pg.ImageItem):
-            def __init__(self, view_box, scatter_item, rect_size=3):
-                super().__init__()
-                self.rect_size= rect_size
-                self.view_box = view_box
-                self.scatter_item = scatter_item
-
-            def mouseClickEvent(self, event):
-                print(f'Clicked on heatmap at ({event.pos().x()}, {event.pos().y()})')
-                # in COCO mode, clicked location indicates translation
-                # draw a point(rect) that represents current selection of location
-                outer_class_self.cur_x_tran = int(event.pos().x())
-                outer_class_self.cur_y_tran = int(event.pos().y())
-
-                # remove existing dot
-                self.view_box.removeItem(self.scatter_item)
-                self.scatter_item = pg.ScatterPlotItem(pxMode=False)
-                scatter_point = []
-
-                scatter_point.append({'pos': (outer_class_self.cur_x_tran, outer_class_self.cur_y_tran),
-                                        'size': self.rect_size,
-                                        'pen': {'color': 'red', 'width': 0.1},
-                                        'brush': (255, 0, 0, 255)})
-
-                # add points to the item
-                self.scatter_item.addPoints(scatter_point)
-                self.view_box.addItem(self.scatter_item)
-
-                # udpate the correct coco label
-                outer_class_self.update_coco_label()
-
-                # update the input image with FOV mask and ground truth labelling
-                outer_class_self.display_coco_image()
-
-                # redisplay model output
-                outer_class_self.draw_model_output()
-
-
-        # subclass of ImageItem that reimplements the control methods
-        class PIV_heatmap(pg.ImageItem):
-            def mouseClickEvent(self, event):
-                print("Clicked on heatmap at", event.pos())
-                # in COCO mode, clicked location indicates translation
-                # draw a point(rect) that represents current selection of location
-                # small indicator on where the translation is at
-                scatter_item = pg.ScatterPlotItem(pxMode=False)
-                scatter_point = []
-
-                scatter_point.append({'pos': (self.cur_x_tran, self.cur_y_tran),
-                                        'size': 3,
-                                        'pen': {'color': 'red', 'width': 0.1},
-                                        'brush': (255, 0, 0, 255)})
-
-                # add points to the item
-                scatter_item.addPoints(scatter_point)
-                view_box.addItem(scatter_item)
-
-
-            def mouseDragEvent(self, event):
-                if event.isStart():
-                    print("Start drag", event.pos())
-                elif event.isFinish():
-                    print("Stop drag", event.pos())
-                else:
-                    print("Drag", event.pos())
-
-            def hoverEvent(self, event):
-                if not event.isExit():
-                    # the mouse is hovering over the image; make sure no other items
-                    # will receive left click/drag events from here.
-                    event.acceptDrags(pg.QtCore.Qt.LeftButton)
-                    event.acceptClicks(pg.QtCore.Qt.LeftButton)
-
-        # create view box to contain the heatmap
-        view_box = pg.ViewBox()
-        view_box.setAspectLocked(lock=True)
+    def draw_individual_heatmap(self, mode, view_box, heatmap, data, scatter_item, title=None, range=(0, 1)):
 
         # small indicator on where the translation is at
         if self.mode == 'object_detection' and mode == 'single':
-            self.scatter_item = pg.ScatterPlotItem(pxMode=False)
             scatter_point = []
-
             scatter_point.append({'pos': (self.cur_x_tran, self.cur_y_tran),
                                     'size': 3,
                                     'pen': {'color': 'red', 'width': 0.1},
                                     'brush': (255, 0, 0, 255)})
 
             # add points to the item
-            self.scatter_item.addPoints(scatter_point)
-            view_box.addItem(self.scatter_item)
-
-        # actuall heatmap
-        if self.mode == 'object_detection':
-            if mode == 'aggregate':
-                heatmap = pg.ImageItem()
-            elif mode == 'single':
-                heatmap = COCO_heatmap(view_box, self.scatter_item)
-        elif self.mode == 'piv':
-            if mode == 'aggregate':
-                heatmap = pg.ImageItem()
-            elif mode == 'single':
-                heatmap = PIV_heatmap(view_box)
+            scatter_item.addPoints(scatter_point)
+            view_box.addItem(scatter_item)
 
         heatmap.setOpts(axisOrder='row-major')
         heatmap.setImage(data)
@@ -2893,6 +2800,85 @@ class UI_MainWindow(QWidget):
 
         # add to general layout
         if mode == 'single':
+            outer_self = self
+            # subclass of ImageItem that reimplements the control methods
+            class COCO_heatmap(pg.ImageItem):
+                def __init__(self):
+                    super().__init__()
+
+                def mouseClickEvent(self, event):
+                    print(f'Clicked on heatmap at ({event.pos().x()}, {event.pos().y()})')
+                    # in COCO mode, clicked location indicates translation
+                    # draw a point(rect) that represents current selection of location
+                    outer_self.cur_x_tran = int(event.pos().x()//outer_self.translation_step_single) * outer_self.translation_step_single
+                    outer_self.cur_y_tran = int(event.pos().y()//outer_self.translation_step_single) * outer_self.translation_step_single
+                    print(f'Correspond to x_tran = {outer_self.cur_x_tran}, y_tran = {outer_self.cur_y_tran}')
+
+                    # remove existing dot from both scatter plots
+                    outer_self.heatmap_plot_1.removeItem(outer_self.scatter_item_1)
+                    outer_self.heatmap_plot_2.removeItem(outer_self.scatter_item_2)
+
+                    # outer_self.view_box_1.removeItem(outer_self.scatter_item_1)
+                    # outer_self.view_box_2.removeItem(outer_self.scatter_item_2)
+                    scatter_point = []
+                    scatter_point.append({'pos': (outer_self.cur_x_tran+outer_self.translation_step_single//2,
+                                                    outer_self.cur_y_tran+outer_self.translation_step_single//2),
+                                            'size': outer_self.translation_step_single,
+                                            'pen': {'color': 'red', 'width': 1},
+                                            'brush': (255, 0, 0, 255)})
+
+                    # add points to both views
+                    outer_self.scatter_item_1.setData(scatter_point)
+                    outer_self.scatter_item_2.setData(scatter_point)
+                    outer_self.heatmap_plot_1.addItem(outer_self.scatter_item_1)
+                    outer_self.heatmap_plot_2.addItem(outer_self.scatter_item_2)
+
+                    # udpate the correct coco label
+                    outer_self.update_coco_label()
+
+                    # update the input image with FOV mask and ground truth labelling
+                    outer_self.display_coco_image()
+
+                    # redisplay model output
+                    outer_self.draw_model_output()
+
+
+            # subclass of ImageItem that reimplements the control methods
+            class PIV_heatmap(pg.ImageItem):
+                def mouseClickEvent(self, event):
+                    print("Clicked on heatmap at", event.pos())
+                    # in COCO mode, clicked location indicates translation
+                    # draw a point(rect) that represents current selection of location
+                    # small indicator on where the translation is at
+                    scatter_item = pg.ScatterPlotItem(pxMode=False)
+                    scatter_point = []
+
+                    scatter_point.append({'pos': (self.cur_x_tran, self.cur_y_tran),
+                                            'size': 3,
+                                            'pen': {'color': 'red', 'width': 0.1},
+                                            'brush': (255, 0, 0, 255)})
+
+                    # add points to the item
+                    scatter_item.addPoints(scatter_point)
+                    view_box.addItem(scatter_item)
+
+
+                def mouseDragEvent(self, event):
+                    if event.isStart():
+                        print("Start drag", event.pos())
+                    elif event.isFinish():
+                        print("Stop drag", event.pos())
+                    else:
+                        print("Drag", event.pos())
+
+                def hoverEvent(self, event):
+                    if not event.isExit():
+                        # the mouse is hovering over the image; make sure no other items
+                        # will receive left click/drag events from here.
+                        event.acceptDrags(pg.QtCore.Qt.LeftButton)
+                        event.acceptClicks(pg.QtCore.Qt.LeftButton)
+
+
             # heatmap view
             self.heatmap_view_1 = pg.GraphicsLayoutWidget()
             # left top right bottom
@@ -2902,10 +2888,22 @@ class UI_MainWindow(QWidget):
             # left top right bottom
             self.heatmap_view_2.ci.layout.setContentsMargins(0, 20, 0, 0)
             self.heatmap_view_2.setFixedSize(self.plot_size*1.3, self.plot_size*1.3)
-            self.heatmap_plot_1 = self.draw_individual_heatmap('single', data_1)
-            self.heatmap_plot_2 = self.draw_individual_heatmap('single', data_2)
-            # self.view_box_1.scene().sigMouseClicked.connect(heatmap_mouse_clicked(self.view_box_1))
-            # self.view_box_2.scene().sigMouseClicked.connect(heatmap_mouse_clicked(self.view_box_2))
+
+            # create view box to contain the heatmaps
+            self.view_box_1 = pg.ViewBox()
+            self.view_box_1.setAspectLocked(lock=True)
+            self.single_nero_1 = COCO_heatmap()
+            self.scatter_item_1 = pg.ScatterPlotItem(pxMode=False)
+            self.scatter_item_1.setSymbol('s')
+
+            self.view_box_2 = pg.ViewBox()
+            self.view_box_2.setAspectLocked(lock=True)
+            self.single_nero_2 = COCO_heatmap()
+            self.scatter_item_2 = pg.ScatterPlotItem(pxMode=False)
+            self.scatter_item_2.setSymbol('s')
+
+            self.heatmap_plot_1 = self.draw_individual_heatmap('single', self.view_box_1, self.single_nero_1, data_1, self.scatter_item_1)
+            self.heatmap_plot_2 = self.draw_individual_heatmap('single', self.view_box_2, self.single_nero_2, data_2, self.scatter_item_2)
 
             # add to view
             self.heatmap_view_1.addItem(self.heatmap_plot_1)
