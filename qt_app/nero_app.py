@@ -2748,7 +2748,7 @@ class UI_MainWindow(QWidget):
         # subclass of ImageItem that reimplements the control methods
         outer_class_self = self
         class COCO_heatmap(pg.ImageItem):
-            def __init__(self, view_box, rect_size):
+            def __init__(self, view_box, rect_size=3):
                 super().__init__()
                 self.rect_size= rect_size
                 self.view_box = view_box
@@ -2770,6 +2770,8 @@ class UI_MainWindow(QWidget):
                 # add points to the item
                 scatter_item.addPoints(scatter_point)
                 self.view_box.addItem(scatter_item)
+
+
 
             # def mouseDragEvent(self, event):
             #     if event.isStart():
@@ -2827,16 +2829,21 @@ class UI_MainWindow(QWidget):
 
         # actuall heatmap
         if self.mode == 'object_detection':
-            self.heatmap = COCO_heatmap(view_box, self.translation_step_single)
-            # self.heatmap = pg.ImageItem()
+            if mode == 'aggregate':
+                heatmap = pg.ImageItem()
+            elif mode == 'single':
+                heatmap = COCO_heatmap(view_box)
         elif self.mode == 'piv':
-            self.heatmap = PIV_heatmap()
+            if mode == 'aggregate':
+                heatmap = pg.ImageItem()
+            elif mode == 'single':
+                heatmap = PIV_heatmap(view_box)
 
-        self.heatmap.setOpts(axisOrder='row-major')
-        self.heatmap.setImage(data)
+        heatmap.setOpts(axisOrder='row-major')
+        heatmap.setImage(data)
 
         # add image to the viewbox
-        view_box.addItem(self.heatmap)
+        view_box.addItem(heatmap)
 
         if self.mode == 'object_detection' and mode == 'single':
             # small indicator on where the translation is at
@@ -2870,7 +2877,7 @@ class UI_MainWindow(QWidget):
         # create colorbar
         color_map = pg.colormap.get('viridis')
         color_bar = pg.ColorBarItem(values=range, colorMap=color_map)
-        color_bar.setImageItem(self.heatmap, insert_in=heatmap_plot)
+        color_bar.setImageItem(heatmap, insert_in=heatmap_plot)
 
         return heatmap_plot
 
