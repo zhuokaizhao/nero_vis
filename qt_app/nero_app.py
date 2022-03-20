@@ -446,6 +446,7 @@ class UI_MainWindow(QWidget):
                                          loop=0)
 
             # load the ground truth flow field
+            self.label_path = self.image_1_path.replace('img1', 'flow').replace('tif', 'flo')
             self.loaded_image_label_pt = torch.from_numpy(fz.read_flow(self.label_path))
 
 
@@ -1290,32 +1291,49 @@ class UI_MainWindow(QWidget):
             # get the clicked scatter item's information
             self.image_index = int(item.opts['name'])
 
-            # start single result view from here
-            # if not self.image_existed:
-            #     self.init_single_result_layout()
-
             # get the corresponding image path
-            self.image_path = self.all_images_paths[self.image_index]
-            print(f'Selected image at {self.image_path}')
+            if self.mode == 'digit_recognition' or self.mode == 'object_detection':
+                self.image_path = self.all_images_paths[self.image_index]
+                print(f'Selected image at {self.image_path}')
+            elif self.mode == 'piv':
+                self.image_1_path = self.all_images_1_paths[self.image_index]
+                self.image_2_path = self.all_images_2_paths[self.image_index]
+                print(f'Selected image 1 at {self.image_1_path}')
+                print(f'Selected image 2 at {self.image_2_path}')
+                self.all_ground_truths = self.aggregate_ground_truths[:, self.image_index]
 
             # load the image
-            if self.mode == 'digit_recognition':
-                self.load_single_image()
-            elif self.mode == 'object_detection':
-                self.load_single_image()
+            self.load_single_image()
 
-            # convert to QImage for display purpose
-            self.cur_display_image = nero_utilities.tensor_to_qt_image(self.cur_image_pt)
-            # resize the display QImage
-            self.cur_display_image = self.cur_display_image.scaledToWidth(self.display_image_size)
-
+            # display individual view
             if self.mode == 'digit_recognition':
-                # display the image
-                self.display_image()
+                # convert to QImage for display purpose
+                self.cur_display_image = nero_utilities.tensor_to_qt_image(self.cur_image_pt)
+                # resize the display QImage
+                self.cur_display_image = self.cur_display_image.scaledToWidth(self.display_image_size)
                 # prepare image tensor for model purpose
                 self.cur_image_pt = nero_transform.prepare_mnist_image(self.cur_image_pt)
                 # run model once and display results (Detailed bar plot)
                 self.run_model_once()
+
+            elif self.mode == 'object_detection':
+                # convert to QImage for display purpose
+                self.cur_display_image = nero_utilities.tensor_to_qt_image(self.cur_image_pt)
+                # resize the display QImage
+                self.cur_display_image = self.cur_display_image.scaledToWidth(self.display_image_size)
+
+            elif self.mode == 'piv':
+                # create new GIF
+                display_image_1_pil = Image.fromarray(self.cur_image_1_pt.numpy(), 'RGB')
+                display_image_2_pil = Image.fromarray(self.cur_image_2_pt.numpy(), 'RGB')
+                other_images_pil = [display_image_1_pil, display_image_2_pil, display_image_2_pil, self.blank_image_pil]
+                self.gif_path = os.path.join(self.cache_dir, self.loaded_image_1_name.split('.')[0] + '.gif')
+                display_image_1_pil.save(fp=self.gif_path,
+                                            format='GIF',
+                                            append_images=other_images_pil,
+                                            save_all=True,
+                                            duration=400,
+                                            loop=0)
 
             # run model all and display results (Individual NERO plot)
             self.run_model_all()
@@ -1820,6 +1838,9 @@ class UI_MainWindow(QWidget):
         self.all_quantities_2 = []
 
         if self.mode == 'digit_recognition':
+            # display the image
+            self.display_image()
+
             self.all_angles = []
             # run all rotation test with 5 degree increment
             for self.cur_rotation_angle in range(0, 360+self.rotation_step, self.rotation_step):
@@ -2205,7 +2226,10 @@ class UI_MainWindow(QWidget):
                 self.gif_control_layout = QtWidgets.QHBoxLayout()
                 self.gif_control_layout.setAlignment(QtGui.Qt.AlignTop)
                 self.gif_control_layout.setContentsMargins(50, 0, 50, 50)
-                self.single_result_layout.addLayout(self.gif_control_layout, 2, 0)
+                if self.data_mode == 'single':
+                    self.single_result_layout.addLayout(self.gif_control_layout, 2, 0)
+                elif self.data_mode == 'aggregate':
+                    self.aggregate_result_layout.addLayout(self.gif_control_layout, 2, 3)
 
                 # rotate 90 degrees counter-closewise
                 self.rotate_90_ccw_button = QtWidgets.QPushButton(self)
@@ -2342,7 +2366,12 @@ class UI_MainWindow(QWidget):
 
             # when in aggregate mode but a certain sample has been selected
             elif self.data_mode == 'aggregate':
-                raise NotImplementedError
+                # display the GIF
+                self.display_image()
+
+                # display the piv single case result
+                self.triangle_index = 0
+                self.display_piv_single_result()
 
 
     # draw an arrow, used between input image(s) and model outputs
@@ -3861,10 +3890,28 @@ class UI_MainWindow(QWidget):
             self.cur_plot_quantity_2 = 1 - self.cur_plot_quantity_2
 
         elif self.data_mode == 'aggregate':
-            raise NotImplementedError
+            # add plot control layout to general layout
+            self.aggregate_result_layout.addLayout(self.single_plot_control_layout, 0, 3)
+            # plot quantity in individual nero plot
+            self.cur_plot_quantity_1 = np.zeros(self.num_transformations)
+            self.cur_plot_quantity_2 = np.zeros(self.num_transformations)
+
+            # compute average error as the largest and smallest for normalization
+            # not using individual pixel min/max because some have too large perks
+            for i in range(len(self.all_ground_truths)):
+                self.cur_plot_quantity_1[i] = self.loss_module(self.all_ground_truths[i], self.all_quantities_1[i], reduction='mean').numpy()
+                self.cur_plot_quantity_2[i] = self.loss_module(self.all_ground_truths[i], self.all_quantities_2[i], reduction='mean').numpy()
+
+            # normalize the losses
+            self.cur_plot_quantity_1 = nero_utilities.lerp(self.cur_plot_quantity_1, self.error_min, self.error_max, 0, 1)
+            self.cur_plot_quantity_2 = nero_utilities.lerp(self.cur_plot_quantity_2, self.error_min, self.error_max, 0, 1)
+
+            # average element-wise loss to scalar and normalize between 0 and 1
+            self.cur_plot_quantity_1 = 1 - self.cur_plot_quantity_1
+            self.cur_plot_quantity_2 = 1 - self.cur_plot_quantity_2
 
         # visualize the individual NERO plot of the current input
-        self.draw_d4_nero(mode='single')
+        self.draw_d4_nero(mode='aggregate')
 
         # the detailed plot of PIV
         self.draw_piv_details()
