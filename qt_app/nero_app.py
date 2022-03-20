@@ -1835,6 +1835,72 @@ class UI_MainWindow(QWidget):
         return bb_min_x, bb_min_y, bb_max_x, bb_max_y
 
 
+    # helper function on redisplaying COCO input image with FOV mask and ground truth labelling
+    def display_coco_image(self):
+        # display the whole image
+        self.display_image()
+
+        x_tran = self.cur_x_tran + self.x_translation[0]
+        y_tran = -(self.cur_y_tran + self.y_translation[0])
+
+        display_rect_width = self.display_image_size/2
+        display_rect_height = self.display_image_size/2
+        # since the translation measures on the movement of object instead of the point of view, the sign is reversed
+        rect_center_x = self.display_image_size/2 - x_tran * (self.display_image_size/self.uncropped_image_size)
+        rect_center_y = self.display_image_size/2 - y_tran * (self.display_image_size/self.uncropped_image_size)
+
+        # draw rectangles on the displayed image to indicate scanning process
+        painter = QtGui.QPainter(self.image_pixmap)
+        # draw the rectangles
+        cover_color = QtGui.QColor(65, 65, 65, 225)
+        self.draw_fov_mask(painter, rect_center_x, rect_center_y, display_rect_width, display_rect_height, cover_color)
+
+        # end the painter
+        painter.end()
+
+        # draw ground truth label on the display image
+        # draw rectangle on the displayed image to indicate scanning process
+        painter = QtGui.QPainter(self.image_pixmap)
+        # draw the ground truth label
+        gt_display_center_x = (self.cur_image_label[0, 1] + self.cur_image_label[0, 3]) / 2 * (display_rect_width/self.image_size) + (rect_center_x - display_rect_width/2)
+        gt_display_center_y = (self.cur_image_label[0, 2] + self.cur_image_label[0, 4]) / 2 * (display_rect_height/self.image_size) + (rect_center_y - display_rect_height/2)
+        gt_display_rect_width = (self.cur_image_label[0, 3] - self.cur_image_label[0, 1]) * (display_rect_width/self.image_size)
+        gt_display_rect_height = (self.cur_image_label[0, 4] - self.cur_image_label[0, 2]) * (display_rect_height/self.image_size)
+        self.draw_rectangle(painter, gt_display_center_x, gt_display_center_y, gt_display_rect_width, gt_display_rect_height, color='yellow', label='Ground Truth')
+        painter.end()
+
+        # update pixmap with the label
+        self.image_label.setPixmap(self.image_pixmap)
+
+        # force repaint
+        self.image_label.repaint()
+
+
+    # helper function on update the correct label when coco input is changed by user
+    def update_coco_label(self):
+        x_tran = self.cur_x_tran + self.x_translation[0]
+        y_tran = -(self.cur_y_tran + self.y_translation[0])
+        # modify the underlying image tensor accordingly
+        # take the cropped part of the entire input image
+        cur_center_x = self.center_x - x_tran
+        cur_center_y = self.center_y - y_tran
+        self.x_min = cur_center_x - self.image_size//2
+        self.x_max = cur_center_x + self.image_size//2
+        self.y_min = cur_center_y - self.image_size//2
+        self.y_max = cur_center_y + self.image_size//2
+        # model takes image between [0, 1]
+        self.cropped_image_pt = self.loaded_image_pt[self.y_min:self.y_max, self.x_min:self.x_max, :] / 255
+
+        self.cur_image_label = np.zeros((len(self.loaded_image_label), 6))
+        for i in range(len(self.cur_image_label)):
+            # object index
+            self.cur_image_label[i, 0] = i
+            # since PyTorch FasterRCNN has 0 as background
+            self.cur_image_label[i, 5] = self.loaded_image_label[i, 4] + 1
+            # modify the label accordingly
+            self.cur_image_label[i, 1:5] = self.compute_label(self.loaded_image_label[i, :4], self.x_min, self.y_min, (self.image_size, self.image_size))
+
+
     # run model on all the available transformations on a single sample
     def run_model_all(self):
 
@@ -1889,8 +1955,8 @@ class UI_MainWindow(QWidget):
                 self.all_translations = np.zeros((num_y_translations, num_x_translations, 2))
 
                 if self.use_cache:
-                    self.all_quantities_1 = self.load_from_cache(name=f'single_{self.model_1_cache_name}_{self.image_index}')
-                    self.all_quantities_2 = self.load_from_cache(name=f'single_{self.model_2_cache_name}_{self.image_index}')
+                    self.all_quantities_1 = self.load_from_cache(name=f'{self.mode}_{self.data_mode}_{self.model_1_cache_name}_{self.image_index}')
+                    self.all_quantities_2 = self.load_from_cache(name=f'{self.mode}_{self.data_mode}_{self.model_2_cache_name}_{self.image_index}')
                 else:
                     self.all_quantities_1 = np.zeros((num_y_translations, num_x_translations, 7))
                     self.all_quantities_2 = np.zeros((num_y_translations, num_x_translations, 7))
@@ -1905,64 +1971,16 @@ class UI_MainWindow(QWidget):
                         # all_translations are for book keeping
                         self.all_translations[y, x] = [x_tran, y_tran]
 
-                        # modify the underlying image tensor accordingly
-                        # take the cropped part of the entire input image
-                        cur_center_x = self.center_x - x_tran
-                        cur_center_y = self.center_y - y_tran
-                        self.x_min = cur_center_x - self.image_size//2
-                        self.x_max = cur_center_x + self.image_size//2
-                        self.y_min = cur_center_y - self.image_size//2
-                        self.y_max = cur_center_y + self.image_size//2
-                        # model takes image between [0, 1]
-                        self.cropped_image_pt = self.loaded_image_pt[self.y_min:self.y_max, self.x_min:self.x_max, :] / 255
+                        # udpate the correct coco label
+                        self.update_coco_label()
 
-                        self.cur_image_label = np.zeros((len(self.loaded_image_label), 6))
-                        for i in range(len(self.cur_image_label)):
-                            # object index
-                            self.cur_image_label[i, 0] = i
-                            # since PyTorch FasterRCNN has 0 as background
-                            self.cur_image_label[i, 5] = self.loaded_image_label[i, 4] + 1
-                            # modify the label accordingly
-                            self.cur_image_label[i, 1:5] = self.compute_label(self.loaded_image_label[i, :4], self.x_min, self.y_min, (self.image_size, self.image_size))
-
+                        # skip running model if using cache
                         if self.use_cache:
                             continue
 
                         # re-display image for each rectangle drawn every 8 steps
                         if (x_tran)%2 == 0 and (y_tran)%2 == 0:
-                            self.display_image()
-
-                            display_rect_width = self.display_image_size/2
-                            display_rect_height = self.display_image_size/2
-                            # since the translation measures on the movement of object instead of the point of view, the sign is reversed
-                            rect_center_x = self.display_image_size/2 - x_tran * (self.display_image_size/self.uncropped_image_size)
-                            rect_center_y = self.display_image_size/2 - y_tran * (self.display_image_size/self.uncropped_image_size)
-
-                            # draw rectangles on the displayed image to indicate scanning process
-                            painter = QtGui.QPainter(self.image_pixmap)
-                            # draw the rectangles
-                            cover_color = QtGui.QColor(65, 65, 65, 225)
-                            self.draw_fov_mask(painter, rect_center_x, rect_center_y, display_rect_width, display_rect_height, cover_color)
-
-                            # end the painter
-                            painter.end()
-
-                            # draw ground truth label on the display image
-                            # draw rectangle on the displayed image to indicate scanning process
-                            painter = QtGui.QPainter(self.image_pixmap)
-                            # draw the ground truth label
-                            gt_display_center_x = (self.cur_image_label[0, 1] + self.cur_image_label[0, 3]) / 2 * (display_rect_width/self.image_size) + (rect_center_x - display_rect_width/2)
-                            gt_display_center_y = (self.cur_image_label[0, 2] + self.cur_image_label[0, 4]) / 2 * (display_rect_height/self.image_size) + (rect_center_y - display_rect_height/2)
-                            gt_display_rect_width = (self.cur_image_label[0, 3] - self.cur_image_label[0, 1]) * (display_rect_width/self.image_size)
-                            gt_display_rect_height = (self.cur_image_label[0, 4] - self.cur_image_label[0, 2]) * (display_rect_height/self.image_size)
-                            self.draw_rectangle(painter, gt_display_center_x, gt_display_center_y, gt_display_rect_width, gt_display_rect_height, color='yellow', label='Ground Truth')
-                            painter.end()
-
-                            # update pixmap with the label
-                            self.image_label.setPixmap(self.image_pixmap)
-
-                            # force repaint
-                            self.image_label.repaint()
+                            self.display_coco_image()
 
                         # run the model
                         # update the model output
@@ -1990,32 +2008,7 @@ class UI_MainWindow(QWidget):
 
                 # display as the final x_tran, y_tran
                 if self.use_cache:
-                    self.display_image()
-                    display_rect_width = self.display_image_size/2
-                    display_rect_height = self.display_image_size/2
-                    # since the translation measures on the movement of object instead of the point of view, the sign is reversed
-                    rect_center_x = self.display_image_size/2 - x_tran * (self.display_image_size/self.uncropped_image_size)
-                    rect_center_y = self.display_image_size/2 - y_tran * (self.display_image_size/self.uncropped_image_size)
-
-                    # draw rectangles on the displayed image to indicate scanning process
-                    painter = QtGui.QPainter(self.image_pixmap)
-                    # draw the rectangles
-                    cover_color = QtGui.QColor(65, 65, 65, 225)
-                    self.draw_fov_mask(painter, rect_center_x, rect_center_y, display_rect_width, display_rect_height, cover_color)
-
-                    # draw ground truth label on the display image
-                    gt_display_center_x = (self.cur_image_label[0, 1] + self.cur_image_label[0, 3]) / 2 * (display_rect_width/self.image_size) + (rect_center_x - display_rect_width/2)
-                    gt_display_center_y = (self.cur_image_label[0, 2] + self.cur_image_label[0, 4]) / 2 * (display_rect_height/self.image_size) + (rect_center_y - display_rect_height/2)
-                    gt_display_rect_width = (self.cur_image_label[0, 3] - self.cur_image_label[0, 1]) * (display_rect_width/self.image_size)
-                    gt_display_rect_height = (self.cur_image_label[0, 4] - self.cur_image_label[0, 2]) * (display_rect_height/self.image_size)
-                    self.draw_rectangle(painter, gt_display_center_x, gt_display_center_y, gt_display_rect_width, gt_display_rect_height, color='yellow', label='Ground Truth')
-                    painter.end()
-
-                    # update pixmap with the label
-                    self.image_label.setPixmap(self.image_pixmap)
-
-                    # force repaint
-                    self.image_label.repaint()
+                    self.display_coco_image()
 
                 # save to cache
                 else:
@@ -2577,7 +2570,6 @@ class UI_MainWindow(QWidget):
 
 
     def display_image(self):
-        print('displaying image')
         # add a new label for loaded image if no imager has existed
         if not self.image_existed:
             self.image_label = QLabel(self)
@@ -2745,48 +2737,42 @@ class UI_MainWindow(QWidget):
     # helper function on drawing individual heatmap (called by both individual and aggregate cases)
     def draw_individual_heatmap(self, mode, data, title=None, range=(0, 1)):
 
-        # subclass of ImageItem that reimplements the control methods
         outer_class_self = self
+        # subclass of ImageItem that reimplements the control methods
         class COCO_heatmap(pg.ImageItem):
-            def __init__(self, view_box, rect_size=3):
+            def __init__(self, view_box, scatter_item, rect_size=3):
                 super().__init__()
                 self.rect_size= rect_size
                 self.view_box = view_box
+                self.scatter_item = scatter_item
 
             def mouseClickEvent(self, event):
                 print(f'Clicked on heatmap at ({event.pos().x()}, {event.pos().y()})')
                 # in COCO mode, clicked location indicates translation
                 # draw a point(rect) that represents current selection of location
-                self.cur_x_tran = event.pos().x()
-                self.cur_y_tran = event.pos().y()
-                scatter_item = pg.ScatterPlotItem(pxMode=False)
+                outer_class_self.cur_x_tran = int(event.pos().x())
+                outer_class_self.cur_y_tran = int(event.pos().y())
+
+                # remove existing dot
+                self.view_box.removeItem(self.scatter_item)
+                self.scatter_item = pg.ScatterPlotItem(pxMode=False)
                 scatter_point = []
 
-                scatter_point.append({'pos': (self.cur_x_tran, self.cur_y_tran),
+                scatter_point.append({'pos': (outer_class_self.cur_x_tran, outer_class_self.cur_y_tran),
                                         'size': self.rect_size,
                                         'pen': {'color': 'red', 'width': 0.1},
                                         'brush': (255, 0, 0, 255)})
 
                 # add points to the item
-                scatter_item.addPoints(scatter_point)
-                self.view_box.addItem(scatter_item)
+                self.scatter_item.addPoints(scatter_point)
+                self.view_box.addItem(self.scatter_item)
 
+                # udpate the correct coco label
+                outer_class_self.update_coco_label()
 
+                # update the input image with FOV mask and ground truth labelling
+                outer_class_self.display_coco_image()
 
-            # def mouseDragEvent(self, event):
-            #     if event.isStart():
-            #         print("Start drag", event.pos())
-            #     elif event.isFinish():
-            #         print("Stop drag", event.pos())
-            #     else:
-            #         print("Drag", event.pos())
-
-            # def hoverEvent(self, event):
-            #     if not event.isExit():
-            #         # the mouse is hovering over the image; make sure no other items
-            #         # will receive left click/drag events from here.
-            #         event.acceptDrags(pg.QtCore.Qt.LeftButton)
-            #         event.acceptClicks(pg.QtCore.Qt.LeftButton)
 
         # subclass of ImageItem that reimplements the control methods
         class PIV_heatmap(pg.ImageItem):
@@ -2827,12 +2813,26 @@ class UI_MainWindow(QWidget):
         view_box = pg.ViewBox()
         view_box.setAspectLocked(lock=True)
 
+        # small indicator on where the translation is at
+        if self.mode == 'object_detection' and mode == 'single':
+            self.scatter_item = pg.ScatterPlotItem(pxMode=False)
+            scatter_point = []
+
+            scatter_point.append({'pos': (self.cur_x_tran, self.cur_y_tran),
+                                    'size': 3,
+                                    'pen': {'color': 'red', 'width': 0.1},
+                                    'brush': (255, 0, 0, 255)})
+
+            # add points to the item
+            self.scatter_item.addPoints(scatter_point)
+            view_box.addItem(self.scatter_item)
+
         # actuall heatmap
         if self.mode == 'object_detection':
             if mode == 'aggregate':
                 heatmap = pg.ImageItem()
             elif mode == 'single':
-                heatmap = COCO_heatmap(view_box)
+                heatmap = COCO_heatmap(view_box, self.scatter_item)
         elif self.mode == 'piv':
             if mode == 'aggregate':
                 heatmap = pg.ImageItem()
@@ -2844,20 +2844,6 @@ class UI_MainWindow(QWidget):
 
         # add image to the viewbox
         view_box.addItem(heatmap)
-
-        if self.mode == 'object_detection' and mode == 'single':
-            # small indicator on where the translation is at
-            scatter_item = pg.ScatterPlotItem(pxMode=False)
-            scatter_point = []
-
-            scatter_point.append({'pos': (self.cur_x_tran, self.cur_y_tran),
-                                    'size': 3,
-                                    'pen': {'color': 'red', 'width': 0.1},
-                                    'brush': (255, 0, 0, 255)})
-
-            # add points to the item
-            scatter_item.addPoints(scatter_point)
-            view_box.addItem(scatter_item)
 
         heatmap_plot = pg.PlotItem(viewBox=view_box, title=title)
         if self.mode == 'object_detection':
@@ -2884,28 +2870,6 @@ class UI_MainWindow(QWidget):
 
     # draw heatmaps that displays the individual NERO plots (in COCO) or detailed view (in PIV)
     def draw_heatmaps(self, mode):
-
-        # helper function for clicking inside the heatmap
-        def heatmap_mouse_clicked(event, heatmap_plot):
-            self.heatmap_clicked = not self.heatmap_clicked
-            heatmap_plot.scene().items(event.scenePos())
-            # check if the click is within the polar plot
-            if heatmap_plot.sceneBoundingRect().contains(event._scenePos):
-                mouse_pos_on_heatmap = self.polar_plot.vb.mapSceneToView(event._scenePos)
-                x_pos = mouse_pos_on_heatmap.x()
-                y_pos = mouse_pos_on_heatmap.y()
-
-                print(x_pos, y_pos)
-
-                # update the model output
-                # if self.result_existed:
-                #     self.run_model_once()
-
-                # remove old point
-                # if self.cur_line:
-                #     heatmap_plot.removeItem(self.cur_point)
-
-                # draw a point(rect) that represents current selection of location
 
         # check if the data is in shape (self.image_size, self.image_size)
         if self.cur_plot_quantity_1.shape != (self.image_size, self.image_size):
