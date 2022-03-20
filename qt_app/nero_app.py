@@ -2758,9 +2758,9 @@ class UI_MainWindow(QWidget):
         heatmap_plot = pg.PlotItem(viewBox=view_box, title=title)
         if self.mode == 'object_detection':
             heatmap_plot.getAxis('bottom').setLabel('Translation in x')
-            heatmap_plot.getAxis('bottom').setStyle(tickLength=0, showValues=False)
+            # heatmap_plot.getAxis('bottom').setStyle(tickLength=0, showValues=False)
             heatmap_plot.getAxis('left').setLabel('Translation in y')
-            heatmap_plot.getAxis('left').setStyle(tickLength=0, showValues=False)
+            # heatmap_plot.getAxis('left').setStyle(tickLength=0, showValues=False)
         elif self.mode == 'piv':
             heatmap_plot.getAxis('bottom').setLabel('x')
             heatmap_plot.getAxis('bottom').setStyle(tickLength=0, showValues=False)
@@ -2800,6 +2800,8 @@ class UI_MainWindow(QWidget):
 
         # add to general layout
         if mode == 'single':
+
+            # used to pass into subclass
             outer_self = self
             # subclass of ImageItem that reimplements the control methods
             class COCO_heatmap(pg.ImageItem):
@@ -2818,8 +2820,7 @@ class UI_MainWindow(QWidget):
                     outer_self.heatmap_plot_1.removeItem(outer_self.scatter_item_1)
                     outer_self.heatmap_plot_2.removeItem(outer_self.scatter_item_2)
 
-                    # outer_self.view_box_1.removeItem(outer_self.scatter_item_1)
-                    # outer_self.view_box_2.removeItem(outer_self.scatter_item_2)
+                    # new scatter points
                     scatter_point = []
                     scatter_point.append({'pos': (outer_self.cur_x_tran+outer_self.translation_step_single//2,
                                                     outer_self.cur_y_tran+outer_self.translation_step_single//2),
