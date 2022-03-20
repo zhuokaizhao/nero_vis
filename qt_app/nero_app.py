@@ -41,7 +41,7 @@ class UI_MainWindow(QWidget):
         super().__init__()
         # window size
         # self.setFixedSize(1920, 1080)
-        self.resize(1920, 1080)
+        self.resize(2560, 1280)
         # set window title
         self.setWindowTitle('Non-Equivariance Revealed on Orbits')
         # white background color
@@ -2103,7 +2103,7 @@ class UI_MainWindow(QWidget):
                 if self.data_mode == 'single':
                     self.single_result_layout.addLayout(self.gif_control_layout, 2, 0)
                 elif self.data_mode == 'aggregate':
-                    self.aggregate_result_layout.addLayout(self.gif_control_layout, 2, 3)
+                    self.aggregate_result_layout.addLayout(self.gif_control_layout, 3, 3)
 
                 # rotate 90 degrees counter-closewise
                 self.rotate_90_ccw_button = QtWidgets.QPushButton(self)
