@@ -2006,10 +2006,6 @@ class UI_MainWindow(QWidget):
                         self.all_quantities_1[y, x] = quantity_1
                         self.all_quantities_2[y, x] = quantity_2
 
-                        if x_tran == -64 and y_tran == -64:
-                            print(quantity_2)
-                            exit()
-
                 # display as the final x_tran, y_tran
                 if self.use_cache:
                     self.display_coco_image()
@@ -2679,8 +2675,8 @@ class UI_MainWindow(QWidget):
 
                             # show corresponding translation amount on the heatmap
                             # translation amout for plotting in heatmap
-                            self.cur_x_tran = -x_dist - self.x_translation[0]
-                            self.cur_y_tran = y_dist - self.y_translation[0]
+                            self.cur_x_tran = self.image_size-1 - (x_dist - self.x_translation[0] + 1)
+                            self.cur_y_tran = self.image_size-1 - (y_dist - self.y_translation[0] + 1)
                             self.draw_heatmaps(mode='single')
 
                             # run inference only when in the realtime mode
@@ -2739,40 +2735,48 @@ class UI_MainWindow(QWidget):
 
 
     # helper function on drawing individual heatmap (called by both individual and aggregate cases)
-    def draw_individual_heatmap(self, mode, view_box, heatmap, data, scatter_item, title=None, range=(0, 1)):
+    def draw_individual_heatmap(self, mode, data, view_box=None, heatmap=None, scatter_item=None, title=None, range=(0, 1)):
 
-        # small indicator on where the translation is at
-        if self.mode == 'object_detection' and mode == 'single':
-            scatter_point = []
-            scatter_point.append({'pos': (self.cur_x_tran, self.cur_y_tran),
-                                    'size': 3,
-                                    'pen': {'color': 'red', 'width': 0.1},
-                                    'brush': (255, 0, 0, 255)})
+        # single mode needs to have input view_box, heatmap and scatter_item for interactively handling
+        if mode == 'single':
+            heatmap_plot = pg.PlotItem(viewBox=view_box, title=title)
+            heatmap.setOpts(axisOrder='row-major')
+            heatmap.setImage(data)
+            # add image to the viewbox
+            view_box.addItem(heatmap)
 
-            # add points to the item
-            scatter_item.addPoints(scatter_point)
-            view_box.addItem(scatter_item)
+            # small indicator on where the translation is at
+            if self.mode == 'object_detection' and mode == 'single':
+                scatter_point = [{'pos': (self.cur_x_tran+self.translation_step_single//2,
+                                            self.cur_y_tran+self.translation_step_single//2),
+                                    'size': self.translation_step_single,
+                                    'pen': {'color': 'red', 'width': 1},
+                                    'brush': (255, 0, 0, 255)}]
 
-        heatmap.setOpts(axisOrder='row-major')
-        heatmap.setImage(data)
+                # add points to the item
+                scatter_item.setData(scatter_point)
+                heatmap_plot.addItem(scatter_item)
 
-        # add image to the viewbox
-        view_box.addItem(heatmap)
+        elif mode == 'aggregate':
+            view_box = pg.ViewBox(invertY=True)
+            view_box.setAspectLocked(lock=True)
+            heatmap = pg.ImageItem()
+            heatmap.setImage(data)
+            view_box.addItem(heatmap)
+            heatmap_plot = pg.PlotItem(viewBox=view_box, title=title)
 
-        heatmap_plot = pg.PlotItem(viewBox=view_box, title=title)
+        # disable being able to move plot around
+        heatmap_plot.setMouseEnabled(x=False, y=False)
         if self.mode == 'object_detection':
             heatmap_plot.getAxis('bottom').setLabel('Translation in x')
-            # heatmap_plot.getAxis('bottom').setStyle(tickLength=0, showValues=False)
+            heatmap_plot.getAxis('bottom').setStyle(tickLength=0, showValues=False)
             heatmap_plot.getAxis('left').setLabel('Translation in y')
-            # heatmap_plot.getAxis('left').setStyle(tickLength=0, showValues=False)
+            heatmap_plot.getAxis('left').setStyle(tickLength=0, showValues=False)
         elif self.mode == 'piv':
             heatmap_plot.getAxis('bottom').setLabel('x')
             heatmap_plot.getAxis('bottom').setStyle(tickLength=0, showValues=False)
             heatmap_plot.getAxis('left').setLabel('y')
             heatmap_plot.getAxis('left').setStyle(tickLength=0, showValues=False)
-
-        # disable being able to move plot around
-        heatmap_plot.setMouseEnabled(x=False, y=False)
 
         # create colorbar
         color_map = pg.colormap.get('viridis')
@@ -2823,24 +2827,6 @@ class UI_MainWindow(QWidget):
                     outer_self.x_tran = outer_self.cur_x_tran + outer_self.x_translation[0]
                     outer_self.y_tran = outer_self.cur_y_tran + outer_self.y_translation[0]
 
-                    # remove existing dot from both scatter plots
-                    outer_self.heatmap_plot_1.removeItem(outer_self.scatter_item_1)
-                    outer_self.heatmap_plot_2.removeItem(outer_self.scatter_item_2)
-
-                    # new scatter points
-                    scatter_point = []
-                    scatter_point.append({'pos': (outer_self.cur_x_tran+outer_self.translation_step_single//2,
-                                                    outer_self.cur_y_tran+outer_self.translation_step_single//2),
-                                            'size': outer_self.translation_step_single,
-                                            'pen': {'color': 'red', 'width': 1},
-                                            'brush': (255, 0, 0, 255)})
-
-                    # add points to both views
-                    outer_self.scatter_item_1.setData(scatter_point)
-                    outer_self.scatter_item_2.setData(scatter_point)
-                    outer_self.heatmap_plot_1.addItem(outer_self.scatter_item_1)
-                    outer_self.heatmap_plot_2.addItem(outer_self.scatter_item_2)
-
                     # udpate the correct coco label
                     outer_self.update_coco_label()
 
@@ -2849,6 +2835,23 @@ class UI_MainWindow(QWidget):
 
                     # redisplay model output
                     outer_self.draw_model_output()
+
+                    # remove existing dot from both scatter plots
+                    outer_self.heatmap_plot_1.removeItem(outer_self.scatter_item_1)
+                    outer_self.heatmap_plot_2.removeItem(outer_self.scatter_item_2)
+
+                    # new scatter points
+                    scatter_point = [{'pos': (outer_self.cur_x_tran+outer_self.translation_step_single//2,
+                                                outer_self.cur_y_tran+outer_self.translation_step_single//2),
+                                        'size': outer_self.translation_step_single,
+                                        'pen': {'color': 'red', 'width': 1},
+                                        'brush': (255, 0, 0, 255)}]
+
+                    # add points to both views
+                    outer_self.scatter_item_1.setData(scatter_point)
+                    outer_self.scatter_item_2.setData(scatter_point)
+                    outer_self.heatmap_plot_1.addItem(outer_self.scatter_item_1)
+                    outer_self.heatmap_plot_2.addItem(outer_self.scatter_item_2)
 
 
             # subclass of ImageItem that reimplements the control methods
@@ -2910,8 +2913,8 @@ class UI_MainWindow(QWidget):
             self.scatter_item_2 = pg.ScatterPlotItem(pxMode=False)
             self.scatter_item_2.setSymbol('s')
 
-            self.heatmap_plot_1 = self.draw_individual_heatmap('single', self.view_box_1, self.single_nero_1, data_1, self.scatter_item_1)
-            self.heatmap_plot_2 = self.draw_individual_heatmap('single', self.view_box_2, self.single_nero_2, data_2, self.scatter_item_2)
+            self.heatmap_plot_1 = self.draw_individual_heatmap('single', data_1, self.view_box_1, self.single_nero_1, self.scatter_item_1)
+            self.heatmap_plot_2 = self.draw_individual_heatmap('single', data_2, self.view_box_2, self.single_nero_2, self.scatter_item_2)
 
             # add to view
             self.heatmap_view_1.addItem(self.heatmap_plot_1)
@@ -2936,8 +2939,6 @@ class UI_MainWindow(QWidget):
             self.aggregate_heatmap_view_2.setFixedSize(self.plot_size*1.3, self.plot_size*1.3)
             self.aggregate_heatmap_plot_1 = self.draw_individual_heatmap('aggregate', data_1)
             self.aggregate_heatmap_plot_2 = self.draw_individual_heatmap('aggregate', data_2)
-            # self.view_box_1.scene().sigMouseClicked.connect(heatmap_mouse_clicked(self.view_box_1))
-            # self.view_box_2.scene().sigMouseClicked.connect(heatmap_mouse_clicked(self.view_box_2))
 
             # add to view
             self.aggregate_heatmap_view_1.addItem(self.aggregate_heatmap_plot_1)
