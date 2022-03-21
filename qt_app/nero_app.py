@@ -1362,6 +1362,9 @@ class UI_MainWindow(QWidget):
 
             return new_low_dim
 
+        def zoom_happens():
+            print('zoom happens')
+
         # helper function on displaying the 2D scatter plot
         def display_dimension_reduction(all_high_dim_points_1, all_high_dim_points_2, all_intensity_1, all_intensity_2):
             # run dimension reduction algorithm
@@ -1374,10 +1377,10 @@ class UI_MainWindow(QWidget):
             low_dim_scatter_view_1 = pg.GraphicsLayoutWidget()
             low_dim_scatter_view_1.setBackground('white')
             low_dim_scatter_view_1.setFixedSize(self.plot_size, self.plot_size)
-
-            # set axis range
+            # add plot
             self.low_dim_scatter_plot_1 = low_dim_scatter_view_1.addPlot()
-            # self.low_dim_scatter_plot_1
+            self.low_dim_scatter_plot_1.sigRangeChanged.connect(zoom_happens)
+            # set axis range
             self.low_dim_scatter_plot_1.setXRange(-1.2, 1.2, padding=0)
             self.low_dim_scatter_plot_1.setYRange(-1.2, 1.2, padding=0)
             # Not letting user zoom out past axis limit
@@ -1386,7 +1389,10 @@ class UI_MainWindow(QWidget):
             low_dim_scatter_view_2 = pg.GraphicsLayoutWidget()
             low_dim_scatter_view_2.setBackground('white')
             low_dim_scatter_view_2.setFixedSize(self.plot_size, self.plot_size)
+            # add plot
             self.low_dim_scatter_plot_2 = low_dim_scatter_view_2.addPlot()
+            self.low_dim_scatter_plot_1.sigRangeChanged.connect(zoom_happens)
+            # set axis range
             self.low_dim_scatter_plot_2.setXRange(-1.2, 1.2, padding=0)
             self.low_dim_scatter_plot_2.setYRange(-1.2, 1.2, padding=0)
             # Not letting user zoom out past axis limit
@@ -1423,13 +1429,15 @@ class UI_MainWindow(QWidget):
                 self.low_dim_scatter_item_2.setSymbol('o')
 
                 low_dim_point_1 = [{'pos': (low_dim_1[i, 0], low_dim_1[i, 1]),
-                                    'size': 0.1,
-                                    'pen': {'color': 'w', 'width': 0.1},
+                                    'size': 0.07,
+                                    # 'pen': {'color': 'w', 'width': 0.1},
+                                    'pen': {'color': 'black'},
                                     'brush': QtGui.QColor(color_indices_1[i][0], color_indices_1[i][1], color_indices_1[i][2])}]
 
                 low_dim_point_2 = [{'pos': (low_dim_2[i, 0], low_dim_2[i, 1]),
-                                    'size': 0.1,
-                                    'pen': {'color': 'w', 'width': 0.1},
+                                    'size': 0.07,
+                                    # 'pen': {'color': 'w', 'width': 0.1},
+                                    'pen': {'color': 'black'},
                                     'brush': QtGui.QColor(color_indices_2[i][0], color_indices_2[i][1], color_indices_2[i][2])}]
 
                 # add points to the item
