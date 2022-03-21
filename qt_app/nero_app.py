@@ -1564,8 +1564,8 @@ class UI_MainWindow(QWidget):
         @QtCore.Slot()
         def mean_intensity_button_clicked():
             self.intensity_method = 'mean'
-            all_intensity_1 = np.mean(self.all_high_dim_points_1, axis=1)
-            all_intensity_2 = np.mean(self.all_high_dim_points_2, axis=1)
+            self.all_intensity_1 = np.mean(self.all_high_dim_points_1, axis=1)
+            self.all_intensity_2 = np.mean(self.all_high_dim_points_2, axis=1)
             # high dim points values are between 0 and 1
             self.intensity_min = 0
             self.intensity_max = 1
@@ -1576,10 +1576,15 @@ class UI_MainWindow(QWidget):
         @QtCore.Slot()
         def variance_intensity_button_clicked():
             self.intensity_method = 'coefficient_of_variation'
-            all_intensity_1 = np.std(self.all_high_dim_points_1, axis=1) / np.mean(self.all_high_dim_points_1, axis=1)
-            all_intensity_2 = np.std(self.all_high_dim_points_2, axis=1) / np.mean(self.all_high_dim_points_2, axis=1)
-            self.intensity_min = min(np.min(all_intensity_1), np.min(all_intensity_2))
-            self.intensity_max = max(np.max(all_intensity_1), np.max(all_intensity_2))
+            self.all_intensity_1 = np.std(self.all_high_dim_points_1, axis=1) / np.mean(self.all_high_dim_points_1, axis=1)
+            self.all_intensity_2 = np.std(self.all_high_dim_points_2, axis=1) / np.mean(self.all_high_dim_points_2, axis=1)
+            # lerp to between 0 and 1
+            self.intensity_min = min(np.min(self.all_intensity_1), np.min(self.all_intensity_2))
+            self.intensity_max = max(np.max(self.all_intensity_1), np.max(self.all_intensity_2))
+            self.all_intensity_1 = nero_utilities.lerp(self.all_intensity_1, self.intensity_min, self.intensity_max, 0, 1)
+            self.all_intensity_2 = nero_utilities.lerp(self.all_intensity_2, self.intensity_min, self.intensity_max, 0, 1)
+            self.intensity_min = 0
+            self.intensity_max = 1
 
             # re-display the scatter plot
             display_dimension_reduction()
