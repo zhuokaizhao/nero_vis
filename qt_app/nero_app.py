@@ -1362,42 +1362,21 @@ class UI_MainWindow(QWidget):
 
             return new_low_dim
 
-        def zoom_happens():
+        outer_self = self
+        def zoom_happens(self):
             print('zoom happens')
+            print(self.viewRange())
+            # remove existing scatter items
+            self.removeItem(outer_self.low_dim_scatter_item_1)
+            # self.removeItem(outer_self.low_dim_scatter_item_2)
+            # self.clear()
+            # use plot range to compute the scatter item size
+            cur_x_range = self.viewRange()[0][1] - self.viewRange()[0][0]
+            cur_y_range = self.viewRange()[1][1] - self.viewRange()[1][0]
+            outer_self.scatter_item_size = cur_x_range*cur_y_range*0.02
+            # plot_dr_scatter(all_intensity_1, all_intensity_2)
 
-        # helper function on displaying the 2D scatter plot
-        def display_dimension_reduction(all_high_dim_points_1, all_high_dim_points_2, all_intensity_1, all_intensity_2):
-            # run dimension reduction algorithm
-            low_dim_1 = dimension_reduce(all_high_dim_points_1, target_dim=2)
-            low_dim_1 = normalize_low_dim_result(low_dim_1)
-            low_dim_2 = dimension_reduce(all_high_dim_points_2, target_dim=2)
-            low_dim_2 = normalize_low_dim_result(low_dim_2)
-
-            # scatter plot on low-dim points
-            low_dim_scatter_view_1 = pg.GraphicsLayoutWidget()
-            low_dim_scatter_view_1.setBackground('white')
-            low_dim_scatter_view_1.setFixedSize(self.plot_size, self.plot_size)
-            # add plot
-            self.low_dim_scatter_plot_1 = low_dim_scatter_view_1.addPlot()
-            self.low_dim_scatter_plot_1.sigRangeChanged.connect(zoom_happens)
-            # set axis range
-            self.low_dim_scatter_plot_1.setXRange(-1.2, 1.2, padding=0)
-            self.low_dim_scatter_plot_1.setYRange(-1.2, 1.2, padding=0)
-            # Not letting user zoom out past axis limit
-            self.low_dim_scatter_plot_1.vb.setLimits(xMin=-1.2, xMax=1.2, yMin=-1.2, yMax=1.2)
-
-            low_dim_scatter_view_2 = pg.GraphicsLayoutWidget()
-            low_dim_scatter_view_2.setBackground('white')
-            low_dim_scatter_view_2.setFixedSize(self.plot_size, self.plot_size)
-            # add plot
-            self.low_dim_scatter_plot_2 = low_dim_scatter_view_2.addPlot()
-            self.low_dim_scatter_plot_1.sigRangeChanged.connect(zoom_happens)
-            # set axis range
-            self.low_dim_scatter_plot_2.setXRange(-1.2, 1.2, padding=0)
-            self.low_dim_scatter_plot_2.setYRange(-1.2, 1.2, padding=0)
-            # Not letting user zoom out past axis limit
-            self.low_dim_scatter_plot_2.vb.setLimits(xMin=-1.2, xMax=1.2, yMin=-1.2, yMax=1.2)
-
+        def plot_dr_scatter(all_intensity_1, all_intensity_2):
             # save colorbar as used in aggregate NERO plot, to be used in color encode scatter points
             scatter_color_map = pg.colormap.get('viridis')
             scatter_lut = scatter_color_map.getLookupTable(start=self.intensity_min, stop=self.intensity_max, nPts=500, alpha=False)
@@ -1427,22 +1406,21 @@ class UI_MainWindow(QWidget):
                 self.low_dim_scatter_item_1.setSymbol('o')
                 self.low_dim_scatter_item_2 = pg.ScatterPlotItem(pxMode=False)
                 self.low_dim_scatter_item_2.setSymbol('o')
-
-                low_dim_point_1 = [{'pos': (low_dim_1[i, 0], low_dim_1[i, 1]),
-                                    'size': 0.07,
+                low_dim_point_1 = [{'pos': (self.low_dim_1[i, 0], self.low_dim_1[i, 1]),
+                                    'size': self.scatter_item_size,
                                     # 'pen': {'color': 'w', 'width': 0.1},
                                     'pen': {'color': 'black'},
                                     'brush': QtGui.QColor(color_indices_1[i][0], color_indices_1[i][1], color_indices_1[i][2])}]
 
-                low_dim_point_2 = [{'pos': (low_dim_2[i, 0], low_dim_2[i, 1]),
-                                    'size': 0.07,
+                low_dim_point_2 = [{'pos': (self.low_dim_2[i, 0], self.low_dim_2[i, 1]),
+                                    'size': self.scatter_item_size,
                                     # 'pen': {'color': 'w', 'width': 0.1},
                                     'pen': {'color': 'black'},
                                     'brush': QtGui.QColor(color_indices_2[i][0], color_indices_2[i][1], color_indices_2[i][2])}]
 
                 # add points to the item
-                self.low_dim_scatter_item_1.addPoints(low_dim_point_1, name=str(index))
-                self.low_dim_scatter_item_2.addPoints(low_dim_point_2, name=str(index))
+                self.low_dim_scatter_item_1.setData(low_dim_point_1, name=str(index))
+                self.low_dim_scatter_item_2.setData(low_dim_point_2, name=str(index))
 
                 # add points to the plot
                 self.low_dim_scatter_plot_1.addItem(self.low_dim_scatter_item_1)
@@ -1452,17 +1430,58 @@ class UI_MainWindow(QWidget):
                 self.low_dim_scatter_item_1.sigClicked.connect(low_dim_scatter_clicked)
                 self.low_dim_scatter_item_2.sigClicked.connect(low_dim_scatter_clicked)
 
+
+
+        # helper function on displaying the 2D scatter plot
+        def display_dimension_reduction(all_high_dim_points_1, all_high_dim_points_2, all_intensity_1, all_intensity_2):
+            # run dimension reduction algorithm
+            self.low_dim_1 = dimension_reduce(all_high_dim_points_1, target_dim=2)
+            self.low_dim_1 = normalize_low_dim_result(self.low_dim_1)
+            self.low_dim_2 = dimension_reduce(all_high_dim_points_2, target_dim=2)
+            self.low_dim_2 = normalize_low_dim_result(self.low_dim_2)
+
+            # scatter plot on low-dim points
+            self.low_dim_scatter_view_1 = pg.GraphicsLayoutWidget()
+            self.low_dim_scatter_view_1.setBackground('white')
+            self.low_dim_scatter_view_1.setFixedSize(self.plot_size, self.plot_size)
+            # add plot
+            self.low_dim_scatter_plot_1 = self.low_dim_scatter_view_1.addPlot()
+            self.low_dim_scatter_plot_1.sigRangeChanged.connect(zoom_happens)
+            # set axis range
+            self.low_dim_scatter_plot_1.setXRange(-1.2, 1.2, padding=0)
+            self.low_dim_scatter_plot_1.setYRange(-1.2, 1.2, padding=0)
+            # Not letting user zoom out past axis limit
+            self.low_dim_scatter_plot_1.vb.setLimits(xMin=-1.2, xMax=1.2, yMin=-1.2, yMax=1.2)
+
+            self.low_dim_scatter_view_2 = pg.GraphicsLayoutWidget()
+            self.low_dim_scatter_view_2.setBackground('white')
+            self.low_dim_scatter_view_2.setFixedSize(self.plot_size, self.plot_size)
+            # add plot
+            self.low_dim_scatter_plot_2 = self.low_dim_scatter_view_2.addPlot()
+            self.low_dim_scatter_plot_2.sigRangeChanged.connect(zoom_happens)
+            # set axis range
+            self.low_dim_scatter_plot_2.setXRange(-1.2, 1.2, padding=0)
+            self.low_dim_scatter_plot_2.setYRange(-1.2, 1.2, padding=0)
+            # Not letting user zoom out past axis limit
+            self.low_dim_scatter_plot_2.vb.setLimits(xMin=-1.2, xMax=1.2, yMin=-1.2, yMax=1.2)
+            # use plot range to compute the scatter item size
+            self.scatter_item_size = 2.4*2.4*0.02
+
+            plot_dr_scatter(all_intensity_1, all_intensity_2)
+
             if self.mode == 'digit_recognition':
-                self.aggregate_result_layout.addWidget(low_dim_scatter_view_1, 1, 3)
-                self.aggregate_result_layout.addWidget(low_dim_scatter_view_2, 2, 3)
+                self.aggregate_result_layout.addWidget(self.low_dim_scatter_view_1, 1, 3)
+                self.aggregate_result_layout.addWidget(self.low_dim_scatter_view_2, 2, 3)
             elif self.mode == 'object_detection':
                 # aggregate result layout at the very left
-                self.aggregate_result_layout.addWidget(low_dim_scatter_view_1, 2, 1)
-                self.aggregate_result_layout.addWidget(low_dim_scatter_view_2, 2, 2)
+                self.aggregate_result_layout.addWidget(self.low_dim_scatter_view_1, 2, 1)
+                self.aggregate_result_layout.addWidget(self.low_dim_scatter_view_2, 2, 2)
             elif self.mode == 'piv':
                 # aggregate result layout at the very left
-                self.aggregate_result_layout.addWidget(low_dim_scatter_view_1, 2, 1)
-                self.aggregate_result_layout.addWidget(low_dim_scatter_view_2, 2, 2)
+                self.aggregate_result_layout.addWidget(self.low_dim_scatter_view_1, 2, 1)
+                self.aggregate_result_layout.addWidget(self.low_dim_scatter_view_2, 2, 2)
+
+
 
 
         # run dimension reduction of all images on the selected digit
@@ -2902,6 +2921,74 @@ class UI_MainWindow(QWidget):
     # draw heatmaps that displays the individual NERO plots (in COCO) or detailed view (in PIV)
     def draw_heatmaps(self, mode):
 
+        # used to pass into subclass
+        outer_self = self
+        # subclass of ImageItem that reimplements the control methods
+        class COCO_heatmap(pg.ImageItem):
+            def __init__(self):
+                super().__init__()
+
+            def mouseClickEvent(self, event):
+                print(f'Clicked on heatmap at ({event.pos().x()}, {event.pos().y()})')
+                # in COCO mode, clicked location indicates translation
+                # draw a point(rect) that represents current selection of location
+                outer_self.cur_x_tran = int(event.pos().x()//outer_self.translation_step_single) * outer_self.translation_step_single
+                outer_self.cur_y_tran = int(event.pos().y()//outer_self.translation_step_single) * outer_self.translation_step_single
+                # print(f'Correspond to rect_x = {outer_self.cur_x_tran}, rect_y = {outer_self.cur_y_tran}')
+
+                outer_self.x_tran = outer_self.cur_x_tran + outer_self.x_translation[0]
+                outer_self.y_tran = outer_self.cur_y_tran + outer_self.y_translation[0]
+
+                # udpate the correct coco label
+                outer_self.update_coco_label()
+
+                # update the input image with FOV mask and ground truth labelling
+                outer_self.display_coco_image()
+
+                # redisplay model output
+                outer_self.draw_model_output()
+
+                # remove existing dot from both scatter plots
+                outer_self.heatmap_plot_1.removeItem(outer_self.scatter_item_1)
+                outer_self.heatmap_plot_2.removeItem(outer_self.scatter_item_2)
+
+                # new scatter points
+                scatter_point = [{'pos': (outer_self.cur_x_tran+outer_self.translation_step_single//2,
+                                            outer_self.cur_y_tran+outer_self.translation_step_single//2),
+                                    'size': outer_self.translation_step_single,
+                                    'pen': {'color': 'red', 'width': 1},
+                                    'brush': (255, 0, 0, 255)}]
+
+                # add points to both views
+                outer_self.scatter_item_1.setData(scatter_point)
+                outer_self.scatter_item_2.setData(scatter_point)
+                outer_self.heatmap_plot_1.addItem(outer_self.scatter_item_1)
+                outer_self.heatmap_plot_2.addItem(outer_self.scatter_item_2)
+
+
+        # subclass of ImageItem that reimplements the control methods
+        class PIV_heatmap(pg.ImageItem):
+            def mouseClickEvent(self, event):
+                print(f'Clicked on PIV heatmap at ({event.pos().x()}, {event.pos().y()})')
+                # in PIV mode, a pop up window shows the nearby area's quiver plot
+
+
+
+            def mouseDragEvent(self, event):
+                if event.isStart():
+                    print("Start drag", event.pos())
+                elif event.isFinish():
+                    print("Stop drag", event.pos())
+                else:
+                    print("Drag", event.pos())
+
+            def hoverEvent(self, event):
+                if not event.isExit():
+                    # the mouse is hovering over the image; make sure no other items
+                    # will receive left click/drag events from here.
+                    event.acceptDrags(pg.QtCore.Qt.LeftButton)
+                    event.acceptClicks(pg.QtCore.Qt.LeftButton)
+
         # check if the data is in shape (self.image_size, self.image_size)
         if self.cur_plot_quantity_1.shape != (self.image_size, self.image_size):
             # repeat in row
@@ -2921,76 +3008,6 @@ class UI_MainWindow(QWidget):
 
         # add to general layout
         if mode == 'single':
-
-            # used to pass into subclass
-            outer_self = self
-            # subclass of ImageItem that reimplements the control methods
-            class COCO_heatmap(pg.ImageItem):
-                def __init__(self):
-                    super().__init__()
-
-                def mouseClickEvent(self, event):
-                    print(f'Clicked on heatmap at ({event.pos().x()}, {event.pos().y()})')
-                    # in COCO mode, clicked location indicates translation
-                    # draw a point(rect) that represents current selection of location
-                    outer_self.cur_x_tran = int(event.pos().x()//outer_self.translation_step_single) * outer_self.translation_step_single
-                    outer_self.cur_y_tran = int(event.pos().y()//outer_self.translation_step_single) * outer_self.translation_step_single
-                    # print(f'Correspond to rect_x = {outer_self.cur_x_tran}, rect_y = {outer_self.cur_y_tran}')
-
-                    outer_self.x_tran = outer_self.cur_x_tran + outer_self.x_translation[0]
-                    outer_self.y_tran = outer_self.cur_y_tran + outer_self.y_translation[0]
-
-                    # udpate the correct coco label
-                    outer_self.update_coco_label()
-
-                    # update the input image with FOV mask and ground truth labelling
-                    outer_self.display_coco_image()
-
-                    # redisplay model output
-                    outer_self.draw_model_output()
-
-                    # remove existing dot from both scatter plots
-                    outer_self.heatmap_plot_1.removeItem(outer_self.scatter_item_1)
-                    outer_self.heatmap_plot_2.removeItem(outer_self.scatter_item_2)
-
-                    # new scatter points
-                    scatter_point = [{'pos': (outer_self.cur_x_tran+outer_self.translation_step_single//2,
-                                                outer_self.cur_y_tran+outer_self.translation_step_single//2),
-                                        'size': outer_self.translation_step_single,
-                                        'pen': {'color': 'red', 'width': 1},
-                                        'brush': (255, 0, 0, 255)}]
-
-                    # add points to both views
-                    outer_self.scatter_item_1.setData(scatter_point)
-                    outer_self.scatter_item_2.setData(scatter_point)
-                    outer_self.heatmap_plot_1.addItem(outer_self.scatter_item_1)
-                    outer_self.heatmap_plot_2.addItem(outer_self.scatter_item_2)
-
-
-            # subclass of ImageItem that reimplements the control methods
-            class PIV_heatmap(pg.ImageItem):
-                def mouseClickEvent(self, event):
-                    print(f'Clicked on PIV heatmap at ({event.pos().x()}, {event.pos().y()})')
-                    # in PIV mode, a pop up window shows the nearby area's quiver plot
-
-
-
-                def mouseDragEvent(self, event):
-                    if event.isStart():
-                        print("Start drag", event.pos())
-                    elif event.isFinish():
-                        print("Stop drag", event.pos())
-                    else:
-                        print("Drag", event.pos())
-
-                def hoverEvent(self, event):
-                    if not event.isExit():
-                        # the mouse is hovering over the image; make sure no other items
-                        # will receive left click/drag events from here.
-                        event.acceptDrags(pg.QtCore.Qt.LeftButton)
-                        event.acceptClicks(pg.QtCore.Qt.LeftButton)
-
-
             # heatmap view
             self.heatmap_view_1 = pg.GraphicsLayoutWidget()
             # left top right bottom
@@ -3253,10 +3270,36 @@ class UI_MainWindow(QWidget):
         detail_data_2 = 1 - nero_utilities.lerp(detail_data_2, self.error_min, self.error_max, 0, 1)
 
         # draw the heatmap that represent detailed view
-        self.piv_detail_plot_1 = self.draw_individual_heatmap('single', detail_data_1)
-        self.piv_detail_plot_2 = self.draw_individual_heatmap('single', detail_data_2)
-        # self.view_box_1.scene().sigMouseClicked.connect(heatmap_mouse_clicked(self.view_box_1))
-        # self.view_box_2.scene().sigMouseClicked.connect(heatmap_mouse_clicked(self.view_box_2))
+        self.view_box_1 = pg.ViewBox(invertY=True)
+        self.view_box_1.setAspectLocked(lock=True)
+        self.view_box_2 = pg.ViewBox(invertY=True)
+        self.view_box_2.setAspectLocked(lock=True)
+        class PIV_heatmap(pg.ImageItem):
+            def mouseClickEvent(self, event):
+                print(f'Clicked on PIV heatmap at ({event.pos().x()}, {event.pos().y()})')
+                # in PIV mode, a pop up window shows the nearby area's quiver plot
+
+
+
+            def mouseDragEvent(self, event):
+                if event.isStart():
+                    print("Start drag", event.pos())
+                elif event.isFinish():
+                    print("Stop drag", event.pos())
+                else:
+                    print("Drag", event.pos())
+
+            def hoverEvent(self, event):
+                if not event.isExit():
+                    # the mouse is hovering over the image; make sure no other items
+                    # will receive left click/drag events from here.
+                    event.acceptDrags(pg.QtCore.Qt.LeftButton)
+                    event.acceptClicks(pg.QtCore.Qt.LeftButton)
+
+        self.single_nero_1 = PIV_heatmap()
+        self.single_nero_2 = PIV_heatmap()
+        self.piv_detail_plot_1 = self.draw_individual_heatmap('single', detail_data_1, self.view_box_1, self.single_nero_1)
+        self.piv_detail_plot_2 = self.draw_individual_heatmap('single', detail_data_2, self.view_box_2, self.single_nero_2)
 
         # add to view
         self.piv_detail_view_1.addItem(self.piv_detail_plot_1)
