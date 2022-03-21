@@ -1395,22 +1395,20 @@ class UI_MainWindow(QWidget):
             # save colorbar as used in aggregate NERO plot, to be used in color encode scatter points
             scatter_color_map = pg.colormap.get('viridis')
             if self.intensity_method == 'mean':
-                scatter_lut = scatter_color_map.getLookupTable(start=0, stop=1, nPts=500, alpha=False)
+                intensity_min = 0
+                intensity_max = 1
             elif self.intensity_method == 'coefficient_of_variation':
                 intensity_min = min(np.min(all_intensity_1), np.min(all_intensity_2))
                 intensity_max = max(np.max(all_intensity_1), np.max(all_intensity_2))
-                print(intensity_min, intensity_max)
-                scatter_lut = scatter_color_map.getLookupTable(start=intensity_min, stop=intensity_max, nPts=500, alpha=False)
+
+            scatter_lut = scatter_color_map.getLookupTable(start=intensity_min, stop=intensity_max, nPts=500, alpha=False)
 
             # quantize all the intensity into color
             color_indices_1 = []
             color_indices_2 = []
             for i in range(len(all_intensity_1)):
-                lut_index_1 = nero_utilities.lerp(all_intensity_1[i], 0, 1, 0, 500)
-                lut_index_2 = nero_utilities.lerp(all_intensity_2[i], 0, 1, 0, 500)
-                if int(lut_index_1) == 1050:
-                    print(all_intensity_1[i])
-
+                lut_index_1 = nero_utilities.lerp(all_intensity_1[i], intensity_min, intensity_max, 0, 500)
+                lut_index_2 = nero_utilities.lerp(all_intensity_2[i], intensity_min, intensity_max, 0, 500)
                 color_indices_1.append(scatter_lut[int(lut_index_1)])
                 color_indices_2.append(scatter_lut[int(lut_index_2)])
 
