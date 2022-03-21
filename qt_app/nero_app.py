@@ -1840,14 +1840,14 @@ class UI_MainWindow(QWidget):
         # display the whole image
         self.display_image()
 
-        x_tran = self.cur_x_tran + self.x_translation[0]
-        y_tran = -(self.cur_y_tran + self.y_translation[0])
+        self.x_tran = self.cur_x_tran + self.x_translation[0]
+        self.y_tran = self.cur_y_tran + self.y_translation[0]
 
         display_rect_width = self.display_image_size/2
         display_rect_height = self.display_image_size/2
         # since the translation measures on the movement of object instead of the point of view, the sign is reversed
-        rect_center_x = self.display_image_size/2 - x_tran * (self.display_image_size/self.uncropped_image_size)
-        rect_center_y = self.display_image_size/2 - y_tran * (self.display_image_size/self.uncropped_image_size)
+        rect_center_x = self.display_image_size/2 - self.x_tran * (self.display_image_size/self.uncropped_image_size)
+        rect_center_y = self.display_image_size/2 - self.y_tran * (self.display_image_size/self.uncropped_image_size)
 
         # draw rectangles on the displayed image to indicate scanning process
         painter = QtGui.QPainter(self.image_pixmap)
@@ -1878,12 +1878,12 @@ class UI_MainWindow(QWidget):
 
     # helper function on update the correct label when coco input is changed by user
     def update_coco_label(self):
-        x_tran = self.cur_x_tran + self.x_translation[0]
-        y_tran = -(self.cur_y_tran + self.y_translation[0])
+        self.x_tran = self.cur_x_tran + self.x_translation[0]
+        self.y_tran = self.cur_y_tran + self.y_translation[0]
         # modify the underlying image tensor accordingly
         # take the cropped part of the entire input image
-        cur_center_x = self.center_x - x_tran
-        cur_center_y = self.center_y - y_tran
+        cur_center_x = self.center_x - self.x_tran
+        cur_center_y = self.center_y - self.y_tran
         self.x_min = cur_center_x - self.image_size//2
         self.x_max = cur_center_x + self.image_size//2
         self.y_min = cur_center_y - self.image_size//2
@@ -1963,11 +1963,11 @@ class UI_MainWindow(QWidget):
 
                 for y, y_tran in enumerate(self.y_translation):
                     for x, x_tran in enumerate(self.x_translation):
+
                         # translation amout
                         # cur_x_tran and cur_y_tran are used to draw points on the heatmap to indicate translation amount
                         self.cur_x_tran = x_tran - self.x_translation[0]
-                        # y axis needs to be converted from image axis to heatmap axis
-                        self.cur_y_tran = -y_tran - self.y_translation[0]
+                        self.cur_y_tran = y_tran - self.y_translation[0]
                         # all_translations are for book keeping
                         self.all_translations[y, x] = [x_tran, y_tran]
 
@@ -2005,6 +2005,10 @@ class UI_MainWindow(QWidget):
                         quantity_2 = self.output_2[0][0][0]
                         self.all_quantities_1[y, x] = quantity_1
                         self.all_quantities_2[y, x] = quantity_2
+
+                        if x_tran == -64 and y_tran == -64:
+                            print(quantity_2)
+                            exit()
 
                 # display as the final x_tran, y_tran
                 if self.use_cache:
@@ -2477,7 +2481,7 @@ class UI_MainWindow(QWidget):
             # prepare a pixmap for the image
             detailed_image_pixmap = QPixmap(detailed_display_image)
 
-            # add a new label for loadeds image
+            # add a new label for loaded image
             detailed_image_label = QLabel(self)
             detailed_image_label.setFixedSize(self.plot_size+20, self.plot_size)
             # left top right bottom
@@ -2814,7 +2818,10 @@ class UI_MainWindow(QWidget):
                     # draw a point(rect) that represents current selection of location
                     outer_self.cur_x_tran = int(event.pos().x()//outer_self.translation_step_single) * outer_self.translation_step_single
                     outer_self.cur_y_tran = int(event.pos().y()//outer_self.translation_step_single) * outer_self.translation_step_single
-                    print(f'Correspond to x_tran = {outer_self.cur_x_tran}, y_tran = {outer_self.cur_y_tran}')
+                    # print(f'Correspond to rect_x = {outer_self.cur_x_tran}, rect_y = {outer_self.cur_y_tran}')
+
+                    outer_self.x_tran = outer_self.cur_x_tran + outer_self.x_translation[0]
+                    outer_self.y_tran = outer_self.cur_y_tran + outer_self.y_translation[0]
 
                     # remove existing dot from both scatter plots
                     outer_self.heatmap_plot_1.removeItem(outer_self.scatter_item_1)
@@ -2891,13 +2898,13 @@ class UI_MainWindow(QWidget):
             self.heatmap_view_2.setFixedSize(self.plot_size*1.3, self.plot_size*1.3)
 
             # create view box to contain the heatmaps
-            self.view_box_1 = pg.ViewBox()
+            self.view_box_1 = pg.ViewBox(invertY=True)
             self.view_box_1.setAspectLocked(lock=True)
             self.single_nero_1 = COCO_heatmap()
             self.scatter_item_1 = pg.ScatterPlotItem(pxMode=False)
             self.scatter_item_1.setSymbol('s')
 
-            self.view_box_2 = pg.ViewBox()
+            self.view_box_2 = pg.ViewBox(invertY=True)
             self.view_box_2.setAspectLocked(lock=True)
             self.single_nero_2 = COCO_heatmap()
             self.scatter_item_2 = pg.ScatterPlotItem(pxMode=False)
