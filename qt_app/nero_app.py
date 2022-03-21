@@ -1394,23 +1394,24 @@ class UI_MainWindow(QWidget):
 
             # save colorbar as used in aggregate NERO plot, to be used in color encode scatter points
             scatter_color_map = pg.colormap.get('viridis')
-            if self.intensity_method == 'mean':
-                intensity_min = 0
-                intensity_max = 1
-            elif self.intensity_method == 'coefficient_of_variation':
-                intensity_min = min(np.min(all_intensity_1), np.min(all_intensity_2))
-                intensity_max = max(np.max(all_intensity_1), np.max(all_intensity_2))
-
-            scatter_lut = scatter_color_map.getLookupTable(start=intensity_min, stop=intensity_max, nPts=500, alpha=False)
+            scatter_lut = scatter_color_map.getLookupTable(start=self.intensity_min, stop=self.intensity_max, nPts=500, alpha=False)
 
             # quantize all the intensity into color
             color_indices_1 = []
             color_indices_2 = []
+            # rank the intensity values (small to large)
+            all_intensity_1 = sorted(all_intensity_1)
+            all_intensity_2 = sorted(all_intensity_2)
             for i in range(len(all_intensity_1)):
-                lut_index_1 = nero_utilities.lerp(all_intensity_1[i], intensity_min, intensity_max, 0, 500)
-                lut_index_2 = nero_utilities.lerp(all_intensity_2[i], intensity_min, intensity_max, 0, 500)
-                color_indices_1.append(scatter_lut[int(lut_index_1)])
-                color_indices_2.append(scatter_lut[int(lut_index_2)])
+                # when it is the slider selection
+                if i == self.dr_index:
+                    color_indices_1.append([255, 0, 0])
+                    color_indices_2.append([255, 0, 0])
+                else:
+                    lut_index_1 = nero_utilities.lerp(all_intensity_1[i], self.intensity_min, self.intensity_max, 0, 499)
+                    lut_index_2 = nero_utilities.lerp(all_intensity_2[i], self.intensity_min, self.intensity_max, 0, 499)
+                    color_indices_1.append(scatter_lut[int(lut_index_1)])
+                    color_indices_2.append(scatter_lut[int(lut_index_2)])
 
             for i, index in enumerate(cur_class_indices):
                 # all the points to be plotted
@@ -1532,6 +1533,11 @@ class UI_MainWindow(QWidget):
             self.intensity_method = 'mean'
             all_intensity_1 = np.mean(all_high_dim_points_1, axis=1)
             all_intensity_2 = np.mean(all_high_dim_points_2, axis=1)
+            # high dim points values are between 0 and 1
+            self.intensity_min = 0
+            self.intensity_max = 1
+
+            # re-display the scatter plot
             display_dimension_reduction(all_high_dim_points_1, all_high_dim_points_2, all_intensity_1, all_intensity_2)
 
         @QtCore.Slot()
@@ -1539,9 +1545,94 @@ class UI_MainWindow(QWidget):
             self.intensity_method = 'coefficient_of_variation'
             all_intensity_1 = np.std(all_high_dim_points_1, axis=1) / np.mean(all_high_dim_points_1, axis=1)
             all_intensity_2 = np.std(all_high_dim_points_2, axis=1) / np.mean(all_high_dim_points_2, axis=1)
+            self.intensity_min = min(np.min(all_intensity_1), np.min(all_intensity_2))
+            self.intensity_max = max(np.max(all_intensity_1), np.max(all_intensity_2))
+
+            # re-display the scatter plot
             display_dimension_reduction(all_high_dim_points_1, all_high_dim_points_2, all_intensity_1, all_intensity_2)
 
+        @QtCore.Slot()
+        def dr_result_selection_slider_changed():
+            # change the selection
+            self.dr_index = self.dr_result_selection_slider.value()
 
+            # re-display the scatter plot
+            display_dimension_reduction(all_high_dim_points_1, all_high_dim_points_2, all_intensity_1, all_intensity_2)
+
+            # # clear previous visualization
+            # if self.last_clicked:
+            #     self.last_clicked.resetPen()
+            #     self.last_clicked.setBrush(self.old_brush)
+
+            # # only allow clicking one point at a time
+            # # save the old brush, use color to determine which plot gets the click
+            # self.old_brush = points[0].brush()
+
+            # # create new brush and brush the newly clicked point
+            # new_brush = pg.mkBrush(255, 0, 0, 255)
+            # points[0].setBrush(new_brush)
+            # points[0].setPen(5)
+
+            # self.last_clicked = points[0]
+
+            # # get the clicked scatter item's information
+            # self.image_index = int(item.opts['name'])
+
+            # # get the corresponding image path
+            # if self.mode == 'digit_recognition' or self.mode == 'object_detection':
+            #     self.image_path = self.all_images_paths[self.image_index]
+            #     print(f'Selected image at {self.image_path}')
+            # elif self.mode == 'piv':
+            #     # single case images paths
+            #     self.image_1_path = self.all_images_1_paths[self.image_index]
+            #     self.image_2_path = self.all_images_2_paths[self.image_index]
+            #     print(f'Selected image 1 at {self.image_1_path}')
+            #     print(f'Selected image 2 at {self.image_2_path}')
+
+            #     # single case model outputs
+            #     self.all_quantities_1 = self.aggregate_outputs_1[:, self.image_index]
+            #     self.all_quantities_2 = self.aggregate_outputs_2[:, self.image_index]
+            #     self.all_ground_truths = self.aggregate_ground_truths[:, self.image_index]
+
+            # # load the image
+            # self.load_single_image()
+
+            # # display individual view
+            # if self.mode == 'digit_recognition':
+            #     # convert to QImage for display purpose
+            #     self.cur_display_image = nero_utilities.tensor_to_qt_image(self.cur_image_pt)
+            #     # resize the display QImage
+            #     self.cur_display_image = self.cur_display_image.scaledToWidth(self.display_image_size)
+            #     # prepare image tensor for model purpose
+            #     self.cur_image_pt = nero_transform.prepare_mnist_image(self.cur_image_pt)
+            #     # run model once and display results (Detailed bar plot)
+            #     self.run_model_once()
+
+            # elif self.mode == 'object_detection':
+            #     # convert to QImage for display purpose
+            #     self.cur_display_image = nero_utilities.tensor_to_qt_image(self.cur_image_pt)
+            #     # resize the display QImage
+            #     self.cur_display_image = self.cur_display_image.scaledToWidth(self.display_image_size)
+
+            # elif self.mode == 'piv':
+            #     # create new GIF
+            #     display_image_1_pil = Image.fromarray(self.cur_image_1_pt.numpy(), 'RGB')
+            #     display_image_2_pil = Image.fromarray(self.cur_image_2_pt.numpy(), 'RGB')
+            #     other_images_pil = [display_image_1_pil, display_image_2_pil, display_image_2_pil, self.blank_image_pil]
+            #     self.gif_path = os.path.join(self.cache_dir, self.loaded_image_1_name.split('.')[0] + '.gif')
+            #     display_image_1_pil.save(fp=self.gif_path,
+            #                                 format='GIF',
+            #                                 append_images=other_images_pil,
+            #                                 save_all=True,
+            #                                 duration=400,
+            #                                 loop=0)
+
+            # # run model all and display results (Individual NERO plot)
+            # self.run_model_all()
+
+
+
+        # radio buittons on choosing the intensity quantity
         self.mean_intensity_button = QRadioButton('Mean')
         self.mean_intensity_button.setFixedSize(QtCore.QSize(200, 50))
         self.mean_intensity_button.setStyleSheet('QRadioButton{font: 18pt Helvetica;} QRadioButton::indicator { width: 18px; height: 18px;};')
@@ -1560,8 +1651,24 @@ class UI_MainWindow(QWidget):
         # compute each sample's average across all transformations as intensity
         all_intensity_1 = np.mean(all_high_dim_points_1, axis=1)
         all_intensity_2 = np.mean(all_high_dim_points_2, axis=1)
+        self.intensity_min = min(np.min(all_intensity_1), np.min(all_intensity_2))
+        self.intensity_max = max(np.max(all_intensity_1), np.max(all_intensity_2))
 
+        # slider that ranks the dimension reduction result and can select one of them
+        self.dr_index = 0
+        self.dr_result_selection_slider = QtWidgets.QSlider(QtCore.Qt.Horizontal)
+        self.dr_result_selection_slider.setMinimum(0)
+        self.dr_result_selection_slider.setMaximum(len(all_high_dim_points_1))
+        self.dr_result_selection_slider.setValue(0)
+        self.dr_result_selection_slider.setTickPosition(QtWidgets.QSlider.TicksBelow)
+        self.dr_result_selection_slider.setTickInterval(1)
+        self.dr_result_selection_slider.valueChanged.connect(dr_result_selection_slider_changed)
+        self.aggregate_result_layout.addWidget(self.dr_result_selection_slider, 3, 2)
+
+        # show the scatter plot of dimension reduction result
         display_dimension_reduction(all_high_dim_points_1, all_high_dim_points_2, all_intensity_1, all_intensity_2)
+
+
 
 
     # run model on the aggregate dataset
