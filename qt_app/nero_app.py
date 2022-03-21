@@ -2737,42 +2737,57 @@ class UI_MainWindow(QWidget):
     # helper function on drawing individual heatmap (called by both individual and aggregate cases)
     def draw_individual_heatmap(self, mode, data, view_box=None, heatmap=None, scatter_item=None, title=None, range=(0, 1)):
 
-        # single mode needs to have input view_box, heatmap and scatter_item for interactively handling
-        if mode == 'single':
-            heatmap_plot = pg.PlotItem(viewBox=view_box, title=title)
-            heatmap.setOpts(axisOrder='row-major')
-            heatmap.setImage(data)
-            # add image to the viewbox
-            view_box.addItem(heatmap)
-
-            # small indicator on where the translation is at
-            if self.mode == 'object_detection' and mode == 'single':
-                scatter_point = [{'pos': (self.cur_x_tran+self.translation_step_single//2,
-                                            self.cur_y_tran+self.translation_step_single//2),
-                                    'size': self.translation_step_single,
-                                    'pen': {'color': 'red', 'width': 1},
-                                    'brush': (255, 0, 0, 255)}]
-
-                # add points to the item
-                scatter_item.setData(scatter_point)
-                heatmap_plot.addItem(scatter_item)
-
-        elif mode == 'aggregate':
-            view_box = pg.ViewBox(invertY=True)
-            view_box.setAspectLocked(lock=True)
-            heatmap = pg.ImageItem()
-            heatmap.setImage(data)
-            view_box.addItem(heatmap)
-            heatmap_plot = pg.PlotItem(viewBox=view_box, title=title)
-
-        # disable being able to move plot around
-        heatmap_plot.setMouseEnabled(x=False, y=False)
         if self.mode == 'object_detection':
+            # single mode needs to have input view_box, heatmap and scatter_item for interactively handling
+            if mode == 'single':
+                heatmap_plot = pg.PlotItem(viewBox=view_box, title=title)
+                heatmap.setOpts(axisOrder='row-major')
+                heatmap.setImage(data)
+                # add image to the viewbox
+                view_box.addItem(heatmap)
+
+                # small indicator on where the translation is at
+                if self.mode == 'object_detection' and mode == 'single':
+                    scatter_point = [{'pos': (self.cur_x_tran+self.translation_step_single//2,
+                                                self.cur_y_tran+self.translation_step_single//2),
+                                        'size': self.translation_step_single,
+                                        'pen': {'color': 'red', 'width': 1},
+                                        'brush': (255, 0, 0, 255)}]
+
+                    # add points to the item
+                    scatter_item.setData(scatter_point)
+                    heatmap_plot.addItem(scatter_item)
+
+            elif mode == 'aggregate':
+                view_box = pg.ViewBox(invertY=True)
+                view_box.setAspectLocked(lock=True)
+                heatmap = pg.ImageItem()
+                heatmap.setImage(data)
+                view_box.addItem(heatmap)
+                heatmap_plot = pg.PlotItem(viewBox=view_box, title=title)
+
             heatmap_plot.getAxis('bottom').setLabel('Translation in x')
             heatmap_plot.getAxis('bottom').setStyle(tickLength=0, showValues=False)
             heatmap_plot.getAxis('left').setLabel('Translation in y')
             heatmap_plot.getAxis('left').setStyle(tickLength=0, showValues=False)
+
         elif self.mode == 'piv':
+            # single mode needs to have input view_box, heatmap and scatter_item for interactively handling
+            if mode == 'single':
+                heatmap_plot = pg.PlotItem(viewBox=view_box, title=title)
+                heatmap.setOpts(axisOrder='row-major')
+                heatmap.setImage(data)
+                # add image to the viewbox
+                view_box.addItem(heatmap)
+
+            elif mode == 'aggregate':
+                view_box = pg.ViewBox(invertY=True)
+                view_box.setAspectLocked(lock=True)
+                heatmap = pg.ImageItem()
+                heatmap.setImage(data)
+                view_box.addItem(heatmap)
+                heatmap_plot = pg.PlotItem(viewBox=view_box, title=title)
+
             heatmap_plot.getAxis('bottom').setLabel('x')
             heatmap_plot.getAxis('bottom').setStyle(tickLength=0, showValues=False)
             heatmap_plot.getAxis('left').setLabel('y')
@@ -2782,6 +2797,9 @@ class UI_MainWindow(QWidget):
         color_map = pg.colormap.get('viridis')
         color_bar = pg.ColorBarItem(values=range, colorMap=color_map)
         color_bar.setImageItem(heatmap, insert_in=heatmap_plot)
+
+        # disable being able to move plot around
+        heatmap_plot.setMouseEnabled(x=False, y=False)
 
         return heatmap_plot
 
@@ -2857,21 +2875,9 @@ class UI_MainWindow(QWidget):
             # subclass of ImageItem that reimplements the control methods
             class PIV_heatmap(pg.ImageItem):
                 def mouseClickEvent(self, event):
-                    print("Clicked on heatmap at", event.pos())
-                    # in COCO mode, clicked location indicates translation
-                    # draw a point(rect) that represents current selection of location
-                    # small indicator on where the translation is at
-                    scatter_item = pg.ScatterPlotItem(pxMode=False)
-                    scatter_point = []
+                    print(f'Clicked on PIV heatmap at ({event.pos().x()}, {event.pos().y()})')
+                    # in PIV mode, a pop up window shows the nearby area's quiver plot
 
-                    scatter_point.append({'pos': (self.cur_x_tran, self.cur_y_tran),
-                                            'size': 3,
-                                            'pen': {'color': 'red', 'width': 0.1},
-                                            'brush': (255, 0, 0, 255)})
-
-                    # add points to the item
-                    scatter_item.addPoints(scatter_point)
-                    view_box.addItem(scatter_item)
 
 
                 def mouseDragEvent(self, event):
@@ -2903,18 +2909,24 @@ class UI_MainWindow(QWidget):
             # create view box to contain the heatmaps
             self.view_box_1 = pg.ViewBox(invertY=True)
             self.view_box_1.setAspectLocked(lock=True)
-            self.single_nero_1 = COCO_heatmap()
-            self.scatter_item_1 = pg.ScatterPlotItem(pxMode=False)
-            self.scatter_item_1.setSymbol('s')
-
             self.view_box_2 = pg.ViewBox(invertY=True)
             self.view_box_2.setAspectLocked(lock=True)
-            self.single_nero_2 = COCO_heatmap()
-            self.scatter_item_2 = pg.ScatterPlotItem(pxMode=False)
-            self.scatter_item_2.setSymbol('s')
 
-            self.heatmap_plot_1 = self.draw_individual_heatmap('single', data_1, self.view_box_1, self.single_nero_1, self.scatter_item_1)
-            self.heatmap_plot_2 = self.draw_individual_heatmap('single', data_2, self.view_box_2, self.single_nero_2, self.scatter_item_2)
+            if self.mode == 'object_detection':
+                self.single_nero_1 = COCO_heatmap()
+                self.single_nero_2 = COCO_heatmap()
+                self.scatter_item_1 = pg.ScatterPlotItem(pxMode=False)
+                self.scatter_item_1.setSymbol('s')
+                self.scatter_item_2 = pg.ScatterPlotItem(pxMode=False)
+                self.scatter_item_2.setSymbol('s')
+                self.heatmap_plot_1 = self.draw_individual_heatmap('single', data_1, self.view_box_1, self.single_nero_1, self.scatter_item_1)
+                self.heatmap_plot_2 = self.draw_individual_heatmap('single', data_2, self.view_box_2, self.single_nero_2, self.scatter_item_2)
+
+            elif self.mode == 'piv':
+                self.single_nero_1 = PIV_heatmap()
+                self.single_nero_2 = PIV_heatmap()
+                self.heatmap_plot_1 = self.draw_individual_heatmap('single', data_1, self.view_box_1, self.single_nero_1)
+                self.heatmap_plot_2 = self.draw_individual_heatmap('single', data_2, self.view_box_2, self.single_nero_2)
 
             # add to view
             self.heatmap_view_1.addItem(self.heatmap_plot_1)
