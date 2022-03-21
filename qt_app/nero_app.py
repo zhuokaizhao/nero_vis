@@ -1363,82 +1363,71 @@ class UI_MainWindow(QWidget):
             return new_low_dim
 
         outer_self = self
-        def zoom_happens(self):
-            print('zoom happens')
-            print(self.viewRange())
+        @QtCore.Slot()
+        def scatter_plot_range_1_changed(self):
+            print(f'Scatter plot 1 range changed to {self.viewRange()}')
             # remove existing scatter items
-            self.removeItem(outer_self.low_dim_scatter_item_1)
-            # self.removeItem(outer_self.low_dim_scatter_item_2)
-            # self.clear()
+            # self.removeItem(outer_self.low_dim_scatter_item_1)
+            outer_self.low_dim_scatter_plot_1.clear()
             # use plot range to compute the scatter item size
             cur_x_range = self.viewRange()[0][1] - self.viewRange()[0][0]
             cur_y_range = self.viewRange()[1][1] - self.viewRange()[1][0]
-            outer_self.scatter_item_size = cur_x_range*cur_y_range*0.02
-            # plot_dr_scatter(all_intensity_1, all_intensity_2)
+            scatter_item_size = cur_x_range*cur_y_range*0.02
+            plot_dr_scatter(outer_self.low_dim_scatter_plot_1, outer_self.low_dim_1, outer_self.all_intensity_1, scatter_item_size)
 
-        def plot_dr_scatter(all_intensity_1, all_intensity_2):
+        @QtCore.Slot()
+        def scatter_plot_range_2_changed(self):
+            print(f'Scatter plot 2 range changed to {self.viewRange()}')
+            # remove existing scatter items
+            # outer_self.low_dim_scatter_plot_2.removeItem(outer_self.low_dim_scatter_item_2)
+            outer_self.low_dim_scatter_plot_2.clear()
+            # use plot range to compute the scatter item size
+            cur_x_range = self.viewRange()[0][1] - self.viewRange()[0][0]
+            cur_y_range = self.viewRange()[1][1] - self.viewRange()[1][0]
+            scatter_item_size = cur_x_range*cur_y_range*0.02
+            plot_dr_scatter(outer_self.low_dim_scatter_plot_2, outer_self.low_dim_2, outer_self.all_intensity_2, scatter_item_size)
+
+        def plot_dr_scatter(low_dim_scatter_plot, low_dim, all_intensity, scatter_item_size):
             # save colorbar as used in aggregate NERO plot, to be used in color encode scatter points
             scatter_color_map = pg.colormap.get('viridis')
             scatter_lut = scatter_color_map.getLookupTable(start=self.intensity_min, stop=self.intensity_max, nPts=500, alpha=False)
 
             # quantize all the intensity into color
-            color_indices_1 = []
-            color_indices_2 = []
+            color_indices = []
             # rank the intensity values (small to large)
-            all_intensity_1 = sorted(all_intensity_1)
-            all_intensity_2 = sorted(all_intensity_2)
-            for i in range(len(all_intensity_1)):
+            all_intensity = sorted(all_intensity)
+            for i in range(len(all_intensity)):
                 # when it is the slider selection
                 if i == self.dr_index:
-                    color_indices_1.append([255, 0, 0])
-                    color_indices_2.append([255, 0, 0])
+                    color_indices.append([255, 0, 0])
                 else:
-                    lut_index_1 = nero_utilities.lerp(all_intensity_1[i], self.intensity_min, self.intensity_max, 0, 499)
-                    lut_index_2 = nero_utilities.lerp(all_intensity_2[i], self.intensity_min, self.intensity_max, 0, 499)
-                    color_indices_1.append(scatter_lut[int(lut_index_1)])
-                    color_indices_2.append(scatter_lut[int(lut_index_2)])
+                    lut_index = nero_utilities.lerp(all_intensity[i], self.intensity_min, self.intensity_max, 0, 499)
+                    color_indices.append(scatter_lut[int(lut_index)])
 
             for i, index in enumerate(cur_class_indices):
                 # all the points to be plotted
                 # add individual items for getting the item's name later when clicking
                 # Set pxMode=False to allow spots to transform with the view
-                self.low_dim_scatter_item_1 = pg.ScatterPlotItem(pxMode=False)
-                self.low_dim_scatter_item_1.setSymbol('o')
-                self.low_dim_scatter_item_2 = pg.ScatterPlotItem(pxMode=False)
-                self.low_dim_scatter_item_2.setSymbol('o')
-                low_dim_point_1 = [{'pos': (self.low_dim_1[i, 0], self.low_dim_1[i, 1]),
-                                    'size': self.scatter_item_size,
+                low_dim_scatter_item = pg.ScatterPlotItem(pxMode=False)
+                low_dim_scatter_item.setSymbol('o')
+                low_dim_point = [{'pos': (low_dim[i, 0], low_dim[i, 1]),
+                                    'size': scatter_item_size,
                                     # 'pen': {'color': 'w', 'width': 0.1},
                                     'pen': {'color': 'black'},
-                                    'brush': QtGui.QColor(color_indices_1[i][0], color_indices_1[i][1], color_indices_1[i][2])}]
-
-                low_dim_point_2 = [{'pos': (self.low_dim_2[i, 0], self.low_dim_2[i, 1]),
-                                    'size': self.scatter_item_size,
-                                    # 'pen': {'color': 'w', 'width': 0.1},
-                                    'pen': {'color': 'black'},
-                                    'brush': QtGui.QColor(color_indices_2[i][0], color_indices_2[i][1], color_indices_2[i][2])}]
+                                    'brush': QtGui.QColor(color_indices[i][0], color_indices[i][1], color_indices[i][2])}]
 
                 # add points to the item
-                self.low_dim_scatter_item_1.setData(low_dim_point_1, name=str(index))
-                self.low_dim_scatter_item_2.setData(low_dim_point_2, name=str(index))
-
-                # add points to the plot
-                self.low_dim_scatter_plot_1.addItem(self.low_dim_scatter_item_1)
-                self.low_dim_scatter_plot_2.addItem(self.low_dim_scatter_item_2)
+                low_dim_scatter_item.setData(low_dim_point, name=str(index))
 
                 # connect click events on scatter items
-                self.low_dim_scatter_item_1.sigClicked.connect(low_dim_scatter_clicked)
-                self.low_dim_scatter_item_2.sigClicked.connect(low_dim_scatter_clicked)
+                low_dim_scatter_item.sigClicked.connect(low_dim_scatter_clicked)
 
+                # add points to the plot
+                low_dim_scatter_plot.addItem(low_dim_scatter_item)
 
 
         # helper function on displaying the 2D scatter plot
-        def display_dimension_reduction(all_high_dim_points_1, all_high_dim_points_2, all_intensity_1, all_intensity_2):
-            # run dimension reduction algorithm
-            self.low_dim_1 = dimension_reduce(all_high_dim_points_1, target_dim=2)
-            self.low_dim_1 = normalize_low_dim_result(self.low_dim_1)
-            self.low_dim_2 = dimension_reduce(all_high_dim_points_2, target_dim=2)
-            self.low_dim_2 = normalize_low_dim_result(self.low_dim_2)
+        def display_dimension_reduction():
 
             # scatter plot on low-dim points
             self.low_dim_scatter_view_1 = pg.GraphicsLayoutWidget()
@@ -1446,7 +1435,7 @@ class UI_MainWindow(QWidget):
             self.low_dim_scatter_view_1.setFixedSize(self.plot_size, self.plot_size)
             # add plot
             self.low_dim_scatter_plot_1 = self.low_dim_scatter_view_1.addPlot()
-            self.low_dim_scatter_plot_1.sigRangeChanged.connect(zoom_happens)
+            self.low_dim_scatter_plot_1.sigRangeChanged.connect(scatter_plot_range_1_changed)
             # set axis range
             self.low_dim_scatter_plot_1.setXRange(-1.2, 1.2, padding=0)
             self.low_dim_scatter_plot_1.setYRange(-1.2, 1.2, padding=0)
@@ -1458,16 +1447,24 @@ class UI_MainWindow(QWidget):
             self.low_dim_scatter_view_2.setFixedSize(self.plot_size, self.plot_size)
             # add plot
             self.low_dim_scatter_plot_2 = self.low_dim_scatter_view_2.addPlot()
-            self.low_dim_scatter_plot_2.sigRangeChanged.connect(zoom_happens)
+            self.low_dim_scatter_plot_2.sigRangeChanged.connect(scatter_plot_range_2_changed)
             # set axis range
             self.low_dim_scatter_plot_2.setXRange(-1.2, 1.2, padding=0)
             self.low_dim_scatter_plot_2.setYRange(-1.2, 1.2, padding=0)
             # Not letting user zoom out past axis limit
             self.low_dim_scatter_plot_2.vb.setLimits(xMin=-1.2, xMax=1.2, yMin=-1.2, yMax=1.2)
             # use plot range to compute the scatter item size
-            self.scatter_item_size = 2.4*2.4*0.02
+            scatter_item_size = 2.4*2.4*0.02
 
-            plot_dr_scatter(all_intensity_1, all_intensity_2)
+            # run dimension reduction algorithm
+            self.low_dim_1 = dimension_reduce(self.all_high_dim_points_1, target_dim=2)
+            self.low_dim_1 = normalize_low_dim_result(self.low_dim_1)
+            self.low_dim_2 = dimension_reduce(self.all_high_dim_points_2, target_dim=2)
+            self.low_dim_2 = normalize_low_dim_result(self.low_dim_2)
+
+            # plot both scatter plots
+            plot_dr_scatter(self.low_dim_scatter_plot_1, self.low_dim_1, self.all_intensity_1, scatter_item_size)
+            plot_dr_scatter(self.low_dim_scatter_plot_2, self.low_dim_2, self.all_intensity_2, scatter_item_size)
 
             if self.mode == 'digit_recognition':
                 self.aggregate_result_layout.addWidget(self.low_dim_scatter_view_1, 1, 3)
@@ -1480,8 +1477,6 @@ class UI_MainWindow(QWidget):
                 # aggregate result layout at the very left
                 self.aggregate_result_layout.addWidget(self.low_dim_scatter_view_1, 2, 1)
                 self.aggregate_result_layout.addWidget(self.low_dim_scatter_view_2, 2, 2)
-
-
 
 
         # run dimension reduction of all images on the selected digit
@@ -1502,16 +1497,16 @@ class UI_MainWindow(QWidget):
         elif self.mode == 'piv':
             num_transformations = 16
 
-        all_high_dim_points_1 = np.zeros((len(cur_class_indices), num_transformations))
-        all_high_dim_points_2 = np.zeros((len(cur_class_indices), num_transformations))
+        self.all_high_dim_points_1 = np.zeros((len(cur_class_indices), num_transformations))
+        self.all_high_dim_points_2 = np.zeros((len(cur_class_indices), num_transformations))
 
         for i, index in enumerate(cur_class_indices):
             # go through all the transfomations
             for j in range(num_transformations):
                 if self.mode == 'digit_recognition':
                     # all_outputs has shape (num_rotations, num_samples, 10)
-                    all_high_dim_points_1[i, j] = int(self.all_outputs_1[j][index].argmax() == self.loaded_images_labels[index])
-                    all_high_dim_points_2[i, j] = int(self.all_outputs_2[j][index].argmax() == self.loaded_images_labels[index])
+                    self.all_high_dim_points_1[i, j] = int(self.all_outputs_1[j][index].argmax() == self.loaded_images_labels[index])
+                    self.all_high_dim_points_2[i, j] = int(self.all_outputs_2[j][index].argmax() == self.loaded_images_labels[index])
 
                 elif self.mode == 'object_detection':
 
@@ -1547,36 +1542,36 @@ class UI_MainWindow(QWidget):
                         cur_value_1 = 0
                         cur_value_2 = 0
 
-                    all_high_dim_points_1[i, j] = cur_value_1
-                    all_high_dim_points_2[i, j] = cur_value_2
+                    self.all_high_dim_points_1[i, j] = cur_value_1
+                    self.all_high_dim_points_2[i, j] = cur_value_2
 
                 elif self.mode == 'piv':
-                    all_high_dim_points_1[i, j] = 1 - nero_utilities.lerp(self.cur_plot_quantity_1_loss[j][i], self.error_min, self.error_max, 0, 1)
-                    all_high_dim_points_2[i, j] = 1 - nero_utilities.lerp(self.cur_plot_quantity_2_loss[j][i], self.error_min, self.error_max, 0, 1)
+                    self.all_high_dim_points_1[i, j] = 1 - nero_utilities.lerp(self.cur_plot_quantity_1_loss[j][i], self.error_min, self.error_max, 0, 1)
+                    self.all_high_dim_points_2[i, j] = 1 - nero_utilities.lerp(self.cur_plot_quantity_2_loss[j][i], self.error_min, self.error_max, 0, 1)
 
         # radio buttons on choosing quantity used to compute intensity
         @QtCore.Slot()
         def mean_intensity_button_clicked():
             self.intensity_method = 'mean'
-            all_intensity_1 = np.mean(all_high_dim_points_1, axis=1)
-            all_intensity_2 = np.mean(all_high_dim_points_2, axis=1)
+            all_intensity_1 = np.mean(self.all_high_dim_points_1, axis=1)
+            all_intensity_2 = np.mean(self.all_high_dim_points_2, axis=1)
             # high dim points values are between 0 and 1
             self.intensity_min = 0
             self.intensity_max = 1
 
             # re-display the scatter plot
-            display_dimension_reduction(all_high_dim_points_1, all_high_dim_points_2, all_intensity_1, all_intensity_2)
+            display_dimension_reduction()
 
         @QtCore.Slot()
         def variance_intensity_button_clicked():
             self.intensity_method = 'coefficient_of_variation'
-            all_intensity_1 = np.std(all_high_dim_points_1, axis=1) / np.mean(all_high_dim_points_1, axis=1)
-            all_intensity_2 = np.std(all_high_dim_points_2, axis=1) / np.mean(all_high_dim_points_2, axis=1)
+            all_intensity_1 = np.std(self.all_high_dim_points_1, axis=1) / np.mean(self.all_high_dim_points_1, axis=1)
+            all_intensity_2 = np.std(self.all_high_dim_points_2, axis=1) / np.mean(self.all_high_dim_points_2, axis=1)
             self.intensity_min = min(np.min(all_intensity_1), np.min(all_intensity_2))
             self.intensity_max = max(np.max(all_intensity_1), np.max(all_intensity_2))
 
             # re-display the scatter plot
-            display_dimension_reduction(all_high_dim_points_1, all_high_dim_points_2, all_intensity_1, all_intensity_2)
+            display_dimension_reduction()
 
         @QtCore.Slot()
         def dr_result_selection_slider_changed():
@@ -1584,7 +1579,7 @@ class UI_MainWindow(QWidget):
             self.dr_index = self.dr_result_selection_slider.value()
 
             # re-display the scatter plot
-            display_dimension_reduction(all_high_dim_points_1, all_high_dim_points_2, all_intensity_1, all_intensity_2)
+            display_dimension_reduction()
 
 
         # radio buittons on choosing the intensity quantity
@@ -1604,16 +1599,16 @@ class UI_MainWindow(QWidget):
         self.mean_intensity_button.setChecked(True)
         self.intensity_method = 'mean'
         # compute each sample's average across all transformations as intensity
-        all_intensity_1 = np.mean(all_high_dim_points_1, axis=1)
-        all_intensity_2 = np.mean(all_high_dim_points_2, axis=1)
-        self.intensity_min = min(np.min(all_intensity_1), np.min(all_intensity_2))
-        self.intensity_max = max(np.max(all_intensity_1), np.max(all_intensity_2))
+        self.all_intensity_1 = np.mean(self.all_high_dim_points_1, axis=1)
+        self.all_intensity_2 = np.mean(self.all_high_dim_points_2, axis=1)
+        self.intensity_min = min(np.min(self.all_intensity_1), np.min(self.all_intensity_2))
+        self.intensity_max = max(np.max(self.all_intensity_1), np.max(self.all_intensity_2))
 
         # slider that ranks the dimension reduction result and can select one of them
         self.dr_index = 0
         self.dr_result_selection_slider = QtWidgets.QSlider(QtCore.Qt.Horizontal)
         self.dr_result_selection_slider.setMinimum(0)
-        self.dr_result_selection_slider.setMaximum(len(all_high_dim_points_1))
+        self.dr_result_selection_slider.setMaximum(len(self.all_high_dim_points_1))
         self.dr_result_selection_slider.setValue(0)
         self.dr_result_selection_slider.setTickPosition(QtWidgets.QSlider.TicksBelow)
         self.dr_result_selection_slider.setTickInterval(1)
@@ -1621,9 +1616,7 @@ class UI_MainWindow(QWidget):
         self.aggregate_result_layout.addWidget(self.dr_result_selection_slider, 3, 2)
 
         # show the scatter plot of dimension reduction result
-        display_dimension_reduction(all_high_dim_points_1, all_high_dim_points_2, all_intensity_1, all_intensity_2)
-
-
+        display_dimension_reduction()
 
 
     # run model on the aggregate dataset
