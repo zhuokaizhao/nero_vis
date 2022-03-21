@@ -1366,25 +1366,27 @@ class UI_MainWindow(QWidget):
         @QtCore.Slot()
         def scatter_plot_range_1_changed(self):
             print(f'Scatter plot 1 range changed to {self.viewRange()}')
-            # remove existing scatter items
-            # self.removeItem(outer_self.low_dim_scatter_item_1)
-            outer_self.low_dim_scatter_plot_1.clear()
-            # use plot range to compute the scatter item size
             cur_x_range = self.viewRange()[0][1] - self.viewRange()[0][0]
             cur_y_range = self.viewRange()[1][1] - self.viewRange()[1][0]
-            scatter_item_size = cur_x_range*cur_y_range*0.02
+            print(cur_x_range, cur_y_range)
+            # remove existing scatter items
+            outer_self.low_dim_scatter_plot_1.clear()
+
+            # use plot range to compute the scatter item size
+            scatter_item_size = (cur_x_range*cur_y_range)*0.02
             plot_dr_scatter(outer_self.low_dim_scatter_plot_1, outer_self.low_dim_1, outer_self.all_intensity_1, scatter_item_size)
 
         @QtCore.Slot()
         def scatter_plot_range_2_changed(self):
             print(f'Scatter plot 2 range changed to {self.viewRange()}')
-            # remove existing scatter items
-            # outer_self.low_dim_scatter_plot_2.removeItem(outer_self.low_dim_scatter_item_2)
-            outer_self.low_dim_scatter_plot_2.clear()
-            # use plot range to compute the scatter item size
             cur_x_range = self.viewRange()[0][1] - self.viewRange()[0][0]
             cur_y_range = self.viewRange()[1][1] - self.viewRange()[1][0]
-            scatter_item_size = cur_x_range*cur_y_range*0.02
+
+            # remove existing scatter items
+            outer_self.low_dim_scatter_plot_2.clear()
+
+            # use plot range to compute current scatter item size
+            scatter_item_size = (cur_x_range*cur_y_range)*0.02
             plot_dr_scatter(outer_self.low_dim_scatter_plot_2, outer_self.low_dim_2, outer_self.all_intensity_2, scatter_item_size)
 
         def plot_dr_scatter(low_dim_scatter_plot, low_dim, all_intensity, scatter_item_size):
@@ -1429,13 +1431,19 @@ class UI_MainWindow(QWidget):
         # helper function on displaying the 2D scatter plot
         def display_dimension_reduction():
 
+            # run dimension reduction algorithm
+            # self.low_dim_1 = dimension_reduce(self.all_high_dim_points_1, target_dim=2)
+            # self.low_dim_1 = normalize_low_dim_result(self.low_dim_1)
+            # self.low_dim_2 = dimension_reduce(self.all_high_dim_points_2, target_dim=2)
+            # self.low_dim_2 = normalize_low_dim_result(self.low_dim_2)
+
             # scatter plot on low-dim points
             self.low_dim_scatter_view_1 = pg.GraphicsLayoutWidget()
             self.low_dim_scatter_view_1.setBackground('white')
             self.low_dim_scatter_view_1.setFixedSize(self.plot_size, self.plot_size)
             # add plot
             self.low_dim_scatter_plot_1 = self.low_dim_scatter_view_1.addPlot()
-            self.low_dim_scatter_plot_1.sigRangeChanged.connect(scatter_plot_range_1_changed)
+
             # set axis range
             self.low_dim_scatter_plot_1.setXRange(-1.2, 1.2, padding=0)
             self.low_dim_scatter_plot_1.setYRange(-1.2, 1.2, padding=0)
@@ -1447,7 +1455,7 @@ class UI_MainWindow(QWidget):
             self.low_dim_scatter_view_2.setFixedSize(self.plot_size, self.plot_size)
             # add plot
             self.low_dim_scatter_plot_2 = self.low_dim_scatter_view_2.addPlot()
-            self.low_dim_scatter_plot_2.sigRangeChanged.connect(scatter_plot_range_2_changed)
+
             # set axis range
             self.low_dim_scatter_plot_2.setXRange(-1.2, 1.2, padding=0)
             self.low_dim_scatter_plot_2.setYRange(-1.2, 1.2, padding=0)
@@ -1465,6 +1473,9 @@ class UI_MainWindow(QWidget):
             # plot both scatter plots
             plot_dr_scatter(self.low_dim_scatter_plot_1, self.low_dim_1, self.all_intensity_1, scatter_item_size)
             plot_dr_scatter(self.low_dim_scatter_plot_2, self.low_dim_2, self.all_intensity_2, scatter_item_size)
+
+            self.low_dim_scatter_plot_1.sigRangeChanged.connect(scatter_plot_range_1_changed)
+            self.low_dim_scatter_plot_2.sigRangeChanged.connect(scatter_plot_range_2_changed)
 
             if self.mode == 'digit_recognition':
                 self.aggregate_result_layout.addWidget(self.low_dim_scatter_view_1, 1, 3)
