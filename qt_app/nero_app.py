@@ -3213,7 +3213,9 @@ class UI_MainWindow(QWidget):
         5'  5   6   6'
         '''
         # where the meaning of 0 to 7 could be found at lines 316-333
-        # data is in shape (num_transformations, image_size, image_size)
+        # data is in shape (num_transformations=16, image_size=256, image_size=256)
+        print(data.shape)
+        exit()
 
 
         # # initialize label and its pixmap
@@ -4079,15 +4081,25 @@ class UI_MainWindow(QWidget):
             elif self.quantity_name == 'AEE':
                 self.loss_module = nero_utilities.AEELoss()
 
+            # keep the same dimension
+            cur_losses_1 = np.zeros((self.num_transformations, self.image_size, self.image_size))
+            cur_losses_2 = np.zeros((self.num_transformations, self.image_size, self.image_size))
             for i in range(self.num_transformations):
-                self.cur_plot_quantity_1[i] = self.loss_module(self.all_ground_truths[i], self.all_quantities_1[i]).numpy()
-                self.cur_plot_quantity_1[i] = self.loss_module(self.all_ground_truths[i], self.all_quantities_2[i]).numpy()
+                cur_losses_1[i] = self.loss_module(self.all_ground_truths[i], self.all_quantities_1[i], reduction='none').numpy().mean(axis=2)
+                cur_losses_2[i] = self.loss_module(self.all_ground_truths[i], self.all_quantities_2[i], reduction='none').numpy().mean(axis=2)
 
-            # normalize these errors between 0 and 1
-            self.cur_plot_quantity_1 = nero_utilities.lerp(self.cur_plot_quantity_1, self.error_min, self.error_max, 0, 1)
-            self.cur_plot_quantity_2 = nero_utilities.lerp(self.cur_plot_quantity_2, self.error_min, self.error_max, 0, 1)
-            self.cur_plot_quantity_1 = 1 - self.cur_plot_quantity_1
-            self.cur_plot_quantity_2 = 1 - self.cur_plot_quantity_2
+            # get the max and min for normalization purpose
+            self.error_min = min(np.min(cur_losses_1), np.min(cur_losses_2))
+            self.error_max = max(np.max(cur_losses_1), np.max(cur_losses_2))
+
+            # normalize all the losses
+            cur_losses_1 = nero_utilities.lerp(cur_losses_1, self.error_min, self.error_max, 0, 1)
+            cur_losses_2 = nero_utilities.lerp(cur_losses_2, self.error_min, self.error_max, 0, 1)
+
+            # average element-wise loss to scalar and normalize between 0 and 1
+            self.cur_plot_quantity_1 = 1 - cur_losses_1
+            self.cur_plot_quantity_2 = 1 - cur_losses_2
+
 
         @QtCore.Slot()
         def piv_plot_quantity_changed(text):
@@ -4120,7 +4132,7 @@ class UI_MainWindow(QWidget):
 
         quantity_menu.setCurrentText(self.all_plot_quantities[0])
         # by default the loss is RMSE
-        self.cur_plot_quantity = 'RMSE'
+        self.quantity_name = 'RMSE'
         self.loss_module = nero_utilities.RMSELoss()
 
         # connect the drop down menu with actions
@@ -4131,26 +4143,10 @@ class UI_MainWindow(QWidget):
         if self.data_mode == 'single':
             # add plot control layout to general layout
             self.single_result_layout.addLayout(self.single_plot_control_layout, 0, 0)
-            # all the needed plot quantity in individual nero plot
+            # compute the plot quantities self.cur_plot_quantity_1 and self.cur_plot_quantity_2
             self.cur_plot_quantity_1 = np.zeros((self.num_transformations, self.image_size, self.image_size))
             self.cur_plot_quantity_2 = np.zeros((self.num_transformations, self.image_size, self.image_size))
-
-            # fill in
-            for i in range(len(self.all_ground_truths)):
-                self.cur_plot_quantity_1[i] = self.loss_module(self.all_ground_truths[i], self.all_quantities_1[i], reduction='none').numpy()
-                self.cur_plot_quantity_2[i] = self.loss_module(self.all_ground_truths[i], self.all_quantities_2[i], reduction='none').numpy()
-
-            # get the max and min for normalization purpose
-            self.error_min = min(np.min(self.cur_plot_quantity_1), np.min(self.cur_plot_quantity_2))
-            self.error_max = max(np.max(self.cur_plot_quantity_1), np.max(self.cur_plot_quantity_2))
-
-            # normalize all the losses
-            self.cur_plot_quantity_1 = nero_utilities.lerp(self.cur_plot_quantity_1, self.error_min, self.error_max, 0, 1)
-            self.cur_plot_quantity_2 = nero_utilities.lerp(self.cur_plot_quantity_2, self.error_min, self.error_max, 0, 1)
-
-            # average element-wise loss to scalar and normalize between 0 and 1
-            self.cur_plot_quantity_1 = 1 - self.cur_plot_quantity_1
-            self.cur_plot_quantity_2 = 1 - self.cur_plot_quantity_2
+            compute_nero_plot_quantity()
 
         elif self.data_mode == 'aggregate':
             # add plot control layout to general layout
