@@ -313,6 +313,26 @@ class UI_MainWindow(QWidget):
                 # self.model_2 = nero_run_model.load_model(self.mode, self.model_1_name, self.model_1_path)
                 self.model_2 = None
 
+                # cayley table that shows the group orbit result
+                self.cayley_table = np.zeros((8, 8))
+                # 0: no transformation
+                self.cayley_table[0] = [0, 1, 2, 3, 4, 5, 6, 7]
+                # 1: / diagonal flip
+                self.cayley_table[1] = [1, 0, 7, 6, 5, 4, 3, 2]
+                # 2: counter-clockwise 90 rotation
+                self.cayley_table[2] = [2, 3, 4, 5, 6, 7, 0, 1]
+                # 3: horizontal flip (by y axis)
+                self.cayley_table[3] = [3, 2, 1, 0, 7, 6, 5, 4]
+                # 4: counter-clockwise 180 rotation
+                self.cayley_table[4] = [4, 5, 6, 7, 0, 1, 2, 3]
+                # 5: \ diagnal flip
+                self.cayley_table[5] = [5, 4, 3, 2, 1, 0, 7, 6]
+                # 6: counter-clockwise 270 rotation
+                self.cayley_table[6] = [6, 7, 0, 1, 2, 3, 4, 5]
+                # 7: vertical flip (by x axis)
+                self.cayley_table[7] = [7, 6, 5, 4, 3, 2, 1, 0]
+
+
                 # unique quantity of the result of current data
                 self.all_quantities_1 = []
                 self.all_quantities_2 = []
@@ -1287,10 +1307,10 @@ class UI_MainWindow(QWidget):
             # save the old brush, use color to determine which plot gets the click
             self.old_brush = points[0].brush()
 
-            # create new brush and brush the newly clicked point
-            new_brush = pg.mkBrush(255, 0, 0, 255)
-            points[0].setBrush(new_brush)
-            points[0].setPen(5)
+            # create new pen and brush the newly clicked point
+            new_pen = pg.mkPen(QtGui.QColor(255, 0, 0, 255), width=3)
+            points[0].setPen(new_pen)
+            # points[0].setPen(5)
 
             self.last_clicked = points[0]
 
@@ -1371,16 +1391,18 @@ class UI_MainWindow(QWidget):
             # quantize all the intensity into color
             color_indices = []
             # rank the intensity values (small to large)
+            all_intensity_indices = np.argsort(all_intensity)
             all_intensity = sorted(all_intensity)
+            sorted_class_indices = [cur_class_indices[idx] for idx in all_intensity_indices]
             for i in range(len(all_intensity)):
                 # when it is the slider selection
                 if i == selected_index:
-                    color_indices.append([255, 0, 0])
+                    color_indices.append([255, 0, 255])
                 else:
                     lut_index = nero_utilities.lerp(all_intensity[i], self.intensity_min, self.intensity_max, 0, 499)
                     color_indices.append(scatter_lut[int(lut_index)])
 
-            for i, index in enumerate(cur_class_indices):
+            for i, index in enumerate(sorted_class_indices):
                 # add the selected item's color at last to make sure that the current selected item is always on top (last to render)
                 if i == selected_index:
                     continue
@@ -1410,7 +1432,7 @@ class UI_MainWindow(QWidget):
                                 'brush': QtGui.QColor(color_indices[selected_index][0], color_indices[selected_index][1], color_indices[selected_index][2])}]
 
             # add points to the item
-            low_dim_scatter_item.setData(low_dim_point, name=str(index))
+            low_dim_scatter_item.setData(low_dim_point, name=str(sorted_class_indices[selected_index]))
             # connect click events on scatter items
             low_dim_scatter_item.sigClicked.connect(low_dim_scatter_clicked)
             # add points to the plot
@@ -1612,7 +1634,7 @@ class UI_MainWindow(QWidget):
         self.dr_selected_index_1 = 0
         self.dr_result_selection_slider_1 = QtWidgets.QSlider(QtCore.Qt.Horizontal)
         self.dr_result_selection_slider_1.setMinimum(0)
-        self.dr_result_selection_slider_1.setMaximum(len(self.all_high_dim_points_1))
+        self.dr_result_selection_slider_1.setMaximum(len(self.all_high_dim_points_1)-1)
         self.dr_result_selection_slider_1.setValue(0)
         self.dr_result_selection_slider_1.setTickPosition(QtWidgets.QSlider.TicksBelow)
         self.dr_result_selection_slider_1.setTickInterval(1)
@@ -1622,7 +1644,7 @@ class UI_MainWindow(QWidget):
         self.dr_selected_index_2 = 0
         self.dr_result_selection_slider_2 = QtWidgets.QSlider(QtCore.Qt.Horizontal)
         self.dr_result_selection_slider_2.setMinimum(0)
-        self.dr_result_selection_slider_2.setMaximum(len(self.all_high_dim_points_1))
+        self.dr_result_selection_slider_2.setMaximum(len(self.all_high_dim_points_2)-1)
         self.dr_result_selection_slider_2.setValue(0)
         self.dr_result_selection_slider_2.setTickPosition(QtWidgets.QSlider.TicksBelow)
         self.dr_result_selection_slider_2.setTickInterval(1)
@@ -2324,7 +2346,7 @@ class UI_MainWindow(QWidget):
                 self.display_image()
 
                 # redraw the nero plot with new triangle display
-                self.draw_d4_nero('single')
+                self.draw_piv_nero('single')
                 # update detailed plot of PIV
                 self.draw_piv_details()
 
@@ -2340,7 +2362,7 @@ class UI_MainWindow(QWidget):
                 self.display_image()
 
                 # redraw the nero plot with new triangle display
-                self.draw_d4_nero('single')
+                self.draw_piv_nero('single')
                 # update detailed plot of PIV
                 self.draw_piv_details()
 
@@ -2355,7 +2377,7 @@ class UI_MainWindow(QWidget):
                 self.display_image()
 
                 # redraw the nero plot with new triangle display
-                self.draw_d4_nero('single')
+                self.draw_piv_nero('single')
                 # update detailed plot of PIV
                 self.draw_piv_details()
 
@@ -2370,7 +2392,7 @@ class UI_MainWindow(QWidget):
                 self.display_image()
 
                 # redraw the nero plot with new triangle display
-                self.draw_d4_nero('single')
+                self.draw_piv_nero('single')
                 # update detailed plot of PIV
                 self.draw_piv_details()
 
@@ -2385,61 +2407,87 @@ class UI_MainWindow(QWidget):
                 self.display_image()
 
                 # redraw the nero plot with new triangle display
-                self.draw_d4_nero('single')
+                self.draw_piv_nero('single')
                 # update detailed plot of PIV
                 self.draw_piv_details()
 
 
-            # Dihedral group4 transformations (clockwise first)
-            all_rotation_degrees = [0, -90, -180, -270]
-            # 0 means no flip/time reverse, 1 means flip/time reverse
-            all_flip = [0, 1]
-            all_time_reversals = [0, 1]
-            self.num_transformations = len(all_rotation_degrees) * len(all_flip) * len(all_time_reversals)
-
+            # Dihedral group4 transformations plus time-reverse
+            self.num_transformations = 16
+            self.time_reverse = [0, 1]
             # keep track for all D4 transformation
             self.all_d4_images_1_pt = torch.zeros((self.num_transformations, self.image_size, self.image_size, 3))
             self.all_d4_images_2_pt = torch.zeros((self.num_transformations, self.image_size, self.image_size, 3))
             self.all_ground_truths = torch.zeros((self.num_transformations, self.image_size, self.image_size, 2))
 
-            d4_index = 0
-            for is_time_reversed in all_time_reversals:
-                    for is_flipped in all_flip:
-                        for cur_rot_degree in all_rotation_degrees:
+            # input after transformation
+            for is_time_reversed in self.time_reverse:
+                if is_time_reversed:
+                    self.cur_image_1_pt, \
+                    self.cur_image_2_pt, \
+                    self.cur_image_label_pt = nero_transform.time_reverse_piv_data(self.loaded_image_1_pt,
+                                                                                self.loaded_image_2_pt,
+                                                                                self.loaded_image_label_pt)
+                else:
+                    self.cur_image_1_pt = self.loaded_image_1_pt.clone()
+                    self.cur_image_2_pt = self.loaded_image_1_pt.clone()
+                    self.cur_image_label_pt = self.loaded_image_label_pt.clone()
 
-                            # modify the input image tensor alone with its ground truth
-                            # rotation
-                            if cur_rot_degree:
-                                self.all_d4_images_1_pt[d4_index], \
-                                self.all_d4_images_2_pt[d4_index], \
-                                self.all_ground_truths[d4_index] = nero_transform.rotate_piv_data(self.loaded_image_1_pt,
-                                                                                                    self.loaded_image_2_pt,
-                                                                                                    self.loaded_image_label_pt,
-                                                                                                    cur_rot_degree)
-                            # flip
-                            elif is_flipped:
-                                self.all_d4_images_1_pt[d4_index], \
-                                self.all_d4_images_2_pt[d4_index], \
-                                self.all_ground_truths[d4_index] = nero_transform.flip_piv_data(self.loaded_image_1_pt,
-                                                                                                self.loaded_image_2_pt,
-                                                                                                self.loaded_image_label_pt)
+                # 0: no transformation (original)
+                self.all_d4_images_1_pt[is_time_reversed*8 + 0] = self.cur_image_1_pt.clone()
+                self.all_d4_images_2_pt[is_time_reversed*8 + 0] = self.cur_image_2_pt.clone()
+                self.all_ground_truths[is_time_reversed*8 + 0] = self.cur_image_label_pt.clone()
 
-                            # time reverse
-                            elif is_time_reversed:
-                                self.all_d4_images_1_pt[d4_index], \
-                                self.all_d4_images_2_pt[d4_index], \
-                                self.all_ground_truths[d4_index] = nero_transform.reverse_piv_data(self.loaded_image_1_pt,
-                                                                                                    self.loaded_image_2_pt,
-                                                                                                    self.loaded_image_label_pt)
+                # 1: right diagonal flip (/)
+                self.all_d4_images_1_pt[is_time_reversed*8 + 1], \
+                self.all_d4_images_2_pt[is_time_reversed*8 + 1], \
+                self.all_ground_truths[is_time_reversed*8 + 1] = nero_transform.flip_piv_data(self.cur_image_1_pt,
+                                                                                                self.cur_image_2_pt,
+                                                                                                self.cur_image_label_pt,
+                                                                                                flip_type='right-diagonal')
+                # 2: counter-clockwise 90 rotation
+                self.all_d4_images_1_pt[is_time_reversed*8 + 2], \
+                self.all_d4_images_2_pt[is_time_reversed*8 + 2], \
+                self.all_ground_truths[is_time_reversed*8 + 2] = nero_transform.rotate_piv_data(self.cur_image_1_pt,
+                                                                                                self.cur_image_2_pt,
+                                                                                                self.cur_image_label_pt,
+                                                                                                90)
+                # 3: horizontal flip (by y axis)
+                self.all_d4_images_1_pt[is_time_reversed*8 + 3], \
+                self.all_d4_images_2_pt[is_time_reversed*8 + 3], \
+                self.all_ground_truths[is_time_reversed*8 + 3] = nero_transform.flip_piv_data(self.cur_image_1_pt,
+                                                                                                self.cur_image_2_pt,
+                                                                                                self.cur_image_label_pt,
+                                                                                                flip_type='horizontal')
+                # 4: counter-clockwise 180 rotation
+                self.all_d4_images_1_pt[is_time_reversed*8 + 4], \
+                self.all_d4_images_2_pt[is_time_reversed*8 + 4], \
+                self.all_ground_truths[is_time_reversed*8 + 4] = nero_transform.rotate_piv_data(self.cur_image_1_pt,
+                                                                                                self.cur_image_2_pt,
+                                                                                                self.cur_image_label_pt,
+                                                                                                180)
+                # 5: \ diagnal flip
+                self.all_d4_images_1_pt[is_time_reversed*8 + 5], \
+                self.all_d4_images_2_pt[is_time_reversed*8 + 5], \
+                self.all_ground_truths[is_time_reversed*8 + 5] = nero_transform.flip_piv_data(self.cur_image_1_pt,
+                                                                                                self.cur_image_2_pt,
+                                                                                                self.cur_image_label_pt,
+                                                                                                flip_type='left-diagonal')
+                # 6: counter-clockwise 270 rotation
+                self.all_d4_images_1_pt[is_time_reversed*8 + 6], \
+                self.all_d4_images_2_pt[is_time_reversed*8 + 6], \
+                self.all_ground_truths[is_time_reversed*8 + 6] = nero_transform.rotate_piv_data(self.cur_image_1_pt,
+                                                                                                self.cur_image_2_pt,
+                                                                                                self.cur_image_label_pt,
+                                                                                                270)
+                # 7: vertical flip (by x axis)
+                self.all_d4_images_1_pt[is_time_reversed*8 + 7], \
+                self.all_d4_images_2_pt[is_time_reversed*8 + 7], \
+                self.all_ground_truths[is_time_reversed*8 + 7] = nero_transform.flip_piv_data(self.cur_image_1_pt,
+                                                                                                self.cur_image_2_pt,
+                                                                                                self.cur_image_label_pt,
+                                                                                                flip_type='vertical')
 
-                            # no transformation at all
-                            else:
-                                self.all_d4_images_1_pt[d4_index] = self.loaded_image_1_pt
-                                self.all_d4_images_2_pt[d4_index] = self.loaded_image_2_pt
-                                self.all_ground_truths[d4_index] = self.loaded_image_label_pt
-
-                            # update index
-                            d4_index += 1
 
             # when in single mode
             if self.data_mode == 'single':
@@ -3156,56 +3204,68 @@ class UI_MainWindow(QWidget):
     # draws a single D4 vis
     def draw_individual_d4(self, mode, data):
 
-        # initialize label and its pixmap
-        d4_label = QLabel(self)
-        d4_label.setContentsMargins(0, 0, 0, 0)
-        d4_label.setAlignment(QtCore.Qt.AlignCenter)
+        # 16 rectangles where each contains a heatmap of the error heatmap
+        # the layout is
+        '''
+        2'  2   0   0'
+        3'  3   0   0'
+        4'  4   7'  7
+        5'  5   6   6'
+        '''
+        # where the meaning of 0 to 7 could be found at lines 316-333
+        # data is in shape (num_transformations, image_size, image_size)
 
-        d4_pixmap = QPixmap(self.plot_size, self.plot_size)
-        d4_pixmap.fill(QtCore.Qt.white)
-        painter = QtGui.QPainter(d4_pixmap)
 
-        # define a colormap and lookup table to use as fill color
-        d4_color_map = pg.colormap.get('viridis')
-        d4_lut = d4_color_map.getLookupTable(start=0, stop=1, nPts=101, alpha=False)
+        # # initialize label and its pixmap
+        # d4_label = QLabel(self)
+        # d4_label.setContentsMargins(0, 0, 0, 0)
+        # d4_label.setAlignment(QtCore.Qt.AlignCenter)
 
-        # each d4 NERO plot has 16 triangles
-        p = self.plot_size
-        # points of all triangles
-        all_triangle_points = [[QtCore.QPointF(0, p/2), QtCore.QPointF(p/4, p/4), QtCore.QPointF(p/2, p/2)], # original
-                                [QtCore.QPointF(p/2, p/2), QtCore.QPointF(p/2, 0), QtCore.QPointF(p*3/4, p*1/4)], # rotated 90 clockwise
-                                [QtCore.QPointF(p/2, p/2), QtCore.QPointF(p, p/2), QtCore.QPointF(p*3/4, p*3/4)], # rotated 180 clockwise
-                                [QtCore.QPointF(p/4, p*3/4), QtCore.QPointF(p/2, p/2), QtCore.QPointF(p/2, p)], # rotated 270 clockwise
-                                [QtCore.QPointF(p/4, p/4), QtCore.QPointF(p/2, 0), QtCore.QPointF(p/2, p/2)], # original + flip
-                                [QtCore.QPointF(p/2, p/2), QtCore.QPointF(p*3/4, p/4), QtCore.QPointF(p, p/2)], # rotated 90 clockwise + flip
-                                [QtCore.QPointF(p/2, p/2), QtCore.QPointF(p/2, p), QtCore.QPointF(p*3/4, p*3/4)], # rotated 180 clockwise + flip
-                                [QtCore.QPointF(0, p/2), QtCore.QPointF(p/4, p*3/4), QtCore.QPointF(p/2, p/2)], # rotated 270 clockwise + flip
-                                [QtCore.QPointF(0, 0), QtCore.QPointF(p/4, p/4), QtCore.QPointF(0, p/2)], # time reverse
-                                [QtCore.QPointF(p/2, 0), QtCore.QPointF(p*3/4, p/4), QtCore.QPointF(p, 0)], # rot 90 clockwise + time reverse
-                                [QtCore.QPointF(p, p/2), QtCore.QPointF(p*3/4, p*3/4), QtCore.QPointF(p, p)], # rot 180 clockwise + time reverse
-                                [QtCore.QPointF(0, p), QtCore.QPointF(p/4, p*3/4), QtCore.QPointF(p/2, p)], # rot 270 clockwise + time reverse
-                                [QtCore.QPointF(0, 0), QtCore.QPointF(p/4, p/4), QtCore.QPointF(p/2, 0)], # flip + time reverse
-                                [QtCore.QPointF(p, 0), QtCore.QPointF(p*3/4, p/4), QtCore.QPointF(p, p/2)], # rot 90 clockwise + flip + time reverse
-                                [QtCore.QPointF(p/2, p), QtCore.QPointF(p*3/4, p*3/4), QtCore.QPointF(p, p)], # rot 180 clockwise + flip + time reverse
-                                [QtCore.QPointF(0, p), QtCore.QPointF(0, p/2), QtCore.QPointF(p/4, p*3/4)]] # rot 270 clockwise + flip + time reverse
+        # d4_pixmap = QPixmap(self.plot_size, self.plot_size)
+        # d4_pixmap.fill(QtCore.Qt.white)
+        # painter = QtGui.QPainter(d4_pixmap)
 
-        for i, cur_points in enumerate(all_triangle_points):
-            self.draw_triangle(painter, cur_points, brush_color=QtGui.QColor(d4_lut[int(data[i]*100)][0], d4_lut[int(data[i]*100)][1], d4_lut[int(data[i]*100)][2]))
+        # # define a colormap and lookup table to use as fill color
+        # d4_color_map = pg.colormap.get('viridis')
+        # d4_lut = d4_color_map.getLookupTable(start=0, stop=1, nPts=101, alpha=False)
 
-        # draw the red triangle selector
-        if mode == 'single':
-            self.draw_triangle(painter, all_triangle_points[self.triangle_index], pen_color=QtGui.QColor('red'), boundary_width=3)
+        # # each d4 NERO plot has 16 triangles
+        # p = self.plot_size
+        # # points of all triangles
+        # all_triangle_points = [[QtCore.QPointF(0, p/2), QtCore.QPointF(p/4, p/4), QtCore.QPointF(p/2, p/2)], # original
+        #                         [QtCore.QPointF(p/2, p/2), QtCore.QPointF(p/2, 0), QtCore.QPointF(p*3/4, p*1/4)], # rotated 90 clockwise
+        #                         [QtCore.QPointF(p/2, p/2), QtCore.QPointF(p, p/2), QtCore.QPointF(p*3/4, p*3/4)], # rotated 180 clockwise
+        #                         [QtCore.QPointF(p/4, p*3/4), QtCore.QPointF(p/2, p/2), QtCore.QPointF(p/2, p)], # rotated 270 clockwise
+        #                         [QtCore.QPointF(p/4, p/4), QtCore.QPointF(p/2, 0), QtCore.QPointF(p/2, p/2)], # original + flip
+        #                         [QtCore.QPointF(p/2, p/2), QtCore.QPointF(p*3/4, p/4), QtCore.QPointF(p, p/2)], # rotated 90 clockwise + flip
+        #                         [QtCore.QPointF(p/2, p/2), QtCore.QPointF(p/2, p), QtCore.QPointF(p*3/4, p*3/4)], # rotated 180 clockwise + flip
+        #                         [QtCore.QPointF(0, p/2), QtCore.QPointF(p/4, p*3/4), QtCore.QPointF(p/2, p/2)], # rotated 270 clockwise + flip
+        #                         [QtCore.QPointF(0, 0), QtCore.QPointF(p/4, p/4), QtCore.QPointF(0, p/2)], # time reverse
+        #                         [QtCore.QPointF(p/2, 0), QtCore.QPointF(p*3/4, p/4), QtCore.QPointF(p, 0)], # rot 90 clockwise + time reverse
+        #                         [QtCore.QPointF(p, p/2), QtCore.QPointF(p*3/4, p*3/4), QtCore.QPointF(p, p)], # rot 180 clockwise + time reverse
+        #                         [QtCore.QPointF(0, p), QtCore.QPointF(p/4, p*3/4), QtCore.QPointF(p/2, p)], # rot 270 clockwise + time reverse
+        #                         [QtCore.QPointF(0, 0), QtCore.QPointF(p/4, p/4), QtCore.QPointF(p/2, 0)], # flip + time reverse
+        #                         [QtCore.QPointF(p, 0), QtCore.QPointF(p*3/4, p/4), QtCore.QPointF(p, p/2)], # rot 90 clockwise + flip + time reverse
+        #                         [QtCore.QPointF(p/2, p), QtCore.QPointF(p*3/4, p*3/4), QtCore.QPointF(p, p)], # rot 180 clockwise + flip + time reverse
+        #                         [QtCore.QPointF(0, p), QtCore.QPointF(0, p/2), QtCore.QPointF(p/4, p*3/4)]] # rot 270 clockwise + flip + time reverse
 
-        painter.end()
+        # for i, cur_points in enumerate(all_triangle_points):
+        #     self.draw_triangle(painter, cur_points, brush_color=QtGui.QColor(d4_lut[int(data[i]*100)][0], d4_lut[int(data[i]*100)][1], d4_lut[int(data[i]*100)][2]))
+
+        # # draw the red triangle selector
+        # if mode == 'single':
+        #     self.draw_triangle(painter, all_triangle_points[self.triangle_index], pen_color=QtGui.QColor('red'), boundary_width=3)
+
+        # painter.end()
 
         # set pixmap to label
-        d4_label.setPixmap(d4_pixmap)
+        # d4_label.setPixmap(d4_pixmap)
 
         return d4_label
 
 
     # draws dihedral 4 visualization to be the NERO plot for PIV experiment
-    def draw_d4_nero(self, mode):
+    def draw_piv_nero(self, mode):
 
         # NERO plot
         self.d4_label_1 = self.draw_individual_d4(mode, self.cur_plot_quantity_1)
@@ -3959,7 +4019,7 @@ class UI_MainWindow(QWidget):
             compute_nero_plot_quantity()
 
             # re-display the heatmap
-            self.draw_d4_nero(mode='aggregate')
+            self.draw_piv_nero(mode='aggregate')
 
             # re-run dimension reduction and show result
             if self.dr_result_existed:
@@ -3992,7 +4052,7 @@ class UI_MainWindow(QWidget):
         compute_nero_plot_quantity()
 
         # draw the aggregate NERO plot
-        self.draw_d4_nero(mode='aggregate')
+        self.draw_piv_nero(mode='aggregate')
 
 
     # display PIV single results
@@ -4038,7 +4098,7 @@ class UI_MainWindow(QWidget):
             compute_nero_plot_quantity()
 
             # plot/update the individual NERO plot
-            self.draw_d4_nero(mode='single')
+            self.draw_piv_nero(mode='single')
 
             # update detailed plot of PIV
             self.draw_piv_details()
@@ -4071,21 +4131,20 @@ class UI_MainWindow(QWidget):
         if self.data_mode == 'single':
             # add plot control layout to general layout
             self.single_result_layout.addLayout(self.single_plot_control_layout, 0, 0)
-            # plot quantity in individual nero plot
-            self.cur_plot_quantity_1 = np.zeros(self.num_transformations)
-            self.cur_plot_quantity_2 = np.zeros(self.num_transformations)
+            # all the needed plot quantity in individual nero plot
+            self.cur_plot_quantity_1 = np.zeros((self.num_transformations, self.image_size, self.image_size))
+            self.cur_plot_quantity_2 = np.zeros((self.num_transformations, self.image_size, self.image_size))
 
-            # compute average error as the largest and smallest for normalization
-            # not using individual pixel min/max because some have too large perks
+            # fill in
             for i in range(len(self.all_ground_truths)):
-                self.cur_plot_quantity_1[i] = self.loss_module(self.all_ground_truths[i], self.all_quantities_1[i], reduction='mean').numpy()
-                self.cur_plot_quantity_2[i] = self.loss_module(self.all_ground_truths[i], self.all_quantities_2[i], reduction='mean').numpy()
+                self.cur_plot_quantity_1[i] = self.loss_module(self.all_ground_truths[i], self.all_quantities_1[i], reduction='none').numpy()
+                self.cur_plot_quantity_2[i] = self.loss_module(self.all_ground_truths[i], self.all_quantities_2[i], reduction='none').numpy()
 
             # get the max and min for normalization purpose
             self.error_min = min(np.min(self.cur_plot_quantity_1), np.min(self.cur_plot_quantity_2))
             self.error_max = max(np.max(self.cur_plot_quantity_1), np.max(self.cur_plot_quantity_2))
 
-            # normalize the losses
+            # normalize all the losses
             self.cur_plot_quantity_1 = nero_utilities.lerp(self.cur_plot_quantity_1, self.error_min, self.error_max, 0, 1)
             self.cur_plot_quantity_2 = nero_utilities.lerp(self.cur_plot_quantity_2, self.error_min, self.error_max, 0, 1)
 
@@ -4115,7 +4174,7 @@ class UI_MainWindow(QWidget):
             self.cur_plot_quantity_2 = 1 - self.cur_plot_quantity_2
 
         # visualize the individual NERO plot of the current input
-        self.draw_d4_nero(mode='single')
+        self.draw_piv_nero(mode='single')
 
         # the detailed plot of PIV
         self.draw_piv_details()
