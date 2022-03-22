@@ -1362,37 +1362,9 @@ class UI_MainWindow(QWidget):
 
             return new_low_dim
 
-        outer_self = self
-        @QtCore.Slot()
-        def scatter_plot_range_1_changed(self):
-            print(f'Scatter plot 1 range changed to {self.viewRange()}')
-            cur_x_range = self.viewRange()[0][1] - self.viewRange()[0][0]
-            cur_y_range = self.viewRange()[1][1] - self.viewRange()[1][0]
-            print(cur_x_range, cur_y_range)
-            # remove existing scatter items
-            outer_self.low_dim_scatter_plot_1.clear()
 
-            # use plot range to compute the scatter item size
-            outer_self.scatter_item_size = cur_x_range*0.07
-            # scatter_item_size = 0.02
-            plot_dr_scatter(outer_self.low_dim_scatter_plot_1, outer_self.low_dim_1, outer_self.all_intensity_1)
-
-        @QtCore.Slot()
-        def scatter_plot_range_2_changed(self):
-            print(f'Scatter plot 2 range changed to {self.viewRange()}')
-            cur_x_range = self.viewRange()[0][1] - self.viewRange()[0][0]
-            cur_y_range = self.viewRange()[1][1] - self.viewRange()[1][0]
-
-            # remove existing scatter items
-            outer_self.low_dim_scatter_plot_2.clear()
-
-            # use plot range to compute current scatter item size
-            outer_self.scatter_item_size = cur_x_range*0.07
-            # scatter_item_size = 0.02
-            plot_dr_scatter(outer_self.low_dim_scatter_plot_2, outer_self.low_dim_2, outer_self.all_intensity_2)
-
-        def plot_dr_scatter(low_dim_scatter_plot, low_dim, all_intensity):
-            # save colorbar as used in aggregate NERO plot, to be used in color encode scatter points
+        def plot_dr_scatter(low_dim_scatter_plot, low_dim, all_intensity, selected_index):
+            # same colorbar as used in aggregate NERO plot, to be used in color encode scatter points
             scatter_color_map = pg.colormap.get('viridis')
             scatter_lut = scatter_color_map.getLookupTable(start=self.intensity_min, stop=self.intensity_max, nPts=500, alpha=False)
 
@@ -1402,42 +1374,51 @@ class UI_MainWindow(QWidget):
             all_intensity = sorted(all_intensity)
             for i in range(len(all_intensity)):
                 # when it is the slider selection
-                if i == self.dr_index:
+                if i == selected_index:
                     color_indices.append([255, 0, 0])
                 else:
                     lut_index = nero_utilities.lerp(all_intensity[i], self.intensity_min, self.intensity_max, 0, 499)
                     color_indices.append(scatter_lut[int(lut_index)])
 
             for i, index in enumerate(cur_class_indices):
-                # all the points to be plotted
+                # add the selected item's color at last to make sure that the current selected item is always on top (last to render)
+                if i == selected_index:
+                    continue
                 # add individual items for getting the item's name later when clicking
                 # Set pxMode=False to allow spots to transform with the view
-                low_dim_scatter_item = pg.ScatterPlotItem(pxMode=False)
+                low_dim_scatter_item = pg.ScatterPlotItem(pxMode=True)
                 low_dim_scatter_item.setSymbol('o')
                 low_dim_point = [{'pos': (low_dim[i, 0], low_dim[i, 1]),
                                     'size': self.scatter_item_size,
-                                    # 'pen': {'color': 'w', 'width': 0.1},
-                                    'pen': {'color': 'black'},
+                                    'pen': QtGui.QColor(color_indices[i][0], color_indices[i][1], color_indices[i][2]),
                                     'brush': QtGui.QColor(color_indices[i][0], color_indices[i][1], color_indices[i][2])}]
 
                 # add points to the item
                 low_dim_scatter_item.setData(low_dim_point, name=str(index))
-
                 # connect click events on scatter items
                 low_dim_scatter_item.sigClicked.connect(low_dim_scatter_clicked)
-
                 # add points to the plot
                 low_dim_scatter_plot.addItem(low_dim_scatter_item)
 
 
+            # add the current selected one
+            low_dim_scatter_item = pg.ScatterPlotItem(pxMode=True)
+            low_dim_scatter_item.setSymbol('o')
+            low_dim_point = [{'pos': (low_dim[selected_index, 0], low_dim[selected_index, 1]),
+                                'size': self.scatter_item_size,
+                                'pen': QtGui.QColor(color_indices[i][0], color_indices[i][1], color_indices[i][2]),
+                                'brush': QtGui.QColor(color_indices[selected_index][0], color_indices[selected_index][1], color_indices[selected_index][2])}]
+
+            # add points to the item
+            low_dim_scatter_item.setData(low_dim_point, name=str(index))
+            # connect click events on scatter items
+            low_dim_scatter_item.sigClicked.connect(low_dim_scatter_clicked)
+            # add points to the plot
+            low_dim_scatter_plot.addItem(low_dim_scatter_item)
+
+
         # helper function on displaying the 2D scatter plot
         def display_dimension_reduction():
-
-            # run dimension reduction algorithm
-            # self.low_dim_1 = dimension_reduce(self.all_high_dim_points_1, target_dim=2)
-            # self.low_dim_1 = normalize_low_dim_result(self.low_dim_1)
-            # self.low_dim_2 = dimension_reduce(self.all_high_dim_points_2, target_dim=2)
-            # self.low_dim_2 = normalize_low_dim_result(self.low_dim_2)
 
             # scatter plot on low-dim points
             self.low_dim_scatter_view_1 = pg.GraphicsLayoutWidget()
@@ -1463,8 +1444,8 @@ class UI_MainWindow(QWidget):
             self.low_dim_scatter_plot_2.setYRange(-1.2, 1.2, padding=0)
             # Not letting user zoom out past axis limit
             self.low_dim_scatter_plot_2.vb.setLimits(xMin=-1.2, xMax=1.2, yMin=-1.2, yMax=1.2)
-            # use plot range to compute the scatter item size
-            self.scatter_item_size = 2.4*0.07
+            # scatter item size
+            self.scatter_item_size = 12
 
             # run dimension reduction algorithm
             self.low_dim_1 = dimension_reduce(self.all_high_dim_points_1, target_dim=2)
@@ -1473,11 +1454,8 @@ class UI_MainWindow(QWidget):
             self.low_dim_2 = normalize_low_dim_result(self.low_dim_2)
 
             # plot both scatter plots
-            plot_dr_scatter(self.low_dim_scatter_plot_1, self.low_dim_1, self.all_intensity_1)
-            plot_dr_scatter(self.low_dim_scatter_plot_2, self.low_dim_2, self.all_intensity_2)
-
-            self.low_dim_scatter_plot_1.sigRangeChanged.connect(scatter_plot_range_1_changed)
-            self.low_dim_scatter_plot_2.sigRangeChanged.connect(scatter_plot_range_2_changed)
+            plot_dr_scatter(self.low_dim_scatter_plot_1, self.low_dim_1, self.all_intensity_1, self.dr_selected_index_1)
+            plot_dr_scatter(self.low_dim_scatter_plot_2, self.low_dim_2, self.all_intensity_2, self.dr_selected_index_2)
 
             if self.mode == 'digit_recognition':
                 self.aggregate_result_layout.addWidget(self.low_dim_scatter_view_1, 1, 3)
@@ -1592,9 +1570,17 @@ class UI_MainWindow(QWidget):
             display_dimension_reduction()
 
         @QtCore.Slot()
-        def dr_result_selection_slider_changed():
+        def dr_result_selection_slider_1_changed():
             # change the selection
-            self.dr_index = self.dr_result_selection_slider.value()
+            self.dr_selected_index_1 = self.dr_result_selection_slider_1.value()
+
+            # re-display the scatter plot
+            display_dimension_reduction()
+
+        @QtCore.Slot()
+        def dr_result_selection_slider_2_changed():
+            # change the selection
+            self.dr_selected_index_2 = self.dr_result_selection_slider_2.value()
 
             # re-display the scatter plot
             display_dimension_reduction()
@@ -1622,16 +1608,26 @@ class UI_MainWindow(QWidget):
         self.intensity_min = min(np.min(self.all_intensity_1), np.min(self.all_intensity_2))
         self.intensity_max = max(np.max(self.all_intensity_1), np.max(self.all_intensity_2))
 
-        # slider that ranks the dimension reduction result and can select one of them
-        self.dr_index = 0
-        self.dr_result_selection_slider = QtWidgets.QSlider(QtCore.Qt.Horizontal)
-        self.dr_result_selection_slider.setMinimum(0)
-        self.dr_result_selection_slider.setMaximum(len(self.all_high_dim_points_1))
-        self.dr_result_selection_slider.setValue(0)
-        self.dr_result_selection_slider.setTickPosition(QtWidgets.QSlider.TicksBelow)
-        self.dr_result_selection_slider.setTickInterval(1)
-        self.dr_result_selection_slider.valueChanged.connect(dr_result_selection_slider_changed)
-        self.aggregate_result_layout.addWidget(self.dr_result_selection_slider, 3, 2)
+        # sliders that rank the dimension reduction result and can select one of them
+        self.dr_selected_index_1 = 0
+        self.dr_result_selection_slider_1 = QtWidgets.QSlider(QtCore.Qt.Horizontal)
+        self.dr_result_selection_slider_1.setMinimum(0)
+        self.dr_result_selection_slider_1.setMaximum(len(self.all_high_dim_points_1))
+        self.dr_result_selection_slider_1.setValue(0)
+        self.dr_result_selection_slider_1.setTickPosition(QtWidgets.QSlider.TicksBelow)
+        self.dr_result_selection_slider_1.setTickInterval(1)
+        self.dr_result_selection_slider_1.valueChanged.connect(dr_result_selection_slider_1_changed)
+        self.aggregate_result_layout.addWidget(self.dr_result_selection_slider_1, 3, 2)
+
+        self.dr_selected_index_2 = 0
+        self.dr_result_selection_slider_2 = QtWidgets.QSlider(QtCore.Qt.Horizontal)
+        self.dr_result_selection_slider_2.setMinimum(0)
+        self.dr_result_selection_slider_2.setMaximum(len(self.all_high_dim_points_1))
+        self.dr_result_selection_slider_2.setValue(0)
+        self.dr_result_selection_slider_2.setTickPosition(QtWidgets.QSlider.TicksBelow)
+        self.dr_result_selection_slider_2.setTickInterval(1)
+        self.dr_result_selection_slider_2.valueChanged.connect(dr_result_selection_slider_2_changed)
+        self.aggregate_result_layout.addWidget(self.dr_result_selection_slider_2, 4, 2)
 
         # show the scatter plot of dimension reduction result
         display_dimension_reduction()
@@ -2802,7 +2798,7 @@ class UI_MainWindow(QWidget):
                             # translation amout for plotting in heatmap
                             self.cur_x_tran = self.image_size-1 - (x_dist - self.x_translation[0] + 1)
                             self.cur_y_tran = self.image_size-1 - (y_dist - self.y_translation[0] + 1)
-                            self.draw_heatmaps(mode='single')
+                            self.draw_coco_nero(mode='single')
 
                             # run inference only when in the realtime mode
                             if self.realtime_inference:
@@ -2876,8 +2872,8 @@ class UI_MainWindow(QWidget):
                     scatter_point = [{'pos': (self.cur_x_tran+self.translation_step_single//2,
                                                 self.cur_y_tran+self.translation_step_single//2),
                                         'size': self.translation_step_single,
-                                        'pen': {'color': 'red', 'width': 1},
-                                        'brush': (255, 0, 0, 255)}]
+                                        'pen': {'color': 'red', 'width': 3},
+                                        'brush': (0, 0, 0, 0)}]
 
                     # add points to the item
                     scatter_item.setData(scatter_point)
@@ -2930,7 +2926,7 @@ class UI_MainWindow(QWidget):
 
 
     # draw heatmaps that displays the individual NERO plots (in COCO) or detailed view (in PIV)
-    def draw_heatmaps(self, mode):
+    def draw_coco_nero(self, mode):
 
         # used to pass into subclass
         outer_self = self
@@ -2959,7 +2955,7 @@ class UI_MainWindow(QWidget):
                 # redisplay model output
                 outer_self.draw_model_output()
 
-                # remove existing dot from both scatter plots
+                # remove existing selection indicater from both scatter plots
                 outer_self.heatmap_plot_1.removeItem(outer_self.scatter_item_1)
                 outer_self.heatmap_plot_2.removeItem(outer_self.scatter_item_2)
 
@@ -2967,8 +2963,8 @@ class UI_MainWindow(QWidget):
                 scatter_point = [{'pos': (outer_self.cur_x_tran+outer_self.translation_step_single//2,
                                             outer_self.cur_y_tran+outer_self.translation_step_single//2),
                                     'size': outer_self.translation_step_single,
-                                    'pen': {'color': 'red', 'width': 1},
-                                    'brush': (255, 0, 0, 255)}]
+                                    'pen': {'color': 'red', 'width': 3},
+                                    'brush': (0, 0, 0, 0)}]
 
                 # add points to both views
                 outer_self.scatter_item_1.setData(scatter_point)
@@ -2976,29 +2972,6 @@ class UI_MainWindow(QWidget):
                 outer_self.heatmap_plot_1.addItem(outer_self.scatter_item_1)
                 outer_self.heatmap_plot_2.addItem(outer_self.scatter_item_2)
 
-
-        # subclass of ImageItem that reimplements the control methods
-        # class PIV_heatmap(pg.ImageItem):
-        #     def mouseClickEvent(self, event):
-        #         print(f'Clicked on PIV heatmap at ({event.pos().x()}, {event.pos().y()})')
-        #         # in PIV mode, a pop up window shows the nearby area's quiver plot
-
-
-
-        #     def mouseDragEvent(self, event):
-        #         if event.isStart():
-        #             print("Start drag", event.pos())
-        #         elif event.isFinish():
-        #             print("Stop drag", event.pos())
-        #         else:
-        #             print("Drag", event.pos())
-
-        #     def hoverEvent(self, event):
-        #         if not event.isExit():
-        #             # the mouse is hovering over the image; make sure no other items
-        #             # will receive left click/drag events from here.
-        #             event.acceptDrags(pg.QtCore.Qt.LeftButton)
-        #             event.acceptClicks(pg.QtCore.Qt.LeftButton)
 
         # check if the data is in shape (self.image_size, self.image_size)
         if self.cur_plot_quantity_1.shape != (self.image_size, self.image_size):
@@ -3044,12 +3017,6 @@ class UI_MainWindow(QWidget):
                 self.scatter_item_2.setSymbol('s')
                 self.heatmap_plot_1 = self.draw_individual_heatmap('single', data_1, self.view_box_1, self.single_nero_1, self.scatter_item_1)
                 self.heatmap_plot_2 = self.draw_individual_heatmap('single', data_2, self.view_box_2, self.single_nero_2, self.scatter_item_2)
-
-            # elif self.mode == 'piv':
-            #     self.single_nero_1 = PIV_heatmap()
-            #     self.single_nero_2 = PIV_heatmap()
-            #     self.heatmap_plot_1 = self.draw_individual_heatmap('single', data_1, self.view_box_1, self.single_nero_1)
-            #     self.heatmap_plot_2 = self.draw_individual_heatmap('single', data_2, self.view_box_2, self.single_nero_2)
 
             # add to view
             self.heatmap_view_1.addItem(self.heatmap_plot_1)
@@ -3662,7 +3629,7 @@ class UI_MainWindow(QWidget):
                 self.cur_plot_quantity_2 = self.aggregate_mAP_2
 
             # re-display the heatmap
-            self.draw_heatmaps(mode='aggregate')
+            self.draw_coco_nero(mode='aggregate')
 
             # re-run dimension reduction and show result
             if self.dr_result_existed:
@@ -3749,7 +3716,7 @@ class UI_MainWindow(QWidget):
         self.cur_plot_quantity_2 = self.aggregate_avg_conf_2 * self.aggregate_avg_iou_2
 
         # draw the heatmap
-        self.draw_heatmaps(mode='aggregate')
+        self.draw_coco_nero(mode='aggregate')
 
 
     # display COCO single results
@@ -3849,7 +3816,7 @@ class UI_MainWindow(QWidget):
                             self.cur_plot_quantity_2[i, j] = 1 - np.sqrt((x_tran_model_2-x_tran)**2 + (y_tran_model_2-y_tran)**2) / np.sqrt(x_tran**2 + y_tran**2)
 
             # re-display the heatmap
-            self.draw_heatmaps(mode='single')
+            self.draw_coco_nero(mode='single')
 
         # drop down menu on selection which quantity to plot
         # layout that controls the plotting items
@@ -3903,7 +3870,7 @@ class UI_MainWindow(QWidget):
                     self.cur_plot_quantity_2[y, x] = self.aggregate_outputs_2[y, x][self.image_index][0, 4] * self.aggregate_outputs_2[y, x][self.image_index][0, 6]
 
         # draw the heatmap
-        self.draw_heatmaps(mode='single')
+        self.draw_coco_nero(mode='single')
 
 
     # display COCO aggregate result
