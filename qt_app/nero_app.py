@@ -1373,8 +1373,9 @@ class UI_MainWindow(QWidget):
             outer_self.low_dim_scatter_plot_1.clear()
 
             # use plot range to compute the scatter item size
-            scatter_item_size = (cur_x_range*cur_y_range)*0.02
-            plot_dr_scatter(outer_self.low_dim_scatter_plot_1, outer_self.low_dim_1, outer_self.all_intensity_1, scatter_item_size)
+            outer_self.scatter_item_size = cur_x_range*0.07
+            # scatter_item_size = 0.02
+            plot_dr_scatter(outer_self.low_dim_scatter_plot_1, outer_self.low_dim_1, outer_self.all_intensity_1)
 
         @QtCore.Slot()
         def scatter_plot_range_2_changed(self):
@@ -1386,10 +1387,11 @@ class UI_MainWindow(QWidget):
             outer_self.low_dim_scatter_plot_2.clear()
 
             # use plot range to compute current scatter item size
-            scatter_item_size = (cur_x_range*cur_y_range)*0.02
-            plot_dr_scatter(outer_self.low_dim_scatter_plot_2, outer_self.low_dim_2, outer_self.all_intensity_2, scatter_item_size)
+            outer_self.scatter_item_size = cur_x_range*0.07
+            # scatter_item_size = 0.02
+            plot_dr_scatter(outer_self.low_dim_scatter_plot_2, outer_self.low_dim_2, outer_self.all_intensity_2)
 
-        def plot_dr_scatter(low_dim_scatter_plot, low_dim, all_intensity, scatter_item_size):
+        def plot_dr_scatter(low_dim_scatter_plot, low_dim, all_intensity):
             # save colorbar as used in aggregate NERO plot, to be used in color encode scatter points
             scatter_color_map = pg.colormap.get('viridis')
             scatter_lut = scatter_color_map.getLookupTable(start=self.intensity_min, stop=self.intensity_max, nPts=500, alpha=False)
@@ -1413,7 +1415,7 @@ class UI_MainWindow(QWidget):
                 low_dim_scatter_item = pg.ScatterPlotItem(pxMode=False)
                 low_dim_scatter_item.setSymbol('o')
                 low_dim_point = [{'pos': (low_dim[i, 0], low_dim[i, 1]),
-                                    'size': scatter_item_size,
+                                    'size': self.scatter_item_size,
                                     # 'pen': {'color': 'w', 'width': 0.1},
                                     'pen': {'color': 'black'},
                                     'brush': QtGui.QColor(color_indices[i][0], color_indices[i][1], color_indices[i][2])}]
@@ -1462,7 +1464,7 @@ class UI_MainWindow(QWidget):
             # Not letting user zoom out past axis limit
             self.low_dim_scatter_plot_2.vb.setLimits(xMin=-1.2, xMax=1.2, yMin=-1.2, yMax=1.2)
             # use plot range to compute the scatter item size
-            scatter_item_size = 2.4*2.4*0.02
+            self.scatter_item_size = 2.4*0.07
 
             # run dimension reduction algorithm
             self.low_dim_1 = dimension_reduce(self.all_high_dim_points_1, target_dim=2)
@@ -1471,8 +1473,8 @@ class UI_MainWindow(QWidget):
             self.low_dim_2 = normalize_low_dim_result(self.low_dim_2)
 
             # plot both scatter plots
-            plot_dr_scatter(self.low_dim_scatter_plot_1, self.low_dim_1, self.all_intensity_1, scatter_item_size)
-            plot_dr_scatter(self.low_dim_scatter_plot_2, self.low_dim_2, self.all_intensity_2, scatter_item_size)
+            plot_dr_scatter(self.low_dim_scatter_plot_1, self.low_dim_1, self.all_intensity_1)
+            plot_dr_scatter(self.low_dim_scatter_plot_2, self.low_dim_2, self.all_intensity_2)
 
             self.low_dim_scatter_plot_1.sigRangeChanged.connect(scatter_plot_range_1_changed)
             self.low_dim_scatter_plot_2.sigRangeChanged.connect(scatter_plot_range_2_changed)
@@ -2976,27 +2978,27 @@ class UI_MainWindow(QWidget):
 
 
         # subclass of ImageItem that reimplements the control methods
-        class PIV_heatmap(pg.ImageItem):
-            def mouseClickEvent(self, event):
-                print(f'Clicked on PIV heatmap at ({event.pos().x()}, {event.pos().y()})')
-                # in PIV mode, a pop up window shows the nearby area's quiver plot
+        # class PIV_heatmap(pg.ImageItem):
+        #     def mouseClickEvent(self, event):
+        #         print(f'Clicked on PIV heatmap at ({event.pos().x()}, {event.pos().y()})')
+        #         # in PIV mode, a pop up window shows the nearby area's quiver plot
 
 
 
-            def mouseDragEvent(self, event):
-                if event.isStart():
-                    print("Start drag", event.pos())
-                elif event.isFinish():
-                    print("Stop drag", event.pos())
-                else:
-                    print("Drag", event.pos())
+        #     def mouseDragEvent(self, event):
+        #         if event.isStart():
+        #             print("Start drag", event.pos())
+        #         elif event.isFinish():
+        #             print("Stop drag", event.pos())
+        #         else:
+        #             print("Drag", event.pos())
 
-            def hoverEvent(self, event):
-                if not event.isExit():
-                    # the mouse is hovering over the image; make sure no other items
-                    # will receive left click/drag events from here.
-                    event.acceptDrags(pg.QtCore.Qt.LeftButton)
-                    event.acceptClicks(pg.QtCore.Qt.LeftButton)
+        #     def hoverEvent(self, event):
+        #         if not event.isExit():
+        #             # the mouse is hovering over the image; make sure no other items
+        #             # will receive left click/drag events from here.
+        #             event.acceptDrags(pg.QtCore.Qt.LeftButton)
+        #             event.acceptClicks(pg.QtCore.Qt.LeftButton)
 
         # check if the data is in shape (self.image_size, self.image_size)
         if self.cur_plot_quantity_1.shape != (self.image_size, self.image_size):
@@ -3043,11 +3045,11 @@ class UI_MainWindow(QWidget):
                 self.heatmap_plot_1 = self.draw_individual_heatmap('single', data_1, self.view_box_1, self.single_nero_1, self.scatter_item_1)
                 self.heatmap_plot_2 = self.draw_individual_heatmap('single', data_2, self.view_box_2, self.single_nero_2, self.scatter_item_2)
 
-            elif self.mode == 'piv':
-                self.single_nero_1 = PIV_heatmap()
-                self.single_nero_2 = PIV_heatmap()
-                self.heatmap_plot_1 = self.draw_individual_heatmap('single', data_1, self.view_box_1, self.single_nero_1)
-                self.heatmap_plot_2 = self.draw_individual_heatmap('single', data_2, self.view_box_2, self.single_nero_2)
+            # elif self.mode == 'piv':
+            #     self.single_nero_1 = PIV_heatmap()
+            #     self.single_nero_2 = PIV_heatmap()
+            #     self.heatmap_plot_1 = self.draw_individual_heatmap('single', data_1, self.view_box_1, self.single_nero_1)
+            #     self.heatmap_plot_2 = self.draw_individual_heatmap('single', data_2, self.view_box_2, self.single_nero_2)
 
             # add to view
             self.heatmap_view_1.addItem(self.heatmap_plot_1)
