@@ -332,6 +332,18 @@ class UI_MainWindow(QWidget):
                 # 7: vertical flip (by x axis)
                 self.cayley_table[7] = [7, 6, 5, 4, 3, 2, 1, 0]
 
+                # piv nero layout in terms of transformation
+                '''
+                2'  2(Rot90)            1(right diag flip)   1'
+                3'  3(hori flip)        0(original)          0'
+                4'  4(Rot180)           7(vert flip)         7'
+                5'  5(left diag flip)   6(Rot270)            6'
+                '''
+                self.piv_nero_layout = np.array([[10, 2, 1, 9],
+                                                [11, 3, 0, 8],
+                                                [12, 4, 7, 15],
+                                                [13, 5, 6, 14]])
+
 
                 # unique quantity of the result of current data
                 self.all_quantities_1 = []
@@ -2326,10 +2338,8 @@ class UI_MainWindow(QWidget):
                 # get the rectangle index from cayley graph
                 if self.time_reverse:
                     if self.rectangle_index + 8 <= 15:
-                        print('+=8')
                         self.rectangle_index += 8
                     else:
-                        print('+=8')
                         self.rectangle_index -= 8
 
                     self.time_reverse = False
@@ -2920,6 +2930,7 @@ class UI_MainWindow(QWidget):
                 heatmap.setImage(data)
                 # add image to the viewbox
                 view_box.addItem(heatmap)
+                view_box.disableAutoRange()
 
                 # small indicator on where the translation is at
                 scatter_point = [{'pos': (self.cur_x_tran+self.translation_step_single//2,
@@ -2955,69 +2966,11 @@ class UI_MainWindow(QWidget):
                 view_box.addItem(heatmap)
 
                 # small indicator on where the translation is at
-                '''
-                2'  2(Rot90)            1(right diag flip)   1'
-                3'  3(hori flip)        0(original)          0'
-                4'  4(Rot180)           7(vert flip)         7'
-                5'  5(left diag flip)   6(Rot270)            6'
-                '''
+                # take the corresponding one from rectangle index
+                rect_index_y, rect_index_x = np.where(self.piv_nero_layout==self.rectangle_index)
                 # rect_x is the column, rect_y is the row (image coordinate)
-                if self.rectangle_index == 0:
-                    rect_x = 2*self.image_size + self.image_size // 2
-                    rect_y = 1*self.image_size + self.image_size // 2
-                elif self.rectangle_index == 1:
-                    rect_x = 2*self.image_size + self.image_size // 2
-                    rect_y = 0*self.image_size + self.image_size // 2
-                elif self.rectangle_index == 2:
-                    rect_x = 1*self.image_size + self.image_size // 2
-                    rect_y = 0*self.image_size + self.image_size // 2
-                elif self.rectangle_index == 3:
-                    rect_x = 1*self.image_size + self.image_size // 2
-                    rect_y = 1*self.image_size + self.image_size // 2
-                elif self.rectangle_index == 4:
-                    rect_x = 1*self.image_size + self.image_size // 2
-                    rect_y = 2*self.image_size + self.image_size // 2
-                elif self.rectangle_index == 5:
-                    rect_x = 1*self.image_size + self.image_size // 2
-                    rect_y = 3*self.image_size + self.image_size // 2
-                elif self.rectangle_index == 6:
-                    rect_x = 2*self.image_size + self.image_size // 2
-                    rect_y = 3*self.image_size + self.image_size // 2
-                elif self.rectangle_index == 7:
-                    rect_x = 2*self.image_size + self.image_size // 2
-                    rect_y = 2*self.image_size + self.image_size // 2
-                # 0'
-                elif self.rectangle_index == 8:
-                    rect_x = 3*self.image_size + self.image_size // 2
-                    rect_y = 1*self.image_size + self.image_size // 2
-                # 1'
-                elif self.rectangle_index == 9:
-                    rect_x = 3*self.image_size + self.image_size // 2
-                    rect_y = 0*self.image_size + self.image_size // 2
-                # 2'
-                elif self.rectangle_index == 10:
-                    rect_x = 0*self.image_size + self.image_size // 2
-                    rect_y = 0*self.image_size + self.image_size // 2
-                # 3'
-                elif self.rectangle_index == 11:
-                    rect_x = 0*self.image_size + self.image_size // 2
-                    rect_y = 1*self.image_size + self.image_size // 2
-                # 4'
-                elif self.rectangle_index == 12:
-                    rect_x = 0*self.image_size + self.image_size // 2
-                    rect_y = 2*self.image_size + self.image_size // 2
-                # 5'
-                elif self.rectangle_index == 13:
-                    rect_x = 0*self.image_size + self.image_size // 2
-                    rect_y = 3*self.image_size + self.image_size // 2
-                # 6'
-                elif self.rectangle_index == 14:
-                    rect_x = 3*self.image_size + self.image_size // 2
-                    rect_y = 3*self.image_size + self.image_size // 2
-                # 7'
-                elif self.rectangle_index == 15:
-                    rect_x = 3*self.image_size + self.image_size // 2
-                    rect_y = 2*self.image_size + self.image_size // 2
+                rect_x = rect_index_x[0]*self.image_size + self.image_size // 2
+                rect_y = rect_index_y[0]*self.image_size + self.image_size // 2
 
                 scatter_point = [{'pos': (rect_x, rect_y),
                                     'size': self.image_size-8,
@@ -3138,8 +3091,12 @@ class UI_MainWindow(QWidget):
                 self.single_nero_2 = COCO_heatmap()
                 self.scatter_item_1 = pg.ScatterPlotItem(pxMode=False)
                 self.scatter_item_1.setSymbol('s')
+                self.scatter_item_1.setXRange(0, self.image_size*4, padding=4)
+                self.scatter_item_1.setYRange(0, self.image_size*4, padding=4)
                 self.scatter_item_2 = pg.ScatterPlotItem(pxMode=False)
                 self.scatter_item_2.setSymbol('s')
+                self.scatter_item_2.setXRange(0, self.image_size*4, padding=4)
+                self.scatter_item_2.setYRange(0, self.image_size*4, padding=4)
                 self.heatmap_plot_1 = self.draw_individual_heatmap('single', data_1, self.view_box_1, self.single_nero_1, self.scatter_item_1)
                 self.heatmap_plot_2 = self.draw_individual_heatmap('single', data_2, self.view_box_2, self.single_nero_2, self.scatter_item_2)
 
@@ -3278,57 +3235,6 @@ class UI_MainWindow(QWidget):
         painter.drawPolygon(triangle)
 
 
-    # draws a single D4 vis
-    # def draw_individual_d4(self, mode, data):
-
-        # # initialize label and its pixmap
-        # d4_label = QLabel(self)
-        # d4_label.setContentsMargins(0, 0, 0, 0)
-        # d4_label.setAlignment(QtCore.Qt.AlignCenter)
-
-        # d4_pixmap = QPixmap(self.plot_size, self.plot_size)
-        # d4_pixmap.fill(QtCore.Qt.white)
-        # painter = QtGui.QPainter(d4_pixmap)
-
-        # # define a colormap and lookup table to use as fill color
-        # d4_color_map = pg.colormap.get('viridis')
-        # d4_lut = d4_color_map.getLookupTable(start=0, stop=1, nPts=101, alpha=False)
-
-        # # each d4 NERO plot has 16 triangles
-        # p = self.plot_size
-        # # points of all triangles
-        # all_triangle_points = [[QtCore.QPointF(0, p/2), QtCore.QPointF(p/4, p/4), QtCore.QPointF(p/2, p/2)], # original
-        #                         [QtCore.QPointF(p/2, p/2), QtCore.QPointF(p/2, 0), QtCore.QPointF(p*3/4, p*1/4)], # rotated 90 clockwise
-        #                         [QtCore.QPointF(p/2, p/2), QtCore.QPointF(p, p/2), QtCore.QPointF(p*3/4, p*3/4)], # rotated 180 clockwise
-        #                         [QtCore.QPointF(p/4, p*3/4), QtCore.QPointF(p/2, p/2), QtCore.QPointF(p/2, p)], # rotated 270 clockwise
-        #                         [QtCore.QPointF(p/4, p/4), QtCore.QPointF(p/2, 0), QtCore.QPointF(p/2, p/2)], # original + flip
-        #                         [QtCore.QPointF(p/2, p/2), QtCore.QPointF(p*3/4, p/4), QtCore.QPointF(p, p/2)], # rotated 90 clockwise + flip
-        #                         [QtCore.QPointF(p/2, p/2), QtCore.QPointF(p/2, p), QtCore.QPointF(p*3/4, p*3/4)], # rotated 180 clockwise + flip
-        #                         [QtCore.QPointF(0, p/2), QtCore.QPointF(p/4, p*3/4), QtCore.QPointF(p/2, p/2)], # rotated 270 clockwise + flip
-        #                         [QtCore.QPointF(0, 0), QtCore.QPointF(p/4, p/4), QtCore.QPointF(0, p/2)], # time reverse
-        #                         [QtCore.QPointF(p/2, 0), QtCore.QPointF(p*3/4, p/4), QtCore.QPointF(p, 0)], # rot 90 clockwise + time reverse
-        #                         [QtCore.QPointF(p, p/2), QtCore.QPointF(p*3/4, p*3/4), QtCore.QPointF(p, p)], # rot 180 clockwise + time reverse
-        #                         [QtCore.QPointF(0, p), QtCore.QPointF(p/4, p*3/4), QtCore.QPointF(p/2, p)], # rot 270 clockwise + time reverse
-        #                         [QtCore.QPointF(0, 0), QtCore.QPointF(p/4, p/4), QtCore.QPointF(p/2, 0)], # flip + time reverse
-        #                         [QtCore.QPointF(p, 0), QtCore.QPointF(p*3/4, p/4), QtCore.QPointF(p, p/2)], # rot 90 clockwise + flip + time reverse
-        #                         [QtCore.QPointF(p/2, p), QtCore.QPointF(p*3/4, p*3/4), QtCore.QPointF(p, p)], # rot 180 clockwise + flip + time reverse
-        #                         [QtCore.QPointF(0, p), QtCore.QPointF(0, p/2), QtCore.QPointF(p/4, p*3/4)]] # rot 270 clockwise + flip + time reverse
-
-        # for i, cur_points in enumerate(all_triangle_points):
-        #     self.draw_triangle(painter, cur_points, brush_color=QtGui.QColor(d4_lut[int(data[i]*100)][0], d4_lut[int(data[i]*100)][1], d4_lut[int(data[i]*100)][2]))
-
-        # # draw the red triangle selector
-        # if mode == 'single':
-        #     self.draw_triangle(painter, all_triangle_points[self.rectangle_index], pen_color=QtGui.QColor('red'), boundary_width=3)
-
-        # painter.end()
-
-        # set pixmap to label
-        # d4_label.setPixmap(d4_pixmap)
-
-        # return d4_label
-
-
     # draws dihedral 4 visualization to be the NERO plot for PIV experiment
     def draw_piv_nero(self, mode):
 
@@ -3339,8 +3245,16 @@ class UI_MainWindow(QWidget):
             def mouseClickEvent(self, event):
                 print(f'Clicked on PIV heatmap at ({event.pos().x()}, {event.pos().y()})')
                 # in PIV mode, a pop up window shows the nearby area's quiver plot
+                rect_x = int(event.pos().x() // outer_self.image_size)
+                rect_y = int(event.pos().y() // outer_self.image_size)
+                print(rect_x, rect_y)
+                outer_self.rectangle_index = outer_self.piv_nero_layout[rect_y, rect_x]
 
+                # display the image
+                outer_self.display_image()
 
+                # redraw the nero plot with new triangle display
+                outer_self.draw_piv_nero('single')
 
             def mouseDragEvent(self, event):
                 if event.isStart():
@@ -3401,8 +3315,8 @@ class UI_MainWindow(QWidget):
 
 
         # prepare data for piv individual nero plot (heatmap)
-        data_1 = prepare_plot_data(self.cur_plot_quantity_1)
-        data_2 = prepare_plot_data(self.cur_plot_quantity_2)
+        self.data_1 = prepare_plot_data(self.cur_plot_quantity_1)
+        self.data_2 = prepare_plot_data(self.cur_plot_quantity_2)
 
         # add to general layout
         if mode == 'single':
@@ -3428,8 +3342,8 @@ class UI_MainWindow(QWidget):
             self.scatter_item_1.setSymbol('s')
             self.scatter_item_2 = pg.ScatterPlotItem(pxMode=False)
             self.scatter_item_2.setSymbol('s')
-            self.heatmap_plot_1 = self.draw_individual_heatmap('single', data_1, self.view_box_1, self.single_nero_1, self.scatter_item_1)
-            self.heatmap_plot_2 = self.draw_individual_heatmap('single', data_2, self.view_box_2, self.single_nero_2, self.scatter_item_2)
+            self.heatmap_plot_1 = self.draw_individual_heatmap('single', self.data_1, self.view_box_1, self.single_nero_1, self.scatter_item_1)
+            self.heatmap_plot_2 = self.draw_individual_heatmap('single', self.data_2, self.view_box_2, self.single_nero_2, self.scatter_item_2)
 
             # add to view
             self.heatmap_view_1.addItem(self.heatmap_plot_1)
