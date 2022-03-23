@@ -314,7 +314,7 @@ class UI_MainWindow(QWidget):
                 self.model_2 = None
 
                 # cayley table that shows the group orbit result
-                self.cayley_table = np.zeros((8, 8))
+                self.cayley_table = np.zeros((8, 8), dtype=np.int8)
                 # 0: no transformation
                 self.cayley_table[0] = [0, 1, 2, 3, 4, 5, 6, 7]
                 # 1: / diagonal flip
@@ -2310,7 +2310,6 @@ class UI_MainWindow(QWidget):
                 # reverse the order in pair
                 elif self.time_reverse:
                     self.cur_image_2_pt, self.cur_image_1_pt = self.cur_image_1_pt, self.cur_image_2_pt
-                    self.time_reverse = False
 
                 # create new GIF
                 display_image_1_pil = Image.fromarray(self.cur_image_1_pt.numpy(), 'RGB')
@@ -2324,19 +2323,23 @@ class UI_MainWindow(QWidget):
                                             duration=400,
                                             loop=0)
 
-                # compute the triangle index by comparing current matrix and the D4 orbit matrix
-                for i in range(len(self.all_d4_images_1_pt)):
+                # get the rectangle index from cayley graph
+                if self.time_reverse:
+                    if self.rectangle_index + 8 <= 15:
+                        print('+=8')
+                        self.rectangle_index += 8
+                    else:
+                        print('+=8')
+                        self.rectangle_index -= 8
 
-                    if (np.array_equal(self.cur_image_1_pt.numpy(), self.all_d4_images_1_pt[i].numpy())
-                        and np.array_equal(self.cur_image_2_pt.numpy(), self.all_d4_images_2_pt[i].numpy())):
-
-                        self.rectangle_index = i
-                        print('matched', self.rectangle_index)
-                        break
+                    self.time_reverse = False
+                else:
+                    self.rectangle_index = self.cayley_table[self.rectangle_index, self.transform_index]
 
             @QtCore.Slot()
             def rotate_90_ccw():
                 self.rotate_ccw = True
+                self.transform_index = 2
                 print(f'Rotate 90 degrees counter clockwise')
 
                 # modify the image, display and current triangle index
@@ -2353,6 +2356,7 @@ class UI_MainWindow(QWidget):
             @QtCore.Slot()
             def rotate_90_cw():
                 self.rotate_cw = True
+                self.transform_index = 6
                 print(f'Rotate 90 degrees clockwise')
 
                 # modify the image, display and current triangle index
@@ -2368,6 +2372,7 @@ class UI_MainWindow(QWidget):
 
             @QtCore.Slot()
             def vertical_flip():
+                self.transform_index = 7
                 self.vertical_flip = True
                 print(f'Flip vertically')
                 # modify the image, display and current triangle index
@@ -2384,6 +2389,7 @@ class UI_MainWindow(QWidget):
             @QtCore.Slot()
             def horizontal_flip():
                 self.horizontal_flip = True
+                self.transform_index = 3
                 print(f'Flip horizontally')
                 # modify the image, display and current triangle index
                 modify_display_gif()
@@ -2414,78 +2420,78 @@ class UI_MainWindow(QWidget):
 
             # Dihedral group4 transformations plus time-reverse
             self.num_transformations = 16
-            self.time_reverse = [0, 1]
+            time_reverses = [0, 1]
             # keep track for all D4 transformation
             self.all_d4_images_1_pt = torch.zeros((self.num_transformations, self.image_size, self.image_size, 3))
             self.all_d4_images_2_pt = torch.zeros((self.num_transformations, self.image_size, self.image_size, 3))
             self.all_ground_truths = torch.zeros((self.num_transformations, self.image_size, self.image_size, 2))
 
             # input after transformation
-            for is_time_reversed in self.time_reverse:
+            for is_time_reversed in time_reverses:
                 if is_time_reversed:
-                    self.cur_image_1_pt, \
-                    self.cur_image_2_pt, \
-                    self.cur_image_label_pt = nero_transform.time_reverse_piv_data(self.loaded_image_1_pt,
+                    cur_d4_images_1_pt, \
+                    cur_d4_images_2_pt, \
+                    cur_ground_truth = nero_transform.time_reverse_piv_data(self.loaded_image_1_pt,
                                                                                 self.loaded_image_2_pt,
                                                                                 self.loaded_image_label_pt)
                 else:
-                    self.cur_image_1_pt = self.loaded_image_1_pt.clone()
-                    self.cur_image_2_pt = self.loaded_image_1_pt.clone()
-                    self.cur_image_label_pt = self.loaded_image_label_pt.clone()
+                    cur_d4_images_1_pt = self.loaded_image_1_pt.clone()
+                    cur_d4_images_2_pt = self.loaded_image_1_pt.clone()
+                    cur_ground_truth = self.loaded_image_label_pt.clone()
 
                 # 0: no transformation (original)
-                self.all_d4_images_1_pt[is_time_reversed*8 + 0] = self.cur_image_1_pt.clone()
-                self.all_d4_images_2_pt[is_time_reversed*8 + 0] = self.cur_image_2_pt.clone()
-                self.all_ground_truths[is_time_reversed*8 + 0] = self.cur_image_label_pt.clone()
+                self.all_d4_images_1_pt[is_time_reversed*8 + 0] = cur_d4_images_1_pt.clone()
+                self.all_d4_images_2_pt[is_time_reversed*8 + 0] = cur_d4_images_2_pt.clone()
+                self.all_ground_truths[is_time_reversed*8 + 0] = cur_ground_truth.clone()
 
                 # 1: right diagonal flip (/)
                 self.all_d4_images_1_pt[is_time_reversed*8 + 1], \
                 self.all_d4_images_2_pt[is_time_reversed*8 + 1], \
-                self.all_ground_truths[is_time_reversed*8 + 1] = nero_transform.flip_piv_data(self.cur_image_1_pt,
-                                                                                                self.cur_image_2_pt,
-                                                                                                self.cur_image_label_pt,
+                self.all_ground_truths[is_time_reversed*8 + 1] = nero_transform.flip_piv_data(cur_d4_images_1_pt,
+                                                                                                cur_d4_images_2_pt,
+                                                                                                cur_ground_truth,
                                                                                                 flip_type='right-diagonal')
                 # 2: counter-clockwise 90 rotation
                 self.all_d4_images_1_pt[is_time_reversed*8 + 2], \
                 self.all_d4_images_2_pt[is_time_reversed*8 + 2], \
-                self.all_ground_truths[is_time_reversed*8 + 2] = nero_transform.rotate_piv_data(self.cur_image_1_pt,
-                                                                                                self.cur_image_2_pt,
-                                                                                                self.cur_image_label_pt,
+                self.all_ground_truths[is_time_reversed*8 + 2] = nero_transform.rotate_piv_data(cur_d4_images_1_pt,
+                                                                                                cur_d4_images_2_pt,
+                                                                                                cur_ground_truth,
                                                                                                 90)
                 # 3: horizontal flip (by y axis)
                 self.all_d4_images_1_pt[is_time_reversed*8 + 3], \
                 self.all_d4_images_2_pt[is_time_reversed*8 + 3], \
-                self.all_ground_truths[is_time_reversed*8 + 3] = nero_transform.flip_piv_data(self.cur_image_1_pt,
-                                                                                                self.cur_image_2_pt,
-                                                                                                self.cur_image_label_pt,
+                self.all_ground_truths[is_time_reversed*8 + 3] = nero_transform.flip_piv_data(cur_d4_images_1_pt,
+                                                                                                cur_d4_images_2_pt,
+                                                                                                cur_ground_truth,
                                                                                                 flip_type='horizontal')
                 # 4: counter-clockwise 180 rotation
                 self.all_d4_images_1_pt[is_time_reversed*8 + 4], \
                 self.all_d4_images_2_pt[is_time_reversed*8 + 4], \
-                self.all_ground_truths[is_time_reversed*8 + 4] = nero_transform.rotate_piv_data(self.cur_image_1_pt,
-                                                                                                self.cur_image_2_pt,
-                                                                                                self.cur_image_label_pt,
+                self.all_ground_truths[is_time_reversed*8 + 4] = nero_transform.rotate_piv_data(cur_d4_images_1_pt,
+                                                                                                cur_d4_images_2_pt,
+                                                                                                cur_ground_truth,
                                                                                                 180)
                 # 5: \ diagnal flip
                 self.all_d4_images_1_pt[is_time_reversed*8 + 5], \
                 self.all_d4_images_2_pt[is_time_reversed*8 + 5], \
-                self.all_ground_truths[is_time_reversed*8 + 5] = nero_transform.flip_piv_data(self.cur_image_1_pt,
-                                                                                                self.cur_image_2_pt,
-                                                                                                self.cur_image_label_pt,
+                self.all_ground_truths[is_time_reversed*8 + 5] = nero_transform.flip_piv_data(cur_d4_images_1_pt,
+                                                                                                cur_d4_images_2_pt,
+                                                                                                cur_ground_truth,
                                                                                                 flip_type='left-diagonal')
                 # 6: counter-clockwise 270 rotation
                 self.all_d4_images_1_pt[is_time_reversed*8 + 6], \
                 self.all_d4_images_2_pt[is_time_reversed*8 + 6], \
-                self.all_ground_truths[is_time_reversed*8 + 6] = nero_transform.rotate_piv_data(self.cur_image_1_pt,
-                                                                                                self.cur_image_2_pt,
-                                                                                                self.cur_image_label_pt,
+                self.all_ground_truths[is_time_reversed*8 + 6] = nero_transform.rotate_piv_data(cur_d4_images_1_pt,
+                                                                                                cur_d4_images_2_pt,
+                                                                                                cur_ground_truth,
                                                                                                 270)
                 # 7: vertical flip (by x axis)
                 self.all_d4_images_1_pt[is_time_reversed*8 + 7], \
                 self.all_d4_images_2_pt[is_time_reversed*8 + 7], \
-                self.all_ground_truths[is_time_reversed*8 + 7] = nero_transform.flip_piv_data(self.cur_image_1_pt,
-                                                                                                self.cur_image_2_pt,
-                                                                                                self.cur_image_label_pt,
+                self.all_ground_truths[is_time_reversed*8 + 7] = nero_transform.flip_piv_data(cur_d4_images_1_pt,
+                                                                                                cur_d4_images_2_pt,
+                                                                                                cur_ground_truth,
                                                                                                 flip_type='vertical')
 
 
