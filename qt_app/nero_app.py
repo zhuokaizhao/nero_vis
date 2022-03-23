@@ -3334,50 +3334,43 @@ class UI_MainWindow(QWidget):
 
         # helper function on reshaping data
         def prepare_plot_data(input_data):
-            if mode == 'single':
-                grid_size = self.cur_plot_quantity_1.shape[1]
-                # extra pixels are for lines
-                output_data = np.zeros((4*grid_size, 4*grid_size))
-                # compose plot data into the big rectangle that is consist of
-                # 16 rectangles where each contains a heatmap of the error heatmap
-                # the layout is
-                '''
-                2'  2   1   1'
-                3'  3   0   0'
-                4'  4   7   7'
-                5'  5   6   6'
-                '''
-                # where the index is the same as in data
-                # the meaning of 0 to 7 could be found at lines 316-333
-                # first row
-                output_data[0*grid_size:1*grid_size, 0*grid_size:1*grid_size] = input_data[8+2]
-                output_data[0*grid_size:1*grid_size, 1*grid_size:2*grid_size] = input_data[0+2]
-                output_data[0*grid_size:1*grid_size, 2*grid_size:3*grid_size] = input_data[0+1]
-                output_data[0*grid_size:1*grid_size, 3*grid_size:4*grid_size] = input_data[8+1]
+            grid_size = self.cur_plot_quantity_1.shape[1]
+            # extra pixels are for lines
+            output_data = np.zeros((4*grid_size, 4*grid_size))
+            # compose plot data into the big rectangle that is consist of
+            # 16 rectangles where each contains a heatmap of the error heatmap
+            # the layout is
+            '''
+            2'  2   1   1'
+            3'  3   0   0'
+            4'  4   7   7'
+            5'  5   6   6'
+            '''
+            # where the index is the same as in data
+            # the meaning of 0 to 7 could be found at lines 316-333
+            # first row
+            output_data[0*grid_size:1*grid_size, 0*grid_size:1*grid_size] = input_data[8+2]
+            output_data[0*grid_size:1*grid_size, 1*grid_size:2*grid_size] = input_data[0+2]
+            output_data[0*grid_size:1*grid_size, 2*grid_size:3*grid_size] = input_data[0+1]
+            output_data[0*grid_size:1*grid_size, 3*grid_size:4*grid_size] = input_data[8+1]
 
-                # second row
-                output_data[1*grid_size:2*grid_size, 0*grid_size:1*grid_size] = input_data[8+3]
-                output_data[1*grid_size:2*grid_size, 1*grid_size:2*grid_size] = input_data[0+3]
-                output_data[1*grid_size:2*grid_size, 2*grid_size:3*grid_size] = input_data[0+0]
-                output_data[1*grid_size:2*grid_size, 3*grid_size:4*grid_size] = input_data[8+0]
+            # second row
+            output_data[1*grid_size:2*grid_size, 0*grid_size:1*grid_size] = input_data[8+3]
+            output_data[1*grid_size:2*grid_size, 1*grid_size:2*grid_size] = input_data[0+3]
+            output_data[1*grid_size:2*grid_size, 2*grid_size:3*grid_size] = input_data[0+0]
+            output_data[1*grid_size:2*grid_size, 3*grid_size:4*grid_size] = input_data[8+0]
 
-                # third row
-                output_data[2*grid_size:3*grid_size, 0*grid_size:1*grid_size] = input_data[8+4]
-                output_data[2*grid_size:3*grid_size, 1*grid_size:2*grid_size] = input_data[0+4]
-                output_data[2*grid_size:3*grid_size, 2*grid_size:3*grid_size] = input_data[0+7]
-                output_data[2*grid_size:3*grid_size, 3*grid_size:4*grid_size] = input_data[8+7]
+            # third row
+            output_data[2*grid_size:3*grid_size, 0*grid_size:1*grid_size] = input_data[8+4]
+            output_data[2*grid_size:3*grid_size, 1*grid_size:2*grid_size] = input_data[0+4]
+            output_data[2*grid_size:3*grid_size, 2*grid_size:3*grid_size] = input_data[0+7]
+            output_data[2*grid_size:3*grid_size, 3*grid_size:4*grid_size] = input_data[8+7]
 
-                # fourth row
-                output_data[3*grid_size:4*grid_size, 0*grid_size:1*grid_size] = input_data[8+5]
-                output_data[3*grid_size:4*grid_size, 1*grid_size:2*grid_size] = input_data[0+5]
-                output_data[3*grid_size:4*grid_size, 2*grid_size:3*grid_size] = input_data[0+6]
-                output_data[3*grid_size:4*grid_size, 3*grid_size:4*grid_size] = input_data[8+6]
-
-            elif mode == 'aggregate':
-                # for aggregate mode, input_data has shape
-                # (num_transformations, num_samples, image_size, image_size)
-                print(input_data.shape)
-                exit()
+            # fourth row
+            output_data[3*grid_size:4*grid_size, 0*grid_size:1*grid_size] = input_data[8+5]
+            output_data[3*grid_size:4*grid_size, 1*grid_size:2*grid_size] = input_data[0+5]
+            output_data[3*grid_size:4*grid_size, 2*grid_size:3*grid_size] = input_data[0+6]
+            output_data[3*grid_size:4*grid_size, 3*grid_size:4*grid_size] = input_data[8+6]
 
             return output_data
 
@@ -4055,7 +4048,7 @@ class UI_MainWindow(QWidget):
 
         # helper function on compute, normalize the loss and display quantity
         def compute_aggregate_nero_plot_quantity():
-            print('compute nero plot quantity')
+            print('Compute aggregate nero plot quantity')
             # compute loss using torch loss module
             if self.quantity_name == 'RMSE':
                 self.loss_module = nero_utilities.RMSELoss()
@@ -4087,9 +4080,13 @@ class UI_MainWindow(QWidget):
             cur_losses_1 = nero_utilities.lerp(cur_losses_1, self.error_min, self.error_max, 0, 1)
             cur_losses_2 = nero_utilities.lerp(cur_losses_2, self.error_min, self.error_max, 0, 1)
 
+            # average over samples
+            cur_avg_losses_1 = cur_losses_1.mean(axis=1)
+            cur_avg_losses_2 = cur_losses_2.mean(axis=1)
+
             # average element-wise loss to scalar and normalize between 0 and 1
-            self.cur_plot_quantity_1 = 1 - cur_losses_1
-            self.cur_plot_quantity_2 = 1 - cur_losses_2
+            self.cur_plot_quantity_1 = 1 - cur_avg_losses_1
+            self.cur_plot_quantity_2 = 1 - cur_avg_losses_2
 
 
         @QtCore.Slot()
