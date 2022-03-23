@@ -1842,11 +1842,8 @@ class UI_MainWindow(QWidget):
 
         elif self.mode == 'piv':
             # Dihedral group4 transformations
-            all_rotation_degrees = [0, -90, -180, -270]
-            # 0 means no flip/time reverse, 1 means flip/time reverse
-            all_flip = [0, 1]
-            all_time_reversals = [0, 1]
-            self.num_transformations = len(all_rotation_degrees) * len(all_flip) * len(all_time_reversals)
+            time_reverses = [0, 1]
+            self.num_transformations = 16
 
             # output are dense 2D velocity field of the input image pairs
             # output for all transformation, has shape (num_transformations, num_samples, image_size, image_size, 2)
@@ -1859,7 +1856,6 @@ class UI_MainWindow(QWidget):
                 self.aggregate_outputs_2 = torch.from_numpy(self.load_from_cache(f'{self.mode}_{self.data_mode}_{self.model_2_cache_name}_outputs'))
                 self.aggregate_ground_truths = torch.from_numpy(self.load_from_cache(f'{self.mode}_{self.data_mode}_ground_truths'))
             else:
-                transformation_index = 0
                 # take a batch of images
                 num_batches = int(len(self.all_images_1_paths) / self.batch_size)
                 if len(self.all_images_1_paths) % self.batch_size != 0:
@@ -1870,67 +1866,119 @@ class UI_MainWindow(QWidget):
                     batch_indices.append((i*self.batch_size, min((i+1)*self.batch_size, len(self.all_images_1_paths))))
 
                 # go through each transformation type
-                for is_time_reversed in all_time_reversals:
-                    for is_flipped in all_flip:
-                        for cur_rotation_angle in all_rotation_degrees:
+                for is_time_reversed in time_reverses:
+                    for transformation_index in range(8):
+                        print(f'Transformation {is_time_reversed*8+transformation_index}')
+                        # modify all current batch samples to one kind of transformation and run model with it
+                        for index_range in batch_indices:
+                            cur_images_1_paths = self.all_images_1_paths[index_range[0]:index_range[1]]
+                            cur_images_2_paths = self.all_images_2_paths[index_range[0]:index_range[1]]
+                            cur_labels_paths = self.all_labels_paths[index_range[0]:index_range[1]]
 
-                            print(f'Transformation {transformation_index}')
+                            batch_d4_images_1_pt = torch.zeros((len(cur_images_1_paths), self.image_size, self.image_size, 3))
+                            batch_d4_images_2_pt = torch.zeros((len(cur_images_2_paths), self.image_size, self.image_size, 3))
+                            batch_ground_truth = torch.zeros((len(cur_images_1_paths), self.image_size, self.image_size, 2))
 
-                            # modify the data and run model in batch
-                            for index_range in batch_indices:
-                                cur_images_1_paths = self.all_images_1_paths[index_range[0]:index_range[1]]
-                                cur_images_2_paths = self.all_images_2_paths[index_range[0]:index_range[1]]
-                                cur_labels_paths = self.all_labels_paths[index_range[0]:index_range[1]]
+                            # load and modify data of the current batch
+                            for i in range(len(cur_images_1_paths)):
+                                # load the data
+                                cur_image_1_pil = Image.open(cur_images_1_paths[i]).convert('RGB')
+                                cur_image_2_pil = Image.open(cur_images_2_paths[i]).convert('RGB')
+                                # convert to torch tensor
+                                cur_d4_image_1_pt = torch.from_numpy(np.asarray(cur_image_1_pil))
+                                cur_d4_image_2_pt = torch.from_numpy(np.asarray(cur_image_2_pil))
+                                # load the ground truth flow field
+                                cur_ground_truth = torch.from_numpy(fz.read_flow(cur_labels_paths[i]))
 
-                                cur_images_1_pt = torch.zeros((len(cur_images_1_paths), self.image_size, self.image_size, 3))
-                                cur_images_2_pt = torch.zeros((len(cur_images_2_paths), self.image_size, self.image_size, 3))
-                                cur_labels = torch.zeros((len(cur_images_1_paths), self.image_size, self.image_size, 2))
+                                # modify the data
+                                if is_time_reversed:
+                                    batch_d4_images_1_pt[i], \
+                                    batch_d4_images_2_pt[i], \
+                                    batch_ground_truth[i] = nero_transform.time_reverse_piv_data(cur_d4_image_1_pt,
+                                                                                                    cur_d4_image_2_pt,
+                                                                                                    cur_ground_truth)
 
-                                # load and modify data of the current batch
-                                for i in range(len(cur_images_1_paths)):
-                                    # load the data
-                                    cur_image_1_pil = Image.open(cur_images_1_paths[i]).convert('RGB')
-                                    cur_image_2_pil = Image.open(cur_images_2_paths[i]).convert('RGB')
-                                    # convert to torch tensor
-                                    cur_image_1_pt = torch.from_numpy(np.asarray(cur_image_1_pil))
-                                    cur_image_2_pt = torch.from_numpy(np.asarray(cur_image_2_pil))
-                                    # load the ground truth flow field
-                                    cur_label = torch.from_numpy(fz.read_flow(cur_labels_paths[i]))
+                                # 0: no transformation (original)
+                                if transformation_index == 0:
+                                    batch_d4_images_1_pt[i] = cur_d4_image_1_pt.clone()
+                                    batch_d4_images_2_pt[i] = cur_d4_image_2_pt.clone()
+                                    batch_ground_truth[i] = cur_ground_truth.clone()
 
-                                    # modify the data
-                                    if cur_rotation_angle != 0:
-                                        cur_image_1_pt, cur_image_2_pt, cur_label = nero_transform.rotate_piv_data(cur_image_1_pt, cur_image_2_pt, cur_label, cur_rotation_angle)
+                                # 1: right diagonal flip (/)
+                                elif transformation_index == 1:
+                                    batch_d4_images_1_pt[i], \
+                                    batch_d4_images_2_pt[i], \
+                                    batch_ground_truth[i] = nero_transform.flip_piv_data(cur_d4_image_1_pt,
+                                                                                            cur_d4_image_2_pt,
+                                                                                            cur_ground_truth,
+                                                                                            flip_type='right-diagonal')
+                                # 2: counter-clockwise 90 rotation
+                                elif transformation_index == 2:
+                                    batch_d4_images_1_pt[i], \
+                                    batch_d4_images_2_pt[i], \
+                                    batch_ground_truth[i] = nero_transform.rotate_piv_data(cur_d4_image_1_pt,
+                                                                                            cur_d4_image_2_pt,
+                                                                                            cur_ground_truth,
+                                                                                            90)
+                                # 3: horizontal flip (by y axis)
+                                elif transformation_index == 3:
+                                    batch_d4_images_1_pt[i], \
+                                    batch_d4_images_2_pt[i], \
+                                    batch_ground_truth[i] = nero_transform.flip_piv_data(cur_d4_image_1_pt,
+                                                                                            cur_d4_image_2_pt,
+                                                                                            cur_ground_truth,
+                                                                                            flip_type='horizontal')
+                                # 4: counter-clockwise 180 rotation
+                                elif transformation_index == 4:
+                                    batch_d4_images_1_pt[i], \
+                                    batch_d4_images_2_pt[i], \
+                                    batch_ground_truth[i] = nero_transform.rotate_piv_data(cur_d4_image_1_pt,
+                                                                                            cur_d4_image_2_pt,
+                                                                                            cur_ground_truth,
+                                                                                            180)
+                                # 5: \ diagnal flip
+                                elif transformation_index == 5:
+                                    batch_d4_images_1_pt[i], \
+                                    batch_d4_images_2_pt[i], \
+                                    batch_ground_truth[i] = nero_transform.flip_piv_data(cur_d4_image_1_pt,
+                                                                                            cur_d4_image_2_pt,
+                                                                                            cur_ground_truth,
+                                                                                            flip_type='left-diagonal')
+                                # 6: counter-clockwise 270 rotation
+                                elif transformation_index == 6:
+                                    batch_d4_images_1_pt[i], \
+                                    batch_d4_images_2_pt[i], \
+                                    batch_ground_truth[i] = nero_transform.rotate_piv_data(cur_d4_image_1_pt,
+                                                                                            cur_d4_image_2_pt,
+                                                                                            cur_ground_truth,
+                                                                                            270)
+                                # 7: vertical flip (by x axis)
+                                elif transformation_index == 7:
+                                    batch_d4_images_1_pt[i], \
+                                    batch_d4_images_2_pt[i], \
+                                    batch_ground_truth[i] = nero_transform.flip_piv_data(cur_d4_image_1_pt,
+                                                                                            cur_d4_image_2_pt,
+                                                                                            cur_ground_truth,
+                                                                                            flip_type='vertical')
 
-                                    if is_flipped:
-                                        cur_image_1_pt, cur_image_2_pt, cur_label = nero_transform.flip_piv_data(cur_image_1_pt, cur_image_2_pt, cur_label)
+                            # run models on the current batch
+                            cur_outputs_1 = nero_run_model.run_piv_once('aggregate',
+                                                                        self.model_1_name,
+                                                                        self.model_1,
+                                                                        batch_d4_images_1_pt,
+                                                                        batch_d4_images_2_pt)
 
-                                    if is_time_reversed:
-                                        cur_image_1_pt, cur_image_2_pt, cur_label = nero_transform.reverse_piv_data(cur_image_1_pt, cur_image_2_pt, cur_label)
+                            cur_outputs_2 = nero_run_model.run_piv_once('aggregate',
+                                                                        self.model_2_name,
+                                                                        self.model_2,
+                                                                        batch_d4_images_1_pt,
+                                                                        batch_d4_images_2_pt)
 
-                                    # add to batch
-                                    cur_images_1_pt[i] = cur_image_1_pt
-                                    cur_images_2_pt[i] = cur_image_2_pt
-                                    cur_labels[i] = cur_label
+                            # add to all outputs
+                            self.aggregate_outputs_1[is_time_reversed*8+transformation_index, index_range[0]:index_range[1]] = cur_outputs_1 / self.image_size
+                            self.aggregate_outputs_2[is_time_reversed*8+transformation_index, index_range[0]:index_range[1]] = cur_outputs_2 / self.image_size
+                            self.aggregate_ground_truths[is_time_reversed*8+transformation_index, index_range[0]:index_range[1]] = batch_ground_truth
 
-                                # run models on the current batch
-                                cur_outputs_1 = nero_run_model.run_piv_once('aggregate',
-                                                                            self.model_1_name,
-                                                                            self.model_1,
-                                                                            cur_images_1_pt,
-                                                                            cur_images_2_pt)
-
-                                cur_outputs_2 = nero_run_model.run_piv_once('aggregate',
-                                                                            self.model_2_name,
-                                                                            self.model_2,
-                                                                            cur_images_1_pt,
-                                                                            cur_images_2_pt)
-
-                                # add to all outputs
-                                self.aggregate_outputs_1[transformation_index, index_range[0]:index_range[1]] = cur_outputs_1 / self.image_size
-                                self.aggregate_outputs_2[transformation_index, index_range[0]:index_range[1]] = cur_outputs_2 / self.image_size
-                                self.aggregate_ground_truths[transformation_index, index_range[0]:index_range[1]] = cur_labels
-
-                            transformation_index += 1
 
                 # save to cache
                 self.save_to_cache(name=f'{self.mode}_{self.data_mode}_{self.model_1_cache_name}_outputs', content=self.aggregate_outputs_1)
@@ -2444,68 +2492,68 @@ class UI_MainWindow(QWidget):
             # input after transformation
             for is_time_reversed in time_reverses:
                 if is_time_reversed:
-                    cur_d4_images_1_pt, \
-                    cur_d4_images_2_pt, \
+                    cur_d4_image_1_pt, \
+                    cur_d4_image_2_pt, \
                     cur_ground_truth = nero_transform.time_reverse_piv_data(self.loaded_image_1_pt,
                                                                                 self.loaded_image_2_pt,
                                                                                 self.loaded_image_label_pt)
                 else:
-                    cur_d4_images_1_pt = self.loaded_image_1_pt.clone()
-                    cur_d4_images_2_pt = self.loaded_image_1_pt.clone()
+                    cur_d4_image_1_pt = self.loaded_image_1_pt.clone()
+                    cur_d4_image_2_pt = self.loaded_image_1_pt.clone()
                     cur_ground_truth = self.loaded_image_label_pt.clone()
 
                 # 0: no transformation (original)
-                self.all_d4_images_1_pt[is_time_reversed*8 + 0] = cur_d4_images_1_pt.clone()
-                self.all_d4_images_2_pt[is_time_reversed*8 + 0] = cur_d4_images_2_pt.clone()
+                self.all_d4_images_1_pt[is_time_reversed*8 + 0] = cur_d4_image_1_pt.clone()
+                self.all_d4_images_2_pt[is_time_reversed*8 + 0] = cur_d4_image_2_pt.clone()
                 self.all_ground_truths[is_time_reversed*8 + 0] = cur_ground_truth.clone()
 
                 # 1: right diagonal flip (/)
                 self.all_d4_images_1_pt[is_time_reversed*8 + 1], \
                 self.all_d4_images_2_pt[is_time_reversed*8 + 1], \
-                self.all_ground_truths[is_time_reversed*8 + 1] = nero_transform.flip_piv_data(cur_d4_images_1_pt,
-                                                                                                cur_d4_images_2_pt,
+                self.all_ground_truths[is_time_reversed*8 + 1] = nero_transform.flip_piv_data(cur_d4_image_1_pt,
+                                                                                                cur_d4_image_2_pt,
                                                                                                 cur_ground_truth,
                                                                                                 flip_type='right-diagonal')
                 # 2: counter-clockwise 90 rotation
                 self.all_d4_images_1_pt[is_time_reversed*8 + 2], \
                 self.all_d4_images_2_pt[is_time_reversed*8 + 2], \
-                self.all_ground_truths[is_time_reversed*8 + 2] = nero_transform.rotate_piv_data(cur_d4_images_1_pt,
-                                                                                                cur_d4_images_2_pt,
+                self.all_ground_truths[is_time_reversed*8 + 2] = nero_transform.rotate_piv_data(cur_d4_image_1_pt,
+                                                                                                cur_d4_image_2_pt,
                                                                                                 cur_ground_truth,
                                                                                                 90)
                 # 3: horizontal flip (by y axis)
                 self.all_d4_images_1_pt[is_time_reversed*8 + 3], \
                 self.all_d4_images_2_pt[is_time_reversed*8 + 3], \
-                self.all_ground_truths[is_time_reversed*8 + 3] = nero_transform.flip_piv_data(cur_d4_images_1_pt,
-                                                                                                cur_d4_images_2_pt,
+                self.all_ground_truths[is_time_reversed*8 + 3] = nero_transform.flip_piv_data(cur_d4_image_1_pt,
+                                                                                                cur_d4_image_2_pt,
                                                                                                 cur_ground_truth,
                                                                                                 flip_type='horizontal')
                 # 4: counter-clockwise 180 rotation
                 self.all_d4_images_1_pt[is_time_reversed*8 + 4], \
                 self.all_d4_images_2_pt[is_time_reversed*8 + 4], \
-                self.all_ground_truths[is_time_reversed*8 + 4] = nero_transform.rotate_piv_data(cur_d4_images_1_pt,
-                                                                                                cur_d4_images_2_pt,
+                self.all_ground_truths[is_time_reversed*8 + 4] = nero_transform.rotate_piv_data(cur_d4_image_1_pt,
+                                                                                                cur_d4_image_2_pt,
                                                                                                 cur_ground_truth,
                                                                                                 180)
                 # 5: \ diagnal flip
                 self.all_d4_images_1_pt[is_time_reversed*8 + 5], \
                 self.all_d4_images_2_pt[is_time_reversed*8 + 5], \
-                self.all_ground_truths[is_time_reversed*8 + 5] = nero_transform.flip_piv_data(cur_d4_images_1_pt,
-                                                                                                cur_d4_images_2_pt,
+                self.all_ground_truths[is_time_reversed*8 + 5] = nero_transform.flip_piv_data(cur_d4_image_1_pt,
+                                                                                                cur_d4_image_2_pt,
                                                                                                 cur_ground_truth,
                                                                                                 flip_type='left-diagonal')
                 # 6: counter-clockwise 270 rotation
                 self.all_d4_images_1_pt[is_time_reversed*8 + 6], \
                 self.all_d4_images_2_pt[is_time_reversed*8 + 6], \
-                self.all_ground_truths[is_time_reversed*8 + 6] = nero_transform.rotate_piv_data(cur_d4_images_1_pt,
-                                                                                                cur_d4_images_2_pt,
+                self.all_ground_truths[is_time_reversed*8 + 6] = nero_transform.rotate_piv_data(cur_d4_image_1_pt,
+                                                                                                cur_d4_image_2_pt,
                                                                                                 cur_ground_truth,
                                                                                                 270)
                 # 7: vertical flip (by x axis)
                 self.all_d4_images_1_pt[is_time_reversed*8 + 7], \
                 self.all_d4_images_2_pt[is_time_reversed*8 + 7], \
-                self.all_ground_truths[is_time_reversed*8 + 7] = nero_transform.flip_piv_data(cur_d4_images_1_pt,
-                                                                                                cur_d4_images_2_pt,
+                self.all_ground_truths[is_time_reversed*8 + 7] = nero_transform.flip_piv_data(cur_d4_image_1_pt,
+                                                                                                cur_d4_image_2_pt,
                                                                                                 cur_ground_truth,
                                                                                                 flip_type='vertical')
 
@@ -2995,6 +3043,7 @@ class UI_MainWindow(QWidget):
                 heatmap = pg.ImageItem()
                 heatmap.setImage(data)
                 view_box.addItem(heatmap)
+                view_box.disableAutoRange()
                 heatmap_plot = pg.PlotItem(viewBox=view_box, title=title)
 
             heatmap_plot.getAxis('bottom').setStyle(tickLength=0, showValues=False)
@@ -3285,53 +3334,59 @@ class UI_MainWindow(QWidget):
 
         # helper function on reshaping data
         def prepare_plot_data(input_data):
-            grid_size = self.cur_plot_quantity_1.shape[1]
-            # extra pixels are for lines
-            output_data = np.zeros((4*grid_size, 4*grid_size))
-            # compose plot data into the big rectangle that is consist of
-            # 16 rectangles where each contains a heatmap of the error heatmap
-            # the layout is
-            '''
-            2'  2   1   1'
-            3'  3   0   0'
-            4'  4   7   7'
-            5'  5   6   6'
-            '''
-            # where the index is the same as in data
-            # the meaning of 0 to 7 could be found at lines 316-333
-            # first row
-            output_data[0*grid_size:1*grid_size, 0*grid_size:1*grid_size] = input_data[8+2]
-            output_data[0*grid_size:1*grid_size, 1*grid_size:2*grid_size] = input_data[0+2]
-            output_data[0*grid_size:1*grid_size, 2*grid_size:3*grid_size] = input_data[0+1]
-            output_data[0*grid_size:1*grid_size, 3*grid_size:4*grid_size] = input_data[8+1]
+            if mode == 'single':
+                grid_size = self.cur_plot_quantity_1.shape[1]
+                # extra pixels are for lines
+                output_data = np.zeros((4*grid_size, 4*grid_size))
+                # compose plot data into the big rectangle that is consist of
+                # 16 rectangles where each contains a heatmap of the error heatmap
+                # the layout is
+                '''
+                2'  2   1   1'
+                3'  3   0   0'
+                4'  4   7   7'
+                5'  5   6   6'
+                '''
+                # where the index is the same as in data
+                # the meaning of 0 to 7 could be found at lines 316-333
+                # first row
+                output_data[0*grid_size:1*grid_size, 0*grid_size:1*grid_size] = input_data[8+2]
+                output_data[0*grid_size:1*grid_size, 1*grid_size:2*grid_size] = input_data[0+2]
+                output_data[0*grid_size:1*grid_size, 2*grid_size:3*grid_size] = input_data[0+1]
+                output_data[0*grid_size:1*grid_size, 3*grid_size:4*grid_size] = input_data[8+1]
 
-            # second row
-            output_data[1*grid_size:2*grid_size, 0*grid_size:1*grid_size] = input_data[8+3]
-            output_data[1*grid_size:2*grid_size, 1*grid_size:2*grid_size] = input_data[0+3]
-            output_data[1*grid_size:2*grid_size, 2*grid_size:3*grid_size] = input_data[0+0]
-            output_data[1*grid_size:2*grid_size, 3*grid_size:4*grid_size] = input_data[8+0]
+                # second row
+                output_data[1*grid_size:2*grid_size, 0*grid_size:1*grid_size] = input_data[8+3]
+                output_data[1*grid_size:2*grid_size, 1*grid_size:2*grid_size] = input_data[0+3]
+                output_data[1*grid_size:2*grid_size, 2*grid_size:3*grid_size] = input_data[0+0]
+                output_data[1*grid_size:2*grid_size, 3*grid_size:4*grid_size] = input_data[8+0]
 
-            # third row
-            output_data[2*grid_size:3*grid_size, 0*grid_size:1*grid_size] = input_data[8+4]
-            output_data[2*grid_size:3*grid_size, 1*grid_size:2*grid_size] = input_data[0+4]
-            output_data[2*grid_size:3*grid_size, 2*grid_size:3*grid_size] = input_data[0+7]
-            output_data[2*grid_size:3*grid_size, 3*grid_size:4*grid_size] = input_data[8+7]
+                # third row
+                output_data[2*grid_size:3*grid_size, 0*grid_size:1*grid_size] = input_data[8+4]
+                output_data[2*grid_size:3*grid_size, 1*grid_size:2*grid_size] = input_data[0+4]
+                output_data[2*grid_size:3*grid_size, 2*grid_size:3*grid_size] = input_data[0+7]
+                output_data[2*grid_size:3*grid_size, 3*grid_size:4*grid_size] = input_data[8+7]
 
-            # fourth row
-            output_data[3*grid_size:4*grid_size, 0*grid_size:1*grid_size] = input_data[8+5]
-            output_data[3*grid_size:4*grid_size, 1*grid_size:2*grid_size] = input_data[0+5]
-            output_data[3*grid_size:4*grid_size, 2*grid_size:3*grid_size] = input_data[0+6]
-            output_data[3*grid_size:4*grid_size, 3*grid_size:4*grid_size] = input_data[8+6]
+                # fourth row
+                output_data[3*grid_size:4*grid_size, 0*grid_size:1*grid_size] = input_data[8+5]
+                output_data[3*grid_size:4*grid_size, 1*grid_size:2*grid_size] = input_data[0+5]
+                output_data[3*grid_size:4*grid_size, 2*grid_size:3*grid_size] = input_data[0+6]
+                output_data[3*grid_size:4*grid_size, 3*grid_size:4*grid_size] = input_data[8+6]
+
+            elif mode == 'aggregate':
+                # for aggregate mode, input_data has shape
+                # (num_transformations, num_samples, image_size, image_size)
+                print(input_data.shape)
+                exit()
 
             return output_data
 
 
-        # prepare data for piv individual nero plot (heatmap)
-        self.data_1 = prepare_plot_data(self.cur_plot_quantity_1)
-        self.data_2 = prepare_plot_data(self.cur_plot_quantity_2)
-
         # add to general layout
         if mode == 'single':
+            # prepare data for piv individual nero plot (heatmap)
+            self.data_1 = prepare_plot_data(self.cur_plot_quantity_1)
+            self.data_2 = prepare_plot_data(self.cur_plot_quantity_2)
             # heatmap view
             self.heatmap_view_1 = pg.GraphicsLayoutWidget()
             # left top right bottom
@@ -3369,6 +3424,9 @@ class UI_MainWindow(QWidget):
                 self.aggregate_result_layout.addWidget(self.heatmap_view_2, 1, 5)
 
         elif mode == 'aggregate':
+            # prepare data for piv individual nero plot (heatmap)
+            self.data_1 = prepare_plot_data(self.cur_plot_quantity_1)
+            self.data_2 = prepare_plot_data(self.cur_plot_quantity_2)
             # heatmap view
             self.aggregate_heatmap_view_1 = pg.GraphicsLayoutWidget()
             # left top right bottom
@@ -3378,8 +3436,8 @@ class UI_MainWindow(QWidget):
             # left top right bottom
             self.aggregate_heatmap_view_2.ci.layout.setContentsMargins(0, 20, 0, 0)
             self.aggregate_heatmap_view_2.setFixedSize(self.plot_size*1.3, self.plot_size*1.3)
-            self.aggregate_heatmap_plot_1 = self.draw_individual_heatmap('aggregate', data_1)
-            self.aggregate_heatmap_plot_2 = self.draw_individual_heatmap('aggregate', data_2)
+            self.aggregate_heatmap_plot_1 = self.draw_individual_heatmap('aggregate', self.data_1)
+            self.aggregate_heatmap_plot_2 = self.draw_individual_heatmap('aggregate', self.data_2)
 
             # add to view
             self.aggregate_heatmap_view_1.addItem(self.aggregate_heatmap_plot_1)
@@ -3389,16 +3447,16 @@ class UI_MainWindow(QWidget):
             self.aggregate_result_layout.addWidget(self.aggregate_heatmap_view_2, 1, 2)
 
 
-    # draw error plots of PIV
-    # def draw_piv_details(self):
+    # draw quiver plot between PIV ground truth and model predictions
+    def draw_piv_details(self):
 
 
-        # if self.data_mode == 'single':
-        #     self.single_result_layout.addWidget(self.piv_detail_view_1, 2, 1)
-        #     self.single_result_layout.addWidget(self.piv_detail_view_2, 2, 2)
-        # elif self.data_mode == 'aggregate':
-        #     self.aggregate_result_layout.addWidget(self.piv_detail_view_1, 2, 4)
-        #     self.aggregate_result_layout.addWidget(self.piv_detail_view_2, 2, 5)
+        if self.data_mode == 'single':
+            self.single_result_layout.addWidget(self.piv_detail_view_1, 2, 1)
+            self.single_result_layout.addWidget(self.piv_detail_view_2, 2, 2)
+        elif self.data_mode == 'aggregate':
+            self.aggregate_result_layout.addWidget(self.piv_detail_view_1, 2, 4)
+            self.aggregate_result_layout.addWidget(self.piv_detail_view_2, 2, 5)
 
 
     # display MNIST aggregated results
@@ -3996,59 +4054,42 @@ class UI_MainWindow(QWidget):
         self.aggregate_result_existed = True
 
         # helper function on compute, normalize the loss and display quantity
-        def compute_nero_plot_quantity():
+        def compute_aggregate_nero_plot_quantity():
             print('compute nero plot quantity')
             # compute loss using torch loss module
             if self.quantity_name == 'RMSE':
-                self.aggregate_loss_module = nero_utilities.RMSELoss()
+                self.loss_module = nero_utilities.RMSELoss()
             elif self.quantity_name == 'MSE':
-                self.aggregate_loss_module = torch.nn.MSELoss()
+                self.loss_module = torch.nn.MSELoss()
             elif self.quantity_name == 'MAE':
-                self.aggregate_loss_module = torch.nn.L1Loss()
+                self.loss_module = torch.nn.L1Loss()
             elif self.quantity_name == 'AEE':
-                self.aggregate_loss_module = nero_utilities.AEELoss()
+                self.loss_module = nero_utilities.AEELoss()
 
-            # quantities used to plot aggregate
-            self.aggregate_avg_loss_1 = np.zeros((self.num_transformations))
-            self.aggregate_avg_loss_2 = np.zeros((self.num_transformations))
-            self.cur_plot_quantity_1 = np.zeros((self.num_transformations))
-            self.cur_plot_quantity_2 = np.zeros((self.num_transformations))
-            self.error_min = 1000000
-            self.error_max = 0
-
-            # detailed information used to do dimension reduction and later individual NERO plot
-            self.cur_plot_quantity_1_loss = np.zeros(self.num_transformations, dtype=np.ndarray)
-            self.cur_plot_quantity_2_loss = np.zeros(self.num_transformations, dtype=np.ndarray)
-
+            # keep the same dimension
+            cur_losses_1 = np.zeros((self.num_transformations, len(self.aggregate_outputs_1[0]), self.image_size, self.image_size))
+            cur_losses_2 = np.zeros((self.num_transformations, len(self.aggregate_outputs_1[0]), self.image_size, self.image_size))
+            # used to compute normalization range, depending on single-sample average
+            mean_losses_1 = np.zeros((self.num_transformations, len(self.aggregate_outputs_1[0])))
+            mean_losses_2 = np.zeros((self.num_transformations, len(self.aggregate_outputs_1[0])))
             for i in range(self.num_transformations):
-                # sum of plot quantities of all or certain class
-                all_samples_loss_1 = []
-                all_samples_loss_2 = []
                 for j in range(len(self.aggregate_outputs_1[i])):
-                    # either all the classes or one specific class
-                    if self.class_selection == 'all' or self.class_selection == self.loaded_images_labels[j]:
-                        # compute the loss of current single sample
-                        cur_sample_loss_1 = self.aggregate_loss_module(self.aggregate_ground_truths[i][j], self.aggregate_outputs_1[i][j]).item()
-                        cur_sample_loss_2 = self.aggregate_loss_module(self.aggregate_ground_truths[i][j], self.aggregate_outputs_2[i][j]).item()
-                        # print(cur_sample_loss_1, cur_sample_loss_2)
-                        all_samples_loss_1.append(cur_sample_loss_1)
-                        all_samples_loss_2.append(cur_sample_loss_2)
+                        cur_losses_1[i, j] = self.loss_module(self.aggregate_ground_truths[i, j], self.aggregate_outputs_1[i, j], reduction='none').numpy().mean(axis=2)
+                        cur_losses_2[i, j] = self.loss_module(self.aggregate_ground_truths[i, j], self.aggregate_outputs_2[i, j], reduction='none').numpy().mean(axis=2)
+                        mean_losses_1[i, j] = self.loss_module(self.aggregate_ground_truths[i, j], self.aggregate_outputs_1[i, j], reduction='mean').numpy()
+                        mean_losses_2[i, j] = self.loss_module(self.aggregate_ground_truths[i, j], self.aggregate_outputs_2[i, j], reduction='mean').numpy()
 
-                        self.error_min = min(self.error_min, cur_sample_loss_1, cur_sample_loss_2)
-                        self.error_max = max(self.error_max, cur_sample_loss_1, cur_sample_loss_2)
+            # get the max and min for normalization purpose
+            self.error_min = min(np.min(mean_losses_1), np.min(mean_losses_1))
+            self.error_max = max(np.max(mean_losses_2), np.max(mean_losses_2))
 
-                # save the detailed result
-                self.cur_plot_quantity_1_loss[i] = all_samples_loss_1
-                self.cur_plot_quantity_2_loss[i] = all_samples_loss_2
-                # take the average result
-                self.aggregate_avg_loss_1[i] = np.mean(all_samples_loss_1)
-                self.aggregate_avg_loss_2[i] = np.mean(all_samples_loss_2)
+            # normalize all the losses
+            cur_losses_1 = nero_utilities.lerp(cur_losses_1, self.error_min, self.error_max, 0, 1)
+            cur_losses_2 = nero_utilities.lerp(cur_losses_2, self.error_min, self.error_max, 0, 1)
 
-            # print(self.error_min, self.error_max)
-
-            # normalize the loss to be between 0 and 1 and flip it
-            self.cur_plot_quantity_1 = 1 - nero_utilities.lerp(self.aggregate_avg_loss_1, self.error_min, self.error_max, 0, 1)
-            self.cur_plot_quantity_2 = 1 - nero_utilities.lerp(self.aggregate_avg_loss_2, self.error_min, self.error_max, 0, 1)
+            # average element-wise loss to scalar and normalize between 0 and 1
+            self.cur_plot_quantity_1 = 1 - cur_losses_1
+            self.cur_plot_quantity_2 = 1 - cur_losses_2
 
 
         @QtCore.Slot()
@@ -4066,7 +4107,7 @@ class UI_MainWindow(QWidget):
                 self.quantity_name = text
 
             # compute the quantity to plot
-            compute_nero_plot_quantity()
+            compute_aggregate_nero_plot_quantity()
 
             # re-display the heatmap
             self.draw_piv_nero(mode='aggregate')
@@ -4099,7 +4140,7 @@ class UI_MainWindow(QWidget):
         self.aggregate_loss_module = nero_utilities.RMSELoss()
 
         # compute aggregate plot quantity
-        compute_nero_plot_quantity()
+        compute_aggregate_nero_plot_quantity()
 
         # draw the aggregate NERO plot
         self.draw_piv_nero(mode='aggregate')
@@ -4118,7 +4159,7 @@ class UI_MainWindow(QWidget):
             self.single_result_layout.addWidget(self.use_cache_checkbox, 4, 0)
 
         # helper function on compute, normalize the loss and display quantity
-        def compute_nero_plot_quantity():
+        def compute_single_nero_plot_quantity():
             # compute loss using torch loss module
             if self.quantity_name == 'RMSE':
                 self.loss_module = nero_utilities.RMSELoss()
@@ -4132,6 +4173,7 @@ class UI_MainWindow(QWidget):
             # keep the same dimension
             cur_losses_1 = np.zeros((self.num_transformations, self.image_size, self.image_size))
             cur_losses_2 = np.zeros((self.num_transformations, self.image_size, self.image_size))
+            # used to compute normalization range, depending on single-sample average
             mean_losses_1 = np.zeros(self.num_transformations)
             mean_losses_2 = np.zeros(self.num_transformations)
             for i in range(self.num_transformations):
@@ -4159,7 +4201,7 @@ class UI_MainWindow(QWidget):
             self.quantity_name = text
 
             # compute the quantity needed to plot individual NERO plot
-            compute_nero_plot_quantity()
+            compute_single_nero_plot_quantity()
 
             # plot/update the individual NERO plot
             self.draw_piv_nero(mode='single')
@@ -4167,59 +4209,47 @@ class UI_MainWindow(QWidget):
             # update detailed plot of PIV
             # self.draw_piv_details()
 
-        # drop down menu on selection which quantity to plot
-        # layout that controls the plotting items
-        self.single_plot_control_layout = QtWidgets.QVBoxLayout()
-        quantity_menu = QtWidgets.QComboBox()
-        quantity_menu.setFixedSize(QtCore.QSize(250, 50))
-        quantity_menu.setStyleSheet('font-size: 18px')
-        quantity_menu.setEditable(True)
-        quantity_menu.lineEdit().setReadOnly(True)
-        quantity_menu.lineEdit().setAlignment(QtCore.Qt.AlignCenter)
-
-        # all the different plot quantities (losses)
-        self.all_plot_quantities = ['RMSE', 'MSE', 'MAE', 'AEE']
-        for cur_quantity in self.all_plot_quantities:
-            quantity_menu.addItem(cur_quantity)
-
-        quantity_menu.setCurrentText(self.all_plot_quantities[0])
-        # by default the loss is RMSE
-        self.quantity_name = 'RMSE'
-        self.loss_module = nero_utilities.RMSELoss()
-
-        # connect the drop down menu with actions
-        quantity_menu.currentTextChanged.connect(piv_plot_quantity_changed)
-        self.single_plot_control_layout.addWidget(quantity_menu)
-
-        # single mode visualization
+        # single mode only visualization
         if self.data_mode == 'single':
+            # drop down menu on selection which quantity to plot
+            # layout that controls the plotting items
+            self.single_plot_control_layout = QtWidgets.QVBoxLayout()
+            quantity_menu = QtWidgets.QComboBox()
+            quantity_menu.setFixedSize(QtCore.QSize(250, 50))
+            quantity_menu.setStyleSheet('font-size: 18px')
+            quantity_menu.setEditable(True)
+            quantity_menu.lineEdit().setReadOnly(True)
+            quantity_menu.lineEdit().setAlignment(QtCore.Qt.AlignCenter)
+
+            # all the different plot quantities (losses)
+            self.all_plot_quantities = ['RMSE', 'MSE', 'MAE', 'AEE']
+            for cur_quantity in self.all_plot_quantities:
+                quantity_menu.addItem(cur_quantity)
+
+            quantity_menu.setCurrentText(self.all_plot_quantities[0])
+            # by default the loss is RMSE
+            self.quantity_name = 'RMSE'
+            self.loss_module = nero_utilities.RMSELoss()
+
+            # connect the drop down menu with actions
+            quantity_menu.currentTextChanged.connect(piv_plot_quantity_changed)
+            self.single_plot_control_layout.addWidget(quantity_menu)
+
             # add plot control layout to general layout
             self.single_result_layout.addLayout(self.single_plot_control_layout, 0, 0)
             # compute the plot quantities self.cur_plot_quantity_1 and self.cur_plot_quantity_2
             self.cur_plot_quantity_1 = np.zeros((self.num_transformations, self.image_size, self.image_size))
             self.cur_plot_quantity_2 = np.zeros((self.num_transformations, self.image_size, self.image_size))
-            compute_nero_plot_quantity()
+            compute_single_nero_plot_quantity()
 
+        # when in three level view
         elif self.data_mode == 'aggregate':
             # add plot control layout to general layout
-            self.aggregate_result_layout.addLayout(self.single_plot_control_layout, 0, 3)
+            # self.aggregate_result_layout.addLayout(self.single_plot_control_layout, 0, 3)
             # plot quantity in individual nero plot
-            self.cur_plot_quantity_1 = np.zeros(self.num_transformations)
-            self.cur_plot_quantity_2 = np.zeros(self.num_transformations)
-
-            # compute average error as the largest and smallest for normalization
-            # not using individual pixel min/max because some have too large perks
-            for i in range(len(self.all_ground_truths)):
-                self.cur_plot_quantity_1[i] = self.loss_module(self.all_ground_truths[i], self.all_quantities_1[i], reduction='mean').numpy()
-                self.cur_plot_quantity_2[i] = self.loss_module(self.all_ground_truths[i], self.all_quantities_2[i], reduction='mean').numpy()
-
-            # normalize the losses
-            self.cur_plot_quantity_1 = nero_utilities.lerp(self.cur_plot_quantity_1, self.error_min, self.error_max, 0, 1)
-            self.cur_plot_quantity_2 = nero_utilities.lerp(self.cur_plot_quantity_2, self.error_min, self.error_max, 0, 1)
-
-            # average element-wise loss to scalar and normalize between 0 and 1
-            self.cur_plot_quantity_1 = 1 - self.cur_plot_quantity_1
-            self.cur_plot_quantity_2 = 1 - self.cur_plot_quantity_2
+            self.cur_plot_quantity_1 = np.zeros(self.num_transformations, self.image_size, self.image_size)
+            self.cur_plot_quantity_2 = np.zeros(self.num_transformations, self.image_size, self.image_size)
+            compute_single_nero_plot_quantity()
 
         # visualize the individual NERO plot of the current input
         self.draw_piv_nero(mode='single')
