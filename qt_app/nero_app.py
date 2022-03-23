@@ -2348,7 +2348,7 @@ class UI_MainWindow(QWidget):
                 # redraw the nero plot with new triangle display
                 self.draw_piv_nero('single')
                 # update detailed plot of PIV
-                self.draw_piv_details()
+                # self.draw_piv_details()
 
             @QtCore.Slot()
             def rotate_90_cw():
@@ -2364,7 +2364,7 @@ class UI_MainWindow(QWidget):
                 # redraw the nero plot with new triangle display
                 self.draw_piv_nero('single')
                 # update detailed plot of PIV
-                self.draw_piv_details()
+                # self.draw_piv_details()
 
             @QtCore.Slot()
             def vertical_flip():
@@ -2379,7 +2379,7 @@ class UI_MainWindow(QWidget):
                 # redraw the nero plot with new triangle display
                 self.draw_piv_nero('single')
                 # update detailed plot of PIV
-                self.draw_piv_details()
+                # self.draw_piv_details()
 
             @QtCore.Slot()
             def horizontal_flip():
@@ -2394,7 +2394,7 @@ class UI_MainWindow(QWidget):
                 # redraw the nero plot with new triangle display
                 self.draw_piv_nero('single')
                 # update detailed plot of PIV
-                self.draw_piv_details()
+                # self.draw_piv_details()
 
             @QtCore.Slot()
             def time_reverse():
@@ -2409,7 +2409,7 @@ class UI_MainWindow(QWidget):
                 # redraw the nero plot with new triangle display
                 self.draw_piv_nero('single')
                 # update detailed plot of PIV
-                self.draw_piv_details()
+                # self.draw_piv_details()
 
 
             # Dihedral group4 transformations plus time-reverse
@@ -2949,13 +2949,73 @@ class UI_MainWindow(QWidget):
                 view_box.addItem(heatmap)
 
                 # small indicator on where the translation is at
+                '''
+                2'  2(Rot90)            1(right diag flip)   1'
+                3'  3(hori flip)        0(original)          0'
+                4'  4(Rot180)           7(vert flip)         7'
+                5'  5(left diag flip)   6(Rot270)            6'
+                '''
+                # rect_x is the column, rect_y is the row (image coordinate)
                 if self.rectangle_index == 0:
                     rect_x = 2*self.image_size + self.image_size // 2
                     rect_y = 1*self.image_size + self.image_size // 2
+                elif self.rectangle_index == 1:
+                    rect_x = 2*self.image_size + self.image_size // 2
+                    rect_y = 0*self.image_size + self.image_size // 2
+                elif self.rectangle_index == 2:
+                    rect_x = 1*self.image_size + self.image_size // 2
+                    rect_y = 0*self.image_size + self.image_size // 2
+                elif self.rectangle_index == 3:
+                    rect_x = 1*self.image_size + self.image_size // 2
+                    rect_y = 1*self.image_size + self.image_size // 2
+                elif self.rectangle_index == 4:
+                    rect_x = 1*self.image_size + self.image_size // 2
+                    rect_y = 2*self.image_size + self.image_size // 2
+                elif self.rectangle_index == 5:
+                    rect_x = 1*self.image_size + self.image_size // 2
+                    rect_y = 3*self.image_size + self.image_size // 2
+                elif self.rectangle_index == 6:
+                    rect_x = 2*self.image_size + self.image_size // 2
+                    rect_y = 3*self.image_size + self.image_size // 2
+                elif self.rectangle_index == 7:
+                    rect_x = 2*self.image_size + self.image_size // 2
+                    rect_y = 2*self.image_size + self.image_size // 2
+                # 0'
+                elif self.rectangle_index == 8:
+                    rect_x = 3*self.image_size + self.image_size // 2
+                    rect_y = 1*self.image_size + self.image_size // 2
+                # 1'
+                elif self.rectangle_index == 9:
+                    rect_x = 3*self.image_size + self.image_size // 2
+                    rect_y = 0*self.image_size + self.image_size // 2
+                # 2'
+                elif self.rectangle_index == 10:
+                    rect_x = 0*self.image_size + self.image_size // 2
+                    rect_y = 0*self.image_size + self.image_size // 2
+                # 3'
+                elif self.rectangle_index == 11:
+                    rect_x = 0*self.image_size + self.image_size // 2
+                    rect_y = 1*self.image_size + self.image_size // 2
+                # 4'
+                elif self.rectangle_index == 12:
+                    rect_x = 0*self.image_size + self.image_size // 2
+                    rect_y = 2*self.image_size + self.image_size // 2
+                # 5'
+                elif self.rectangle_index == 13:
+                    rect_x = 0*self.image_size + self.image_size // 2
+                    rect_y = 3*self.image_size + self.image_size // 2
+                # 6'
+                elif self.rectangle_index == 14:
+                    rect_x = 3*self.image_size + self.image_size // 2
+                    rect_y = 3*self.image_size + self.image_size // 2
+                # 7'
+                elif self.rectangle_index == 15:
+                    rect_x = 3*self.image_size + self.image_size // 2
+                    rect_y = 2*self.image_size + self.image_size // 2
 
                 scatter_point = [{'pos': (rect_x, rect_y),
-                                    'size': self.image_size,
-                                    'pen': {'color': 'red', 'width': 3},
+                                    'size': self.image_size-8,
+                                    'pen': {'color': 'red', 'width': 4},
                                     'brush': (0, 0, 0, 0)}]
 
                 # add points to the item
@@ -3398,15 +3458,15 @@ class UI_MainWindow(QWidget):
 
 
     # draw error plots of PIV
-    def draw_piv_details(self):
+    # def draw_piv_details(self):
 
 
-        if self.data_mode == 'single':
-            self.single_result_layout.addWidget(self.piv_detail_view_1, 2, 1)
-            self.single_result_layout.addWidget(self.piv_detail_view_2, 2, 2)
-        elif self.data_mode == 'aggregate':
-            self.aggregate_result_layout.addWidget(self.piv_detail_view_1, 2, 4)
-            self.aggregate_result_layout.addWidget(self.piv_detail_view_2, 2, 5)
+        # if self.data_mode == 'single':
+        #     self.single_result_layout.addWidget(self.piv_detail_view_1, 2, 1)
+        #     self.single_result_layout.addWidget(self.piv_detail_view_2, 2, 2)
+        # elif self.data_mode == 'aggregate':
+        #     self.aggregate_result_layout.addWidget(self.piv_detail_view_1, 2, 4)
+        #     self.aggregate_result_layout.addWidget(self.piv_detail_view_2, 2, 5)
 
 
     # display MNIST aggregated results
