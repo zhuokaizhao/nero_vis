@@ -344,6 +344,11 @@ class UI_MainWindow(QWidget):
                                                 [12, 4, 7, 15],
                                                 [13, 5, 6, 14]])
 
+                self.piv_nero_layout_names = [['Time-reversed Rot90 (ccw)', 'Rot90 (ccw)', 'Diagonal (/) flip', 'Time-reversed diagonal flip'],
+                                              ['Time-reversed horizontal flip', 'Horizontal flip', 'Original', 'Time-reversed original'],
+                                              ['Time-reversed Rot180 (ccw)', 'Rot180 (ccw)', 'Vertical flip', 'Time-reversed vertical flip'],
+                                              ['Time-reversed anti-diagonal (\) flip', 'Anti-diagonal (\) flip', 'Rot270 (ccw)', 'Time-reversed Rot270 (ccw)']]
+
 
                 # unique quantity of the result of current data
                 self.all_quantities_1 = []
@@ -2930,6 +2935,7 @@ class UI_MainWindow(QWidget):
                 heatmap.setImage(data)
                 # add image to the viewbox
                 view_box.addItem(heatmap)
+                # so that showing indicator at the boundary does not jitter the plot
                 view_box.disableAutoRange()
 
                 # small indicator on where the translation is at
@@ -2964,6 +2970,8 @@ class UI_MainWindow(QWidget):
                 heatmap.setImage(data)
                 # add image to the viewbox
                 view_box.addItem(heatmap)
+                # so that showing indicator at the boundary does not jitter the plot
+                view_box.disableAutoRange()
 
                 # small indicator on where the translation is at
                 # take the corresponding one from rectangle index
@@ -3051,6 +3059,21 @@ class UI_MainWindow(QWidget):
                 outer_self.heatmap_plot_2.addItem(outer_self.scatter_item_2)
 
 
+            def mouseDragEvent(self, event):
+                if event.button() != QtCore.Qt.LeftButton:
+                    event.ignore()
+                    return
+
+                if event.isStart():
+                    print('Dragging starts', event.buttonDownPos())
+
+                elif event.isFinish():
+                    print('Dragging stops', event.pos())
+
+                else:
+                    print("Drag", event.pos())
+
+
         # check if the data is in shape (self.image_size, self.image_size)
         if self.cur_plot_quantity_1.shape != (self.image_size, self.image_size):
             # repeat in row
@@ -3091,12 +3114,8 @@ class UI_MainWindow(QWidget):
                 self.single_nero_2 = COCO_heatmap()
                 self.scatter_item_1 = pg.ScatterPlotItem(pxMode=False)
                 self.scatter_item_1.setSymbol('s')
-                self.scatter_item_1.setXRange(0, self.image_size*4, padding=4)
-                self.scatter_item_1.setYRange(0, self.image_size*4, padding=4)
                 self.scatter_item_2 = pg.ScatterPlotItem(pxMode=False)
                 self.scatter_item_2.setSymbol('s')
-                self.scatter_item_2.setXRange(0, self.image_size*4, padding=4)
-                self.scatter_item_2.setYRange(0, self.image_size*4, padding=4)
                 self.heatmap_plot_1 = self.draw_individual_heatmap('single', data_1, self.view_box_1, self.single_nero_1, self.scatter_item_1)
                 self.heatmap_plot_2 = self.draw_individual_heatmap('single', data_2, self.view_box_2, self.single_nero_2, self.scatter_item_2)
 
@@ -3247,7 +3266,6 @@ class UI_MainWindow(QWidget):
                 # in PIV mode, a pop up window shows the nearby area's quiver plot
                 rect_x = int(event.pos().x() // outer_self.image_size)
                 rect_y = int(event.pos().y() // outer_self.image_size)
-                print(rect_x, rect_y)
                 outer_self.rectangle_index = outer_self.piv_nero_layout[rect_y, rect_x]
 
                 # display the image
@@ -3256,20 +3274,14 @@ class UI_MainWindow(QWidget):
                 # redraw the nero plot with new triangle display
                 outer_self.draw_piv_nero('single')
 
-            def mouseDragEvent(self, event):
-                if event.isStart():
-                    print("Start drag", event.pos())
-                elif event.isFinish():
-                    print("Stop drag", event.pos())
-                else:
-                    print("Drag", event.pos())
 
             def hoverEvent(self, event):
                 if not event.isExit():
-                    # the mouse is hovering over the image; make sure no other items
-                    # will receive left click/drag events from here.
-                    event.acceptDrags(pg.QtCore.Qt.LeftButton)
-                    event.acceptClicks(pg.QtCore.Qt.LeftButton)
+                    rect_x = int(event.pos().x() // outer_self.image_size)
+                    rect_y = int(event.pos().y() // outer_self.image_size)
+
+                    self.hover_text = outer_self.piv_nero_layout_names[rect_y][rect_x]
+                    self.setToolTip(self.hover_text)
 
         # helper function on reshaping data
         def prepare_plot_data(input_data):
