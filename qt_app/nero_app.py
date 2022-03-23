@@ -2330,8 +2330,8 @@ class UI_MainWindow(QWidget):
                     if (np.array_equal(self.cur_image_1_pt.numpy(), self.all_d4_images_1_pt[i].numpy())
                         and np.array_equal(self.cur_image_2_pt.numpy(), self.all_d4_images_2_pt[i].numpy())):
 
-                        self.triangle_index = i
-                        print('matched', self.triangle_index)
+                        self.rectangle_index = i
+                        print('matched', self.rectangle_index)
                         break
 
             @QtCore.Slot()
@@ -2531,7 +2531,7 @@ class UI_MainWindow(QWidget):
                     self.save_to_cache(name=f'{self.mode}_{self.data_mode}_{self.model_2_cache_name}_{self.image_index}', content=self.all_quantities_2.numpy())
 
                 # display the piv single case result
-                self.triangle_index = 0
+                self.rectangle_index = 0
                 self.display_piv_single_result()
 
             # when in aggregate mode but a certain sample has been selected
@@ -2543,7 +2543,7 @@ class UI_MainWindow(QWidget):
                 init_input_control()
 
                 # display the piv single case result
-                self.triangle_index = 0
+                self.rectangle_index = 0
                 self.display_piv_single_result()
 
 
@@ -2916,16 +2916,15 @@ class UI_MainWindow(QWidget):
                 view_box.addItem(heatmap)
 
                 # small indicator on where the translation is at
-                if self.mode == 'object_detection' and mode == 'single':
-                    scatter_point = [{'pos': (self.cur_x_tran+self.translation_step_single//2,
-                                                self.cur_y_tran+self.translation_step_single//2),
-                                        'size': self.translation_step_single,
-                                        'pen': {'color': 'red', 'width': 3},
-                                        'brush': (0, 0, 0, 0)}]
+                scatter_point = [{'pos': (self.cur_x_tran+self.translation_step_single//2,
+                                            self.cur_y_tran+self.translation_step_single//2),
+                                    'size': self.translation_step_single,
+                                    'pen': {'color': 'red', 'width': 3},
+                                    'brush': (0, 0, 0, 0)}]
 
-                    # add points to the item
-                    scatter_item.setData(scatter_point)
-                    heatmap_plot.addItem(scatter_item)
+                # add points to the item
+                scatter_item.setData(scatter_point)
+                heatmap_plot.addItem(scatter_item)
 
             elif mode == 'aggregate':
                 view_box = pg.ViewBox(invertY=True)
@@ -2949,6 +2948,20 @@ class UI_MainWindow(QWidget):
                 # add image to the viewbox
                 view_box.addItem(heatmap)
 
+                # small indicator on where the translation is at
+                if self.rectangle_index == 0:
+                    rect_x = 2*self.image_size + self.image_size // 2
+                    rect_y = 1*self.image_size + self.image_size // 2
+
+                scatter_point = [{'pos': (rect_x, rect_y),
+                                    'size': self.image_size,
+                                    'pen': {'color': 'red', 'width': 3},
+                                    'brush': (0, 0, 0, 0)}]
+
+                # add points to the item
+                scatter_item.setData(scatter_point)
+                heatmap_plot.addItem(scatter_item)
+
             elif mode == 'aggregate':
                 view_box = pg.ViewBox(invertY=True)
                 view_box.setAspectLocked(lock=True)
@@ -2957,9 +2970,7 @@ class UI_MainWindow(QWidget):
                 view_box.addItem(heatmap)
                 heatmap_plot = pg.PlotItem(viewBox=view_box, title=title)
 
-            heatmap_plot.getAxis('bottom').setLabel('x')
             heatmap_plot.getAxis('bottom').setStyle(tickLength=0, showValues=False)
-            heatmap_plot.getAxis('left').setLabel('y')
             heatmap_plot.getAxis('left').setStyle(tickLength=0, showValues=False)
 
         # create colorbar
@@ -3202,21 +3213,7 @@ class UI_MainWindow(QWidget):
 
 
     # draws a single D4 vis
-    def draw_individual_d4(self, mode, data):
-
-        # 16 rectangles where each contains a heatmap of the error heatmap
-        # the layout is
-        '''
-        2'  2   0   0'
-        3'  3   0   0'
-        4'  4   7'  7
-        5'  5   6   6'
-        '''
-        # where the meaning of 0 to 7 could be found at lines 316-333
-        # data is in shape (num_transformations=16, image_size=256, image_size=256)
-        print(data.shape)
-        exit()
-
+    # def draw_individual_d4(self, mode, data):
 
         # # initialize label and its pixmap
         # d4_label = QLabel(self)
@@ -3256,64 +3253,22 @@ class UI_MainWindow(QWidget):
 
         # # draw the red triangle selector
         # if mode == 'single':
-        #     self.draw_triangle(painter, all_triangle_points[self.triangle_index], pen_color=QtGui.QColor('red'), boundary_width=3)
+        #     self.draw_triangle(painter, all_triangle_points[self.rectangle_index], pen_color=QtGui.QColor('red'), boundary_width=3)
 
         # painter.end()
 
         # set pixmap to label
         # d4_label.setPixmap(d4_pixmap)
 
-        return d4_label
+        # return d4_label
 
 
     # draws dihedral 4 visualization to be the NERO plot for PIV experiment
     def draw_piv_nero(self, mode):
 
-        # NERO plot
-        self.d4_label_1 = self.draw_individual_d4(mode, self.cur_plot_quantity_1)
-        self.d4_label_2 = self.draw_individual_d4(mode, self.cur_plot_quantity_2)
-
-        # single mode layout can be used for both single and aggresingle
-        if mode == 'single':
-            if self.data_mode == 'aggregate':
-                self.aggregate_result_layout.addWidget(self.d4_label_1, 1, 4)
-                self.aggregate_result_layout.addWidget(self.d4_label_2, 1, 5)
-            elif self.data_mode == 'single':
-                self.single_result_layout.addWidget(self.d4_label_1, 1, 1)
-                self.single_result_layout.addWidget(self.d4_label_2, 1, 2)
-
-        # aggregate
-        elif mode == 'aggregate':
-            self.aggregate_result_layout.addWidget(self.d4_label_1, 1, 1)
-            self.aggregate_result_layout.addWidget(self.d4_label_2, 1, 2)
-
-
-    # draw error plots of PIV
-    def draw_piv_details(self):
-        # the detailed view are two heatmaps showing the error
-        # heatmap view
-        self.piv_detail_view_1 = pg.GraphicsLayoutWidget()
-        # left top right bottom
-        self.piv_detail_view_1.ci.layout.setContentsMargins(0, 20, 0, 0)
-        self.piv_detail_view_1.setFixedSize(self.plot_size*1.3, self.plot_size*1.3)
-        self.piv_detail_view_2 = pg.GraphicsLayoutWidget()
-        # left top right bottom
-        self.piv_detail_view_2.ci.layout.setContentsMargins(0, 20, 0, 0)
-        self.piv_detail_view_2.setFixedSize(self.plot_size*1.3, self.plot_size*1.3)
-
-        # prepare data for the visualization, using current triangle index
-        detail_data_1 = self.loss_module(self.all_ground_truths[self.triangle_index], self.all_quantities_1[self.triangle_index], reduction='none').numpy().mean(axis=2)
-        detail_data_2 = self.loss_module(self.all_ground_truths[self.triangle_index], self.all_quantities_2[self.triangle_index], reduction='none').numpy().mean(axis=2)
-
-        # normalize the detailed data and take flip
-        detail_data_1 = 1 - nero_utilities.lerp(detail_data_1, self.error_min, self.error_max, 0, 1)
-        detail_data_2 = 1 - nero_utilities.lerp(detail_data_2, self.error_min, self.error_max, 0, 1)
-
-        # draw the heatmap that represent detailed view
-        self.view_box_1 = pg.ViewBox(invertY=True)
-        self.view_box_1.setAspectLocked(lock=True)
-        self.view_box_2 = pg.ViewBox(invertY=True)
-        self.view_box_2.setAspectLocked(lock=True)
+        # used to pass into subclass
+        outer_self = self
+        # subclass of ImageItem that reimplements the control methods
         class PIV_heatmap(pg.ImageItem):
             def mouseClickEvent(self, event):
                 print(f'Clicked on PIV heatmap at ({event.pos().x()}, {event.pos().y()})')
@@ -3336,14 +3291,115 @@ class UI_MainWindow(QWidget):
                     event.acceptDrags(pg.QtCore.Qt.LeftButton)
                     event.acceptClicks(pg.QtCore.Qt.LeftButton)
 
-        self.single_nero_1 = PIV_heatmap()
-        self.single_nero_2 = PIV_heatmap()
-        self.piv_detail_plot_1 = self.draw_individual_heatmap('single', detail_data_1, self.view_box_1, self.single_nero_1)
-        self.piv_detail_plot_2 = self.draw_individual_heatmap('single', detail_data_2, self.view_box_2, self.single_nero_2)
+        # helper function on reshaping data
+        def prepare_plot_data(input_data):
+            grid_size = self.cur_plot_quantity_1.shape[1]
+            # extra pixels are for lines
+            output_data = np.zeros((4*grid_size, 4*grid_size))
+            # compose plot data into the big rectangle that is consist of
+            # 16 rectangles where each contains a heatmap of the error heatmap
+            # the layout is
+            '''
+            2'  2   1   1'
+            3'  3   0   0'
+            4'  4   7   7'
+            5'  5   6   6'
+            '''
+            # where the index is the same as in data
+            # the meaning of 0 to 7 could be found at lines 316-333
+            # first row
+            output_data[0*grid_size:1*grid_size, 0*grid_size:1*grid_size] = input_data[8+2]
+            output_data[0*grid_size:1*grid_size, 1*grid_size:2*grid_size] = input_data[0+2]
+            output_data[0*grid_size:1*grid_size, 2*grid_size:3*grid_size] = input_data[0+1]
+            output_data[0*grid_size:1*grid_size, 3*grid_size:4*grid_size] = input_data[8+1]
 
-        # add to view
-        self.piv_detail_view_1.addItem(self.piv_detail_plot_1)
-        self.piv_detail_view_2.addItem(self.piv_detail_plot_2)
+            # second row
+            output_data[1*grid_size:2*grid_size, 0*grid_size:1*grid_size] = input_data[8+3]
+            output_data[1*grid_size:2*grid_size, 1*grid_size:2*grid_size] = input_data[0+3]
+            output_data[1*grid_size:2*grid_size, 2*grid_size:3*grid_size] = input_data[0+0]
+            output_data[1*grid_size:2*grid_size, 3*grid_size:4*grid_size] = input_data[8+0]
+
+            # third row
+            output_data[2*grid_size:3*grid_size, 0*grid_size:1*grid_size] = input_data[8+4]
+            output_data[2*grid_size:3*grid_size, 1*grid_size:2*grid_size] = input_data[0+4]
+            output_data[2*grid_size:3*grid_size, 2*grid_size:3*grid_size] = input_data[0+7]
+            output_data[2*grid_size:3*grid_size, 3*grid_size:4*grid_size] = input_data[8+7]
+
+            # fourth row
+            output_data[3*grid_size:4*grid_size, 0*grid_size:1*grid_size] = input_data[8+5]
+            output_data[3*grid_size:4*grid_size, 1*grid_size:2*grid_size] = input_data[0+5]
+            output_data[3*grid_size:4*grid_size, 2*grid_size:3*grid_size] = input_data[0+6]
+            output_data[3*grid_size:4*grid_size, 3*grid_size:4*grid_size] = input_data[8+6]
+
+            return output_data
+
+
+        # prepare data for piv individual nero plot (heatmap)
+        data_1 = prepare_plot_data(self.cur_plot_quantity_1)
+        data_2 = prepare_plot_data(self.cur_plot_quantity_2)
+
+        # add to general layout
+        if mode == 'single':
+            # heatmap view
+            self.heatmap_view_1 = pg.GraphicsLayoutWidget()
+            # left top right bottom
+            self.heatmap_view_1.ci.layout.setContentsMargins(0, 20, 0, 0)
+            self.heatmap_view_1.setFixedSize(self.plot_size*1.3, self.plot_size*1.3)
+            self.heatmap_view_2 = pg.GraphicsLayoutWidget()
+            # left top right bottom
+            self.heatmap_view_2.ci.layout.setContentsMargins(0, 20, 0, 0)
+            self.heatmap_view_2.setFixedSize(self.plot_size*1.3, self.plot_size*1.3)
+
+            # create view box to contain the heatmaps
+            self.view_box_1 = pg.ViewBox(invertY=True)
+            self.view_box_1.setAspectLocked(lock=True)
+            self.view_box_2 = pg.ViewBox(invertY=True)
+            self.view_box_2.setAspectLocked(lock=True)
+
+            self.single_nero_1 = PIV_heatmap()
+            self.single_nero_2 = PIV_heatmap()
+            self.scatter_item_1 = pg.ScatterPlotItem(pxMode=False)
+            self.scatter_item_1.setSymbol('s')
+            self.scatter_item_2 = pg.ScatterPlotItem(pxMode=False)
+            self.scatter_item_2.setSymbol('s')
+            self.heatmap_plot_1 = self.draw_individual_heatmap('single', data_1, self.view_box_1, self.single_nero_1, self.scatter_item_1)
+            self.heatmap_plot_2 = self.draw_individual_heatmap('single', data_2, self.view_box_2, self.single_nero_2, self.scatter_item_2)
+
+            # add to view
+            self.heatmap_view_1.addItem(self.heatmap_plot_1)
+            self.heatmap_view_2.addItem(self.heatmap_plot_2)
+
+            if self.data_mode == 'single':
+                self.single_result_layout.addWidget(self.heatmap_view_1, 1, 1)
+                self.single_result_layout.addWidget(self.heatmap_view_2, 1, 2)
+            elif self.data_mode == 'aggregate':
+                self.aggregate_result_layout.addWidget(self.heatmap_view_1, 1, 4)
+                self.aggregate_result_layout.addWidget(self.heatmap_view_2, 1, 5)
+
+        elif mode == 'aggregate':
+            # heatmap view
+            self.aggregate_heatmap_view_1 = pg.GraphicsLayoutWidget()
+            # left top right bottom
+            self.aggregate_heatmap_view_1.ci.layout.setContentsMargins(0, 20, 0, 0)
+            self.aggregate_heatmap_view_1.setFixedSize(self.plot_size*1.3, self.plot_size*1.3)
+            self.aggregate_heatmap_view_2 = pg.GraphicsLayoutWidget()
+            # left top right bottom
+            self.aggregate_heatmap_view_2.ci.layout.setContentsMargins(0, 20, 0, 0)
+            self.aggregate_heatmap_view_2.setFixedSize(self.plot_size*1.3, self.plot_size*1.3)
+            self.aggregate_heatmap_plot_1 = self.draw_individual_heatmap('aggregate', data_1)
+            self.aggregate_heatmap_plot_2 = self.draw_individual_heatmap('aggregate', data_2)
+
+            # add to view
+            self.aggregate_heatmap_view_1.addItem(self.aggregate_heatmap_plot_1)
+            self.aggregate_heatmap_view_2.addItem(self.aggregate_heatmap_plot_2)
+
+            self.aggregate_result_layout.addWidget(self.aggregate_heatmap_view_1, 1, 1)
+            self.aggregate_result_layout.addWidget(self.aggregate_heatmap_view_2, 1, 2)
+
+
+    # draw error plots of PIV
+    def draw_piv_details(self):
+
 
         if self.data_mode == 'single':
             self.single_result_layout.addWidget(self.piv_detail_view_1, 2, 1)
@@ -4084,13 +4140,17 @@ class UI_MainWindow(QWidget):
             # keep the same dimension
             cur_losses_1 = np.zeros((self.num_transformations, self.image_size, self.image_size))
             cur_losses_2 = np.zeros((self.num_transformations, self.image_size, self.image_size))
+            mean_losses_1 = np.zeros(self.num_transformations)
+            mean_losses_2 = np.zeros(self.num_transformations)
             for i in range(self.num_transformations):
                 cur_losses_1[i] = self.loss_module(self.all_ground_truths[i], self.all_quantities_1[i], reduction='none').numpy().mean(axis=2)
                 cur_losses_2[i] = self.loss_module(self.all_ground_truths[i], self.all_quantities_2[i], reduction='none').numpy().mean(axis=2)
+                mean_losses_1 = self.loss_module(self.all_ground_truths[i], self.all_quantities_1[i], reduction='mean').numpy()
+                mean_losses_2 = self.loss_module(self.all_ground_truths[i], self.all_quantities_2[i], reduction='mean').numpy()
 
             # get the max and min for normalization purpose
-            self.error_min = min(np.min(cur_losses_1), np.min(cur_losses_2))
-            self.error_max = max(np.max(cur_losses_1), np.max(cur_losses_2))
+            self.error_min = min(np.min(mean_losses_1), np.min(mean_losses_1))
+            self.error_max = max(np.max(mean_losses_2), np.max(mean_losses_2))
 
             # normalize all the losses
             cur_losses_1 = nero_utilities.lerp(cur_losses_1, self.error_min, self.error_max, 0, 1)
@@ -4113,7 +4173,7 @@ class UI_MainWindow(QWidget):
             self.draw_piv_nero(mode='single')
 
             # update detailed plot of PIV
-            self.draw_piv_details()
+            # self.draw_piv_details()
 
         # drop down menu on selection which quantity to plot
         # layout that controls the plotting items
@@ -4173,7 +4233,7 @@ class UI_MainWindow(QWidget):
         self.draw_piv_nero(mode='single')
 
         # the detailed plot of PIV
-        self.draw_piv_details()
+        # self.draw_piv_details()
 
 
     # mouse move event only applies in the MNIST case
