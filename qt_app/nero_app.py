@@ -3029,13 +3029,24 @@ class UI_MainWindow(QWidget):
                 rect_x = rect_index_x[0]*self.image_size + self.image_size // 2
                 rect_y = rect_index_y[0]*self.image_size + self.image_size // 2
 
-                scatter_point = [{'pos': (rect_x, rect_y),
-                                    'size': self.image_size-8,
-                                    'pen': {'color': 'red', 'width': 4},
-                                    'brush': (0, 0, 0, 0)}]
+                if not self.double_click:
+                    self.scatter_point = [{'pos': (rect_x, rect_y),
+                                        'size': self.image_size-8,
+                                        'pen': {'color': 'red', 'width': 4},
+                                        'brush': (0, 0, 0, 0)}]
+                elif self.double_click:
+                    print('double clicked')
+                    self.scatter_point = [{'pos': (rect_x, rect_y),
+                                            'size': self.image_size-8,
+                                            'pen': {'color': 'red', 'width': 4},
+                                            'brush': (0, 0, 0, 0)},
+                                          {'pos': (rect_x, rect_x),
+                                            'size': 16,
+                                            'pen': {'color': 'magenta', 'width': 4},
+                                            'brush': (0, 0, 0, 0)}]
 
                 # add points to the item
-                scatter_item.setData(scatter_point)
+                scatter_item.setData(self.scatter_point)
                 heatmap_plot.addItem(scatter_item)
 
             elif mode == 'aggregate':
@@ -3312,18 +3323,25 @@ class UI_MainWindow(QWidget):
         # subclass of ImageItem that reimplements the control methods
         class PIV_heatmap(pg.ImageItem):
             def mouseClickEvent(self, event):
-                print(f'Clicked on PIV heatmap at ({event.pos().x()}, {event.pos().y()})')
-                # in PIV mode, a pop up window shows the nearby area's quiver plot
-                rect_x = int(event.pos().x() // outer_self.image_size)
-                rect_y = int(event.pos().y() // outer_self.image_size)
-                outer_self.rectangle_index = outer_self.piv_nero_layout[rect_y, rect_x]
+                if not outer_self.double_click:
+                    print(f'Clicked on PIV heatmap at ({event.pos().x()}, {event.pos().y()})')
+                    # in PIV mode, a pop up window shows the nearby area's quiver plot
+                    rect_x = int(event.pos().x() // outer_self.image_size)
+                    rect_y = int(event.pos().y() // outer_self.image_size)
 
-                # display the image
-                outer_self.display_image()
+                    # current/new rectangle selection index
+                    new_rect_index = outer_self.piv_nero_layout[rect_y, rect_x]
+                    outer_self.rectangle_index = new_rect_index
+                    outer_self.double_click = False
 
-                # redraw the nero plot with new triangle display
-                outer_self.draw_piv_nero('single')
+                    # display the input image
+                    outer_self.display_image()
 
+                    # redraw the nero plot with new rectangle display
+                    outer_self.draw_piv_nero('single')
+
+                else:
+                    print('ignored')
 
             def hoverEvent(self, event):
                 if not event.isExit():
@@ -3332,6 +3350,17 @@ class UI_MainWindow(QWidget):
 
                     self.hover_text = outer_self.piv_nero_layout_names[rect_y][rect_x]
                     self.setToolTip(self.hover_text)
+
+        # subclass of scatter item that takes click
+        class myScatterPlotItem(pg.ScatterPlotItem):
+            def mouseClickEvent(self, event):
+                print(f'Clicked on selected rectangle at ({event.pos().x()}, {event.pos().y()})')
+                outer_self.double_click = True
+
+                # redraw the nero plot with new rectangle display
+                outer_self.draw_piv_nero('single')
+
+
 
         # helper function on reshaping data
         def prepare_plot_data(input_data):
@@ -3399,9 +3428,12 @@ class UI_MainWindow(QWidget):
 
             self.single_nero_1 = PIV_heatmap()
             self.single_nero_2 = PIV_heatmap()
-            self.scatter_item_1 = pg.ScatterPlotItem(pxMode=False)
+            self.double_click = False
+            # self.scatter_item_1 = pg.ScatterPlotItem(pxMode=False)
+            self.scatter_item_1 = myScatterPlotItem(pxMode=False)
             self.scatter_item_1.setSymbol('s')
-            self.scatter_item_2 = pg.ScatterPlotItem(pxMode=False)
+            # self.scatter_item_2 = pg.ScatterPlotItem(pxMode=False)
+            self.scatter_item_2 = myScatterPlotItem(pxMode=False)
             self.scatter_item_2.setSymbol('s')
             self.heatmap_plot_1 = self.draw_individual_heatmap('single',
                                                                 self.data_1,
