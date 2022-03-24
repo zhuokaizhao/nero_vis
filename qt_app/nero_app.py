@@ -3038,15 +3038,16 @@ class UI_MainWindow(QWidget):
                                         'brush': (0, 0, 0, 0)}]
                 # when double clicked, also plot the small rectangle to identify the detail area
                 elif self.double_click:
-                    print('double clicked')
                     self.scatter_point = [{'pos': (rect_x, rect_y),
                                             'size': self.image_size-8,
                                             'pen': {'color': 'red', 'width': 4},
                                             'brush': (0, 0, 0, 0)},
-                                          {'pos': (rect_x, rect_x),
-                                            'size': 16,
+                                          {'pos': (self.detail_rect_x, self.detail_rect_y),
+                                            'size': 32,
                                             'pen': {'color': 'magenta', 'width': 4},
                                             'brush': (0, 0, 0, 0)}]
+                    # reset double click
+                    self.double_click = False
 
                 # add points to the item
                 scatter_item.setData(self.scatter_point)
@@ -3332,13 +3333,16 @@ class UI_MainWindow(QWidget):
                 rect_y = int(event.pos().y() // outer_self.image_size)
 
                 # current/new rectangle selection index
-                new_rect_index = outer_self.piv_nero_layout[rect_y, rect_x]
+                # new_rect_index = outer_self.piv_nero_layout[rect_y, rect_x]
+                outer_self.rectangle_index = outer_self.piv_nero_layout[rect_y, rect_x]
                 # if we are click on the same rectangle for the second time
-                if outer_self.rectangle_index == new_rect_index:
-                    outer_self.double_click = True
-                else:
-                    outer_self.rectangle_index = new_rect_index
-                    outer_self.double_click = False
+                # if outer_self.rectangle_index == new_rect_index:
+                #     print('double clicked')
+                #     outer_self.double_click = True
+                # else:
+                #     print('first click')
+                #     outer_self.rectangle_index = new_rect_index
+                #     outer_self.double_click = False
 
                 # display the input image
                 outer_self.display_image()
@@ -3358,8 +3362,9 @@ class UI_MainWindow(QWidget):
         class myScatterPlotItem(pg.ScatterPlotItem):
             def mouseClickEvent(self, event):
                 print(f'Clicked on selected rectangle at ({event.pos().x()}, {event.pos().y()})')
-                # outer_self.double_click = True
-
+                outer_self.double_click = True
+                outer_self.detail_rect_x = event.pos().x()
+                outer_self.detail_rect_y = event.pos().y()
                 # redraw the nero plot with new rectangle display
                 # outer_self.draw_piv_nero('single')
 
