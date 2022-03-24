@@ -3333,16 +3333,7 @@ class UI_MainWindow(QWidget):
                 rect_y = int(event.pos().y() // outer_self.image_size)
 
                 # current/new rectangle selection index
-                # new_rect_index = outer_self.piv_nero_layout[rect_y, rect_x]
                 outer_self.rectangle_index = outer_self.piv_nero_layout[rect_y, rect_x]
-                # if we are click on the same rectangle for the second time
-                # if outer_self.rectangle_index == new_rect_index:
-                #     print('double clicked')
-                #     outer_self.double_click = True
-                # else:
-                #     print('first click')
-                #     outer_self.rectangle_index = new_rect_index
-                #     outer_self.double_click = False
 
                 # display the input image
                 outer_self.display_image()
@@ -3365,10 +3356,6 @@ class UI_MainWindow(QWidget):
                 outer_self.double_click = True
                 outer_self.detail_rect_x = event.pos().x()
                 outer_self.detail_rect_y = event.pos().y()
-                # redraw the nero plot with new rectangle display
-                # outer_self.draw_piv_nero('single')
-
-
 
         # helper function on reshaping data
         def prepare_plot_data(input_data):
@@ -3436,10 +3423,8 @@ class UI_MainWindow(QWidget):
 
             self.single_nero_1 = PIV_heatmap()
             self.single_nero_2 = PIV_heatmap()
-            # self.scatter_item_1 = pg.ScatterPlotItem(pxMode=False)
             self.scatter_item_1 = myScatterPlotItem(pxMode=False)
             self.scatter_item_1.setSymbol('s')
-            # self.scatter_item_2 = pg.ScatterPlotItem(pxMode=False)
             self.scatter_item_2 = myScatterPlotItem(pxMode=False)
             self.scatter_item_2.setSymbol('s')
             self.heatmap_plot_1 = self.draw_individual_heatmap('single',
