@@ -2602,6 +2602,7 @@ class UI_MainWindow(QWidget):
 
                 # display the piv single case result
                 self.rectangle_index = 0
+                self.double_click = False
                 self.display_piv_single_result()
 
             # when in aggregate mode but a certain sample has been selected
@@ -3029,11 +3030,13 @@ class UI_MainWindow(QWidget):
                 rect_x = rect_index_x[0]*self.image_size + self.image_size // 2
                 rect_y = rect_index_y[0]*self.image_size + self.image_size // 2
 
+                # when first click, just display the orbit position selection rectangle
                 if not self.double_click:
                     self.scatter_point = [{'pos': (rect_x, rect_y),
                                         'size': self.image_size-8,
                                         'pen': {'color': 'red', 'width': 4},
                                         'brush': (0, 0, 0, 0)}]
+                # when double clicked, also plot the small rectangle to identify the detail area
                 elif self.double_click:
                     print('double clicked')
                     self.scatter_point = [{'pos': (rect_x, rect_y),
@@ -3323,25 +3326,25 @@ class UI_MainWindow(QWidget):
         # subclass of ImageItem that reimplements the control methods
         class PIV_heatmap(pg.ImageItem):
             def mouseClickEvent(self, event):
-                if not outer_self.double_click:
-                    print(f'Clicked on PIV heatmap at ({event.pos().x()}, {event.pos().y()})')
-                    # in PIV mode, a pop up window shows the nearby area's quiver plot
-                    rect_x = int(event.pos().x() // outer_self.image_size)
-                    rect_y = int(event.pos().y() // outer_self.image_size)
+                print(f'Clicked on PIV heatmap at ({event.pos().x()}, {event.pos().y()})')
+                # in PIV mode, a pop up window shows the nearby area's quiver plot
+                rect_x = int(event.pos().x() // outer_self.image_size)
+                rect_y = int(event.pos().y() // outer_self.image_size)
 
-                    # current/new rectangle selection index
-                    new_rect_index = outer_self.piv_nero_layout[rect_y, rect_x]
+                # current/new rectangle selection index
+                new_rect_index = outer_self.piv_nero_layout[rect_y, rect_x]
+                # if we are click on the same rectangle for the second time
+                if outer_self.rectangle_index == new_rect_index:
+                    outer_self.double_click = True
+                else:
                     outer_self.rectangle_index = new_rect_index
                     outer_self.double_click = False
 
-                    # display the input image
-                    outer_self.display_image()
+                # display the input image
+                outer_self.display_image()
 
-                    # redraw the nero plot with new rectangle display
-                    outer_self.draw_piv_nero('single')
-
-                else:
-                    print('ignored')
+                # redraw the nero plot with new rectangle display
+                outer_self.draw_piv_nero('single')
 
             def hoverEvent(self, event):
                 if not event.isExit():
@@ -3355,10 +3358,10 @@ class UI_MainWindow(QWidget):
         class myScatterPlotItem(pg.ScatterPlotItem):
             def mouseClickEvent(self, event):
                 print(f'Clicked on selected rectangle at ({event.pos().x()}, {event.pos().y()})')
-                outer_self.double_click = True
+                # outer_self.double_click = True
 
                 # redraw the nero plot with new rectangle display
-                outer_self.draw_piv_nero('single')
+                # outer_self.draw_piv_nero('single')
 
 
 
@@ -3428,7 +3431,6 @@ class UI_MainWindow(QWidget):
 
             self.single_nero_1 = PIV_heatmap()
             self.single_nero_2 = PIV_heatmap()
-            self.double_click = False
             # self.scatter_item_1 = pg.ScatterPlotItem(pxMode=False)
             self.scatter_item_1 = myScatterPlotItem(pxMode=False)
             self.scatter_item_1.setSymbol('s')
