@@ -3485,6 +3485,89 @@ class UI_MainWindow(QWidget):
             self.aggregate_result_layout.addWidget(self.aggregate_heatmap_view_2, 1, 2)
 
 
+    # helper function that draws the quiver plot with input vector fields
+    def draw_quiver_plot(self, ground_truth_vectors, pred_vectors, gt_color, pred_color, title=None):
+
+        quiver_plot = pg.PlotItem(title=title)
+        # so that showing indicator at the boundary does not jitter the plot
+        quiver_plot.vb.disableAutoRange()
+        scatter_plot = pg.ScatterPlotItem()
+        quiver_plot.addItem(scatter_plot)
+
+        # get the data in format of quiver plot
+        all_arrows = []
+        all_x = []
+        all_y = []
+        # all the ground truth vectors
+        for y in range(len(ground_truth_vectors)):
+            for x in range(len(ground_truth_vectors[y])):
+                # coordinate in y are flipped for later be used in image
+                all_x.append(x)
+                all_y.append(len(ground_truth_vectors)-1-y)
+                # ground truth vector
+                cur_gt_vector = ground_truth_vectors[y, x]
+                # convert to polar coordinate
+                r_gt = np.sqrt((cur_gt_vector[0]**2 + cur_gt_vector[1]**2))
+                r_gt = nero_utilities.lerp(r_gt, 0, r_gt, 0, 0.5)
+                theta_gt = np.arctan2(cur_gt_vector[1], cur_gt_vector[0]) / np.pi * 180
+                # creat current arrow symbol
+                # by default 0 degree rotation is to the left
+                # pre-rotate it to match the quiver convention (0 to the right)
+                tr = pg.QtGui.QTransform()
+                tr.rotate(180+theta_gt)
+                # if using QPainterPath to make new scatter plot symbols
+                # the shape must fit entirely within the box from (-0.5, -0.5) to (0.5, 0.5)
+                cur_arrow_gt = tr.map(pg.makeArrowPath(headLen=r_gt/2,
+                                                        tailLen=r_gt/2,
+                                                        tipAngle=40,
+                                                        tailWidth=0.07))
+
+                all_arrows.append(cur_arrow_gt)
+
+        # all the predicted vectors
+        for y in range(len(pred_vectors)):
+            for x in range(len(pred_vectors[y])):
+                # coordinate in y are flipped for later be used in image
+                all_x.append(x)
+                all_y.append(len(pred_vectors)-1-y)
+                # ground truth vector
+                cur_pred_vector = pred_vectors[y, x]
+                # convert to polar coordinate
+                r_pred = np.sqrt((cur_pred_vector[0]**2 + cur_pred_vector[1]**2))
+                r_pred = nero_utilities.lerp(r_pred, 0, r_pred, 0, 0.5)
+                theta_pred = np.arctan2(cur_pred_vector[1], cur_pred_vector[0]) / np.pi * 180
+                # creat current arrow symbol
+                # by default 0 degree rotation is to the left
+                # pre-rotate it to match the quiver convention (0 to the right)
+                tr = pg.QtGui.QTransform()
+                tr.rotate(180+theta_pred)
+                # if using QPainterPath to make new scatter plot symbols
+                # the shape must fit entirely within the box from (-0.5, -0.5) to (0.5, 0.5)
+                cur_arrow_pred = tr.map(pg.makeArrowPath(headLen=r_pred/2,
+                                                        tailLen=r_pred/2,
+                                                        tipAngle=40,
+                                                        tailWidth=0.07))
+
+                all_arrows.append(cur_arrow_pred)
+
+
+        # lerp x, y positions to between 0 and 1
+        all_x = list(nero_utilities.lerp(np.asarray(all_x), 0, 15, 0, 1))
+        all_y = list(nero_utilities.lerp(np.asarray(all_y), 0, 15, 0, 1))
+        # Fill the scatter plot with data
+        scatter_plot.setData(x = all_x,
+                             y = all_y,
+                             symbol=all_arrows,
+                            #  pen=QtGui.QPen(gt_color),
+                            #  brush=QtGui.QBrush(gt_color),
+                             size=50)
+
+        quiver_plot.getAxis('bottom').setStyle(tickLength=0, showValues=False)
+        quiver_plot.getAxis('left').setStyle(tickLength=0, showValues=False)
+
+        return quiver_plot
+
+
     # draw quiver plot between PIV ground truth and model predictions
     def draw_piv_details(self):
 
@@ -3494,26 +3577,44 @@ class UI_MainWindow(QWidget):
         detail_rect_y_local = self.detail_rect_y - self.rect_index_y * self.image_size
 
         # vector field around the selected center
-        detail_ground_truth = self.all_ground_truths[self.rectangle_index][detail_rect_y_local-16:detail_rect_y_local+16,
-                                                                            detail_rect_x_local-16:detail_rect_x_local+16]
+        if self.data_mode == 'single':
+            detail_ground_truth = self.all_ground_truths[self.rectangle_index][detail_rect_y_local-8:detail_rect_y_local+8,
+                                                                                detail_rect_x_local-8:detail_rect_x_local+8]
 
-        detail_vectors_1 = self.all_quantities_1[self.rectangle_index][detail_rect_y_local-16:detail_rect_y_local+16,
-                                                                            detail_rect_x_local-16:detail_rect_x_local+16]
+            detail_vectors_1 = self.all_quantities_1[self.rectangle_index][detail_rect_y_local-8:detail_rect_y_local+8,
+                                                                                detail_rect_x_local-8:detail_rect_x_local+8]
 
-        detail_vectors_2 = self.all_quantities_2[self.rectangle_index][detail_rect_y_local-16:detail_rect_y_local+16,
-                                                                            detail_rect_x_local-16:detail_rect_x_local+16]
+            detail_vectors_2 = self.all_quantities_2[self.rectangle_index][detail_rect_y_local-8:detail_rect_y_local+8,
+                                                                                detail_rect_x_local-8:detail_rect_x_local+8]
 
+        elif self.data_mode == 'aggregate':
+            raise NotImplementedError
 
-        # heatmap view
+        # view 1
         self.piv_detail_view_1 = pg.GraphicsLayoutWidget()
-        # left top right bottom
-        self.piv_detail_view_1.ci.layout.setContentsMargins(0, 20, 0, 0)
+        self.piv_detail_view_1.ci.layout.setContentsMargins(0, 20, 0, 0) # left top right bottom
         self.piv_detail_view_1.setFixedSize(self.plot_size*1.3, self.plot_size*1.3)
+
+        # view 2
         self.piv_detail_view_2 = pg.GraphicsLayoutWidget()
-        # left top right bottom
-        self.piv_detail_view_2.ci.layout.setContentsMargins(0, 20, 0, 0)
+        self.piv_detail_view_2.ci.layout.setContentsMargins(0, 20, 0, 0) # left top right bottom
         self.piv_detail_view_2.setFixedSize(self.plot_size*1.3, self.plot_size*1.3)
 
+        self.piv_detail_plot_1 = self.draw_quiver_plot(detail_ground_truth,
+                                                        detail_vectors_1,
+                                                        QtGui.QColor('yellow'),
+                                                        QtGui.QColor('blue'))
+
+        self.piv_detail_plot_2 = self.draw_quiver_plot(detail_ground_truth,
+                                                        detail_vectors_2,
+                                                        QtGui.QColor('yellow'),
+                                                        QtGui.QColor('magenta'))
+
+        # add to view
+        self.piv_detail_view_1.addItem(self.piv_detail_plot_1)
+        self.piv_detail_view_2.addItem(self.piv_detail_plot_2)
+
+        # add view to general layout
         if self.data_mode == 'single':
             self.single_result_layout.addWidget(self.piv_detail_view_1, 2, 1)
             self.single_result_layout.addWidget(self.piv_detail_view_2, 2, 2)
