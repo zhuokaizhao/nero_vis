@@ -2602,7 +2602,10 @@ class UI_MainWindow(QWidget):
 
                 # display the piv single case result
                 self.rectangle_index = 0
-                self.double_click = False
+                # default detail view starts at the center of the original rectangle
+                self.double_click = True
+                self.detail_rect_x = np.where(self.piv_nero_layout==self.rectangle_index)[1] * self.image_size + self.image_size // 2
+                self.detail_rect_y = np.where(self.piv_nero_layout==self.rectangle_index)[0] * self.image_size + self.image_size // 2
                 self.display_piv_single_result()
 
             # when in aggregate mode but a certain sample has been selected
