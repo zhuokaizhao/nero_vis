@@ -315,6 +315,7 @@ class UI_MainWindow(QWidget):
 
                 # cayley table that shows the group orbit result
                 self.cayley_table = np.zeros((8, 8), dtype=np.int8)
+                # the columns represents current state, rows represent new action
                 # 0: no transformation
                 self.cayley_table[0] = [0, 1, 2, 3, 4, 5, 6, 7]
                 # 1: / diagonal flip
@@ -2397,7 +2398,7 @@ class UI_MainWindow(QWidget):
 
                     self.time_reverse = False
                 else:
-                    self.rectangle_index = self.cayley_table[self.rectangle_index, self.transform_index]
+                    self.rectangle_index = self.cayley_table[self.transform_index, self.rectangle_index]
 
             @QtCore.Slot()
             def rotate_90_ccw():
@@ -2973,7 +2974,7 @@ class UI_MainWindow(QWidget):
 
 
     # helper function on drawing individual heatmap (called by both individual and aggregate cases)
-    def draw_individual_heatmap(self, mode, data, view_box=None, heatmap=None, scatter_item=None, title=None, range=(0, 1)):
+    def draw_individual_heatmap(self, mode, data, cm_range, view_box=None, heatmap=None, scatter_item=None, title=None):
 
         if self.mode == 'object_detection':
             # single mode needs to have input view_box, heatmap and scatter_item for interactively handling
@@ -3049,9 +3050,9 @@ class UI_MainWindow(QWidget):
             heatmap_plot.getAxis('bottom').setStyle(tickLength=0, showValues=False)
             heatmap_plot.getAxis('left').setStyle(tickLength=0, showValues=False)
 
-        # create colorbar
+        # color map
         color_map = pg.colormap.get('viridis')
-        color_bar = pg.ColorBarItem(values=range, colorMap=color_map)
+        color_bar = pg.ColorBarItem(values=cm_range, colorMap=color_map)
         color_bar.setImageItem(heatmap, insert_in=heatmap_plot)
 
         # disable being able to move plot around
@@ -3165,8 +3166,8 @@ class UI_MainWindow(QWidget):
                 self.scatter_item_1.setSymbol('s')
                 self.scatter_item_2 = pg.ScatterPlotItem(pxMode=False)
                 self.scatter_item_2.setSymbol('s')
-                self.heatmap_plot_1 = self.draw_individual_heatmap('single', data_1, self.view_box_1, self.single_nero_1, self.scatter_item_1)
-                self.heatmap_plot_2 = self.draw_individual_heatmap('single', data_2, self.view_box_2, self.single_nero_2, self.scatter_item_2)
+                self.heatmap_plot_1 = self.draw_individual_heatmap('single', data_1, (0, 1), self.view_box_1, self.single_nero_1, self.scatter_item_1)
+                self.heatmap_plot_2 = self.draw_individual_heatmap('single', data_2, (0, 1), self.view_box_2, self.single_nero_2, self.scatter_item_2)
 
             # add to view
             self.heatmap_view_1.addItem(self.heatmap_plot_1)
@@ -3189,8 +3190,8 @@ class UI_MainWindow(QWidget):
             # left top right bottom
             self.aggregate_heatmap_view_2.ci.layout.setContentsMargins(0, 20, 0, 0)
             self.aggregate_heatmap_view_2.setFixedSize(self.plot_size*1.3, self.plot_size*1.3)
-            self.aggregate_heatmap_plot_1 = self.draw_individual_heatmap('aggregate', data_1)
-            self.aggregate_heatmap_plot_2 = self.draw_individual_heatmap('aggregate', data_2)
+            self.aggregate_heatmap_plot_1 = self.draw_individual_heatmap('aggregate', data_1, (0, 1))
+            self.aggregate_heatmap_plot_2 = self.draw_individual_heatmap('aggregate', data_2, (0, 1))
 
             # add to view
             self.aggregate_heatmap_view_1.addItem(self.aggregate_heatmap_plot_1)
@@ -3402,8 +3403,19 @@ class UI_MainWindow(QWidget):
             self.scatter_item_1.setSymbol('s')
             self.scatter_item_2 = pg.ScatterPlotItem(pxMode=False)
             self.scatter_item_2.setSymbol('s')
-            self.heatmap_plot_1 = self.draw_individual_heatmap('single', self.data_1, self.view_box_1, self.single_nero_1, self.scatter_item_1)
-            self.heatmap_plot_2 = self.draw_individual_heatmap('single', self.data_2, self.view_box_2, self.single_nero_2, self.scatter_item_2)
+            self.heatmap_plot_1 = self.draw_individual_heatmap('single',
+                                                                self.data_1,
+                                                                (self.loss_high_bound, self.loss_low_bound),
+                                                                self.view_box_1,
+                                                                self.single_nero_1,
+                                                                self.scatter_item_1)
+
+            self.heatmap_plot_2 = self.draw_individual_heatmap('single',
+                                                                self.data_2,
+                                                                (self.loss_high_bound, self.loss_low_bound),
+                                                                self.view_box_2,
+                                                                self.single_nero_2,
+                                                                self.scatter_item_2)
 
             # add to view
             self.heatmap_view_1.addItem(self.heatmap_plot_1)
@@ -3429,8 +3441,8 @@ class UI_MainWindow(QWidget):
             # left top right bottom
             self.aggregate_heatmap_view_2.ci.layout.setContentsMargins(0, 20, 0, 0)
             self.aggregate_heatmap_view_2.setFixedSize(self.plot_size*1.3, self.plot_size*1.3)
-            self.aggregate_heatmap_plot_1 = self.draw_individual_heatmap('aggregate', self.data_1)
-            self.aggregate_heatmap_plot_2 = self.draw_individual_heatmap('aggregate', self.data_2)
+            self.aggregate_heatmap_plot_1 = self.draw_individual_heatmap('aggregate', self.data_1, (self.loss_high_bound, self.loss_low_bound))
+            self.aggregate_heatmap_plot_2 = self.draw_individual_heatmap('aggregate', self.data_2, (self.loss_high_bound, self.loss_low_bound))
 
             # add to view
             self.aggregate_heatmap_view_1.addItem(self.aggregate_heatmap_plot_1)
@@ -4171,25 +4183,32 @@ class UI_MainWindow(QWidget):
             cur_losses_1 = np.zeros((self.num_transformations, self.image_size, self.image_size))
             cur_losses_2 = np.zeros((self.num_transformations, self.image_size, self.image_size))
             # used to compute normalization range, depending on single-sample average
-            mean_losses_1 = np.zeros(self.num_transformations)
-            mean_losses_2 = np.zeros(self.num_transformations)
+            # mean_losses_1 = np.zeros(self.num_transformations)
+            # mean_losses_2 = np.zeros(self.num_transformations)
             for i in range(self.num_transformations):
                 cur_losses_1[i] = self.loss_module(self.all_ground_truths[i], self.all_quantities_1[i], reduction='none').numpy().mean(axis=2)
                 cur_losses_2[i] = self.loss_module(self.all_ground_truths[i], self.all_quantities_2[i], reduction='none').numpy().mean(axis=2)
-                mean_losses_1 = self.loss_module(self.all_ground_truths[i], self.all_quantities_1[i], reduction='mean').numpy()
-                mean_losses_2 = self.loss_module(self.all_ground_truths[i], self.all_quantities_2[i], reduction='mean').numpy()
+                # mean_losses_1 = self.loss_module(self.all_ground_truths[i], self.all_quantities_1[i], reduction='mean').numpy()
+                # mean_losses_2 = self.loss_module(self.all_ground_truths[i], self.all_quantities_2[i], reduction='mean').numpy()
 
             # get the max and min for normalization purpose
-            self.error_min = min(np.min(mean_losses_1), np.min(mean_losses_1))
-            self.error_max = max(np.max(mean_losses_2), np.max(mean_losses_2))
+            # self.error_min = min(np.min(mean_losses_1), np.min(mean_losses_1))
+            # self.error_max = max(np.max(mean_losses_2), np.max(mean_losses_2))
+            # get the 10 and 90 percentile as the threshold for colormap
+            all_losses = np.concatenate([cur_losses_1.flatten(), cur_losses_2.flatten()])
+            self.loss_low_bound = np.percentile(all_losses, 0)
+            self.loss_high_bound = np.percentile(all_losses, 80)
+            print(self.loss_low_bound, self.loss_high_bound)
 
             # normalize all the losses
-            cur_losses_1 = nero_utilities.lerp(cur_losses_1, self.error_min, self.error_max, 0, 1)
-            cur_losses_2 = nero_utilities.lerp(cur_losses_2, self.error_min, self.error_max, 0, 1)
+            # cur_losses_1 = nero_utilities.lerp(cur_losses_1, self.error_min, self.error_max, 0, 1)
+            # cur_losses_2 = nero_utilities.lerp(cur_losses_2, self.error_min, self.error_max, 0, 1)
 
             # average element-wise loss to scalar and normalize between 0 and 1
-            self.cur_plot_quantity_1 = 1 - cur_losses_1
-            self.cur_plot_quantity_2 = 1 - cur_losses_2
+            # self.cur_plot_quantity_1 = 1 - cur_losses_1
+            # self.cur_plot_quantity_2 = 1 - cur_losses_2
+            self.cur_plot_quantity_1 = cur_losses_1
+            self.cur_plot_quantity_2 = cur_losses_2
 
 
         @QtCore.Slot()
