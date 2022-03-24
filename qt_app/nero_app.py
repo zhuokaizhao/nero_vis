@@ -2415,7 +2415,7 @@ class UI_MainWindow(QWidget):
                 # redraw the nero plot with new triangle display
                 self.draw_piv_nero('single')
                 # update detailed plot of PIV
-                # self.draw_piv_details()
+                self.draw_piv_details()
 
             @QtCore.Slot()
             def rotate_90_cw():
@@ -2432,7 +2432,7 @@ class UI_MainWindow(QWidget):
                 # redraw the nero plot with new triangle display
                 self.draw_piv_nero('single')
                 # update detailed plot of PIV
-                # self.draw_piv_details()
+                self.draw_piv_details()
 
             @QtCore.Slot()
             def vertical_flip():
@@ -2448,7 +2448,7 @@ class UI_MainWindow(QWidget):
                 # redraw the nero plot with new triangle display
                 self.draw_piv_nero('single')
                 # update detailed plot of PIV
-                # self.draw_piv_details()
+                self.draw_piv_details()
 
             @QtCore.Slot()
             def horizontal_flip():
@@ -2464,7 +2464,7 @@ class UI_MainWindow(QWidget):
                 # redraw the nero plot with new triangle display
                 self.draw_piv_nero('single')
                 # update detailed plot of PIV
-                # self.draw_piv_details()
+                self.draw_piv_details()
 
             @QtCore.Slot()
             def time_reverse():
@@ -2479,7 +2479,7 @@ class UI_MainWindow(QWidget):
                 # redraw the nero plot with new triangle display
                 self.draw_piv_nero('single')
                 # update detailed plot of PIV
-                # self.draw_piv_details()
+                self.draw_piv_details()
 
 
             # Dihedral group4 transformations plus time-reverse
@@ -2606,6 +2606,9 @@ class UI_MainWindow(QWidget):
                 self.double_click = True
                 self.detail_rect_x = np.where(self.piv_nero_layout==self.rectangle_index)[1] * self.image_size + self.image_size // 2
                 self.detail_rect_y = np.where(self.piv_nero_layout==self.rectangle_index)[0] * self.image_size + self.image_size // 2
+                # np.where returns ndarray, but we know there is only one
+                self.detail_rect_x = self.detail_rect_x[0]
+                self.detail_rect_y = self.detail_rect_y[0]
                 self.display_piv_single_result()
 
             # when in aggregate mode but a certain sample has been selected
@@ -3028,10 +3031,13 @@ class UI_MainWindow(QWidget):
 
                 # small indicator on where the translation is at
                 # take the corresponding one from rectangle index
-                rect_index_y, rect_index_x = np.where(self.piv_nero_layout==self.rectangle_index)
+                self.rect_index_y, self.rect_index_x = np.where(self.piv_nero_layout==self.rectangle_index)
+                # np.where returns ndarray, but we know there is only one
+                self.rect_index_x = self.rect_index_x[0]
+                self.rect_index_y = self.rect_index_y[0]
                 # rect_x is the column, rect_y is the row (image coordinate)
-                rect_x = rect_index_x[0]*self.image_size + self.image_size // 2
-                rect_y = rect_index_y[0]*self.image_size + self.image_size // 2
+                rect_x = self.rect_index_x*self.image_size + self.image_size // 2
+                rect_y = self.rect_index_y*self.image_size + self.image_size // 2
 
                 # when first click, just display the orbit position selection rectangle
                 if not self.double_click:
@@ -3482,6 +3488,31 @@ class UI_MainWindow(QWidget):
     # draw quiver plot between PIV ground truth and model predictions
     def draw_piv_details(self):
 
+        # get the selected vector data from ground turth and models' outputs
+        # local position within this transformation
+        detail_rect_x_local = self.detail_rect_x - self.rect_index_x * self.image_size
+        detail_rect_y_local = self.detail_rect_y - self.rect_index_y * self.image_size
+
+        # vector field around the selected center
+        detail_ground_truth = self.all_ground_truths[self.rectangle_index][detail_rect_y_local-16:detail_rect_y_local+16,
+                                                                            detail_rect_x_local-16:detail_rect_x_local+16]
+
+        detail_vectors_1 = self.all_quantities_1[self.rectangle_index][detail_rect_y_local-16:detail_rect_y_local+16,
+                                                                            detail_rect_x_local-16:detail_rect_x_local+16]
+
+        detail_vectors_2 = self.all_quantities_2[self.rectangle_index][detail_rect_y_local-16:detail_rect_y_local+16,
+                                                                            detail_rect_x_local-16:detail_rect_x_local+16]
+
+
+        # heatmap view
+        self.piv_detail_view_1 = pg.GraphicsLayoutWidget()
+        # left top right bottom
+        self.piv_detail_view_1.ci.layout.setContentsMargins(0, 20, 0, 0)
+        self.piv_detail_view_1.setFixedSize(self.plot_size*1.3, self.plot_size*1.3)
+        self.piv_detail_view_2 = pg.GraphicsLayoutWidget()
+        # left top right bottom
+        self.piv_detail_view_2.ci.layout.setContentsMargins(0, 20, 0, 0)
+        self.piv_detail_view_2.setFixedSize(self.plot_size*1.3, self.plot_size*1.3)
 
         if self.data_mode == 'single':
             self.single_result_layout.addWidget(self.piv_detail_view_1, 2, 1)
@@ -3489,6 +3520,8 @@ class UI_MainWindow(QWidget):
         elif self.data_mode == 'aggregate':
             self.aggregate_result_layout.addWidget(self.piv_detail_view_1, 2, 4)
             self.aggregate_result_layout.addWidget(self.piv_detail_view_2, 2, 5)
+
+
 
 
     # display MNIST aggregated results
@@ -4210,30 +4243,21 @@ class UI_MainWindow(QWidget):
             cur_losses_1 = np.zeros((self.num_transformations, self.image_size, self.image_size))
             cur_losses_2 = np.zeros((self.num_transformations, self.image_size, self.image_size))
             # used to compute normalization range, depending on single-sample average
-            # mean_losses_1 = np.zeros(self.num_transformations)
-            # mean_losses_2 = np.zeros(self.num_transformations)
+            mean_losses_1 = np.zeros(self.num_transformations)
+            mean_losses_2 = np.zeros(self.num_transformations)
             for i in range(self.num_transformations):
                 cur_losses_1[i] = self.loss_module(self.all_ground_truths[i], self.all_quantities_1[i], reduction='none').numpy().mean(axis=2)
                 cur_losses_2[i] = self.loss_module(self.all_ground_truths[i], self.all_quantities_2[i], reduction='none').numpy().mean(axis=2)
-                # mean_losses_1 = self.loss_module(self.all_ground_truths[i], self.all_quantities_1[i], reduction='mean').numpy()
-                # mean_losses_2 = self.loss_module(self.all_ground_truths[i], self.all_quantities_2[i], reduction='mean').numpy()
+                mean_losses_1 = self.loss_module(self.all_ground_truths[i], self.all_quantities_1[i], reduction='mean').numpy()
+                mean_losses_2 = self.loss_module(self.all_ground_truths[i], self.all_quantities_2[i], reduction='mean').numpy()
 
-            # get the max and min for normalization purpose
-            # self.error_min = min(np.min(mean_losses_1), np.min(mean_losses_1))
-            # self.error_max = max(np.max(mean_losses_2), np.max(mean_losses_2))
-            # get the 10 and 90 percentile as the threshold for colormap
+            # get the 0 and 80 percentile as the threshold for colormap
             all_losses = np.concatenate([cur_losses_1.flatten(), cur_losses_2.flatten()])
             self.loss_low_bound = np.percentile(all_losses, 0)
             self.loss_high_bound = np.percentile(all_losses, 80)
             print(self.loss_low_bound, self.loss_high_bound)
 
-            # normalize all the losses
-            # cur_losses_1 = nero_utilities.lerp(cur_losses_1, self.error_min, self.error_max, 0, 1)
-            # cur_losses_2 = nero_utilities.lerp(cur_losses_2, self.error_min, self.error_max, 0, 1)
-
             # average element-wise loss to scalar and normalize between 0 and 1
-            # self.cur_plot_quantity_1 = 1 - cur_losses_1
-            # self.cur_plot_quantity_2 = 1 - cur_losses_2
             self.cur_plot_quantity_1 = cur_losses_1
             self.cur_plot_quantity_2 = cur_losses_2
 
@@ -4250,7 +4274,7 @@ class UI_MainWindow(QWidget):
             self.draw_piv_nero(mode='single')
 
             # update detailed plot of PIV
-            # self.draw_piv_details()
+            self.draw_piv_details()
 
         # single mode only visualization
         if self.data_mode == 'single':
@@ -4298,7 +4322,7 @@ class UI_MainWindow(QWidget):
         self.draw_piv_nero(mode='single')
 
         # the detailed plot of PIV
-        # self.draw_piv_details()
+        self.draw_piv_details()
 
 
     # mouse move event only applies in the MNIST case
