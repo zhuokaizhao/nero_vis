@@ -476,9 +476,14 @@ def run_piv_once(mode, model_name, model, image_1, image_2):
             cur_label_pred_pt = cur_label_pred_pt[0]
 
         elif model_name == 'Horn-Schunck':
+            image_1_pil_gray = ImageOps.grayscale(Image.fromarray(image_1.numpy(), 'RGB'))
+            image_2_pil_gray = ImageOps.grayscale(Image.fromarray(image_2.numpy(), 'RGB'))
+            image_1_np_gray = np.array(image_1_pil_gray)
+            image_2_np_gray = np.array(image_2_pil_gray)
+
             # prepare images for HS
-            img1 = np.asarray(ImageOps.grayscale(Image.fromarray(image_1.numpy(), 'RGB'))) * 1.0/255.0
-            img2 = np.asarray(ImageOps.grayscale(Image.fromarray(image_2.numpy(), 'RGB'))) * 1.0/255.0
+            img1 = image_1_np_gray * 1.0/255.0
+            img2 = image_2_np_gray * 1.0/255.0
             img_height, img_width = img1.shape[:2]
 
             u, v = models.Horn_Schunck(img1, img2)

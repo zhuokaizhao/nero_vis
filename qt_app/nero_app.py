@@ -2509,7 +2509,7 @@ class UI_MainWindow(QWidget):
                                                                                 self.loaded_image_label_pt)
                 else:
                     cur_d4_image_1_pt = self.loaded_image_1_pt.clone()
-                    cur_d4_image_2_pt = self.loaded_image_1_pt.clone()
+                    cur_d4_image_2_pt = self.loaded_image_2_pt.clone()
                     cur_ground_truth = self.loaded_image_label_pt.clone()
 
                 # 0: no transformation (original)
@@ -2601,6 +2601,17 @@ class UI_MainWindow(QWidget):
                                                                     self.model_2,
                                                                     image_1_pt,
                                                                     image_2_pt)
+
+                        # HS does not need further pixel normalization
+                        if self.model_1_name == 'Horn-Schunck':
+                            self.all_quantities_1[i] = quantity_1
+                        else:
+                            self.all_quantities_1[i] = quantity_1 / self.image_size
+
+                        if self.model_2_name == 'Horn-Schunck':
+                            self.all_quantities_2[i] = quantity_2
+                        else:
+                            self.all_quantities_2[i] = quantity_2 / self.image_size
 
                         self.all_quantities_1[i] = quantity_1 / self.image_size
                         self.all_quantities_2[i] = quantity_2 / self.image_size
@@ -3548,6 +3559,7 @@ class UI_MainWindow(QWidget):
                 cur_pred_vector = pred_vectors[y, x]
                 # convert to polar coordinate
                 r_pred = np.sqrt((cur_pred_vector[0]**2 + cur_pred_vector[1]**2))
+                print(f'y={y}, x={x}, r_gt={r_gt}, r_pred={r_pred}')
                 theta_pred = np.arctan2(cur_pred_vector[1], cur_pred_vector[0]) / np.pi * 180
                 # creat ground truth arrow
                 cur_arrow_pred = MyArrowItem(pxMode=True,
@@ -3588,6 +3600,7 @@ class UI_MainWindow(QWidget):
 
             detail_vectors_2 = self.all_quantities_2[self.rectangle_index][detail_rect_y_local-4:detail_rect_y_local+4,
                                                                                 detail_rect_x_local-4:detail_rect_x_local+4]
+
 
         elif self.data_mode == 'aggregate':
             raise NotImplementedError
@@ -3675,32 +3688,9 @@ class UI_MainWindow(QWidget):
 
 
     # display MNIST single results
-    def display_mnist_single_result(self, type, boundary_width):
+    def display_mnist_single_result(self, type):
+
         self.single_result_existed = True
-        # aggregate mode does not draw arrow
-        # if self.data_mode == 'single':
-        #     # draw arrow
-        #     # add a new label for result if no result has existed
-        #     if not self.single_result_existed:
-        #         self.arrow_label = QLabel(self)
-        #         self.arrow_label.setContentsMargins(0, 0, 0, 0)
-        #         self.arrow_label.setAlignment(QtCore.Qt.AlignCenter)
-        #         self.arrow_label.setWordWrap(True)
-        #         self.arrow_label.setTextFormat(QtGui.Qt.AutoText)
-        #         self.single_result_existed = True
-
-        #     arrow_pixmap = QPixmap(100, 50)
-        #     arrow_pixmap.fill(QtCore.Qt.white)
-        #     painter = QtGui.QPainter(arrow_pixmap)
-        #     # set pen (used to draw outlines of shapes) and brush (draw the background of a shape)
-        #     pen = QtGui.QPen()
-        #     # draw arrow to indicate feeding
-        #     self.draw_arrow(painter, pen, 100, 50, boundary_width)
-
-        #     # add to the label and layout
-        #     self.arrow_label.setPixmap(arrow_pixmap)
-        #     self.single_result_layout.addWidget(self.arrow_label, 1, 1)
-        #     painter.end()
 
         # draw result using bar plot
         if type == 'bar':
