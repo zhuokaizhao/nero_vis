@@ -3137,7 +3137,7 @@ class UI_MainWindow(QWidget):
                 for is_time_reversed in time_reverses:
                     # original
                     if not is_time_reversed:
-                        original_F_pil = Image.open('symbols/F.png').convert('RGB')
+                        original_F_pil = Image.open('symbols/F.png').convert('RGBA')
                         # convert to torch tensor
                         original_F_np = np.array(original_F_pil)
                         original_F_np = np.transpose(original_F_np, axes=(1, 0, 2))
@@ -3149,86 +3149,86 @@ class UI_MainWindow(QWidget):
                         5'  5(left diag flip)   6(Rot270)            6'
                         '''
                         # 0
-                        pos_x = 2 * self.image_size + 150
+                        pos_x = 2 * self.image_size + 127
                         pos_y = 1 * self.image_size + 127
-                        cur_F_np = original_F_np
+                        cur_F_np = original_F_np.copy()
                         cur_F_image = pg.ImageItem()
                         cur_F_image.setImage(cur_F_np)
                         cur_F_image.setPos(pos_x, pos_y)
                         heatmap_plot.addItem(cur_F_image)
 
                         # 1
-                        pos_x = 2 * self.image_size + 150
+                        pos_x = 2 * self.image_size + 127
                         pos_y = 0 * self.image_size + 127
-                        # right diag = rot90 + horizontal flip
-                        cur_F_np = np.flip(np.rot90(original_F_np), axis=1)
+                        # right diag = rot90 ccw + horizontal flip
+                        cur_F_np = np.flipud(np.rot90(original_F_np, k=-1))
                         cur_F_image = pg.ImageItem()
                         cur_F_image.setImage(cur_F_np)
                         cur_F_image.setPos(pos_x, pos_y)
                         heatmap_plot.addItem(cur_F_image)
 
                         # 2
-                        pos_x = 1 * self.image_size + 150
+                        pos_x = 1 * self.image_size + 127
                         pos_y = 0 * self.image_size + 127
-                        # horizontal flip
-                        cur_F_np = np.flip(original_F_np, axis=1)
+                        # rot90
+                        cur_F_np = np.rot90(original_F_np, k=-1)
                         cur_F_image = pg.ImageItem()
                         cur_F_image.setImage(cur_F_np)
                         cur_F_image.setPos(pos_x, pos_y)
                         heatmap_plot.addItem(cur_F_image)
 
                         # 3
-                        pos_x = 1 * self.image_size + 150
+                        pos_x = 1 * self.image_size + 127
                         pos_y = 1 * self.image_size + 127
-                        # rot90
-                        cur_F_np = np.rot90(original_F_np)
+                        # horizontal flip (flip image x == flip array y)
+                        cur_F_np = np.flipud(original_F_np)
                         cur_F_image = pg.ImageItem()
                         cur_F_image.setImage(cur_F_np)
                         cur_F_image.setPos(pos_x, pos_y)
                         heatmap_plot.addItem(cur_F_image)
 
                         # 4
-                        pos_x = 1 * self.image_size + 150
+                        pos_x = 1 * self.image_size + 127
                         pos_y = 2 * self.image_size + 127
                         # rot180
-                        cur_F_np = np.rot90(original_F_np, k=2)
+                        cur_F_np = np.rot90(original_F_np, k=-2)
                         cur_F_image = pg.ImageItem()
                         cur_F_image.setImage(cur_F_np)
                         cur_F_image.setPos(pos_x, pos_y)
                         heatmap_plot.addItem(cur_F_image)
 
                         # 5
-                        pos_x = 1 * self.image_size + 150
+                        pos_x = 1 * self.image_size + 127
                         pos_y = 3 * self.image_size + 127
-                        # left diag = rot90 + flip vertical
-                        cur_F_np = np.flip(np.rot90(original_F_np), axis=0)
+                        # left diag = rot90 ccw + flip vertical
+                        cur_F_np = np.fliplr(np.rot90(original_F_np, k=-1))
                         cur_F_image = pg.ImageItem()
                         cur_F_image.setImage(cur_F_np)
                         cur_F_image.setPos(pos_x, pos_y)
                         heatmap_plot.addItem(cur_F_image)
 
                         # 6
-                        pos_x = 2 * self.image_size + 150
+                        pos_x = 2 * self.image_size + 127
                         pos_y = 3 * self.image_size + 127
                         # rot270
-                        cur_F_np = np.rot90(original_F_np, k=3)
+                        cur_F_np = np.rot90(original_F_np, k=-3)
                         cur_F_image = pg.ImageItem()
                         cur_F_image.setImage(cur_F_np)
                         cur_F_image.setPos(pos_x, pos_y)
                         heatmap_plot.addItem(cur_F_image)
 
                         # 7
-                        pos_x = 2 * self.image_size + 150
+                        pos_x = 2 * self.image_size + 127
                         pos_y = 2 * self.image_size + 127
                         # vertical flip
-                        cur_F_np = np.flip(original_F_np, axis=0)
+                        cur_F_np = np.fliplr(original_F_np)
                         cur_F_image = pg.ImageItem()
                         cur_F_image.setImage(cur_F_np)
                         cur_F_image.setPos(pos_x, pos_y)
                         heatmap_plot.addItem(cur_F_image)
 
                     else:
-                        original_F_pil = Image.open('symbols/F_reversed.png').convert('RGB')
+                        original_F_pil = Image.open('symbols/F_reversed.png').convert('RGBA')
                         # convert to torch tensor
                         original_F_np = np.array(original_F_pil)
                         original_F_np = np.transpose(original_F_np, axes=(1, 0, 2))
@@ -3240,7 +3240,7 @@ class UI_MainWindow(QWidget):
                         5'  5(left diag flip)   6(Rot270)            6'
                         '''
                         # 0'
-                        pos_x = 3 * self.image_size + 150
+                        pos_x = 3 * self.image_size + 127
                         pos_y = 1 * self.image_size + 127
                         cur_F_np = original_F_np
                         cur_F_image = pg.ImageItem()
@@ -3249,70 +3249,70 @@ class UI_MainWindow(QWidget):
                         heatmap_plot.addItem(cur_F_image)
 
                         # 1'
-                        pos_x = 3 * self.image_size + 150
+                        pos_x = 3 * self.image_size + 127
                         pos_y = 0 * self.image_size + 127
-                        # right diag = rot90 + horizontal flip
-                        cur_F_np = np.flip(np.rot90(original_F_np), axis=1)
+                        # right diag = rot90 ccw + horizontal flip
+                        cur_F_np = np.flipud(np.rot90(original_F_np, k=-1))
                         cur_F_image = pg.ImageItem()
                         cur_F_image.setImage(cur_F_np)
                         cur_F_image.setPos(pos_x, pos_y)
                         heatmap_plot.addItem(cur_F_image)
 
                         # 2'
-                        pos_x = 0 * self.image_size + 150
+                        pos_x = 0 * self.image_size + 127
                         pos_y = 0 * self.image_size + 127
-                        # horizontal flip
-                        cur_F_np = np.flip(original_F_np, axis=1)
+                        # rot90
+                        cur_F_np = np.rot90(original_F_np, k=-1)
                         cur_F_image = pg.ImageItem()
                         cur_F_image.setImage(cur_F_np)
                         cur_F_image.setPos(pos_x, pos_y)
                         heatmap_plot.addItem(cur_F_image)
 
                         # 3'
-                        pos_x = 0 * self.image_size + 150
+                        pos_x = 0 * self.image_size + 127
                         pos_y = 1 * self.image_size + 127
-                        # rot90
-                        cur_F_np = np.rot90(original_F_np)
+                        # horizontal flip
+                        cur_F_np = np.flipud(original_F_np)
                         cur_F_image = pg.ImageItem()
                         cur_F_image.setImage(cur_F_np)
                         cur_F_image.setPos(pos_x, pos_y)
                         heatmap_plot.addItem(cur_F_image)
 
                         # 4'
-                        pos_x = 0 * self.image_size + 150
+                        pos_x = 0 * self.image_size + 127
                         pos_y = 2 * self.image_size + 127
                         # rot180
-                        cur_F_np = np.rot90(original_F_np, k=2)
+                        cur_F_np = np.rot90(original_F_np, k=-2)
                         cur_F_image = pg.ImageItem()
                         cur_F_image.setImage(cur_F_np)
                         cur_F_image.setPos(pos_x, pos_y)
                         heatmap_plot.addItem(cur_F_image)
 
                         # 5'
-                        pos_x = 0 * self.image_size + 150
+                        pos_x = 0 * self.image_size + 127
                         pos_y = 3 * self.image_size + 127
-                        # left diag = rot90 + flip vertical
-                        cur_F_np = np.flip(np.rot90(original_F_np), axis=0)
+                        # left diag = rot90 ccw + flip vertical
+                        cur_F_np = np.fliplr(np.rot90(original_F_np, k=-1))
                         cur_F_image = pg.ImageItem()
                         cur_F_image.setImage(cur_F_np)
                         cur_F_image.setPos(pos_x, pos_y)
                         heatmap_plot.addItem(cur_F_image)
 
                         # 6'
-                        pos_x = 3 * self.image_size + 150
+                        pos_x = 3 * self.image_size + 127
                         pos_y = 3 * self.image_size + 127
                         # rot270
-                        cur_F_np = np.rot90(original_F_np, k=3)
+                        cur_F_np = np.rot90(original_F_np, k=-3)
                         cur_F_image = pg.ImageItem()
                         cur_F_image.setImage(cur_F_np)
                         cur_F_image.setPos(pos_x, pos_y)
                         heatmap_plot.addItem(cur_F_image)
 
                         # 7'
-                        pos_x = 3 * self.image_size + 150
+                        pos_x = 3 * self.image_size + 127
                         pos_y = 2 * self.image_size + 127
                         # vertical flip
-                        cur_F_np = np.flip(original_F_np, axis=0)
+                        cur_F_np = np.fliplr(original_F_np)
                         cur_F_image = pg.ImageItem()
                         cur_F_image.setImage(cur_F_np)
                         cur_F_image.setPos(pos_x, pos_y)

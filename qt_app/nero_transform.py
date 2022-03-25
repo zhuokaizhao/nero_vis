@@ -287,12 +287,12 @@ def flip_piv_data(image_1, image_2, label, flip_type):
         label_flipped = torch.zeros(label.shape)
         label_flipped[:, :, 1] = -label_flipped_temp[:, :, 1]
 
-    # / diagonal
+    # / diagonal = rotate 90 ccw + vertical flip
     elif flip_type == 'left-diagonal':
         image_1_rotated, image_2_rotated, label_rotated = rotate_piv_data(image_1, image_2, label, 90)
         image_1_flipped, image_2_flipped, label_flipped = flip_piv_data(image_1_rotated, image_2_rotated, label_rotated, flip_type='vertical')
 
-    # \ diagonal
+    # \ diagonal = rotate 90 ccw + horizontal flip
     elif flip_type == 'right-diagonal':
         image_1_rotated, image_2_rotated, label_rotated = rotate_piv_data(image_1, image_2, label, 90)
         image_1_flipped, image_2_flipped, label_flipped = flip_piv_data(image_1_rotated, image_2_rotated, label_rotated, flip_type='horizontal')
