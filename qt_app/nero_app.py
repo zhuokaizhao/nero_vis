@@ -1421,7 +1421,10 @@ class UI_MainWindow(QWidget):
 
         def plot_dr_scatter(low_dim_scatter_plot, low_dim, all_intensity, selected_index):
             # same colorbar as used in aggregate NERO plot, to be used in color encode scatter points
-            scatter_lut = self.color_map.getLookupTable(start=self.cm_range[0], stop=self.cm_range[0], nPts=500, alpha=False)
+            if self.mode == 'piv':
+                scatter_lut = self.color_map.getLookupTable(start=self.cm_range[1], stop=self.cm_range[0], nPts=500, alpha=False)
+            else:
+                scatter_lut = self.color_map.getLookupTable(start=self.cm_range[0], stop=self.cm_range[1], nPts=500, alpha=False)
 
             # quantize all the intensity into color
             color_indices = []
@@ -1429,17 +1432,13 @@ class UI_MainWindow(QWidget):
             all_intensity_indices = np.argsort(all_intensity)
             all_intensity = sorted(all_intensity)
             sorted_class_indices = [cur_class_indices[idx] for idx in all_intensity_indices]
+            print(self.cm_range)
             for i in range(len(all_intensity)):
                 # when it is the slider selection
                 if i == selected_index:
                     color_indices.append([255, 0, 255])
                 else:
-                    # piv has inversed range
-                    if self.mode == 'piv':
-                        lut_index = nero_utilities.lerp(-all_intensity[i], -self.cm_range[0], -self.cm_range[1], 0, 499)
-                        print(lut_index)
-                    else:
-                        lut_index = nero_utilities.lerp(all_intensity[i], self.cm_range[0], self.cm_range[1], 0, 499)
+                    lut_index = nero_utilities.lerp(all_intensity[i], self.cm_range[0], self.cm_range[1], 0, 499)
                     if lut_index > 499:
                         lut_index = 499
                     elif lut_index < 0:
