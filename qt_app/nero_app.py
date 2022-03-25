@@ -1271,12 +1271,6 @@ class UI_MainWindow(QWidget):
         # add to local layout
         self.aggregate_plot_control_layout.addWidget(self.class_selection_menu, 0, 0)
 
-        # text title
-        # class_selection_menu_title = QLabel('Displayed Class')
-        # class_selection_menu_title.setFixedSize(QtCore.QSize(50, 50))
-        # class_selection_menu_title.setFont(QFont('Helvetica', 18))
-        # self.aggregate_plot_control_layout.addWidget(class_selection_menu_title, 0, 0)
-
         # drop down menu on choosing the dimension reduction method
         self.dr_selection_menu = QtWidgets.QComboBox()
         self.dr_selection_menu.setFixedSize(QtCore.QSize(250, 50))
@@ -1427,8 +1421,7 @@ class UI_MainWindow(QWidget):
 
         def plot_dr_scatter(low_dim_scatter_plot, low_dim, all_intensity, selected_index):
             # same colorbar as used in aggregate NERO plot, to be used in color encode scatter points
-            scatter_color_map = pg.colormap.get('viridis')
-            scatter_lut = scatter_color_map.getLookupTable(start=self.intensity_min, stop=self.intensity_max, nPts=500, alpha=False)
+            scatter_lut = self.color_map.getLookupTable(start=self.cm_range[0], stop=self.cm_range[0], nPts=500, alpha=False)
 
             # quantize all the intensity into color
             color_indices = []
@@ -1441,7 +1434,16 @@ class UI_MainWindow(QWidget):
                 if i == selected_index:
                     color_indices.append([255, 0, 255])
                 else:
-                    lut_index = nero_utilities.lerp(all_intensity[i], self.intensity_min, self.intensity_max, 0, 499)
+                    # piv has inversed range
+                    if self.mode == 'piv':
+                        lut_index = nero_utilities.lerp(-all_intensity[i], -self.cm_range[0], -self.cm_range[1], 0, 499)
+                        print(lut_index)
+                    else:
+                        lut_index = nero_utilities.lerp(all_intensity[i], self.cm_range[0], self.cm_range[1], 0, 499)
+                    if lut_index > 499:
+                        lut_index = 499
+                    elif lut_index < 0:
+                        lut_index = 0
                     color_indices.append(scatter_lut[int(lut_index)])
 
             for i, index in enumerate(sorted_class_indices):
@@ -1601,8 +1603,8 @@ class UI_MainWindow(QWidget):
                     self.all_high_dim_points_2[i, j] = cur_value_2
 
                 elif self.mode == 'piv':
-                    self.all_high_dim_points_1[i, j] = 1 - nero_utilities.lerp(self.cur_plot_quantity_1_loss[j][i], self.error_min, self.error_max, 0, 1)
-                    self.all_high_dim_points_2[i, j] = 1 - nero_utilities.lerp(self.cur_plot_quantity_2_loss[j][i], self.error_min, self.error_max, 0, 1)
+                    self.all_high_dim_points_1[i, j] = self.loss_module(self.aggregate_outputs_1[j, i], self.aggregate_ground_truths[j, i], reduction='mean')
+                    self.all_high_dim_points_2[i, j] = self.loss_module(self.aggregate_outputs_2[j, i], self.aggregate_ground_truths[j, i], reduction='mean')
 
         # radio buttons on choosing quantity used to compute intensity
         @QtCore.Slot()
@@ -1611,24 +1613,24 @@ class UI_MainWindow(QWidget):
             self.all_intensity_1 = np.mean(self.all_high_dim_points_1, axis=1)
             self.all_intensity_2 = np.mean(self.all_high_dim_points_2, axis=1)
             # high dim points values are between 0 and 1
-            self.intensity_min = 0
-            self.intensity_max = 1
+            # self.intensity_min = 0
+            # self.intensity_max = 1
 
             # re-display the scatter plot
             display_dimension_reduction()
 
         @QtCore.Slot()
         def variance_intensity_button_clicked():
-            self.intensity_method = 'coefficient_of_variation'
-            self.all_intensity_1 = np.std(self.all_high_dim_points_1, axis=1) / np.mean(self.all_high_dim_points_1, axis=1)
-            self.all_intensity_2 = np.std(self.all_high_dim_points_2, axis=1) / np.mean(self.all_high_dim_points_2, axis=1)
+            self.intensity_method = 'variance'
+            self.all_intensity_1 = np.var(self.all_high_dim_points_1, axis=1)
+            self.all_intensity_2 = np.var(self.all_high_dim_points_2, axis=1)
             # lerp to between 0 and 1
-            self.intensity_min = min(np.min(self.all_intensity_1), np.min(self.all_intensity_2))
-            self.intensity_max = max(np.max(self.all_intensity_1), np.max(self.all_intensity_2))
-            self.all_intensity_1 = nero_utilities.lerp(self.all_intensity_1, self.intensity_min, self.intensity_max, 0, 1)
-            self.all_intensity_2 = nero_utilities.lerp(self.all_intensity_2, self.intensity_min, self.intensity_max, 0, 1)
-            self.intensity_min = 0
-            self.intensity_max = 1
+            # self.intensity_min = min(np.min(self.all_intensity_1), np.min(self.all_intensity_2))
+            # self.intensity_max = max(np.max(self.all_intensity_1), np.max(self.all_intensity_2))
+            # self.all_intensity_1 = nero_utilities.lerp(self.all_intensity_1, self.intensity_min, self.intensity_max, 0, 1)
+            # self.all_intensity_2 = nero_utilities.lerp(self.all_intensity_2, self.intensity_min, self.intensity_max, 0, 1)
+            # self.intensity_min = 0
+            # self.intensity_max = 1
 
             # re-display the scatter plot
             display_dimension_reduction()
@@ -1655,13 +1657,13 @@ class UI_MainWindow(QWidget):
         self.mean_intensity_button.setFixedSize(QtCore.QSize(200, 50))
         self.mean_intensity_button.setStyleSheet('QRadioButton{font: 18pt Helvetica;} QRadioButton::indicator { width: 18px; height: 18px;};')
         self.mean_intensity_button.pressed.connect(mean_intensity_button_clicked)
-        self.aggregate_result_layout.addWidget(self.mean_intensity_button, 3, 1)
+        self.aggregate_result_layout.addWidget(self.mean_intensity_button, 4, 1)
 
         self.variance_intensity_button = QRadioButton('Coefficient of Variation')
         self.variance_intensity_button.setFixedSize(QtCore.QSize(300, 50))
         self.variance_intensity_button.setStyleSheet('QRadioButton{font: 18pt Helvetica;} QRadioButton::indicator { width: 18px; height: 18px;};')
         self.variance_intensity_button.pressed.connect(variance_intensity_button_clicked)
-        self.aggregate_result_layout.addWidget(self.variance_intensity_button, 4, 1)
+        self.aggregate_result_layout.addWidget(self.variance_intensity_button, 5, 1)
 
         # by default the intensities are computed via mean
         self.mean_intensity_button.setChecked(True)
@@ -1675,23 +1677,25 @@ class UI_MainWindow(QWidget):
         # sliders that rank the dimension reduction result and can select one of them
         self.dr_selected_index_1 = 0
         self.dr_result_selection_slider_1 = QtWidgets.QSlider(QtCore.Qt.Horizontal)
+        self.dr_result_selection_slider_1.setFixedSize(self.plot_size, 50)
         self.dr_result_selection_slider_1.setMinimum(0)
         self.dr_result_selection_slider_1.setMaximum(len(self.all_high_dim_points_1)-1)
         self.dr_result_selection_slider_1.setValue(0)
         self.dr_result_selection_slider_1.setTickPosition(QtWidgets.QSlider.TicksBelow)
         self.dr_result_selection_slider_1.setTickInterval(1)
         self.dr_result_selection_slider_1.valueChanged.connect(dr_result_selection_slider_1_changed)
-        self.aggregate_result_layout.addWidget(self.dr_result_selection_slider_1, 3, 2)
+        self.aggregate_result_layout.addWidget(self.dr_result_selection_slider_1, 3, 1)
 
         self.dr_selected_index_2 = 0
         self.dr_result_selection_slider_2 = QtWidgets.QSlider(QtCore.Qt.Horizontal)
+        self.dr_result_selection_slider_2.setFixedSize(self.plot_size, 50)
         self.dr_result_selection_slider_2.setMinimum(0)
         self.dr_result_selection_slider_2.setMaximum(len(self.all_high_dim_points_2)-1)
         self.dr_result_selection_slider_2.setValue(0)
         self.dr_result_selection_slider_2.setTickPosition(QtWidgets.QSlider.TicksBelow)
         self.dr_result_selection_slider_2.setTickInterval(1)
         self.dr_result_selection_slider_2.valueChanged.connect(dr_result_selection_slider_2_changed)
-        self.aggregate_result_layout.addWidget(self.dr_result_selection_slider_2, 4, 2)
+        self.aggregate_result_layout.addWidget(self.dr_result_selection_slider_2, 3, 2)
 
         # show the scatter plot of dimension reduction result
         display_dimension_reduction()
@@ -3025,7 +3029,7 @@ class UI_MainWindow(QWidget):
 
 
     # helper function on drawing individual heatmap (called by both individual and aggregate cases)
-    def draw_individual_heatmap(self, mode, data, cm_range, view_box=None, heatmap=None, scatter_item=None, title=None):
+    def draw_individual_heatmap(self, mode, data, view_box=None, heatmap=None, scatter_item=None, title=None):
 
         if self.mode == 'object_detection':
             # single mode needs to have input view_box, heatmap and scatter_item for interactively handling
@@ -3062,7 +3066,8 @@ class UI_MainWindow(QWidget):
             heatmap_plot.getAxis('left').setLabel('Translation in y')
             heatmap_plot.getAxis('left').setStyle(tickLength=0, showValues=False)
 
-            # heatmap_plot.vb.setLimits(xMin=0, xMax=self.image_size, yMin=0, yMax=self.image_size)
+            # Not letting user zoom out past axis limit
+            # heatmap_plot.vb.setLimits(xMin=-1, xMax=self.image_size+1, yMin=-1, yMax=self.image_size+1)
 
         elif self.mode == 'piv':
             # when we are not showing the detail NERO
@@ -3318,14 +3323,17 @@ class UI_MainWindow(QWidget):
                         cur_F_image.setPos(pos_x, pos_y)
                         heatmap_plot.addItem(cur_F_image)
 
-        # color map
-        color_map = pg.colormap.get('viridis')
-        color_bar = pg.ColorBarItem(values=cm_range, colorMap=color_map)
-        color_bar.setImageItem(heatmap, insert_in=heatmap_plot)
+            # Not letting user zoom out past axis limit
+            # heatmap_plot.vb.setLimits(xMin=-1, xMax=self.image_size*4+1, yMin=-1, yMax=self.image_size*4+1)
 
+        # color map
+        self.color_map = pg.colormap.get('viridis')
+        self.color_bar = pg.ColorBarItem(values=self.cm_range, colorMap=self.color_map)
+        self.color_bar.setImageItem(heatmap, insert_in=heatmap_plot)
 
         # disable being able to move plot around
-        # heatmap_plot.setMouseEnabled(x=False, y=False)
+        heatmap_plot.setMouseEnabled(x=False, y=False)
+
 
         return heatmap_plot
 
@@ -3435,8 +3443,9 @@ class UI_MainWindow(QWidget):
                 self.scatter_item_1.setSymbol('s')
                 self.scatter_item_2 = pg.ScatterPlotItem(pxMode=False)
                 self.scatter_item_2.setSymbol('s')
-                self.heatmap_plot_1 = self.draw_individual_heatmap('single', data_1, (0, 1), self.view_box_1, self.single_nero_1, self.scatter_item_1)
-                self.heatmap_plot_2 = self.draw_individual_heatmap('single', data_2, (0, 1), self.view_box_2, self.single_nero_2, self.scatter_item_2)
+                self.cm_range = (0, 1)
+                self.heatmap_plot_1 = self.draw_individual_heatmap('single', data_1, self.view_box_1, self.single_nero_1, self.scatter_item_1)
+                self.heatmap_plot_2 = self.draw_individual_heatmap('single', data_2, self.view_box_2, self.single_nero_2, self.scatter_item_2)
 
             # add to view
             self.heatmap_view_1.addItem(self.heatmap_plot_1)
@@ -3459,8 +3468,9 @@ class UI_MainWindow(QWidget):
             # left top right bottom
             self.aggregate_heatmap_view_2.ci.layout.setContentsMargins(0, 20, 0, 0)
             self.aggregate_heatmap_view_2.setFixedSize(self.plot_size*1.3, self.plot_size*1.3)
-            self.aggregate_heatmap_plot_1 = self.draw_individual_heatmap('aggregate', data_1, (0, 1))
-            self.aggregate_heatmap_plot_2 = self.draw_individual_heatmap('aggregate', data_2, (0, 1))
+            self.cm_range = (0, 1)
+            self.aggregate_heatmap_plot_1 = self.draw_individual_heatmap('aggregate', data_1)
+            self.aggregate_heatmap_plot_2 = self.draw_individual_heatmap('aggregate', data_2)
 
             # add to view
             self.aggregate_heatmap_view_1.addItem(self.aggregate_heatmap_plot_1)
@@ -3589,8 +3599,6 @@ class UI_MainWindow(QWidget):
                 # current/new rectangle selection index
                 outer_self.rectangle_index = outer_self.piv_nero_layout[rect_y, rect_x]
 
-                # current scale factor
-
                 # display the input image
                 outer_self.display_image()
 
@@ -3685,16 +3693,16 @@ class UI_MainWindow(QWidget):
             self.scatter_item_1.setSymbol('s')
             self.scatter_item_2 = myScatterPlotItem(pxMode=False)
             self.scatter_item_2.setSymbol('s')
+            # color map is flipped so that low error is bright
+            self.cm_range = (self.loss_high_bound, self.loss_low_bound)
             self.heatmap_plot_1 = self.draw_individual_heatmap('single',
                                                                 self.data_1,
-                                                                (self.loss_high_bound, self.loss_low_bound),
                                                                 self.view_box_1,
                                                                 self.single_nero_1,
                                                                 self.scatter_item_1)
 
             self.heatmap_plot_2 = self.draw_individual_heatmap('single',
                                                                 self.data_2,
-                                                                (self.loss_high_bound, self.loss_low_bound),
                                                                 self.view_box_2,
                                                                 self.single_nero_2,
                                                                 self.scatter_item_2)
@@ -3723,8 +3731,10 @@ class UI_MainWindow(QWidget):
             # left top right bottom
             self.aggregate_heatmap_view_2.ci.layout.setContentsMargins(0, 20, 0, 0)
             self.aggregate_heatmap_view_2.setFixedSize(self.plot_size*1.3, self.plot_size*1.3)
-            self.aggregate_heatmap_plot_1 = self.draw_individual_heatmap('aggregate', self.data_1, (self.loss_high_bound, self.loss_low_bound))
-            self.aggregate_heatmap_plot_2 = self.draw_individual_heatmap('aggregate', self.data_2, (self.loss_high_bound, self.loss_low_bound))
+            # color map is flipped so that low error is bright
+            self.cm_range = (self.loss_high_bound, self.loss_low_bound)
+            self.aggregate_heatmap_plot_1 = self.draw_individual_heatmap('aggregate', self.data_1)
+            self.aggregate_heatmap_plot_2 = self.draw_individual_heatmap('aggregate', self.data_2)
 
             # add to view
             self.aggregate_heatmap_view_1.addItem(self.aggregate_heatmap_plot_1)
