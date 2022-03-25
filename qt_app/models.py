@@ -2,6 +2,7 @@ import torch
 import e2cnn
 import numpy as np
 import torchvision
+from scipy import signal
 from e2cnn import gspaces
 import torch.utils.model_zoo as model_zoo
 from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
@@ -1143,5 +1144,40 @@ def Horn_Schunck(im1, im2, alpha=1, Niter=100):
 
     return U,V
 
+
+# Lucas-Kanade method
+def Lucas_Kanade(I1g, I2g, window_size=7, tau=1e-2):
+
+    kernel_x = np.array([[-1., 1.], [-1., 1.]])
+    kernel_y = np.array([[-1., -1.], [1., 1.]])
+    kernel_t = np.array([[1., 1.], [1., 1.]])#*.25
+    w = int(window_size/2) # window_size is odd, all the pixels with offset in between [-w, w] are inside the window
+    # I1g = I1g / 255. # normalize pixels
+    # I2g = I2g / 255. # normalize pixels
+    # Implement Lucas Kanade
+    # for each point, calculate I_x, I_y, I_t
+    mode = 'same'
+    fx = signal.convolve2d(I1g, kernel_x, boundary='symm', mode=mode)
+    fy = signal.convolve2d(I1g, kernel_y, boundary='symm', mode=mode)
+    ft = signal.convolve2d(I2g, kernel_t, boundary='symm', mode=mode) + \
+         signal.convolve2d(I1g, -kernel_t, boundary='symm', mode=mode)
+    u = np.zeros(I1g.shape)
+    v = np.zeros(I1g.shape)
+    # within window window_size * window_size
+    for i in range(w, I1g.shape[0]-w):
+        for j in range(w, I1g.shape[1]-w):
+            Ix = fx[i-w:i+w+1, j-w:j+w+1].flatten()
+            Iy = fy[i-w:i+w+1, j-w:j+w+1].flatten()
+            It = ft[i-w:i+w+1, j-w:j+w+1].flatten()
+
+            b = np.reshape(It, (It.shape[0],1)) # get b here
+            A = np.vstack((Ix, Iy)).T # get A here
+
+            if np.min(abs(np.linalg.eigvals(np.matmul(A.T, A)))) >= tau:
+                nu = np.matmul(np.linalg.pinv(A), b) # get velocity here
+                u[i,j]=nu[0]
+                v[i,j]=nu[1]
+
+    return (u, v)
 
 

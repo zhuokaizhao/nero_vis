@@ -486,7 +486,8 @@ def run_piv_once(mode, model_name, model, image_1, image_2):
             img2 = image_2_np_gray * 1.0/255.0
             img_height, img_width = img1.shape[:2]
 
-            u, v = models.Horn_Schunck(img1, img2)
+            # u, v = models.Horn_Schunck(img1, img2)
+            u, v = models.Lucas_Kanade(img1, img2)
             cur_label_pred_pt = torch.zeros((img_height, img_width, 2))
             cur_label_pred_pt[:, :, 0] = torch.from_numpy(u)
             cur_label_pred_pt[:, :, 1] = torch.from_numpy(v)
