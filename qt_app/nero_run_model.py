@@ -484,10 +484,30 @@ def run_piv_once(mode, model_name, model, image_1, image_2):
             # prepare images for HS
             img1 = image_1_np_gray * 1.0/255.0
             img2 = image_2_np_gray * 1.0/255.0
+            # img1 = image_1_np_gray
+            # img2 = image_2_np_gray
             img_height, img_width = img1.shape[:2]
 
-            # u, v = models.Horn_Schunck(img1, img2)
-            u, v = models.Lucas_Kanade(img1, img2)
+            u, v = models.Horn_Schunck(img1, img2)
+            # u, v = models.Lucas_Kanade(img1, img2)
+            # import cv2
+            # cur_label_pred_np = cv2.calcOpticalFlowFarneback(img1, img2, None, 0.5, 3, 15, 3, 5, 1.2, 0)
+            # cur_label_pred_pt = torch.from_numpy(cur_label_pred_np)
+            # u, v = models.simple_piv(img1, img2)
+            # print(u)
+            # print(v)
+            # exit()
+            if u.shape[0:2] != img1.shape[0:2]:
+                # repeat in row
+                temp = np.repeat(u, img1.shape[0]/u.shape[1], axis=0)
+                # repeat in column
+                u = np.repeat(temp, img1.shape[0]/u.shape[0], axis=1)
+
+                # repeat in row
+                temp = np.repeat(v, img1.shape[0]/v.shape[1], axis=0)
+                # repeat in column
+                v = np.repeat(temp, img1.shape[0]/v.shape[0], axis=1)
+
             cur_label_pred_pt = torch.zeros((img_height, img_width, 2))
             cur_label_pred_pt[:, :, 0] = torch.from_numpy(u)
             cur_label_pred_pt[:, :, 1] = torch.from_numpy(v)

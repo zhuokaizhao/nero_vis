@@ -3393,6 +3393,8 @@ class UI_MainWindow(QWidget):
                 outer_self.detail_rect_x = event.pos().x()
                 outer_self.detail_rect_y = event.pos().y()
 
+                outer_self.draw_piv_details()
+
         # helper function on reshaping data
         def prepare_plot_data(input_data):
             grid_size = self.cur_plot_quantity_1.shape[1]
