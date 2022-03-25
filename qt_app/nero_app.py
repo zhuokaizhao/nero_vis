@@ -1213,6 +1213,20 @@ class UI_MainWindow(QWidget):
             if self.dr_result_existed:
                 self.run_dimension_reduction()
 
+        @QtCore.Slot()
+        def detail_nero_checkbox_clicked(state):
+            if state == QtCore.Qt.Checked:
+                self.show_average = False
+            else:
+                self.show_average = True
+
+            self.draw_piv_nero('aggregate')
+
+            # re-run dimension reduction and show result
+            if self.dr_result_existed:
+                self.run_dimension_reduction()
+
+
         # change different dimension reduction algorithms
         def dr_selection_changed(text):
             self.dr_selection = text
@@ -1287,6 +1301,16 @@ class UI_MainWindow(QWidget):
         self.run_dr_button.setFixedSize(QtCore.QSize(250, 50))
         self.run_dr_button.clicked.connect(self.run_dimension_reduction)
         self.aggregate_plot_control_layout.addWidget(self.run_dr_button, 3, 0)
+
+        # for PIV only, toggle between average or detail plot
+        if self.mode == 'piv':
+            self.detail_nero_checkbox = QtWidgets.QCheckBox('Detail NERO')
+            self.detail_nero_checkbox.setStyleSheet('font-size: 18px')
+            self.detail_nero_checkbox.setFixedSize(QtCore.QSize(300, 50))
+            self.detail_nero_checkbox.stateChanged.connect(detail_nero_checkbox_clicked)
+            self.show_average = True
+            self.detail_nero_checkbox.setChecked(False)
+            self.aggregate_plot_control_layout.addWidget(self.detail_nero_checkbox, 6, 0)
 
 
     # run PCA on demand
@@ -3041,6 +3065,13 @@ class UI_MainWindow(QWidget):
             # heatmap_plot.vb.setLimits(xMin=0, xMax=self.image_size, yMin=0, yMax=self.image_size)
 
         elif self.mode == 'piv':
+            # when we are not showing the detail NERO
+            if self.show_average:
+                for y in range(4):
+                    for x in range(4):
+                        data_mean = np.mean(data[y*256:(y+1)*256, x*256:(x+1)*256])
+                        data[y*256:(y+1)*256, x*256:(x+1)*256] = data_mean
+
             # single mode needs to have input view_box, heatmap and scatter_item for interactively handling
             if mode == 'single':
                 heatmap_plot = pg.PlotItem(viewBox=view_box, title=title)
@@ -3097,6 +3128,18 @@ class UI_MainWindow(QWidget):
             heatmap_plot.getAxis('left').setStyle(tickLength=0, showValues=False)
 
             # heatmap_plot.vb.setLimits(xMin=-10, xMax=self.image_size*4, yMin=-10, yMax=self.image_size*4)
+
+            # in show_average mode, also show the orbit indicator
+            if self.show_average:
+                self.original_F_pil = Image.open('symbols/red-alphabet-letter-f.png').convert('RGB')
+                # convert to torch tensor
+                self.original_F_np = np.asarray(self.original_F_pil)
+                # arrow item has 0 degree set as to left
+                cur_arrow_gt = pg.ImageItem()
+                cur_arrow_gt.setImage(self.original_F_np)
+                # coordinate in y are flipped for later be used in image
+                cur_arrow_gt.setPos(127, 127)
+                heatmap_plot.addItem(cur_arrow_gt)
 
         # color map
         color_map = pg.colormap.get('viridis')
@@ -4236,7 +4279,6 @@ class UI_MainWindow(QWidget):
             # keep the same dimension
             cur_losses_1 = np.zeros((self.num_transformations, len(self.aggregate_outputs_1[0]), self.image_size, self.image_size))
             cur_losses_2 = np.zeros((self.num_transformations, len(self.aggregate_outputs_1[0]), self.image_size, self.image_size))
-            # used to compute normalization range, depending on single-sample average
             mean_losses_1 = np.zeros((self.num_transformations, len(self.aggregate_outputs_1[0])))
             mean_losses_2 = np.zeros((self.num_transformations, len(self.aggregate_outputs_1[0])))
             for i in range(self.num_transformations):
@@ -4246,21 +4288,15 @@ class UI_MainWindow(QWidget):
                         mean_losses_1[i, j] = self.loss_module(self.aggregate_ground_truths[i, j], self.aggregate_outputs_1[i, j], reduction='mean').numpy()
                         mean_losses_2[i, j] = self.loss_module(self.aggregate_ground_truths[i, j], self.aggregate_outputs_2[i, j], reduction='mean').numpy()
 
-            # get the max and min for normalization purpose
-            self.error_min = min(np.min(mean_losses_1), np.min(mean_losses_1))
-            self.error_max = max(np.max(mean_losses_2), np.max(mean_losses_2))
+            # get the 0 and 80 percentile as the threshold for colormap
+            all_losses = np.concatenate([cur_losses_1.flatten(), cur_losses_2.flatten()])
+            self.loss_low_bound = np.percentile(all_losses, 0)
+            self.loss_high_bound = np.percentile(all_losses, 80)
+            print('Aggregate loss 0 and 80 percentile', self.loss_low_bound, self.loss_high_bound)
 
-            # normalize all the losses
-            cur_losses_1 = nero_utilities.lerp(cur_losses_1, self.error_min, self.error_max, 0, 1)
-            cur_losses_2 = nero_utilities.lerp(cur_losses_2, self.error_min, self.error_max, 0, 1)
-
-            # average over samples
-            cur_avg_losses_1 = cur_losses_1.mean(axis=1)
-            cur_avg_losses_2 = cur_losses_2.mean(axis=1)
-
-            # average element-wise loss to scalar and normalize between 0 and 1
-            self.cur_plot_quantity_1 = 1 - cur_avg_losses_1
-            self.cur_plot_quantity_2 = 1 - cur_avg_losses_2
+            # plot quantity is the average among all samples
+            self.cur_plot_quantity_1 = cur_losses_1.mean(axis=1)
+            self.cur_plot_quantity_2 = cur_losses_2.mean(axis=1)
 
 
         @QtCore.Slot()
