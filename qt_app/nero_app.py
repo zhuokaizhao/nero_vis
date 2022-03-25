@@ -1353,6 +1353,13 @@ class UI_MainWindow(QWidget):
             # get the clicked scatter item's information
             self.image_index = int(item.opts['name'])
 
+            # get the ranking in each colorbar
+            self.slider_1_value = self.sorted_class_indices_1.index(self.image_index)
+            self.dr_result_selection_slider_1.setValue(self.slider_1_value)
+            self.slider_2_value = self.sorted_class_indices_2.index(self.image_index)
+            self.dr_result_selection_slider_2.setValue(self.slider_2_value)
+
+
             # get the corresponding image path
             if self.mode == 'digit_recognition' or self.mode == 'object_detection':
                 self.image_path = self.all_images_paths[self.image_index]
@@ -1419,7 +1426,7 @@ class UI_MainWindow(QWidget):
             return new_low_dim
 
 
-        def plot_dr_scatter(low_dim_scatter_plot, low_dim, all_intensity, selected_index):
+        def plot_dr_scatter(low_dim_scatter_plot, low_dim, all_intensity, sorted_class_indices):
             # same colorbar as used in aggregate NERO plot, to be used in color encode scatter points
             if self.mode == 'piv':
                 scatter_lut = self.color_map.getLookupTable(start=self.cm_range[1], stop=self.cm_range[0], nPts=500, alpha=False)
@@ -1428,26 +1435,17 @@ class UI_MainWindow(QWidget):
 
             # quantize all the intensity into color
             color_indices = []
-            # rank the intensity values (small to large)
-            all_intensity_indices = np.argsort(all_intensity)
-            all_intensity = sorted(all_intensity)
-            sorted_class_indices = [cur_class_indices[idx] for idx in all_intensity_indices]
-            print(self.cm_range)
             for i in range(len(all_intensity)):
-                # when it is the slider selection
-                if i == selected_index:
-                    color_indices.append([255, 0, 255])
-                else:
-                    lut_index = nero_utilities.lerp(all_intensity[i], self.cm_range[0], self.cm_range[1], 0, 499)
-                    if lut_index > 499:
-                        lut_index = 499
-                    elif lut_index < 0:
-                        lut_index = 0
-                    color_indices.append(scatter_lut[int(lut_index)])
+                lut_index = nero_utilities.lerp(all_intensity[i], self.cm_range[0], self.cm_range[1], 0, 499)
+                if lut_index > 499:
+                    lut_index = 499
+                elif lut_index < 0:
+                    lut_index = 0
+                color_indices.append(scatter_lut[int(lut_index)])
 
             for i, index in enumerate(sorted_class_indices):
                 # add the selected item's color at last to make sure that the current selected item is always on top (last to render)
-                if i == selected_index:
+                if i == self.selected_index:
                     continue
                 # add individual items for getting the item's name later when clicking
                 # Set pxMode=False to allow spots to transform with the view
@@ -1469,13 +1467,13 @@ class UI_MainWindow(QWidget):
             # add the current selected one
             low_dim_scatter_item = pg.ScatterPlotItem(pxMode=True)
             low_dim_scatter_item.setSymbol('o')
-            low_dim_point = [{'pos': (low_dim[selected_index, 0], low_dim[selected_index, 1]),
+            low_dim_point = [{'pos': (low_dim[self.selected_index, 0], low_dim[self.selected_index, 1]),
                                 'size': self.scatter_item_size,
                                 'pen': QtGui.QColor(color_indices[i][0], color_indices[i][1], color_indices[i][2]),
-                                'brush': QtGui.QColor(color_indices[selected_index][0], color_indices[selected_index][1], color_indices[selected_index][2])}]
+                                'brush': QtGui.QColor(color_indices[self.selected_index][0], color_indices[self.selected_index][1], color_indices[self.selected_index][2])}]
 
             # add points to the item
-            low_dim_scatter_item.setData(low_dim_point, name=str(sorted_class_indices[selected_index]))
+            low_dim_scatter_item.setData(low_dim_point, name=str(sorted_class_indices[self.selected_index]))
             # connect click events on scatter items
             low_dim_scatter_item.sigClicked.connect(low_dim_scatter_clicked)
             # add points to the plot
@@ -1519,8 +1517,15 @@ class UI_MainWindow(QWidget):
             self.low_dim_2 = normalize_low_dim_result(self.low_dim_2)
 
             # plot both scatter plots
-            plot_dr_scatter(self.low_dim_scatter_plot_1, self.low_dim_1, self.all_intensity_1, self.dr_selected_index_1)
-            plot_dr_scatter(self.low_dim_scatter_plot_2, self.low_dim_2, self.all_intensity_2, self.dr_selected_index_2)
+            # rank the intensity values (small to large)
+            self.all_intensity_indices_1 = np.argsort(self.all_intensity_1)
+            self.all_intensity_1 = sorted(self.all_intensity_1)
+            self.sorted_class_indices_1 = [self.cur_class_indices[idx] for idx in self.all_intensity_indices_1]
+            self.all_intensity_indices_2 = np.argsort(self.all_intensity_2)
+            self.all_intensity_2 = sorted(self.all_intensity_2)
+            self.sorted_class_indices_2 = [self.cur_class_indices[idx] for idx in self.all_intensity_indices_2]
+            plot_dr_scatter(self.low_dim_scatter_plot_1, self.low_dim_1, self.all_intensity_1, self.all_intensity_indices_1)
+            plot_dr_scatter(self.low_dim_scatter_plot_2, self.low_dim_2, self.all_intensity_2, self.all_intensity_indices_2)
 
             if self.mode == 'digit_recognition':
                 self.aggregate_result_layout.addWidget(self.low_dim_scatter_view_1, 1, 3)
@@ -1537,14 +1542,14 @@ class UI_MainWindow(QWidget):
 
         # run dimension reduction of all images on the selected digit
         # each image has tensor with length being the number of translations
-        cur_class_indices = []
+        self.cur_class_indices = []
         if self.class_selection == 'all':
             # all the indices
-            cur_class_indices = list(range(len(self.loaded_images_labels)))
+            self.cur_class_indices = list(range(len(self.loaded_images_labels)))
         else:
             for i in range(len(self.loaded_images_labels)):
                 if self.class_selection == self.loaded_images_labels[i]:
-                    cur_class_indices.append(i)
+                    self.cur_class_indices.append(i)
 
         if self.mode == 'digit_recognition':
             num_transformations = len(self.all_aggregate_angles)
@@ -1553,10 +1558,10 @@ class UI_MainWindow(QWidget):
         elif self.mode == 'piv':
             num_transformations = 16
 
-        self.all_high_dim_points_1 = np.zeros((len(cur_class_indices), num_transformations))
-        self.all_high_dim_points_2 = np.zeros((len(cur_class_indices), num_transformations))
+        self.all_high_dim_points_1 = np.zeros((len(self.cur_class_indices), num_transformations))
+        self.all_high_dim_points_2 = np.zeros((len(self.cur_class_indices), num_transformations))
 
-        for i, index in enumerate(cur_class_indices):
+        for i, index in enumerate(self.cur_class_indices):
             # go through all the transfomations
             for j in range(num_transformations):
                 if self.mode == 'digit_recognition':
@@ -1611,9 +1616,6 @@ class UI_MainWindow(QWidget):
             self.intensity_method = 'mean'
             self.all_intensity_1 = np.mean(self.all_high_dim_points_1, axis=1)
             self.all_intensity_2 = np.mean(self.all_high_dim_points_2, axis=1)
-            # high dim points values are between 0 and 1
-            # self.intensity_min = 0
-            # self.intensity_max = 1
 
             # re-display the scatter plot
             display_dimension_reduction()
@@ -1623,13 +1625,6 @@ class UI_MainWindow(QWidget):
             self.intensity_method = 'variance'
             self.all_intensity_1 = np.var(self.all_high_dim_points_1, axis=1)
             self.all_intensity_2 = np.var(self.all_high_dim_points_2, axis=1)
-            # lerp to between 0 and 1
-            # self.intensity_min = min(np.min(self.all_intensity_1), np.min(self.all_intensity_2))
-            # self.intensity_max = max(np.max(self.all_intensity_1), np.max(self.all_intensity_2))
-            # self.all_intensity_1 = nero_utilities.lerp(self.all_intensity_1, self.intensity_min, self.intensity_max, 0, 1)
-            # self.all_intensity_2 = nero_utilities.lerp(self.all_intensity_2, self.intensity_min, self.intensity_max, 0, 1)
-            # self.intensity_min = 0
-            # self.intensity_max = 1
 
             # re-display the scatter plot
             display_dimension_reduction()
@@ -1637,7 +1632,7 @@ class UI_MainWindow(QWidget):
         @QtCore.Slot()
         def dr_result_selection_slider_1_changed():
             # change the selection
-            self.dr_selected_index_1 = self.dr_result_selection_slider_1.value()
+            self.selected_index = self.dr_result_selection_slider_1.value()
 
             # re-display the scatter plot
             display_dimension_reduction()
@@ -1645,7 +1640,7 @@ class UI_MainWindow(QWidget):
         @QtCore.Slot()
         def dr_result_selection_slider_2_changed():
             # change the selection
-            self.dr_selected_index_2 = self.dr_result_selection_slider_2.value()
+            self.selected_index = self.dr_result_selection_slider_2.value()
 
             # re-display the scatter plot
             display_dimension_reduction()
@@ -1653,14 +1648,14 @@ class UI_MainWindow(QWidget):
 
         # radio buittons on choosing the intensity quantity
         self.mean_intensity_button = QRadioButton('Mean')
-        self.mean_intensity_button.setFixedSize(QtCore.QSize(200, 50))
-        self.mean_intensity_button.setStyleSheet('QRadioButton{font: 18pt Helvetica;} QRadioButton::indicator { width: 18px; height: 18px;};')
+        self.mean_intensity_button.setFixedSize(QtCore.QSize(200, 30))
+        self.mean_intensity_button.setStyleSheet('QRadioButton{font: 18pt Helvetica;} QRadioButton::indicator { width: 14px; height: 18px;};')
         self.mean_intensity_button.pressed.connect(mean_intensity_button_clicked)
         self.aggregate_result_layout.addWidget(self.mean_intensity_button, 4, 1)
 
-        self.variance_intensity_button = QRadioButton('Coefficient of Variation')
-        self.variance_intensity_button.setFixedSize(QtCore.QSize(300, 50))
-        self.variance_intensity_button.setStyleSheet('QRadioButton{font: 18pt Helvetica;} QRadioButton::indicator { width: 18px; height: 18px;};')
+        self.variance_intensity_button = QRadioButton('Variance')
+        self.variance_intensity_button.setFixedSize(QtCore.QSize(200, 30))
+        self.variance_intensity_button.setStyleSheet('QRadioButton{font: 18pt Helvetica;} QRadioButton::indicator { width: 14px; height: 18px;};')
         self.variance_intensity_button.pressed.connect(variance_intensity_button_clicked)
         self.aggregate_result_layout.addWidget(self.variance_intensity_button, 5, 1)
 
@@ -1674,7 +1669,7 @@ class UI_MainWindow(QWidget):
         self.intensity_max = max(np.max(self.all_intensity_1), np.max(self.all_intensity_2))
 
         # sliders that rank the dimension reduction result and can select one of them
-        self.dr_selected_index_1 = 0
+        self.selected_index = 0
         self.dr_result_selection_slider_1 = QtWidgets.QSlider(QtCore.Qt.Horizontal)
         self.dr_result_selection_slider_1.setFixedSize(self.plot_size, 50)
         self.dr_result_selection_slider_1.setMinimum(0)
@@ -1685,7 +1680,6 @@ class UI_MainWindow(QWidget):
         self.dr_result_selection_slider_1.valueChanged.connect(dr_result_selection_slider_1_changed)
         self.aggregate_result_layout.addWidget(self.dr_result_selection_slider_1, 3, 1)
 
-        self.dr_selected_index_2 = 0
         self.dr_result_selection_slider_2 = QtWidgets.QSlider(QtCore.Qt.Horizontal)
         self.dr_result_selection_slider_2.setFixedSize(self.plot_size, 50)
         self.dr_result_selection_slider_2.setMinimum(0)
@@ -2668,6 +2662,12 @@ class UI_MainWindow(QWidget):
 
                 # display the piv single case result
                 self.rectangle_index = 0
+                self.double_click = True
+                self.detail_rect_x = np.where(self.piv_nero_layout==self.rectangle_index)[1] * self.image_size + self.image_size // 2
+                self.detail_rect_y = np.where(self.piv_nero_layout==self.rectangle_index)[0] * self.image_size + self.image_size // 2
+                # np.where returns ndarray, but we know there is only one
+                self.detail_rect_x = self.detail_rect_x[0]
+                self.detail_rect_y = self.detail_rect_y[0]
                 self.display_piv_single_result()
 
 
@@ -3790,7 +3790,7 @@ class UI_MainWindow(QWidget):
                 cur_pred_vector = pred_vectors[y, x]
                 # convert to polar coordinate
                 r_pred = np.sqrt((cur_pred_vector[0]**2 + cur_pred_vector[1]**2))
-                print(f'y={y}, x={x}, r_gt={r_gt}, r_pred={r_pred}')
+                # print(f'y={y}, x={x}, r_gt={r_gt}, r_pred={r_pred}')
                 theta_pred = np.arctan2(cur_pred_vector[1], cur_pred_vector[0]) / np.pi * 180
                 # creat ground truth arrow
                 cur_arrow_pred = MyArrowItem(pxMode=True,
@@ -3822,19 +3822,14 @@ class UI_MainWindow(QWidget):
         detail_rect_y_local = self.detail_rect_y - self.rect_index_y * self.image_size
 
         # vector field around the selected center
-        if self.data_mode == 'single':
-            detail_ground_truth = self.all_ground_truths[self.rectangle_index][detail_rect_y_local-4:detail_rect_y_local+4,
-                                                                                detail_rect_x_local-4:detail_rect_x_local+4]
+        detail_ground_truth = self.all_ground_truths[self.rectangle_index][detail_rect_y_local-4:detail_rect_y_local+4,
+                                                                            detail_rect_x_local-4:detail_rect_x_local+4]
 
-            detail_vectors_1 = self.all_quantities_1[self.rectangle_index][detail_rect_y_local-4:detail_rect_y_local+4,
-                                                                                detail_rect_x_local-4:detail_rect_x_local+4]
+        detail_vectors_1 = self.all_quantities_1[self.rectangle_index][detail_rect_y_local-4:detail_rect_y_local+4,
+                                                                            detail_rect_x_local-4:detail_rect_x_local+4]
 
-            detail_vectors_2 = self.all_quantities_2[self.rectangle_index][detail_rect_y_local-4:detail_rect_y_local+4,
-                                                                                detail_rect_x_local-4:detail_rect_x_local+4]
-
-
-        elif self.data_mode == 'aggregate':
-            raise NotImplementedError
+        detail_vectors_2 = self.all_quantities_2[self.rectangle_index][detail_rect_y_local-4:detail_rect_y_local+4,
+                                                                            detail_rect_x_local-4:detail_rect_x_local+4]
 
         # view 1
         self.piv_detail_view_1 = pg.GraphicsLayoutWidget()
@@ -4638,8 +4633,8 @@ class UI_MainWindow(QWidget):
             # add plot control layout to general layout
             # self.aggregate_result_layout.addLayout(self.single_plot_control_layout, 0, 3)
             # plot quantity in individual nero plot
-            self.cur_plot_quantity_1 = np.zeros(self.num_transformations, self.image_size, self.image_size)
-            self.cur_plot_quantity_2 = np.zeros(self.num_transformations, self.image_size, self.image_size)
+            self.cur_plot_quantity_1 = np.zeros((self.num_transformations, self.image_size, self.image_size))
+            self.cur_plot_quantity_2 = np.zeros((self.num_transformations, self.image_size, self.image_size))
             compute_single_nero_plot_quantity()
 
         # visualize the individual NERO plot of the current input
