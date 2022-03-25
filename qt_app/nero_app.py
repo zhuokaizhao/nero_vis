@@ -3131,12 +3131,12 @@ class UI_MainWindow(QWidget):
 
             # in show_average mode, also show the orbit indicator
             if self.show_average:
-                self.original_F_pil = Image.open('symbols/red-alphabet-letter-f.png').convert('RGB')
+                self.original_F_pil = Image.open('symbols/F.png').convert('RGB')
                 # convert to torch tensor
                 self.original_F_np = np.asarray(self.original_F_pil)
                 # arrow item has 0 degree set as to left
                 cur_arrow_gt = pg.ImageItem()
-                cur_arrow_gt.setImage(self.original_F_np)
+                cur_arrow_gt.setImage(self.original_F_np.transpose())
                 # coordinate in y are flipped for later be used in image
                 cur_arrow_gt.setPos(127, 127)
                 heatmap_plot.addItem(cur_arrow_gt)
