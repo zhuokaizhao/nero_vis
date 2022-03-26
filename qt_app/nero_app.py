@@ -1355,11 +1355,16 @@ class UI_MainWindow(QWidget):
             self.image_index = int(item.opts['name'])
             print(f'clicked image index {self.image_index}')
 
-            # get the ranking in each colorbar and change its value
+            # get the ranking in each colorbar and change its value while locking both sliders
+            self.slider_1_locked = True
+            self.slider_2_locked = True
             self.slider_1_selected_index = self.sorted_class_indices_1.index(self.image_index)
             self.dr_result_selection_slider_1.setValue(self.slider_1_selected_index)
             self.slider_2_selected_index = self.sorted_class_indices_2.index(self.image_index)
             self.dr_result_selection_slider_2.setValue(self.slider_2_selected_index)
+            # unlock after changing the values
+            self.slider_1_locked = False
+            self.slider_2_locked = False
 
 
             # get the corresponding image path
@@ -1655,141 +1660,144 @@ class UI_MainWindow(QWidget):
 
         @QtCore.Slot()
         def dr_result_selection_slider_1_changed():
-            # change the selection
-            self.slider_1_selected_index = self.dr_result_selection_slider_1.value()
-            print(f'Current selected image ranks {self.slider_1_selected_index} in slider 1')
-            # re-display the scatter plot
-            display_dimension_reduction()
 
-            # mimics a point has been clicked
-            # get the clicked scatter item's information
-            # self.image_index = self.sorted_class_indices_1[self.selected_index]
-            # print(f'slider 1 image index {self.image_index}, ranked position {self.selected_index}')
+            # when it is locked, it means that user selects a scatter item directly
+            if self.slider_1_locked:
+                # re-display the scatter plot
+                display_dimension_reduction()
+            # when the slider bar is changed directly, mimics a point has been clicked
+            else:
+                # get the clicked scatter item's information
+                self.image_index = self.sorted_class_indices_1[self.selected_index]
+                print(f'slider 1 image index {self.image_index}, ranked position {self.selected_index}')
 
-            # # change the ranking in the other colorbar
-            # self.slider_2_value = self.sorted_class_indices_2.index(self.image_index)
-            # self.dr_result_selection_slider_2.setValue(self.slider_2_value)
+                # change the ranking in the other colorbar
+                self.slider_2_value = self.sorted_class_indices_2.index(self.image_index)
+                self.dr_result_selection_slider_2.setValue(self.slider_2_value)
 
-            # # get the corresponding image path
-            # if self.mode == 'digit_recognition' or self.mode == 'object_detection':
-            #     self.image_path = self.all_images_paths[self.image_index]
-            #     print(f'Selected image at {self.image_path}')
-            # elif self.mode == 'piv':
-            #     # single case images paths
-            #     self.image_1_path = self.all_images_1_paths[self.image_index]
-            #     self.image_2_path = self.all_images_2_paths[self.image_index]
-            #     print(f'Selected image 1 at {self.image_1_path}')
-            #     print(f'Selected image 2 at {self.image_2_path}')
+                # get the corresponding image path
+                if self.mode == 'digit_recognition' or self.mode == 'object_detection':
+                    self.image_path = self.all_images_paths[self.image_index]
+                    print(f'Selected image at {self.image_path}')
+                elif self.mode == 'piv':
+                    # single case images paths
+                    self.image_1_path = self.all_images_1_paths[self.image_index]
+                    self.image_2_path = self.all_images_2_paths[self.image_index]
+                    print(f'Selected image 1 at {self.image_1_path}')
+                    print(f'Selected image 2 at {self.image_2_path}')
 
-            #     # single case model outputs
-            #     self.all_quantities_1 = self.aggregate_outputs_1[:, self.image_index]
-            #     self.all_quantities_2 = self.aggregate_outputs_2[:, self.image_index]
-            #     self.all_ground_truths = self.aggregate_ground_truths[:, self.image_index]
+                    # single case model outputs
+                    self.all_quantities_1 = self.aggregate_outputs_1[:, self.image_index]
+                    self.all_quantities_2 = self.aggregate_outputs_2[:, self.image_index]
+                    self.all_ground_truths = self.aggregate_ground_truths[:, self.image_index]
 
-            # # load the image
-            # self.load_single_image()
+                # load the image
+                self.load_single_image()
 
-            # # display individual view
-            # if self.mode == 'digit_recognition':
-            #     # convert to QImage for display purpose
-            #     self.cur_display_image = nero_utilities.tensor_to_qt_image(self.cur_image_pt)
-            #     # resize the display QImage
-            #     self.cur_display_image = self.cur_display_image.scaledToWidth(self.display_image_size)
-            #     # prepare image tensor for model purpose
-            #     self.cur_image_pt = nero_transform.prepare_mnist_image(self.cur_image_pt)
-            #     # run model once and display results (Detailed bar plot)
-            #     self.run_model_once()
+                # display individual view
+                if self.mode == 'digit_recognition':
+                    # convert to QImage for display purpose
+                    self.cur_display_image = nero_utilities.tensor_to_qt_image(self.cur_image_pt)
+                    # resize the display QImage
+                    self.cur_display_image = self.cur_display_image.scaledToWidth(self.display_image_size)
+                    # prepare image tensor for model purpose
+                    self.cur_image_pt = nero_transform.prepare_mnist_image(self.cur_image_pt)
+                    # run model once and display results (Detailed bar plot)
+                    self.run_model_once()
 
-            # elif self.mode == 'object_detection':
-            #     # convert to QImage for display purpose
-            #     self.cur_display_image = nero_utilities.tensor_to_qt_image(self.cur_image_pt)
-            #     # resize the display QImage
-            #     self.cur_display_image = self.cur_display_image.scaledToWidth(self.display_image_size)
+                elif self.mode == 'object_detection':
+                    # convert to QImage for display purpose
+                    self.cur_display_image = nero_utilities.tensor_to_qt_image(self.cur_image_pt)
+                    # resize the display QImage
+                    self.cur_display_image = self.cur_display_image.scaledToWidth(self.display_image_size)
 
-            # elif self.mode == 'piv':
-            #     # create new GIF
-            #     display_image_1_pil = Image.fromarray(self.cur_image_1_pt.numpy(), 'RGB')
-            #     display_image_2_pil = Image.fromarray(self.cur_image_2_pt.numpy(), 'RGB')
-            #     other_images_pil = [display_image_1_pil, display_image_2_pil, display_image_2_pil, self.blank_image_pil]
-            #     self.gif_path = os.path.join(self.cache_dir, self.loaded_image_1_name.split('.')[0] + '.gif')
-            #     display_image_1_pil.save(fp=self.gif_path,
-            #                                 format='GIF',
-            #                                 append_images=other_images_pil,
-            #                                 save_all=True,
-            #                                 duration=400,
-            #                                 loop=0)
+                elif self.mode == 'piv':
+                    # create new GIF
+                    display_image_1_pil = Image.fromarray(self.cur_image_1_pt.numpy(), 'RGB')
+                    display_image_2_pil = Image.fromarray(self.cur_image_2_pt.numpy(), 'RGB')
+                    other_images_pil = [display_image_1_pil, display_image_2_pil, display_image_2_pil, self.blank_image_pil]
+                    self.gif_path = os.path.join(self.cache_dir, self.loaded_image_1_name.split('.')[0] + '.gif')
+                    display_image_1_pil.save(fp=self.gif_path,
+                                                format='GIF',
+                                                append_images=other_images_pil,
+                                                save_all=True,
+                                                duration=400,
+                                                loop=0)
 
-            # # run model all and display results (Individual NERO plot)
-            # self.run_model_all()
+                # run model all and display results (Individual NERO plot)
+                self.run_model_all()
 
         @QtCore.Slot()
         def dr_result_selection_slider_2_changed():
-            # change the selection
-            self.slider_2_selected_index = self.dr_result_selection_slider_2.value()
-            print(f'Current selected image ranks {self.slider_2_selected_index} in slider 2')
-            # re-display the scatter plot
-            display_dimension_reduction()
 
-            # mimics a point has been clicked
-            # get the clicked scatter item's information
-            # self.image_index = self.sorted_class_indices_2[self.selected_index]
-            # print(f'slider 2 image index {self.image_index}, ranked position {self.selected_index}')
+            # when it is locked, it means that user selects a scatter item directly
+            if self.slider_2_locked:
+                # re-display the scatter plot
+                display_dimension_reduction()
+            # when the slider bar is changed directly, mimics a point has been clicked
+            else:
+                # change the selection
+                self.slider_2_selected_index = self.dr_result_selection_slider_2.value()
+                print(f'Current selected image ranks {self.slider_2_selected_index} in slider 2')
+                # get the clicked scatter item's information
+                self.image_index = self.sorted_class_indices_2[self.selected_index]
+                print(f'slider 2 image index {self.image_index}, ranked position {self.selected_index}')
 
-            # # set the ranking in each colorbar
-            # self.slider_1_value = self.sorted_class_indices_1.index(self.image_index)
-            # self.dr_result_selection_slider_1.setValue(self.slider_1_value)
+                # set the ranking in each colorbar
+                self.slider_1_value = self.sorted_class_indices_1.index(self.image_index)
+                self.dr_result_selection_slider_1.setValue(self.slider_1_value)
 
-            # # get the corresponding image path
-            # if self.mode == 'digit_recognition' or self.mode == 'object_detection':
-            #     self.image_path = self.all_images_paths[self.image_index]
-            #     print(f'Selected image at {self.image_path}')
-            # elif self.mode == 'piv':
-            #     # single case images paths
-            #     self.image_1_path = self.all_images_1_paths[self.image_index]
-            #     self.image_2_path = self.all_images_2_paths[self.image_index]
-            #     print(f'Selected image 1 at {self.image_1_path}')
-            #     print(f'Selected image 2 at {self.image_2_path}')
+                # get the corresponding image path
+                if self.mode == 'digit_recognition' or self.mode == 'object_detection':
+                    self.image_path = self.all_images_paths[self.image_index]
+                    print(f'Selected image at {self.image_path}')
+                elif self.mode == 'piv':
+                    # single case images paths
+                    self.image_1_path = self.all_images_1_paths[self.image_index]
+                    self.image_2_path = self.all_images_2_paths[self.image_index]
+                    print(f'Selected image 1 at {self.image_1_path}')
+                    print(f'Selected image 2 at {self.image_2_path}')
 
-            #     # single case model outputs
-            #     self.all_quantities_1 = self.aggregate_outputs_1[:, self.image_index]
-            #     self.all_quantities_2 = self.aggregate_outputs_2[:, self.image_index]
-            #     self.all_ground_truths = self.aggregate_ground_truths[:, self.image_index]
+                    # single case model outputs
+                    self.all_quantities_1 = self.aggregate_outputs_1[:, self.image_index]
+                    self.all_quantities_2 = self.aggregate_outputs_2[:, self.image_index]
+                    self.all_ground_truths = self.aggregate_ground_truths[:, self.image_index]
 
-            # # load the image
-            # self.load_single_image()
+                # load the image
+                self.load_single_image()
 
-            # # display individual view
-            # if self.mode == 'digit_recognition':
-            #     # convert to QImage for display purpose
-            #     self.cur_display_image = nero_utilities.tensor_to_qt_image(self.cur_image_pt)
-            #     # resize the display QImage
-            #     self.cur_display_image = self.cur_display_image.scaledToWidth(self.display_image_size)
-            #     # prepare image tensor for model purpose
-            #     self.cur_image_pt = nero_transform.prepare_mnist_image(self.cur_image_pt)
-            #     # run model once and display results (Detailed bar plot)
-            #     self.run_model_once()
+                # display individual view
+                if self.mode == 'digit_recognition':
+                    # convert to QImage for display purpose
+                    self.cur_display_image = nero_utilities.tensor_to_qt_image(self.cur_image_pt)
+                    # resize the display QImage
+                    self.cur_display_image = self.cur_display_image.scaledToWidth(self.display_image_size)
+                    # prepare image tensor for model purpose
+                    self.cur_image_pt = nero_transform.prepare_mnist_image(self.cur_image_pt)
+                    # run model once and display results (Detailed bar plot)
+                    self.run_model_once()
 
-            # elif self.mode == 'object_detection':
-            #     # convert to QImage for display purpose
-            #     self.cur_display_image = nero_utilities.tensor_to_qt_image(self.cur_image_pt)
-            #     # resize the display QImage
-            #     self.cur_display_image = self.cur_display_image.scaledToWidth(self.display_image_size)
+                elif self.mode == 'object_detection':
+                    # convert to QImage for display purpose
+                    self.cur_display_image = nero_utilities.tensor_to_qt_image(self.cur_image_pt)
+                    # resize the display QImage
+                    self.cur_display_image = self.cur_display_image.scaledToWidth(self.display_image_size)
 
-            # elif self.mode == 'piv':
-            #     # create new GIF
-            #     display_image_1_pil = Image.fromarray(self.cur_image_1_pt.numpy(), 'RGB')
-            #     display_image_2_pil = Image.fromarray(self.cur_image_2_pt.numpy(), 'RGB')
-            #     other_images_pil = [display_image_1_pil, display_image_2_pil, display_image_2_pil, self.blank_image_pil]
-            #     self.gif_path = os.path.join(self.cache_dir, self.loaded_image_1_name.split('.')[0] + '.gif')
-            #     display_image_1_pil.save(fp=self.gif_path,
-            #                                 format='GIF',
-            #                                 append_images=other_images_pil,
-            #                                 save_all=True,
-            #                                 duration=400,
-            #                                 loop=0)
+                elif self.mode == 'piv':
+                    # create new GIF
+                    display_image_1_pil = Image.fromarray(self.cur_image_1_pt.numpy(), 'RGB')
+                    display_image_2_pil = Image.fromarray(self.cur_image_2_pt.numpy(), 'RGB')
+                    other_images_pil = [display_image_1_pil, display_image_2_pil, display_image_2_pil, self.blank_image_pil]
+                    self.gif_path = os.path.join(self.cache_dir, self.loaded_image_1_name.split('.')[0] + '.gif')
+                    display_image_1_pil.save(fp=self.gif_path,
+                                                format='GIF',
+                                                append_images=other_images_pil,
+                                                save_all=True,
+                                                duration=400,
+                                                loop=0)
 
-            # # run model all and display results (Individual NERO plot)
-            # self.run_model_all()
+                # run model all and display results (Individual NERO plot)
+                self.run_model_all()
 
 
         # radio buittons on choosing the intensity quantity
