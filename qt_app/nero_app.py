@@ -1673,6 +1673,12 @@ class UI_MainWindow(QWidget):
                 self.image_index = self.sorted_class_indices_1[self.slider_1_selected_index]
                 print(f'slider 1 image index {self.image_index}, ranked position {self.slider_1_selected_index}')
 
+                # change the other slider's value
+                self.slider_2_locked = True
+                self.slider_2_selected_index = self.sorted_class_indices_2.index(self.image_index)
+                self.dr_result_selection_slider_2.setValue(self.slider_2_selected_index)
+                self.slider_2_locked = False
+
                 # update the scatter plot
                 display_dimension_reduction()
 
@@ -1740,6 +1746,12 @@ class UI_MainWindow(QWidget):
                 # get the clicked scatter item's information
                 self.image_index = self.sorted_class_indices_2[self.slider_2_selected_index]
                 print(f'slider 2 image index {self.image_index}, ranked position {self.slider_2_selected_index}')
+
+                # change the other slider's value
+                self.slider_1_locked = True
+                self.slider_1_selected_index = self.sorted_class_indices_1.index(self.image_index)
+                self.dr_result_selection_slider_1.setValue(self.slider_1_selected_index)
+                self.slider_1_locked = False
 
                 # update the scatter plot
                 display_dimension_reduction()
