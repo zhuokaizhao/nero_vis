@@ -1355,12 +1355,11 @@ class UI_MainWindow(QWidget):
             self.image_index = int(item.opts['name'])
             print(f'clicked image index {self.image_index}')
 
-            # get the ranking in each colorbar
-            # self.slider_1_value = self.sorted_class_indices_1.index(self.image_index)
-            # self.dr_result_selection_slider_1.setValue(self.slider_1_value)
-            # self.slider_2_value = self.sorted_class_indices_2.index(self.image_index)
-            # print(self.slider_2_value)
-            # self.dr_result_selection_slider_2.setValue(self.slider_2_value)
+            # get the ranking in each colorbar and change its value
+            self.slider_1_selected_index = self.sorted_class_indices_1.index(self.image_index)
+            self.dr_result_selection_slider_1.setValue(self.slider_1_selected_index)
+            self.slider_2_selected_index = self.sorted_class_indices_2.index(self.image_index)
+            self.dr_result_selection_slider_2.setValue(self.slider_2_selected_index)
 
 
             # get the corresponding image path
@@ -1428,8 +1427,8 @@ class UI_MainWindow(QWidget):
 
             return new_low_dim
 
-
-        def plot_dr_scatter(low_dim_scatter_plot, low_dim, all_intensity, sorted_class_indices):
+        # plot all the scatter items with brush color reflecting the intensity
+        def plot_dr_scatter(low_dim_scatter_plot, low_dim, sorted_intensity, sorted_class_indices, slider_selected_index):
             # same colorbar as used in aggregate NERO plot, to be used in color encode scatter points
             if self.mode == 'piv':
                 scatter_lut = self.color_map.getLookupTable(start=self.cm_range[1], stop=self.cm_range[0], nPts=500, alpha=False)
@@ -1438,20 +1437,20 @@ class UI_MainWindow(QWidget):
 
             # quantize all the intensity into color
             color_indices = []
-            for i in range(len(all_intensity)):
-                lut_index = nero_utilities.lerp(all_intensity[i], self.cm_range[0], self.cm_range[1], 0, 499)
+            for i in range(len(sorted_intensity)):
+                lut_index = nero_utilities.lerp(sorted_intensity[i], self.cm_range[0], self.cm_range[1], 0, 499)
                 if lut_index > 499:
                     lut_index = 499
                 elif lut_index < 0:
                     lut_index = 0
                 color_indices.append(scatter_lut[int(lut_index)])
 
-            # if self.image_index != None:
-            #     self.image_index = sorted_class_indices[0]
+            # image index position in the current sorted class indices
+            sorted_selected_index = sorted_class_indices.index(self.image_index)
 
             for i, index in enumerate(sorted_class_indices):
-                # add the selected item's color at last to make sure that the current selected item is always on top (last to render)
-                if self.selected_index and i == self.selected_index:
+                # add the selected item's color at last to make sure that the current selected item is always on top (rendered last)
+                if i == sorted_selected_index:
                     continue
                 # add individual items for getting the item's name later when clicking
                 # Set pxMode=True to have scatter items stay at the same screen size
@@ -1469,23 +1468,26 @@ class UI_MainWindow(QWidget):
                 # add points to the plot
                 low_dim_scatter_plot.addItem(low_dim_scatter_item)
 
-
             # add the current selected one
             low_dim_scatter_item = pg.ScatterPlotItem(pxMode=True)
             low_dim_scatter_item.setSymbol('o')
-            # red pen and original brush color
-            low_dim_point = [{'pos': (low_dim[self.selected_index, 0], low_dim[self.selected_index, 1]),
-                                'size': self.scatter_item_size,
-                                'pen': {'color': 'red', 'width': 3},
-                                'brush': QtGui.QColor(color_indices[self.selected_index][0], color_indices[self.selected_index][1], color_indices[self.selected_index][2])}]
-
+            # set red pen indicator if slider selects
+            if slider_selected_index != None:
+                low_dim_point = [{'pos': (low_dim[sorted_selected_index, 0], low_dim[sorted_selected_index, 1]),
+                                    'size': self.scatter_item_size,
+                                    'pen': {'color': 'red', 'width': 3},
+                                    'brush': QtGui.QColor(color_indices[sorted_selected_index][0], color_indices[sorted_selected_index][1], color_indices[sorted_selected_index][2])}]
+            else:
+                low_dim_point = [{'pos': (low_dim[sorted_selected_index, 0], low_dim[sorted_selected_index, 1]),
+                                    'size': self.scatter_item_size,
+                                    'pen': QtGui.QColor(color_indices[sorted_selected_index][0], color_indices[sorted_selected_index][1], color_indices[sorted_selected_index][2]),
+                                    'brush': QtGui.QColor(color_indices[sorted_selected_index][0], color_indices[sorted_selected_index][1], color_indices[sorted_selected_index][2])}]
             # add points to the item
-            low_dim_scatter_item.setData(low_dim_point, name=str(sorted_class_indices[self.selected_index]))
+            low_dim_scatter_item.setData(low_dim_point, name=str(sorted_class_indices[sorted_selected_index]))
             # connect click events on scatter items
             low_dim_scatter_item.sigClicked.connect(low_dim_scatter_clicked)
             # add points to the plot
             low_dim_scatter_plot.addItem(low_dim_scatter_item)
-
 
         # helper function on displaying the 2D scatter plot
         def display_dimension_reduction():
@@ -1537,8 +1539,17 @@ class UI_MainWindow(QWidget):
             self.low_dim_2 = self.low_dim_2[self.sorted_intensity_indices_2]
 
             # plot the dimension reduction scatter plot
-            plot_dr_scatter(self.low_dim_scatter_plot_1, self.low_dim_1, self.sorted_intensity_1, self.sorted_class_indices_1)
-            plot_dr_scatter(self.low_dim_scatter_plot_2, self.low_dim_2, self.sorted_intensity_2, self.sorted_class_indices_2)
+            plot_dr_scatter(self.low_dim_scatter_plot_1,
+                            self.low_dim_1,
+                            self.sorted_intensity_1,
+                            self.sorted_class_indices_1,
+                            self.slider_1_selected_index)
+
+            plot_dr_scatter(self.low_dim_scatter_plot_2,
+                            self.low_dim_2,
+                            self.sorted_intensity_2,
+                            self.sorted_class_indices_2,
+                            self.slider_2_selected_index)
 
             if self.mode == 'digit_recognition':
                 self.aggregate_result_layout.addWidget(self.low_dim_scatter_view_1, 1, 3)
@@ -1645,8 +1656,8 @@ class UI_MainWindow(QWidget):
         @QtCore.Slot()
         def dr_result_selection_slider_1_changed():
             # change the selection
-            self.selected_index = self.dr_result_selection_slider_1.value()
-
+            self.slider_1_selected_index = self.dr_result_selection_slider_1.value()
+            print(f'Current selected image ranks {self.slider_1_selected_index} in slider 1')
             # re-display the scatter plot
             display_dimension_reduction()
 
@@ -1714,8 +1725,8 @@ class UI_MainWindow(QWidget):
         @QtCore.Slot()
         def dr_result_selection_slider_2_changed():
             # change the selection
-            self.selected_index = self.dr_result_selection_slider_2.value()
-            print(self.selected_index)
+            self.slider_2_selected_index = self.dr_result_selection_slider_2.value()
+            print(f'Current selected image ranks {self.slider_2_selected_index} in slider 2')
             # re-display the scatter plot
             display_dimension_reduction()
 
@@ -1825,9 +1836,10 @@ class UI_MainWindow(QWidget):
         self.aggregate_result_layout.addWidget(self.dr_result_selection_slider_2, 3, 2)
 
         # show the scatter plot of dimension reduction result
-        # initialize image index of all the images
-        self.selected_index = None
-        self.image_index = None
+        # initialize selected image being the first in class
+        self.image_index = self.cur_class_indices[0]
+        self.slider_1_selected_index = None
+        self.slider_2_selected_index = None
         display_dimension_reduction()
 
 
