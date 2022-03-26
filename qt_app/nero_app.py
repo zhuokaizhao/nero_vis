@@ -1646,7 +1646,7 @@ class UI_MainWindow(QWidget):
 
             # mimics a point has been clicked
             # get the clicked scatter item's information
-            self.image_index = self.all_intensity_indices_1[self.selected_index]
+            self.image_index = self.sorted_intensity_indices_1[self.selected_index]
 
             # get the ranking in each colorbar
             self.slider_2_value = self.sorted_class_indices_2.index(self.image_index)
@@ -1714,7 +1714,7 @@ class UI_MainWindow(QWidget):
 
             # mimics a point has been clicked
             # get the clicked scatter item's information
-            self.image_index = self.all_intensity_indices_2[self.selected_index]
+            self.image_index = self.sorted_intensity_indices_2[self.selected_index]
 
             # get the ranking in each colorbar
             self.slider_1_value = self.sorted_class_indices_1.index(self.image_index)
