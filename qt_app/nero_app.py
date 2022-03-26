@@ -1336,18 +1336,18 @@ class UI_MainWindow(QWidget):
 
             # clear previous visualization
             if self.last_clicked:
-                self.last_clicked.resetPen()
+                # self.last_clicked.resetPen()
+                self.last_clicked.setPen(self.old_pen)
                 self.last_clicked.setBrush(self.old_brush)
 
             # only allow clicking one point at a time
             # save the old brush, use color to determine which plot gets the click
+            self.old_pen = points[0].pen()
             self.old_brush = points[0].brush()
 
-            # create new pen and brush the newly clicked point
+            # create new pen of the newly clicked point
             new_pen = pg.mkPen(QtGui.QColor(255, 0, 0, 255), width=3)
-            new_brush = pg.mkBrush(QtGui.QColor(255, 0, 0, 255))
             points[0].setPen(new_pen)
-            points[0].setBrush(new_brush)
 
             self.last_clicked = points[0]
 
@@ -1356,10 +1356,11 @@ class UI_MainWindow(QWidget):
             print(f'clicked image index {self.image_index}')
 
             # get the ranking in each colorbar
-            self.slider_1_value = self.sorted_class_indices_1.index(self.image_index)
-            self.dr_result_selection_slider_1.setValue(self.slider_1_value)
-            self.slider_2_value = self.sorted_class_indices_2.index(self.image_index)
-            self.dr_result_selection_slider_2.setValue(self.slider_2_value)
+            # self.slider_1_value = self.sorted_class_indices_1.index(self.image_index)
+            # self.dr_result_selection_slider_1.setValue(self.slider_1_value)
+            # self.slider_2_value = self.sorted_class_indices_2.index(self.image_index)
+            # print(self.slider_2_value)
+            # self.dr_result_selection_slider_2.setValue(self.slider_2_value)
 
 
             # get the corresponding image path
@@ -1445,9 +1446,12 @@ class UI_MainWindow(QWidget):
                     lut_index = 0
                 color_indices.append(scatter_lut[int(lut_index)])
 
+            # if self.image_index != None:
+            #     self.image_index = sorted_class_indices[0]
+
             for i, index in enumerate(sorted_class_indices):
                 # add the selected item's color at last to make sure that the current selected item is always on top (last to render)
-                if i == self.selected_index:
+                if self.selected_index and i == self.selected_index:
                     continue
                 # add individual items for getting the item's name later when clicking
                 # Set pxMode=True to have scatter items stay at the same screen size
@@ -1469,9 +1473,10 @@ class UI_MainWindow(QWidget):
             # add the current selected one
             low_dim_scatter_item = pg.ScatterPlotItem(pxMode=True)
             low_dim_scatter_item.setSymbol('o')
+            # red pen and original brush color
             low_dim_point = [{'pos': (low_dim[self.selected_index, 0], low_dim[self.selected_index, 1]),
                                 'size': self.scatter_item_size,
-                                'pen': QtGui.QColor(color_indices[i][0], color_indices[i][1], color_indices[i][2]),
+                                'pen': {'color': 'red', 'width': 3},
                                 'brush': QtGui.QColor(color_indices[self.selected_index][0], color_indices[self.selected_index][1], color_indices[self.selected_index][2])}]
 
             # add points to the item
@@ -1647,133 +1652,133 @@ class UI_MainWindow(QWidget):
 
             # mimics a point has been clicked
             # get the clicked scatter item's information
-            self.image_index = self.sorted_class_indices_1[self.selected_index]
-            print(f'slider 1 image index {self.image_index}, ranked position {self.selected_index}')
+            # self.image_index = self.sorted_class_indices_1[self.selected_index]
+            # print(f'slider 1 image index {self.image_index}, ranked position {self.selected_index}')
 
-            # get the ranking in each colorbar
-            self.slider_2_value = self.sorted_class_indices_2.index(self.image_index)
-            self.dr_result_selection_slider_2.setValue(self.slider_2_value)
+            # # change the ranking in the other colorbar
+            # self.slider_2_value = self.sorted_class_indices_2.index(self.image_index)
+            # self.dr_result_selection_slider_2.setValue(self.slider_2_value)
 
-            # get the corresponding image path
-            if self.mode == 'digit_recognition' or self.mode == 'object_detection':
-                self.image_path = self.all_images_paths[self.image_index]
-                print(f'Selected image at {self.image_path}')
-            elif self.mode == 'piv':
-                # single case images paths
-                self.image_1_path = self.all_images_1_paths[self.image_index]
-                self.image_2_path = self.all_images_2_paths[self.image_index]
-                print(f'Selected image 1 at {self.image_1_path}')
-                print(f'Selected image 2 at {self.image_2_path}')
+            # # get the corresponding image path
+            # if self.mode == 'digit_recognition' or self.mode == 'object_detection':
+            #     self.image_path = self.all_images_paths[self.image_index]
+            #     print(f'Selected image at {self.image_path}')
+            # elif self.mode == 'piv':
+            #     # single case images paths
+            #     self.image_1_path = self.all_images_1_paths[self.image_index]
+            #     self.image_2_path = self.all_images_2_paths[self.image_index]
+            #     print(f'Selected image 1 at {self.image_1_path}')
+            #     print(f'Selected image 2 at {self.image_2_path}')
 
-                # single case model outputs
-                self.all_quantities_1 = self.aggregate_outputs_1[:, self.image_index]
-                self.all_quantities_2 = self.aggregate_outputs_2[:, self.image_index]
-                self.all_ground_truths = self.aggregate_ground_truths[:, self.image_index]
+            #     # single case model outputs
+            #     self.all_quantities_1 = self.aggregate_outputs_1[:, self.image_index]
+            #     self.all_quantities_2 = self.aggregate_outputs_2[:, self.image_index]
+            #     self.all_ground_truths = self.aggregate_ground_truths[:, self.image_index]
 
-            # load the image
-            self.load_single_image()
+            # # load the image
+            # self.load_single_image()
 
-            # display individual view
-            if self.mode == 'digit_recognition':
-                # convert to QImage for display purpose
-                self.cur_display_image = nero_utilities.tensor_to_qt_image(self.cur_image_pt)
-                # resize the display QImage
-                self.cur_display_image = self.cur_display_image.scaledToWidth(self.display_image_size)
-                # prepare image tensor for model purpose
-                self.cur_image_pt = nero_transform.prepare_mnist_image(self.cur_image_pt)
-                # run model once and display results (Detailed bar plot)
-                self.run_model_once()
+            # # display individual view
+            # if self.mode == 'digit_recognition':
+            #     # convert to QImage for display purpose
+            #     self.cur_display_image = nero_utilities.tensor_to_qt_image(self.cur_image_pt)
+            #     # resize the display QImage
+            #     self.cur_display_image = self.cur_display_image.scaledToWidth(self.display_image_size)
+            #     # prepare image tensor for model purpose
+            #     self.cur_image_pt = nero_transform.prepare_mnist_image(self.cur_image_pt)
+            #     # run model once and display results (Detailed bar plot)
+            #     self.run_model_once()
 
-            elif self.mode == 'object_detection':
-                # convert to QImage for display purpose
-                self.cur_display_image = nero_utilities.tensor_to_qt_image(self.cur_image_pt)
-                # resize the display QImage
-                self.cur_display_image = self.cur_display_image.scaledToWidth(self.display_image_size)
+            # elif self.mode == 'object_detection':
+            #     # convert to QImage for display purpose
+            #     self.cur_display_image = nero_utilities.tensor_to_qt_image(self.cur_image_pt)
+            #     # resize the display QImage
+            #     self.cur_display_image = self.cur_display_image.scaledToWidth(self.display_image_size)
 
-            elif self.mode == 'piv':
-                # create new GIF
-                display_image_1_pil = Image.fromarray(self.cur_image_1_pt.numpy(), 'RGB')
-                display_image_2_pil = Image.fromarray(self.cur_image_2_pt.numpy(), 'RGB')
-                other_images_pil = [display_image_1_pil, display_image_2_pil, display_image_2_pil, self.blank_image_pil]
-                self.gif_path = os.path.join(self.cache_dir, self.loaded_image_1_name.split('.')[0] + '.gif')
-                display_image_1_pil.save(fp=self.gif_path,
-                                            format='GIF',
-                                            append_images=other_images_pil,
-                                            save_all=True,
-                                            duration=400,
-                                            loop=0)
+            # elif self.mode == 'piv':
+            #     # create new GIF
+            #     display_image_1_pil = Image.fromarray(self.cur_image_1_pt.numpy(), 'RGB')
+            #     display_image_2_pil = Image.fromarray(self.cur_image_2_pt.numpy(), 'RGB')
+            #     other_images_pil = [display_image_1_pil, display_image_2_pil, display_image_2_pil, self.blank_image_pil]
+            #     self.gif_path = os.path.join(self.cache_dir, self.loaded_image_1_name.split('.')[0] + '.gif')
+            #     display_image_1_pil.save(fp=self.gif_path,
+            #                                 format='GIF',
+            #                                 append_images=other_images_pil,
+            #                                 save_all=True,
+            #                                 duration=400,
+            #                                 loop=0)
 
-            # run model all and display results (Individual NERO plot)
-            self.run_model_all()
+            # # run model all and display results (Individual NERO plot)
+            # self.run_model_all()
 
         @QtCore.Slot()
         def dr_result_selection_slider_2_changed():
             # change the selection
             self.selected_index = self.dr_result_selection_slider_2.value()
-
+            print(self.selected_index)
             # re-display the scatter plot
             display_dimension_reduction()
 
             # mimics a point has been clicked
             # get the clicked scatter item's information
-            self.image_index = self.sorted_class_indices_2[self.selected_index]
-            print(f'slider 2 image index {self.image_index}, ranked position {self.selected_index}')
+            # self.image_index = self.sorted_class_indices_2[self.selected_index]
+            # print(f'slider 2 image index {self.image_index}, ranked position {self.selected_index}')
 
-            # get the ranking in each colorbar
-            self.slider_1_value = self.sorted_class_indices_1.index(self.image_index)
-            self.dr_result_selection_slider_1.setValue(self.slider_1_value)
+            # # set the ranking in each colorbar
+            # self.slider_1_value = self.sorted_class_indices_1.index(self.image_index)
+            # self.dr_result_selection_slider_1.setValue(self.slider_1_value)
 
-            # get the corresponding image path
-            if self.mode == 'digit_recognition' or self.mode == 'object_detection':
-                self.image_path = self.all_images_paths[self.image_index]
-                print(f'Selected image at {self.image_path}')
-            elif self.mode == 'piv':
-                # single case images paths
-                self.image_1_path = self.all_images_1_paths[self.image_index]
-                self.image_2_path = self.all_images_2_paths[self.image_index]
-                print(f'Selected image 1 at {self.image_1_path}')
-                print(f'Selected image 2 at {self.image_2_path}')
+            # # get the corresponding image path
+            # if self.mode == 'digit_recognition' or self.mode == 'object_detection':
+            #     self.image_path = self.all_images_paths[self.image_index]
+            #     print(f'Selected image at {self.image_path}')
+            # elif self.mode == 'piv':
+            #     # single case images paths
+            #     self.image_1_path = self.all_images_1_paths[self.image_index]
+            #     self.image_2_path = self.all_images_2_paths[self.image_index]
+            #     print(f'Selected image 1 at {self.image_1_path}')
+            #     print(f'Selected image 2 at {self.image_2_path}')
 
-                # single case model outputs
-                self.all_quantities_1 = self.aggregate_outputs_1[:, self.image_index]
-                self.all_quantities_2 = self.aggregate_outputs_2[:, self.image_index]
-                self.all_ground_truths = self.aggregate_ground_truths[:, self.image_index]
+            #     # single case model outputs
+            #     self.all_quantities_1 = self.aggregate_outputs_1[:, self.image_index]
+            #     self.all_quantities_2 = self.aggregate_outputs_2[:, self.image_index]
+            #     self.all_ground_truths = self.aggregate_ground_truths[:, self.image_index]
 
-            # load the image
-            self.load_single_image()
+            # # load the image
+            # self.load_single_image()
 
-            # display individual view
-            if self.mode == 'digit_recognition':
-                # convert to QImage for display purpose
-                self.cur_display_image = nero_utilities.tensor_to_qt_image(self.cur_image_pt)
-                # resize the display QImage
-                self.cur_display_image = self.cur_display_image.scaledToWidth(self.display_image_size)
-                # prepare image tensor for model purpose
-                self.cur_image_pt = nero_transform.prepare_mnist_image(self.cur_image_pt)
-                # run model once and display results (Detailed bar plot)
-                self.run_model_once()
+            # # display individual view
+            # if self.mode == 'digit_recognition':
+            #     # convert to QImage for display purpose
+            #     self.cur_display_image = nero_utilities.tensor_to_qt_image(self.cur_image_pt)
+            #     # resize the display QImage
+            #     self.cur_display_image = self.cur_display_image.scaledToWidth(self.display_image_size)
+            #     # prepare image tensor for model purpose
+            #     self.cur_image_pt = nero_transform.prepare_mnist_image(self.cur_image_pt)
+            #     # run model once and display results (Detailed bar plot)
+            #     self.run_model_once()
 
-            elif self.mode == 'object_detection':
-                # convert to QImage for display purpose
-                self.cur_display_image = nero_utilities.tensor_to_qt_image(self.cur_image_pt)
-                # resize the display QImage
-                self.cur_display_image = self.cur_display_image.scaledToWidth(self.display_image_size)
+            # elif self.mode == 'object_detection':
+            #     # convert to QImage for display purpose
+            #     self.cur_display_image = nero_utilities.tensor_to_qt_image(self.cur_image_pt)
+            #     # resize the display QImage
+            #     self.cur_display_image = self.cur_display_image.scaledToWidth(self.display_image_size)
 
-            elif self.mode == 'piv':
-                # create new GIF
-                display_image_1_pil = Image.fromarray(self.cur_image_1_pt.numpy(), 'RGB')
-                display_image_2_pil = Image.fromarray(self.cur_image_2_pt.numpy(), 'RGB')
-                other_images_pil = [display_image_1_pil, display_image_2_pil, display_image_2_pil, self.blank_image_pil]
-                self.gif_path = os.path.join(self.cache_dir, self.loaded_image_1_name.split('.')[0] + '.gif')
-                display_image_1_pil.save(fp=self.gif_path,
-                                            format='GIF',
-                                            append_images=other_images_pil,
-                                            save_all=True,
-                                            duration=400,
-                                            loop=0)
+            # elif self.mode == 'piv':
+            #     # create new GIF
+            #     display_image_1_pil = Image.fromarray(self.cur_image_1_pt.numpy(), 'RGB')
+            #     display_image_2_pil = Image.fromarray(self.cur_image_2_pt.numpy(), 'RGB')
+            #     other_images_pil = [display_image_1_pil, display_image_2_pil, display_image_2_pil, self.blank_image_pil]
+            #     self.gif_path = os.path.join(self.cache_dir, self.loaded_image_1_name.split('.')[0] + '.gif')
+            #     display_image_1_pil.save(fp=self.gif_path,
+            #                                 format='GIF',
+            #                                 append_images=other_images_pil,
+            #                                 save_all=True,
+            #                                 duration=400,
+            #                                 loop=0)
 
-            # run model all and display results (Individual NERO plot)
-            self.run_model_all()
+            # # run model all and display results (Individual NERO plot)
+            # self.run_model_all()
 
 
         # radio buittons on choosing the intensity quantity
@@ -1799,7 +1804,6 @@ class UI_MainWindow(QWidget):
         self.intensity_max = max(np.max(self.all_intensity_1), np.max(self.all_intensity_2))
 
         # sliders that rank the dimension reduction result and can select one of them
-        self.selected_index = 0
         self.dr_result_selection_slider_1 = QtWidgets.QSlider(QtCore.Qt.Horizontal)
         self.dr_result_selection_slider_1.setFixedSize(self.plot_size, 50)
         self.dr_result_selection_slider_1.setMinimum(0)
@@ -1821,6 +1825,9 @@ class UI_MainWindow(QWidget):
         self.aggregate_result_layout.addWidget(self.dr_result_selection_slider_2, 3, 2)
 
         # show the scatter plot of dimension reduction result
+        # initialize image index of all the images
+        self.selected_index = None
+        self.image_index = None
         display_dimension_reduction()
 
 
@@ -4507,27 +4514,8 @@ class UI_MainWindow(QWidget):
             # re-display the heatmap
             self.draw_coco_nero(mode='single')
 
-        # drop down menu on selection which quantity to plot
         # layout that controls the plotting items
         self.single_plot_control_layout = QtWidgets.QVBoxLayout()
-        # quantity_menu = QtWidgets.QComboBox()
-        # quantity_menu.setFixedSize(QtCore.QSize(250, 50))
-        # quantity_menu.setStyleSheet('font-size: 18px')
-        # quantity_menu.setEditable(True)
-        # quantity_menu.lineEdit().setReadOnly(True)
-        # quantity_menu.lineEdit().setAlignment(QtCore.Qt.AlignCenter)
-
-        # quantity_menu.addItem('Confidence*IOU')
-        # quantity_menu.addItem('Confidence')
-        # quantity_menu.addItem('IOU')
-        # quantity_menu.addItem('Consensus')
-        # self.quantity_menu.setCurrentIndex(0)
-        # quantity_menu.setCurrentText('Confidence*IOU')
-
-        # connect the drop down menu with actions
-        # quantity_menu.currentTextChanged.connect(heatmap_quantity_changed)
-        # self.single_plot_control_layout.addWidget(quantity_menu)
-
         # checkbox on if doing real-time inference
         self.realtime_inference_checkbox = QtWidgets.QCheckBox('Realtime inference when dragging')
         self.realtime_inference_checkbox.setStyleSheet('font-size: 18px')
