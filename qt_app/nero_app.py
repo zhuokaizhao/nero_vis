@@ -1334,22 +1334,22 @@ class UI_MainWindow(QWidget):
         # helper function for clicking inside the scatter plot
         def low_dim_scatter_clicked(item, points):
 
-            # clear previous visualization
-            if self.last_clicked:
-                # self.last_clicked.resetPen()
-                self.last_clicked.setPen(self.old_pen)
-                self.last_clicked.setBrush(self.old_brush)
+            # # clear previous visualization
+            # if self.last_clicked:
+            #     # self.last_clicked.resetPen()
+            #     self.last_clicked.setPen(self.old_pen)
+            #     self.last_clicked.setBrush(self.old_brush)
 
-            # only allow clicking one point at a time
-            # save the old brush, use color to determine which plot gets the click
-            self.old_pen = points[0].pen()
-            self.old_brush = points[0].brush()
+            # # only allow clicking one point at a time
+            # # save the old brush, use color to determine which plot gets the click
+            # self.old_pen = points[0].pen()
+            # self.old_brush = points[0].brush()
 
-            # create new pen of the newly clicked point
-            new_pen = pg.mkPen(QtGui.QColor(255, 0, 0, 255), width=3)
-            points[0].setPen(new_pen)
+            # # create new pen of the newly clicked point
+            # new_pen = pg.mkPen(QtGui.QColor(255, 0, 0, 255), width=3)
+            # points[0].setPen(new_pen)
 
-            self.last_clicked = points[0]
+            # self.last_clicked = points[0]
 
             # get the clicked scatter item's information
             self.image_index = int(item.opts['name'])
@@ -1362,6 +1362,8 @@ class UI_MainWindow(QWidget):
             self.dr_result_selection_slider_1.setValue(self.slider_1_selected_index)
             self.slider_2_selected_index = self.sorted_class_indices_2.index(self.image_index)
             self.dr_result_selection_slider_2.setValue(self.slider_2_selected_index)
+            # update the scatter plot
+            display_dimension_reduction()
             # unlock after changing the values
             self.slider_1_locked = False
             self.slider_2_locked = False
@@ -1661,19 +1663,18 @@ class UI_MainWindow(QWidget):
         @QtCore.Slot()
         def dr_result_selection_slider_1_changed():
 
-            # when it is locked, it means that user selects a scatter item directly
-            if self.slider_1_locked:
-                # re-display the scatter plot
-                display_dimension_reduction()
-            # when the slider bar is changed directly, mimics a point has been clicked
-            else:
-                # get the clicked scatter item's information
-                self.image_index = self.sorted_class_indices_1[self.selected_index]
-                print(f'slider 1 image index {self.image_index}, ranked position {self.selected_index}')
-
+            # when the slider bar is changed directly by user, it is unlocked
+            # mimics that a point has been clicked
+            if not self.slider_1_locked:
                 # change the ranking in the other colorbar
-                self.slider_2_value = self.sorted_class_indices_2.index(self.image_index)
-                self.dr_result_selection_slider_2.setValue(self.slider_2_value)
+                self.slider_1_selected_index = self.dr_result_selection_slider_1.value()
+
+                # get the clicked scatter item's information
+                self.image_index = self.sorted_class_indices_1[self.slider_1_selected_index]
+                print(f'slider 1 image index {self.image_index}, ranked position {self.slider_1_selected_index}')
+
+                # update the scatter plot
+                display_dimension_reduction()
 
                 # get the corresponding image path
                 if self.mode == 'digit_recognition' or self.mode == 'object_detection':
@@ -1730,22 +1731,18 @@ class UI_MainWindow(QWidget):
         @QtCore.Slot()
         def dr_result_selection_slider_2_changed():
 
-            # when it is locked, it means that user selects a scatter item directly
-            if self.slider_2_locked:
-                # re-display the scatter plot
-                display_dimension_reduction()
-            # when the slider bar is changed directly, mimics a point has been clicked
-            else:
-                # change the selection
+            # when the slider bar is changed directly by user, it is unlocked
+            # mimics that a point has been clicked
+            if not self.slider_2_locked:
+                # change the ranking in the other colorbar
                 self.slider_2_selected_index = self.dr_result_selection_slider_2.value()
-                print(f'Current selected image ranks {self.slider_2_selected_index} in slider 2')
-                # get the clicked scatter item's information
-                self.image_index = self.sorted_class_indices_2[self.selected_index]
-                print(f'slider 2 image index {self.image_index}, ranked position {self.selected_index}')
 
-                # set the ranking in each colorbar
-                self.slider_1_value = self.sorted_class_indices_1.index(self.image_index)
-                self.dr_result_selection_slider_1.setValue(self.slider_1_value)
+                # get the clicked scatter item's information
+                self.image_index = self.sorted_class_indices_2[self.slider_2_selected_index]
+                print(f'slider 2 image index {self.image_index}, ranked position {self.slider_2_selected_index}')
+
+                # update the scatter plot
+                display_dimension_reduction()
 
                 # get the corresponding image path
                 if self.mode == 'digit_recognition' or self.mode == 'object_detection':
