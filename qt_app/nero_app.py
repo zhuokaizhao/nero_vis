@@ -1334,23 +1334,6 @@ class UI_MainWindow(QWidget):
         # helper function for clicking inside the scatter plot
         def low_dim_scatter_clicked(item, points):
 
-            # # clear previous visualization
-            # if self.last_clicked:
-            #     # self.last_clicked.resetPen()
-            #     self.last_clicked.setPen(self.old_pen)
-            #     self.last_clicked.setBrush(self.old_brush)
-
-            # # only allow clicking one point at a time
-            # # save the old brush, use color to determine which plot gets the click
-            # self.old_pen = points[0].pen()
-            # self.old_brush = points[0].brush()
-
-            # # create new pen of the newly clicked point
-            # new_pen = pg.mkPen(QtGui.QColor(255, 0, 0, 255), width=3)
-            # points[0].setPen(new_pen)
-
-            # self.last_clicked = points[0]
-
             # get the clicked scatter item's information
             self.image_index = int(item.opts['name'])
             print(f'clicked image index {self.image_index}')
@@ -1367,7 +1350,6 @@ class UI_MainWindow(QWidget):
             # unlock after changing the values
             self.slider_1_locked = False
             self.slider_2_locked = False
-
 
             # get the corresponding image path
             if self.mode == 'digit_recognition' or self.mode == 'object_detection':
@@ -3503,7 +3485,7 @@ class UI_MainWindow(QWidget):
         return heatmap_plot
 
 
-    # draw heatmaps that displays the individual NERO plots (in COCO) or detailed view (in PIV)
+    # draw NERO plots for COCO experiment
     def draw_coco_nero(self, mode):
 
         # used to pass into subclass
@@ -3565,34 +3547,31 @@ class UI_MainWindow(QWidget):
                 else:
                     print("Drag", event.pos())
 
-
-        # check if the data is in shape (self.image_size, self.image_size)
-        if self.cur_plot_quantity_1.shape != (self.image_size, self.image_size):
-            # repeat in row
-            temp = np.repeat(self.cur_plot_quantity_1, self.image_size/self.cur_plot_quantity_1.shape[1], axis=0)
-            # repeat in column
-            data_1 = np.repeat(temp, self.image_size/self.cur_plot_quantity_1.shape[0], axis=1)
-        else:
-            data_1 = self.cur_plot_quantity_1
-
-        if self.cur_plot_quantity_2.shape != (self.image_size, self.image_size):
-            # repeat in row
-            temp = np.repeat(self.cur_plot_quantity_2, self.image_size/self.cur_plot_quantity_2.shape[1], axis=0)
-            # repeat in column
-            data_2 = np.repeat(temp, self.image_size/self.cur_plot_quantity_2.shape[0], axis=1)
-        else:
-            data_2 = self.cur_plot_quantity_2
-
         # add to general layout
         if mode == 'single':
-            # heatmap view
+            # check if the data is in shape (self.image_size, self.image_size)
+            if self.cur_single_plot_quantity_1.shape != (self.image_size, self.image_size):
+                # repeat in row
+                temp = np.repeat(self.cur_single_plot_quantity_1, self.image_size/self.cur_single_plot_quantity_1.shape[1], axis=0)
+                # repeat in column
+                data_1 = np.repeat(temp, self.image_size/self.cur_single_plot_quantity_1.shape[0], axis=1)
+            else:
+                data_1 = self.cur_single_plot_quantity_1
+
+            if self.cur_single_plot_quantity_2.shape != (self.image_size, self.image_size):
+                # repeat in row
+                temp = np.repeat(self.cur_single_plot_quantity_2, self.image_size/self.cur_single_plot_quantity_2.shape[1], axis=0)
+                # repeat in column
+                data_2 = np.repeat(temp, self.image_size/self.cur_single_plot_quantity_2.shape[0], axis=1)
+            else:
+                data_2 = self.cur_single_plot_quantity_2
+
+            # both heatmap views
             self.heatmap_view_1 = pg.GraphicsLayoutWidget()
-            # left top right bottom
-            self.heatmap_view_1.ci.layout.setContentsMargins(0, 20, 0, 0)
+            self.heatmap_view_1.ci.layout.setContentsMargins(0, 20, 0, 0) # left top right bottom
             self.heatmap_view_1.setFixedSize(self.plot_size*1.3, self.plot_size*1.3)
             self.heatmap_view_2 = pg.GraphicsLayoutWidget()
-            # left top right bottom
-            self.heatmap_view_2.ci.layout.setContentsMargins(0, 20, 0, 0)
+            self.heatmap_view_2.ci.layout.setContentsMargins(0, 20, 0, 0) # left top right bottom
             self.heatmap_view_2.setFixedSize(self.plot_size*1.3, self.plot_size*1.3)
 
             # create view box to contain the heatmaps
@@ -3601,16 +3580,16 @@ class UI_MainWindow(QWidget):
             self.view_box_2 = pg.ViewBox(invertY=True)
             self.view_box_2.setAspectLocked(lock=True)
 
-            if self.mode == 'object_detection':
-                self.single_nero_1 = COCO_heatmap()
-                self.single_nero_2 = COCO_heatmap()
-                self.scatter_item_1 = pg.ScatterPlotItem(pxMode=False)
-                self.scatter_item_1.setSymbol('s')
-                self.scatter_item_2 = pg.ScatterPlotItem(pxMode=False)
-                self.scatter_item_2.setSymbol('s')
-                self.cm_range = (0, 1)
-                self.heatmap_plot_1 = self.draw_individual_heatmap('single', data_1, self.view_box_1, self.single_nero_1, self.scatter_item_1)
-                self.heatmap_plot_2 = self.draw_individual_heatmap('single', data_2, self.view_box_2, self.single_nero_2, self.scatter_item_2)
+            self.single_nero_1 = COCO_heatmap()
+            self.single_nero_2 = COCO_heatmap()
+            self.scatter_item_1 = pg.ScatterPlotItem(pxMode=False)
+            self.scatter_item_1.setSymbol('s')
+            self.scatter_item_2 = pg.ScatterPlotItem(pxMode=False)
+            self.scatter_item_2.setSymbol('s')
+            # all quantities plotted will have range from 0 to 1
+            self.cm_range = (0, 1)
+            self.heatmap_plot_1 = self.draw_individual_heatmap('single', data_1, self.view_box_1, self.single_nero_1, self.scatter_item_1)
+            self.heatmap_plot_2 = self.draw_individual_heatmap('single', data_2, self.view_box_2, self.single_nero_2, self.scatter_item_2)
 
             # add to view
             self.heatmap_view_1.addItem(self.heatmap_plot_1)
@@ -3624,6 +3603,23 @@ class UI_MainWindow(QWidget):
                 self.aggregate_result_layout.addWidget(self.heatmap_view_2, 1, 5)
 
         elif mode == 'aggregate':
+            # check if the data is in shape (self.image_size, self.image_size)
+            if self.cur_aggregate_plot_quantity_1.shape != (self.image_size, self.image_size):
+                # repeat in row
+                temp = np.repeat(self.cur_aggregate_plot_quantity_1, self.image_size/self.cur_aggregate_plot_quantity_1.shape[1], axis=0)
+                # repeat in column
+                data_1 = np.repeat(temp, self.image_size/self.cur_aggregate_plot_quantity_1.shape[0], axis=1)
+            else:
+                data_1 = self.cur_aggregate_plot_quantity_1
+
+            if self.cur_aggregate_plot_quantity_2.shape != (self.image_size, self.image_size):
+                # repeat in row
+                temp = np.repeat(self.cur_aggregate_plot_quantity_2, self.image_size/self.cur_aggregate_plot_quantity_2.shape[1], axis=0)
+                # repeat in column
+                data_2 = np.repeat(temp, self.image_size/self.cur_aggregate_plot_quantity_2.shape[0], axis=1)
+            else:
+                data_2 = self.cur_aggregate_plot_quantity_2
+
             # heatmap view
             self.aggregate_heatmap_view_1 = pg.GraphicsLayoutWidget()
             # left top right bottom
@@ -3790,7 +3786,7 @@ class UI_MainWindow(QWidget):
 
         # helper function on reshaping data
         def prepare_plot_data(input_data):
-            grid_size = self.cur_plot_quantity_1.shape[1]
+            grid_size = input_data.shape[1]
             # extra pixels are for lines
             output_data = np.zeros((4*grid_size, 4*grid_size))
             # compose plot data into the big rectangle that is consist of
@@ -3834,8 +3830,8 @@ class UI_MainWindow(QWidget):
         # add to general layout
         if mode == 'single':
             # prepare data for piv individual nero plot (heatmap)
-            self.data_1 = prepare_plot_data(self.cur_plot_quantity_1)
-            self.data_2 = prepare_plot_data(self.cur_plot_quantity_2)
+            self.data_1 = prepare_plot_data(self.cur_single_plot_quantity_1)
+            self.data_2 = prepare_plot_data(self.cur_single_plot_quantity_2)
             # heatmap view
             self.heatmap_view_1 = pg.GraphicsLayoutWidget()
             # left top right bottom
@@ -3885,8 +3881,8 @@ class UI_MainWindow(QWidget):
 
         elif mode == 'aggregate':
             # prepare data for piv individual nero plot (heatmap)
-            self.data_1 = prepare_plot_data(self.cur_plot_quantity_1)
-            self.data_2 = prepare_plot_data(self.cur_plot_quantity_2)
+            self.data_1 = prepare_plot_data(self.cur_aggregate_plot_quantity_1)
+            self.data_2 = prepare_plot_data(self.cur_aggregate_plot_quantity_2)
             # heatmap view
             self.aggregate_heatmap_view_1 = pg.GraphicsLayoutWidget()
             # left top right bottom
@@ -4328,30 +4324,30 @@ class UI_MainWindow(QWidget):
         self.aggregate_result_existed = True
 
         @QtCore.Slot()
-        def heatmap_quantity_changed(text):
-            print('Plotting:', text, 'on heatmap')
+        def coco_nero_quantity_changed(text):
+            print('Plotting:', text, 'on aggregate NERO plot')
             self.quantity_name = text
             if text == 'Confidence*IOU':
-                self.cur_plot_quantity_1 = self.aggregate_avg_conf_1 * self.aggregate_avg_iou_1
-                self.cur_plot_quantity_2 = self.aggregate_avg_conf_2 * self.aggregate_avg_iou_2
+                self.cur_aggregate_plot_quantity_1 = self.aggregate_avg_conf_1 * self.aggregate_avg_iou_1
+                self.cur_aggregate_plot_quantity_2 = self.aggregate_avg_conf_2 * self.aggregate_avg_iou_2
             elif text == 'Confidence':
-                self.cur_plot_quantity_1 = self.aggregate_avg_conf_1
-                self.cur_plot_quantity_2 = self.aggregate_avg_conf_2
+                self.cur_aggregate_plot_quantity_1 = self.aggregate_avg_conf_1
+                self.cur_aggregate_plot_quantity_2 = self.aggregate_avg_conf_2
             elif text == 'IOU':
-                self.cur_plot_quantity_1 = self.aggregate_avg_iou_1
-                self.cur_plot_quantity_2 = self.aggregate_avg_iou_2
+                self.cur_aggregate_plot_quantity_1 = self.aggregate_avg_iou_1
+                self.cur_aggregate_plot_quantity_2 = self.aggregate_avg_iou_2
             elif text == 'Precision':
-                self.cur_plot_quantity_1 = self.aggregate_avg_precision_1
-                self.cur_plot_quantity_2 = self.aggregate_avg_precision_2
+                self.cur_aggregate_plot_quantity_1 = self.aggregate_avg_precision_1
+                self.cur_aggregate_plot_quantity_2 = self.aggregate_avg_precision_2
             elif text == 'Recall':
-                self.cur_plot_quantity_1 = self.aggregate_avg_recall_1
-                self.cur_plot_quantity_2 = self.aggregate_avg_recall_2
+                self.cur_aggregate_plot_quantity_1 = self.aggregate_avg_recall_1
+                self.cur_aggregate_plot_quantity_2 = self.aggregate_avg_recall_2
             elif text == 'F1 score':
-                self.cur_plot_quantity_1 = self.aggregate_avg_F_measure_1
-                self.cur_plot_quantity_2 = self.aggregate_avg_F_measure_2
+                self.cur_aggregate_plot_quantity_1 = self.aggregate_avg_F_measure_1
+                self.cur_aggregate_plot_quantity_2 = self.aggregate_avg_F_measure_2
             elif text == 'AP':
-                self.cur_plot_quantity_1 = self.aggregate_mAP_1
-                self.cur_plot_quantity_2 = self.aggregate_mAP_2
+                self.cur_aggregate_plot_quantity_1 = self.aggregate_mAP_1
+                self.cur_aggregate_plot_quantity_2 = self.aggregate_mAP_2
 
             # re-display the heatmap
             self.draw_coco_nero(mode='aggregate')
@@ -4359,6 +4355,79 @@ class UI_MainWindow(QWidget):
             # re-run dimension reduction and show result
             if self.dr_result_existed:
                 self.run_dimension_reduction()
+
+            # if available, update single NERO plot as well
+            if self.single_result_existed:
+                print('Plotting:', text, 'on single NERO plot')
+                self.quantity_name = text
+
+                if text == 'Confidence*IOU':
+                    if self.data_mode == 'single':
+                        self.cur_single_plot_quantity_1 = self.all_quantities_1[:, :, 4] * self.all_quantities_1[:, :, 6]
+                        self.cur_single_plot_quantity_2 = self.all_quantities_2[:, :, 4] * self.all_quantities_2[:, :, 6]
+                    elif self.data_mode == 'aggregate':
+                        # current selected individual images' result on all transformations
+                        for y in range(len(self.y_translation)):
+                            for x in range(len(self.x_translation)):
+                                self.cur_single_plot_quantity_1[y, x] = self.aggregate_outputs_1[y, x][self.image_index][0, 4] * self.aggregate_outputs_1[y, x][self.image_index][0, 6]
+                                self.cur_single_plot_quantity_2[y, x] = self.aggregate_outputs_2[y, x][self.image_index][0, 4] * self.aggregate_outputs_2[y, x][self.image_index][0, 6]
+
+                elif text == 'Confidence':
+                    if self.data_mode == 'single':
+                        self.cur_single_plot_quantity_1 = self.all_quantities_1[:, :, 4]
+                        self.cur_single_plot_quantity_2 = self.all_quantities_2[:, :, 4]
+                    elif self.data_mode == 'aggregate':
+                        # current selected individual images' result on all transformations
+                        for y in range(len(self.y_translation)):
+                            for x in range(len(self.x_translation)):
+                                self.cur_single_plot_quantity_1[y, x] = self.aggregate_outputs_1[y, x][self.image_index][0, 4]
+                                self.cur_single_plot_quantity_2[y, x] = self.aggregate_outputs_2[y, x][self.image_index][0, 4]
+
+                elif text == 'IOU':
+                    if self.data_mode == 'single':
+                        self.cur_single_plot_quantity_1 = self.all_quantities_1[:, :, 6]
+                        self.cur_single_plot_quantity_2 = self.all_quantities_2[:, :, 6]
+                    elif self.data_mode == 'aggregate':
+                        # current selected individual images' result on all transformations
+                        for y in range(len(self.y_translation)):
+                            for x in range(len(self.x_translation)):
+                                self.cur_single_plot_quantity_1[y, x] = self.aggregate_outputs_1[y, x][self.image_index][0, 6]
+                                self.cur_single_plot_quantity_2[y, x] = self.aggregate_outputs_2[y, x][self.image_index][0, 6]
+
+                elif text == 'Consensus':
+                    self.cur_single_plot_quantity_1 = np.zeros((self.all_quantities_1.shape[0], self.all_quantities_1.shape[1]))
+                    self.cur_single_plot_quantity_2 = np.zeros((self.all_quantities_2.shape[0], self.all_quantities_2.shape[1]))
+                    # for each position, compute its bounding box center
+                    # x_ratio = int(self.image_size // self.all_quantities_1.shape[0])
+                    # y_ratio = int(self.image_size // self.all_quantities_1.shape[1])
+                    for i in range(self.all_quantities_1.shape[0]):
+                        for j in range(self.all_quantities_1.shape[1]):
+                            # correct translation amount
+                            x_tran = self.all_translations[i, j, 0]
+                            y_tran = self.all_translations[i, j, 1]
+
+                            # current bounding box center from model 1 and 2
+                            cur_center_x_1 = (self.all_quantities_1[i, j, 0] + self.all_quantities_1[i, j, 2]) / 2
+                            cur_center_y_1 = (self.all_quantities_1[i, j, 1] + self.all_quantities_1[i, j, 3]) / 2
+                            cur_center_x_2 = (self.all_quantities_2[i, j, 0] + self.all_quantities_2[i, j, 2]) / 2
+                            cur_center_y_2 = (self.all_quantities_2[i, j, 1] + self.all_quantities_2[i, j, 3]) / 2
+
+                            # model output translation
+                            x_tran_model_1 = cur_center_x_1 - self.image_size//2 - 1
+                            y_tran_model_1 = cur_center_y_1 - self.image_size//2 - 1
+                            x_tran_model_2 = cur_center_x_2 - self.image_size//2 - 1
+                            y_tran_model_2 = cur_center_y_2 - self.image_size//2 - 1
+
+                            # compute percentage
+                            if np.sqrt(x_tran**2 + y_tran**2) == 0:
+                                self.cur_single_plot_quantity_1[i, j] = 1
+                                self.cur_single_plot_quantity_2[i, j] = 1
+                            else:
+                                self.cur_single_plot_quantity_1[i, j] = 1 - np.sqrt((x_tran_model_1-x_tran)**2 + (y_tran_model_1-y_tran)**2) / np.sqrt(x_tran**2 + y_tran**2)
+                                self.cur_single_plot_quantity_2[i, j] = 1 - np.sqrt((x_tran_model_2-x_tran)**2 + (y_tran_model_2-y_tran)**2) / np.sqrt(x_tran**2 + y_tran**2)
+
+                # re-display the heatmap
+                self.draw_coco_nero(mode='single')
 
         # drop down menu on selection which quantity to plot
         quantity_menu = QtWidgets.QComboBox()
@@ -4379,7 +4448,7 @@ class UI_MainWindow(QWidget):
         quantity_menu.setCurrentText('Confidence*IOU')
 
         # connect the drop down menu with actions
-        quantity_menu.currentTextChanged.connect(heatmap_quantity_changed)
+        quantity_menu.currentTextChanged.connect(coco_nero_quantity_changed)
         self.aggregate_plot_control_layout.addWidget(quantity_menu, 1, 0)
 
         # define default plotting quantity (IOU*Confidence)
@@ -4437,8 +4506,8 @@ class UI_MainWindow(QWidget):
                 self.aggregate_avg_F_measure_2[y, x] = np.mean(all_samples_F_measure_sum_2)
 
         # default plotting quantity is Confidence*IOU
-        self.cur_plot_quantity_1 = self.aggregate_avg_conf_1 * self.aggregate_avg_iou_1
-        self.cur_plot_quantity_2 = self.aggregate_avg_conf_2 * self.aggregate_avg_iou_2
+        self.cur_aggregate_plot_quantity_1 = self.aggregate_avg_conf_1 * self.aggregate_avg_iou_1
+        self.cur_aggregate_plot_quantity_2 = self.aggregate_avg_conf_2 * self.aggregate_avg_iou_2
 
         # draw the heatmap
         self.draw_coco_nero(mode='aggregate')
@@ -4470,79 +4539,6 @@ class UI_MainWindow(QWidget):
             else:
                 self.realtime_inference = False
 
-        @QtCore.Slot()
-        def heatmap_quantity_changed(text):
-            print('Plotting:', text, 'on heatmap')
-            self.quantity_name = text
-
-            if text == 'Confidence*IOU':
-                if self.data_mode == 'single':
-                    self.cur_plot_quantity_1 = self.all_quantities_1[:, :, 4] * self.all_quantities_1[:, :, 6]
-                    self.cur_plot_quantity_2 = self.all_quantities_2[:, :, 4] * self.all_quantities_2[:, :, 6]
-                elif self.data_mode == 'aggregate':
-                    # current selected individual images' result on all transformations
-                    for y in range(len(self.y_translation)):
-                        for x in range(len(self.x_translation)):
-                            self.cur_plot_quantity_1[y, x] = self.aggregate_outputs_1[y, x][self.image_index][0, 4] * self.aggregate_outputs_1[y, x][self.image_index][0, 6]
-                            self.cur_plot_quantity_2[y, x] = self.aggregate_outputs_2[y, x][self.image_index][0, 4] * self.aggregate_outputs_2[y, x][self.image_index][0, 6]
-
-            elif text == 'Confidence':
-                if self.data_mode == 'single':
-                    self.cur_plot_quantity_1 = self.all_quantities_1[:, :, 4]
-                    self.cur_plot_quantity_2 = self.all_quantities_2[:, :, 4]
-                elif self.data_mode == 'aggregate':
-                    # current selected individual images' result on all transformations
-                    for y in range(len(self.y_translation)):
-                        for x in range(len(self.x_translation)):
-                            self.cur_plot_quantity_1[y, x] = self.aggregate_outputs_1[y, x][self.image_index][0, 4]
-                            self.cur_plot_quantity_2[y, x] = self.aggregate_outputs_2[y, x][self.image_index][0, 4]
-
-            elif text == 'IOU':
-                if self.data_mode == 'single':
-                    self.cur_plot_quantity_1 = self.all_quantities_1[:, :, 6]
-                    self.cur_plot_quantity_2 = self.all_quantities_2[:, :, 6]
-                elif self.data_mode == 'aggregate':
-                    # current selected individual images' result on all transformations
-                    for y in range(len(self.y_translation)):
-                        for x in range(len(self.x_translation)):
-                            self.cur_plot_quantity_1[y, x] = self.aggregate_outputs_1[y, x][self.image_index][0, 6]
-                            self.cur_plot_quantity_2[y, x] = self.aggregate_outputs_2[y, x][self.image_index][0, 6]
-
-            elif text == 'Consensus':
-                self.cur_plot_quantity_1 = np.zeros((self.all_quantities_1.shape[0], self.all_quantities_1.shape[1]))
-                self.cur_plot_quantity_2 = np.zeros((self.all_quantities_2.shape[0], self.all_quantities_2.shape[1]))
-                # for each position, compute its bounding box center
-                # x_ratio = int(self.image_size // self.all_quantities_1.shape[0])
-                # y_ratio = int(self.image_size // self.all_quantities_1.shape[1])
-                for i in range(self.all_quantities_1.shape[0]):
-                    for j in range(self.all_quantities_1.shape[1]):
-                        # correct translation amount
-                        x_tran = self.all_translations[i, j, 0]
-                        y_tran = self.all_translations[i, j, 1]
-
-                        # current bounding box center from model 1 and 2
-                        cur_center_x_1 = (self.all_quantities_1[i, j, 0] + self.all_quantities_1[i, j, 2]) / 2
-                        cur_center_y_1 = (self.all_quantities_1[i, j, 1] + self.all_quantities_1[i, j, 3]) / 2
-                        cur_center_x_2 = (self.all_quantities_2[i, j, 0] + self.all_quantities_2[i, j, 2]) / 2
-                        cur_center_y_2 = (self.all_quantities_2[i, j, 1] + self.all_quantities_2[i, j, 3]) / 2
-
-                        # model output translation
-                        x_tran_model_1 = cur_center_x_1 - self.image_size//2 - 1
-                        y_tran_model_1 = cur_center_y_1 - self.image_size//2 - 1
-                        x_tran_model_2 = cur_center_x_2 - self.image_size//2 - 1
-                        y_tran_model_2 = cur_center_y_2 - self.image_size//2 - 1
-
-                        # compute percentage
-                        if np.sqrt(x_tran**2 + y_tran**2) == 0:
-                            self.cur_plot_quantity_1[i, j] = 1
-                            self.cur_plot_quantity_2[i, j] = 1
-                        else:
-                            self.cur_plot_quantity_1[i, j] = 1 - np.sqrt((x_tran_model_1-x_tran)**2 + (y_tran_model_1-y_tran)**2) / np.sqrt(x_tran**2 + y_tran**2)
-                            self.cur_plot_quantity_2[i, j] = 1 - np.sqrt((x_tran_model_2-x_tran)**2 + (y_tran_model_2-y_tran)**2) / np.sqrt(x_tran**2 + y_tran**2)
-
-            # re-display the heatmap
-            self.draw_coco_nero(mode='single')
-
         # layout that controls the plotting items
         self.single_plot_control_layout = QtWidgets.QVBoxLayout()
         # checkbox on if doing real-time inference
@@ -4562,18 +4558,18 @@ class UI_MainWindow(QWidget):
         if self.data_mode == 'single':
             # add plot control layout to general layout
             self.single_result_layout.addLayout(self.single_plot_control_layout, 0, 0)
-            self.cur_plot_quantity_1 = self.all_quantities_1[:, :, 4] * self.all_quantities_1[:, :, 6]
-            self.cur_plot_quantity_2 = self.all_quantities_2[:, :, 4] * self.all_quantities_2[:, :, 6]
+            self.cur_single_plot_quantity_1 = self.all_quantities_1[:, :, 4] * self.all_quantities_1[:, :, 6]
+            self.cur_single_plot_quantity_2 = self.all_quantities_2[:, :, 4] * self.all_quantities_2[:, :, 6]
         elif self.data_mode == 'aggregate':
             # add plot control layout to general layout
             self.aggregate_result_layout.addLayout(self.single_plot_control_layout, 0, 3)
             # current selected individual images' result on all transformations
-            self.cur_plot_quantity_1 = np.zeros((len(self.y_translation), len(self.x_translation)))
-            self.cur_plot_quantity_2 = np.zeros((len(self.y_translation), len(self.x_translation)))
+            self.cur_single_plot_quantity_1 = np.zeros((len(self.y_translation), len(self.x_translation)))
+            self.cur_single_plot_quantity_2 = np.zeros((len(self.y_translation), len(self.x_translation)))
             for y in range(len(self.y_translation)):
                 for x in range(len(self.x_translation)):
-                    self.cur_plot_quantity_1[y, x] = self.aggregate_outputs_1[y, x][self.image_index][0, 4] * self.aggregate_outputs_1[y, x][self.image_index][0, 6]
-                    self.cur_plot_quantity_2[y, x] = self.aggregate_outputs_2[y, x][self.image_index][0, 4] * self.aggregate_outputs_2[y, x][self.image_index][0, 6]
+                    self.cur_single_plot_quantity_1[y, x] = self.aggregate_outputs_1[y, x][self.image_index][0, 4] * self.aggregate_outputs_1[y, x][self.image_index][0, 6]
+                    self.cur_single_plot_quantity_2[y, x] = self.aggregate_outputs_2[y, x][self.image_index][0, 4] * self.aggregate_outputs_2[y, x][self.image_index][0, 6]
 
         # draw the heatmap
         self.draw_coco_nero(mode='single')
@@ -4623,8 +4619,8 @@ class UI_MainWindow(QWidget):
             print('Aggregate loss 0 and 80 percentile', self.loss_low_bound, self.loss_high_bound)
 
             # plot quantity is the average among all samples
-            self.cur_plot_quantity_1 = cur_losses_1.mean(axis=1)
-            self.cur_plot_quantity_2 = cur_losses_2.mean(axis=1)
+            self.cur_aggregate_plot_quantity_1 = cur_losses_1.mean(axis=1)
+            self.cur_aggregate_plot_quantity_2 = cur_losses_2.mean(axis=1)
 
 
         @QtCore.Slot()
@@ -4724,8 +4720,8 @@ class UI_MainWindow(QWidget):
             print(self.loss_low_bound, self.loss_high_bound)
 
             # average element-wise loss to scalar and normalize between 0 and 1
-            self.cur_plot_quantity_1 = cur_losses_1
-            self.cur_plot_quantity_2 = cur_losses_2
+            self.cur_single_plot_quantity_1 = cur_losses_1
+            self.cur_single_plot_quantity_2 = cur_losses_2
 
 
         @QtCore.Slot()
@@ -4770,18 +4766,16 @@ class UI_MainWindow(QWidget):
 
             # add plot control layout to general layout
             self.single_result_layout.addLayout(self.single_plot_control_layout, 0, 0)
-            # compute the plot quantities self.cur_plot_quantity_1 and self.cur_plot_quantity_2
-            self.cur_plot_quantity_1 = np.zeros((self.num_transformations, self.image_size, self.image_size))
-            self.cur_plot_quantity_2 = np.zeros((self.num_transformations, self.image_size, self.image_size))
+            # compute the plot quantities
+            self.cur_single_plot_quantity_1 = np.zeros((self.num_transformations, self.image_size, self.image_size))
+            self.cur_single_plot_quantity_2 = np.zeros((self.num_transformations, self.image_size, self.image_size))
             compute_single_nero_plot_quantity()
 
         # when in three level view
         elif self.data_mode == 'aggregate':
-            # add plot control layout to general layout
-            # self.aggregate_result_layout.addLayout(self.single_plot_control_layout, 0, 3)
             # plot quantity in individual nero plot
-            self.cur_plot_quantity_1 = np.zeros((self.num_transformations, self.image_size, self.image_size))
-            self.cur_plot_quantity_2 = np.zeros((self.num_transformations, self.image_size, self.image_size))
+            self.cur_single_plot_quantity_1 = np.zeros((self.num_transformations, self.image_size, self.image_size))
+            self.cur_single_plot_quantity_2 = np.zeros((self.num_transformations, self.image_size, self.image_size))
             compute_single_nero_plot_quantity()
 
         # visualize the individual NERO plot of the current input
