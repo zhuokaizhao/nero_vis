@@ -33,7 +33,7 @@ else:
 
 
 class UI_MainWindow(QWidget):
-    def __init__(self, pre_selected_mode):
+    def __init__(self, pre_selected_mode, demo):
         super().__init__()
         # window size
         # self.setFixedSize(1920, 1080)
@@ -61,15 +61,15 @@ class UI_MainWindow(QWidget):
         # input data determines data mode
         self.data_mode = None
 
+        # if we are in the demo mode
+        self.demo = demo
+
         # initialize control panel on mode selection
-        self.init_mode_control_layout()
         self.image_existed = False
         self.data_existed = False
         self.run_button_existed = False
         self.aggregate_result_existed = False
         self.single_result_existed = False
-
-        print(f'\nFinished rendering main layout')
 
         # load/initialize program cache
         self.use_cache = False
@@ -89,6 +89,11 @@ class UI_MainWindow(QWidget):
             self.realtime_inference = True
         else:
             self.realtime_inference = False
+
+        # start initializing control layout
+        self.init_mode_control_layout()
+
+        print(f'\nFinished rendering main layout')
 
 
     # helper functions on managing the database
@@ -170,8 +175,6 @@ class UI_MainWindow(QWidget):
                 if not self.pre_selected:
                     self.switch_mode_cleanup()
 
-                self.init_load_layout()
-
                 # image size that is fed into the model
                 self.image_size = 29
                 # image size that is used for display
@@ -213,6 +216,9 @@ class UI_MainWindow(QWidget):
 
                 self.previous_mode = self.mode
 
+                # start initialing load layout
+                self.init_load_layout()
+
         @QtCore.Slot()
         def object_detection_button_clicked():
             print('Object detection button clicked')
@@ -223,8 +229,6 @@ class UI_MainWindow(QWidget):
                 # clear previous mode's layout
                 if not self.pre_selected:
                     self.switch_mode_cleanup()
-
-                self.init_load_layout()
 
                 # uncropped image size
                 self.uncropped_image_size = 256
@@ -274,6 +278,9 @@ class UI_MainWindow(QWidget):
 
                 self.previous_mode = self.mode
 
+                # start initialing load layout
+                self.init_load_layout()
+
         @QtCore.Slot()
         def piv_button_clicked():
             print('PIV button clicked')
@@ -284,8 +291,6 @@ class UI_MainWindow(QWidget):
                 # clear previous mode's layout
                 if not self.pre_selected:
                     self.switch_mode_cleanup()
-
-                self.init_load_layout()
 
                 # image (cropped) size that is fed into the model
                 self.image_size = 256
@@ -359,6 +364,9 @@ class UI_MainWindow(QWidget):
                 self.last_clicked = None
 
                 self.previous_mode = self.mode
+
+                # start initialing load layout
+                self.init_load_layout()
 
 
         # mode selection radio buttons
@@ -894,7 +902,7 @@ class UI_MainWindow(QWidget):
         model_pixmap.fill(QtCore.Qt.white)
         painter = QtGui.QPainter(model_pixmap)
         painter.setFont(QFont('Helvetica', 18))
-        painter.drawText(0, 0, 300, 30, QtGui.Qt.AlignLeft, 'Data/Model Selection: ')
+        painter.drawText(0, 0, 300, 30, QtGui.Qt.AlignLeft, 'Data Selection: ')
         painter.end()
 
         # create label to contain the texts
@@ -906,7 +914,10 @@ class UI_MainWindow(QWidget):
         self.model_label.setTextFormat(QtGui.Qt.AutoText)
         self.model_label.setPixmap(model_pixmap)
         # add to the layout
-        self.load_menu_layout.addWidget(self.model_label, 0, 2)
+        if self.demo:
+            self.load_menu_layout.addWidget(self.model_label, 0, 0)
+        else:
+            self.load_menu_layout.addWidget(self.model_label, 0, 2)
 
         # aggregate images loading drop down menu
         self.aggregate_image_menu = QtWidgets.QComboBox()
@@ -931,7 +942,10 @@ class UI_MainWindow(QWidget):
                 self.aggregate_image_menu.addItem(f'Test {i}')
 
             # set default to the prompt/description
-            self.aggregate_image_menu.setCurrentIndex(0)
+            if self.demo:
+                self.aggregate_image_menu.setCurrentIndex(1)
+            else:
+                self.aggregate_image_menu.setCurrentIndex(0)
 
         elif self.mode == 'piv':
             # load all images in the folder
@@ -946,7 +960,10 @@ class UI_MainWindow(QWidget):
         self.aggregate_image_menu.setEditable(True)
         self.aggregate_image_menu.lineEdit().setReadOnly(True)
         self.aggregate_image_menu.lineEdit().setAlignment(QtCore.Qt.AlignCenter)
-        self.load_menu_layout.addWidget(self.aggregate_image_menu, 0, 3)
+        if self.demo:
+            self.load_menu_layout.addWidget(self.aggregate_image_menu, 0, 1)
+        else:
+            self.load_menu_layout.addWidget(self.aggregate_image_menu, 0, 3)
 
         # single image loading drop down menu
         self.image_menu = QtWidgets.QComboBox()
@@ -999,7 +1016,10 @@ class UI_MainWindow(QWidget):
         self.image_menu.setEditable(True)
         self.image_menu.lineEdit().setReadOnly(True)
         self.image_menu.lineEdit().setAlignment(QtCore.Qt.AlignCenter)
-        self.load_menu_layout.addWidget(self.image_menu, 1, 3)
+        if self.demo:
+            self.load_menu_layout.addWidget(self.image_menu, 0, 2)
+        else:
+            self.load_menu_layout.addWidget(self.image_menu, 1, 3)
 
         # init flag to inidicate if an image has ever been loaded
         self.data_existed = False
@@ -1016,9 +1036,6 @@ class UI_MainWindow(QWidget):
         # draw model representation
         painter = QtGui.QPainter(model_1_icon)
         draw_circle(painter, 12, 12, 10, 'blue')
-
-        # spacer item
-        # self.mode_control_layout.addSpacing(30)
 
         self.model_1_menu = QtWidgets.QComboBox()
         self.model_1_menu.setFixedSize(QtCore.QSize(300, 50))
@@ -1060,9 +1077,6 @@ class UI_MainWindow(QWidget):
         painter = QtGui.QPainter(model_2_icon)
         draw_circle(painter, 12, 12, 10, 'magenta')
 
-        # spacer item
-        # self.mode_control_layout.addSpacing(30)
-
         self.model_2_menu = QtWidgets.QComboBox()
         self.model_2_menu.setFixedSize(QtCore.QSize(300, 50))
         self.model_2_menu.setStyleSheet('font-size: 18px')
@@ -1095,6 +1109,13 @@ class UI_MainWindow(QWidget):
 
         # add this layout to the general layout
         self.layout.addLayout(self.load_menu_layout, 0, 1)
+
+        # demo mode selects the aggregate dataset to start three-level view
+        if self.demo:
+            aggregate_dataset_selection_changed('Test 0')
+            self.use_cache_checkbox.setChecked(True)
+            # the models have default, just run
+            self.run_button_clicked()
 
 
     def init_aggregate_result_layout(self):
@@ -1286,7 +1307,7 @@ class UI_MainWindow(QWidget):
         self.aggregate_plot_control_layout.addWidget(self.dr_selection_menu, 2, 0)
 
         # push button on running PCA
-        self.run_dr_button = QtWidgets.QPushButton('See Overview')
+        self.run_dr_button = QtWidgets.QPushButton('Run Dimension Reduction')
         self.run_dr_button.setStyleSheet('font-size: 18px')
         self.run_dr_button.setFixedSize(QtCore.QSize(250, 50))
         self.run_dr_button.clicked.connect(self.run_dimension_reduction)
@@ -1788,17 +1809,36 @@ class UI_MainWindow(QWidget):
 
 
         # radio buittons on choosing the intensity quantity
+        # Title on the two radio buttons
+        intensity_button_pixmap = QPixmap(300, 30)
+        intensity_button_pixmap.fill(QtCore.Qt.white)
+        painter = QtGui.QPainter(intensity_button_pixmap)
+        painter.setFont(QFont('Helvetica', 14))
+        painter.drawText(0, 0, 300, 30, QtGui.Qt.AlignLeft, 'Color-encoded by: ')
+        painter.end()
+
+        # create label to contain the texts
+        intensity_button_label = QLabel(self)
+        intensity_button_label.setContentsMargins(0, 0, 0, 0)
+        intensity_button_label.setFixedSize(QtCore.QSize(300, 30))
+        intensity_button_label.setAlignment(QtCore.Qt.AlignLeft)
+        intensity_button_label.setWordWrap(True)
+        intensity_button_label.setTextFormat(QtGui.Qt.AutoText)
+        intensity_button_label.setPixmap(intensity_button_pixmap)
+        # add to the layout
+        self.aggregate_plot_control_layout.addWidget(intensity_button_label, 6, 0)
+
         self.mean_intensity_button = QRadioButton('Mean')
         self.mean_intensity_button.setFixedSize(QtCore.QSize(200, 30))
-        self.mean_intensity_button.setStyleSheet('QRadioButton{font: 18pt Helvetica;} QRadioButton::indicator { width: 14px; height: 18px;};')
+        self.mean_intensity_button.setStyleSheet('QRadioButton{font: 18pt Helvetica;} QRadioButton::indicator { width: 14px; height: 14px;};')
         self.mean_intensity_button.pressed.connect(mean_intensity_button_clicked)
-        self.aggregate_result_layout.addWidget(self.mean_intensity_button, 4, 1)
+        self.aggregate_plot_control_layout.addWidget(self.mean_intensity_button, 7, 0)
 
         self.variance_intensity_button = QRadioButton('Variance')
         self.variance_intensity_button.setFixedSize(QtCore.QSize(200, 30))
-        self.variance_intensity_button.setStyleSheet('QRadioButton{font: 18pt Helvetica;} QRadioButton::indicator { width: 14px; height: 18px;};')
+        self.variance_intensity_button.setStyleSheet('QRadioButton{font: 18pt Helvetica;} QRadioButton::indicator { width: 14px; height: 14px;};')
         self.variance_intensity_button.pressed.connect(variance_intensity_button_clicked)
-        self.aggregate_result_layout.addWidget(self.variance_intensity_button, 5, 1)
+        self.aggregate_plot_control_layout.addWidget(self.variance_intensity_button, 8, 0)
 
         # by default the intensities are computed via mean
         self.mean_intensity_button.setChecked(True)
@@ -4873,14 +4913,16 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     # mode (data, train, or test mode)
     parser.add_argument('--mode', action='store', nargs=1, dest='mode')
+    parser.add_argument('--demo', action='store_true', dest='demo', default=False)
     args = parser.parse_args()
     if args.mode:
         mode = args.mode[0]
     else:
         mode = None
+    demo = args.demo
 
     app = QtWidgets.QApplication([])
-    widget = UI_MainWindow(mode)
+    widget = UI_MainWindow(mode, demo)
     widget.show()
 
     # run the app
