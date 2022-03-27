@@ -216,6 +216,9 @@ class UI_MainWindow(QWidget):
 
                 self.previous_mode = self.mode
 
+                # since later needs some updates, thus initiated here
+                self.dr_result_sliders_existed = False
+
                 # start initialing load layout
                 self.init_load_layout()
 
@@ -277,6 +280,9 @@ class UI_MainWindow(QWidget):
                 self.cur_line = None
 
                 self.previous_mode = self.mode
+
+                # since later needs some updates, thus initiated here
+                self.dr_result_sliders_existed = False
 
                 # start initialing load layout
                 self.init_load_layout()
@@ -364,6 +370,9 @@ class UI_MainWindow(QWidget):
                 self.last_clicked = None
 
                 self.previous_mode = self.mode
+
+                # since later needs some updates, thus initiated here
+                self.dr_result_sliders_existed = False
 
                 # start initialing load layout
                 self.init_load_layout()
@@ -1351,6 +1360,31 @@ class UI_MainWindow(QWidget):
         # helper function for clicking inside the scatter plot
         def low_dim_scatter_clicked(item, points):
 
+            # initialize sliders if first time clicked
+            if not self.dr_result_sliders_existed:
+                # sliders that rank the dimension reduction result and can select one of them
+                self.dr_result_selection_slider_1 = QtWidgets.QSlider(QtCore.Qt.Horizontal)
+                self.dr_result_selection_slider_1.setFixedSize(self.plot_size, 50)
+                self.dr_result_selection_slider_1.setMinimum(0)
+                self.dr_result_selection_slider_1.setMaximum(len(self.all_high_dim_points_1)-1)
+                self.dr_result_selection_slider_1.setValue(0)
+                self.dr_result_selection_slider_1.setTickPosition(QtWidgets.QSlider.TicksBelow)
+                self.dr_result_selection_slider_1.setTickInterval(1)
+                self.dr_result_selection_slider_1.valueChanged.connect(dr_result_selection_slider_1_changed)
+                self.aggregate_result_layout.addWidget(self.dr_result_selection_slider_1, 3, 1)
+
+                self.dr_result_selection_slider_2 = QtWidgets.QSlider(QtCore.Qt.Horizontal)
+                self.dr_result_selection_slider_2.setFixedSize(self.plot_size, 50)
+                self.dr_result_selection_slider_2.setMinimum(0)
+                self.dr_result_selection_slider_2.setMaximum(len(self.all_high_dim_points_2)-1)
+                self.dr_result_selection_slider_2.setValue(0)
+                self.dr_result_selection_slider_2.setTickPosition(QtWidgets.QSlider.TicksBelow)
+                self.dr_result_selection_slider_2.setTickInterval(1)
+                self.dr_result_selection_slider_2.valueChanged.connect(dr_result_selection_slider_2_changed)
+                self.aggregate_result_layout.addWidget(self.dr_result_selection_slider_2, 3, 2)
+
+                self.dr_result_sliders_existed = True
+
             # get the clicked scatter item's information
             self.image_index = int(item.opts['name'])
             print(f'clicked image index {self.image_index}')
@@ -1452,7 +1486,10 @@ class UI_MainWindow(QWidget):
                 color_indices.append(scatter_lut[int(lut_index)])
 
             # image index position in the current sorted class indices
-            sorted_selected_index = sorted_class_indices.index(self.image_index)
+            if self.image_index != None:
+                sorted_selected_index = sorted_class_indices.index(self.image_index)
+            else:
+                sorted_selected_index = len(sorted_class_indices)-1
 
             for i, index in enumerate(sorted_class_indices):
                 # add the selected item's color at last to make sure that the current selected item is always on top (rendered last)
@@ -1849,32 +1886,16 @@ class UI_MainWindow(QWidget):
         self.intensity_min = min(np.min(self.all_intensity_1), np.min(self.all_intensity_2))
         self.intensity_max = max(np.max(self.all_intensity_1), np.max(self.all_intensity_2))
 
-        # sliders that rank the dimension reduction result and can select one of them
-        self.dr_result_selection_slider_1 = QtWidgets.QSlider(QtCore.Qt.Horizontal)
-        self.dr_result_selection_slider_1.setFixedSize(self.plot_size, 50)
-        self.dr_result_selection_slider_1.setMinimum(0)
-        self.dr_result_selection_slider_1.setMaximum(len(self.all_high_dim_points_1)-1)
-        self.dr_result_selection_slider_1.setValue(0)
-        self.dr_result_selection_slider_1.setTickPosition(QtWidgets.QSlider.TicksBelow)
-        self.dr_result_selection_slider_1.setTickInterval(1)
-        self.dr_result_selection_slider_1.valueChanged.connect(dr_result_selection_slider_1_changed)
-        self.aggregate_result_layout.addWidget(self.dr_result_selection_slider_1, 3, 1)
-
-        self.dr_result_selection_slider_2 = QtWidgets.QSlider(QtCore.Qt.Horizontal)
-        self.dr_result_selection_slider_2.setFixedSize(self.plot_size, 50)
-        self.dr_result_selection_slider_2.setMinimum(0)
-        self.dr_result_selection_slider_2.setMaximum(len(self.all_high_dim_points_2)-1)
-        self.dr_result_selection_slider_2.setValue(0)
-        self.dr_result_selection_slider_2.setTickPosition(QtWidgets.QSlider.TicksBelow)
-        self.dr_result_selection_slider_2.setTickInterval(1)
-        self.dr_result_selection_slider_2.valueChanged.connect(dr_result_selection_slider_2_changed)
-        self.aggregate_result_layout.addWidget(self.dr_result_selection_slider_2, 3, 2)
-
         # show the scatter plot of dimension reduction result
-        # initialize selected image being the first in class
-        self.image_index = self.cur_class_indices[0]
+        self.image_index = None
         self.slider_1_selected_index = None
         self.slider_2_selected_index = None
+        if self.dr_result_sliders_existed:
+            self.aggregate_result_layout.removeWidget(self.dr_result_selection_slider_1)
+            self.aggregate_result_layout.removeWidget(self.dr_result_selection_slider_2)
+            self.dr_result_selection_slider_1.deleteLater()
+            self.dr_result_selection_slider_2.deleteLater()
+            self.dr_result_sliders_existed = False
         display_dimension_reduction()
 
 
