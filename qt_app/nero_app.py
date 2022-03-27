@@ -1222,9 +1222,11 @@ class UI_MainWindow(QWidget):
 
             self.draw_piv_nero('aggregate')
 
-            # re-run dimension reduction and show result
-            if self.dr_result_existed:
-                self.run_dimension_reduction()
+            if self.single_result_existed:
+                # show the previously selected detail area when in detail mode
+                if self.show_average == False:
+                    self.double_click = True
+                self.draw_piv_nero('single')
 
 
         # change different dimension reduction algorithms
@@ -3829,6 +3831,7 @@ class UI_MainWindow(QWidget):
 
         # add to general layout
         if mode == 'single':
+            self.single_result_existed = True
             # prepare data for piv individual nero plot (heatmap)
             self.data_1 = prepare_plot_data(self.cur_single_plot_quantity_1)
             self.data_2 = prepare_plot_data(self.cur_single_plot_quantity_2)
@@ -4588,8 +4591,8 @@ class UI_MainWindow(QWidget):
         self.aggregate_result_existed = True
 
         # helper function on compute, normalize the loss and display quantity
-        def compute_aggregate_nero_plot_quantity():
-            print('Compute aggregate nero plot quantity')
+        def compute_nero_plot_quantity():
+            print('Compute PIV nero plot quantity')
             # compute loss using torch loss module
             if self.quantity_name == 'RMSE':
                 self.loss_module = nero_utilities.RMSELoss()
@@ -4622,9 +4625,27 @@ class UI_MainWindow(QWidget):
             self.cur_aggregate_plot_quantity_1 = cur_losses_1.mean(axis=1)
             self.cur_aggregate_plot_quantity_2 = cur_losses_2.mean(axis=1)
 
+            # compute single result if needed as well
+            if self.single_result_existed:
+                # keep the same dimension
+                cur_losses_1 = np.zeros((self.num_transformations, self.image_size, self.image_size))
+                cur_losses_2 = np.zeros((self.num_transformations, self.image_size, self.image_size))
+                # used to compute normalization range, depending on single-sample average
+                mean_losses_1 = np.zeros(self.num_transformations)
+                mean_losses_2 = np.zeros(self.num_transformations)
+                for i in range(self.num_transformations):
+                    cur_losses_1[i] = self.loss_module(self.all_ground_truths[i], self.all_quantities_1[i], reduction='none').numpy().mean(axis=2)
+                    cur_losses_2[i] = self.loss_module(self.all_ground_truths[i], self.all_quantities_2[i], reduction='none').numpy().mean(axis=2)
+                    mean_losses_1 = self.loss_module(self.all_ground_truths[i], self.all_quantities_1[i], reduction='mean').numpy()
+                    mean_losses_2 = self.loss_module(self.all_ground_truths[i], self.all_quantities_2[i], reduction='mean').numpy()
+
+                # average element-wise loss to scalar and normalize between 0 and 1
+                self.cur_single_plot_quantity_1 = cur_losses_1
+                self.cur_single_plot_quantity_2 = cur_losses_2
+
 
         @QtCore.Slot()
-        def piv_plot_quantity_changed(text):
+        def piv_nero_quantity_changed(text):
             print('Plotting:', text, 'on heatmap')
             self.quantity_name = text
 
@@ -4638,7 +4659,7 @@ class UI_MainWindow(QWidget):
                 self.quantity_name = text
 
             # compute the quantity to plot
-            compute_aggregate_nero_plot_quantity()
+            compute_nero_plot_quantity()
 
             # re-display the heatmap
             self.draw_piv_nero(mode='aggregate')
@@ -4646,6 +4667,10 @@ class UI_MainWindow(QWidget):
             # re-run dimension reduction and show result
             if self.dr_result_existed:
                 self.run_dimension_reduction()
+
+            # re-draw single result if needed
+            if self.single_result_existed:
+                self.draw_piv_nero(mode='single')
 
         # drop down menu on selection which quantity to plot
         quantity_menu = QtWidgets.QComboBox()
@@ -4659,11 +4684,10 @@ class UI_MainWindow(QWidget):
         quantity_menu.addItem('MSE')
         quantity_menu.addItem('MAE')
         quantity_menu.addItem('AEE')
-        # self.quantity_menu.setCurrentIndex(0)
         quantity_menu.setCurrentText('RMSE')
 
         # connect the drop down menu with actions
-        quantity_menu.currentTextChanged.connect(piv_plot_quantity_changed)
+        quantity_menu.currentTextChanged.connect(piv_nero_quantity_changed)
         self.aggregate_plot_control_layout.addWidget(quantity_menu, 1, 0)
 
         # define default plotting quantity (RMSE)
@@ -4671,7 +4695,7 @@ class UI_MainWindow(QWidget):
         self.aggregate_loss_module = nero_utilities.RMSELoss()
 
         # compute aggregate plot quantity
-        compute_aggregate_nero_plot_quantity()
+        compute_nero_plot_quantity()
 
         # draw the aggregate NERO plot
         self.draw_piv_nero(mode='aggregate')
@@ -4714,18 +4738,21 @@ class UI_MainWindow(QWidget):
                 mean_losses_2 = self.loss_module(self.all_ground_truths[i], self.all_quantities_2[i], reduction='mean').numpy()
 
             # get the 0 and 80 percentile as the threshold for colormap
-            all_losses = np.concatenate([cur_losses_1.flatten(), cur_losses_2.flatten()])
-            self.loss_low_bound = np.percentile(all_losses, 0)
-            self.loss_high_bound = np.percentile(all_losses, 80)
-            print(self.loss_low_bound, self.loss_high_bound)
+            # when in aggregate mode, continue using aggregate range
+            if self.data_mode == 'single':
+                all_losses = np.concatenate([cur_losses_1.flatten(), cur_losses_2.flatten()])
+                self.loss_low_bound = np.percentile(all_losses, 0)
+                self.loss_high_bound = np.percentile(all_losses, 80)
+                print(self.loss_low_bound, self.loss_high_bound)
 
             # average element-wise loss to scalar and normalize between 0 and 1
             self.cur_single_plot_quantity_1 = cur_losses_1
             self.cur_single_plot_quantity_2 = cur_losses_2
 
 
+
         @QtCore.Slot()
-        def piv_plot_quantity_changed(text):
+        def piv_nero_quantity_changed(text):
             print('Plotting:', text, 'on detailed PIV plots')
             self.quantity_name = text
 
@@ -4761,7 +4788,7 @@ class UI_MainWindow(QWidget):
             self.loss_module = nero_utilities.RMSELoss()
 
             # connect the drop down menu with actions
-            quantity_menu.currentTextChanged.connect(piv_plot_quantity_changed)
+            quantity_menu.currentTextChanged.connect(piv_nero_quantity_changed)
             self.single_plot_control_layout.addWidget(quantity_menu)
 
             # add plot control layout to general layout
