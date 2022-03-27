@@ -1,19 +1,15 @@
-import enum
-from gc import callbacks
-from multiprocessing import reduction
+from operator import truediv
 import os
-from selectors import EpollSelector
 import sys
 import glob
-import time
 import torch
+import argparse
 import numpy as np
 import flowiz as fz
-from PIL import Image, ImageDraw
+from PIL import Image
 import pyqtgraph as pg
 from PySide6 import QtCore, QtWidgets, QtGui
 from PySide6.QtGui  import QPixmap, QFont
-# from PySide6.QtCore import QEvent
 from PySide6.QtWidgets import QWidget, QLabel, QRadioButton
 
 from sklearn.decomposition import PCA
@@ -37,7 +33,7 @@ else:
 
 
 class UI_MainWindow(QWidget):
-    def __init__(self):
+    def __init__(self, pre_selected_mode):
         super().__init__()
         # window size
         # self.setFixedSize(1920, 1080)
@@ -55,11 +51,15 @@ class UI_MainWindow(QWidget):
         # individual laytout for different widgets
         # mode selections
         # self.mode = 'digit_recognition'
-        self.mode = None
+        self.mode = pre_selected_mode
+        # save the previous mode selection for layout swap
+        self.previous_mode = pre_selected_mode
+        if self.mode != None:
+            self.pre_selected = True
+        else:
+            self.pre_selected = False
         # input data determines data mode
         self.data_mode = None
-        # save the previous mode selection for layout swap
-        self.previous_mode = None
 
         # initialize control panel on mode selection
         self.init_mode_control_layout()
@@ -164,11 +164,11 @@ class UI_MainWindow(QWidget):
         def digit_recognition_button_clicked():
             print('Digit recognition button clicked')
             self.mode = 'digit_recognition'
-            self.radio_button_1.setChecked(True)
 
-            if self.previous_mode != self.mode or not self.previous_mode:
+            if self.previous_mode != self.mode or not self.previous_mode or self.pre_selected:
                 # clear previous mode's layout
-                self.switch_mode_cleanup()
+                if not self.pre_selected:
+                    self.switch_mode_cleanup()
 
                 self.init_load_layout()
 
@@ -217,12 +217,12 @@ class UI_MainWindow(QWidget):
         def object_detection_button_clicked():
             print('Object detection button clicked')
             self.mode = 'object_detection'
-            self.radio_button_2.setChecked(True)
 
             # below layouts depend on mode selection
-            if self.previous_mode != self.mode or not self.previous_mode:
+            if self.previous_mode != self.mode or not self.previous_mode or self.pre_selected:
                 # clear previous mode's layout
-                self.switch_mode_cleanup()
+                if not self.pre_selected:
+                    self.switch_mode_cleanup()
 
                 self.init_load_layout()
 
@@ -278,12 +278,12 @@ class UI_MainWindow(QWidget):
         def piv_button_clicked():
             print('PIV button clicked')
             self.mode = 'piv'
-            self.radio_button_3.setChecked(True)
 
             # below layouts depend on mode selection
-            if self.previous_mode != self.mode or not self.previous_mode:
+            if self.previous_mode != self.mode or not self.previous_mode or self.pre_selected:
                 # clear previous mode's layout
-                self.switch_mode_cleanup()
+                if not self.pre_selected:
+                    self.switch_mode_cleanup()
 
                 self.init_load_layout()
 
@@ -365,62 +365,56 @@ class UI_MainWindow(QWidget):
         self.mode_control_layout = QtWidgets.QGridLayout()
         self.mode_control_layout.setContentsMargins(50, 0, 0, 50)
         # radio buttons on mode selection (digit_recognition, object detection, PIV)
-        # title
-        mode_pixmap = QPixmap(150, 30)
-        mode_pixmap.fill(QtCore.Qt.white)
-        # draw text
-        painter = QtGui.QPainter(mode_pixmap)
-        painter.setFont(QFont('Helvetica', 18))
-        painter.drawText(0, 0, 150, 30, QtGui.Qt.AlignLeft, 'Model type: ')
-        painter.end()
+        if not self.pre_selected:
+            # title
+            mode_pixmap = QPixmap(150, 30)
+            mode_pixmap.fill(QtCore.Qt.white)
+            # draw text
+            painter = QtGui.QPainter(mode_pixmap)
+            painter.setFont(QFont('Helvetica', 18))
+            painter.drawText(0, 0, 150, 30, QtGui.Qt.AlignLeft, 'Model type: ')
+            painter.end()
 
-        # create label to contain the texts
-        self.mode_label = QLabel(self)
-        self.mode_label.setContentsMargins(0, 0, 0, 0)
-        self.mode_label.setFixedSize(QtCore.QSize(150, 30))
-        self.mode_label.setAlignment(QtCore.Qt.AlignLeft)
-        self.mode_label.setWordWrap(True)
-        self.mode_label.setTextFormat(QtGui.Qt.AutoText)
-        self.mode_label.setPixmap(mode_pixmap)
-        # add to the layout
-        self.mode_control_layout.addWidget(self.mode_label, 0, 0)
+            # create label to contain the texts
+            self.mode_label = QLabel(self)
+            self.mode_label.setContentsMargins(0, 0, 0, 0)
+            self.mode_label.setFixedSize(QtCore.QSize(150, 30))
+            self.mode_label.setAlignment(QtCore.Qt.AlignLeft)
+            self.mode_label.setWordWrap(True)
+            self.mode_label.setTextFormat(QtGui.Qt.AutoText)
+            self.mode_label.setPixmap(mode_pixmap)
+            # add to the layout
+            self.mode_control_layout.addWidget(self.mode_label, 0, 0)
 
-        # radio_buttons_layout = QtWidgets.QGridLayout(self)
-        self.radio_button_1 = QRadioButton('Digit recognition')
-        self.radio_button_1.setFixedSize(QtCore.QSize(400, 50))
-        self.radio_button_1.setStyleSheet('QRadioButton{font: 18pt Helvetica;} QRadioButton::indicator { width: 18px; height: 18px;};')
-        self.radio_button_1.pressed.connect(digit_recognition_button_clicked)
-        self.mode_control_layout.addWidget(self.radio_button_1, 0, 1)
-        # spacer item
-        # self.mode_control_layout.addSpacing(30)
+            # radio_buttons_layout = QtWidgets.QGridLayout(self)
+            self.radio_button_1 = QRadioButton('Digit recognition')
+            self.radio_button_1.setFixedSize(QtCore.QSize(400, 50))
+            self.radio_button_1.setStyleSheet('QRadioButton{font: 18pt Helvetica;} QRadioButton::indicator { width: 18px; height: 18px;};')
+            self.radio_button_1.pressed.connect(digit_recognition_button_clicked)
+            self.mode_control_layout.addWidget(self.radio_button_1, 0, 1)
 
-        self.radio_button_2 = QRadioButton('Object detection')
-        self.radio_button_2.setFixedSize(QtCore.QSize(400, 50))
-        self.radio_button_2.setStyleSheet('QRadioButton{font: 18pt Helvetica;} QRadioButton::indicator { width: 18px; height: 18px;};')
-        self.radio_button_2.pressed.connect(object_detection_button_clicked)
-        self.mode_control_layout.addWidget(self.radio_button_2, 1, 1)
-        # spacer item
-        # self.mode_control_layout.addSpacing(30)
+            self.radio_button_2 = QRadioButton('Object detection')
+            self.radio_button_2.setFixedSize(QtCore.QSize(400, 50))
+            self.radio_button_2.setStyleSheet('QRadioButton{font: 18pt Helvetica;} QRadioButton::indicator { width: 18px; height: 18px;};')
+            self.radio_button_2.pressed.connect(object_detection_button_clicked)
+            self.mode_control_layout.addWidget(self.radio_button_2, 1, 1)
 
-        self.radio_button_3 = QRadioButton('Particle Image Velocimetry (PIV)')
-        self.radio_button_3.setFixedSize(QtCore.QSize(400, 50))
-        self.radio_button_3.setStyleSheet('QRadioButton{font: 18pt Helvetica;} QRadioButton::indicator { width: 18px; height: 18px;};')
-        self.radio_button_3.pressed.connect(piv_button_clicked)
-        self.mode_control_layout.addWidget(self.radio_button_3, 2, 1)
+            self.radio_button_3 = QRadioButton('Particle Image Velocimetry (PIV)')
+            self.radio_button_3.setFixedSize(QtCore.QSize(400, 50))
+            self.radio_button_3.setStyleSheet('QRadioButton{font: 18pt Helvetica;} QRadioButton::indicator { width: 18px; height: 18px;};')
+            self.radio_button_3.pressed.connect(piv_button_clicked)
+            self.mode_control_layout.addWidget(self.radio_button_3, 2, 1)
 
-        # add to general layout
-        self.layout.addLayout(self.mode_control_layout, 0, 0)
+            self.layout.addLayout(self.mode_control_layout, 0, 0)
 
-        # used for default state, if applicable
-        if self.mode == 'digit_recognition':
-            self.radio_button_1.setChecked(True)
-            digit_recognition_button_clicked()
-        elif self.mode == 'object_detection':
-            self.radio_button_2.setChecked(True)
-            object_detection_button_clicked()
-        elif self.mode == 'piv':
-            self.radio_button_3.setChecked(True)
-            piv_button_clicked()
+        else:
+            # used for default state, if applicable
+            if self.mode == 'digit_recognition':
+                digit_recognition_button_clicked()
+            elif self.mode == 'object_detection':
+                object_detection_button_clicked()
+            elif self.mode == 'piv':
+                piv_button_clicked()
 
 
     # load single mnist image from self.image_path
@@ -2794,7 +2788,10 @@ class UI_MainWindow(QWidget):
                 # display the piv single case result
                 self.rectangle_index = 0
                 # default detail view starts at the center of the original rectangle
-                self.double_click = True
+                if self.show_average:
+                    self.double_click = False
+                else:
+                    self.double_click = True
                 self.detail_rect_x = np.where(self.piv_nero_layout==self.rectangle_index)[1] * self.image_size + self.image_size // 2
                 self.detail_rect_y = np.where(self.piv_nero_layout==self.rectangle_index)[0] * self.image_size + self.image_size // 2
                 # np.where returns ndarray, but we know there is only one
@@ -2812,7 +2809,10 @@ class UI_MainWindow(QWidget):
 
                 # display the piv single case result
                 self.rectangle_index = 0
-                self.double_click = True
+                if self.show_average:
+                    self.double_click = False
+                else:
+                    self.double_click = True
                 self.detail_rect_x = np.where(self.piv_nero_layout==self.rectangle_index)[1] * self.image_size + self.image_size // 2
                 self.detail_rect_y = np.where(self.piv_nero_layout==self.rectangle_index)[0] * self.image_size + self.image_size // 2
                 # np.where returns ndarray, but we know there is only one
@@ -3178,7 +3178,11 @@ class UI_MainWindow(QWidget):
 
 
     # helper function on drawing individual heatmap (called by both individual and aggregate cases)
-    def draw_individual_heatmap(self, mode, data, view_box=None, heatmap=None, scatter_item=None, title=None):
+    def draw_individual_heatmap(self, mode, data, view_box=None, heatmap=None, scatter_item=None, title=None, show_colorbar=False):
+
+        # color map
+        self.color_map = pg.colormap.get('viridis')
+        self.color_bar = pg.ColorBarItem(values=self.cm_range, colorMap=self.color_map)
 
         if self.mode == 'object_detection':
             # single mode needs to have input view_box, heatmap and scatter_item for interactively handling
@@ -3215,10 +3219,12 @@ class UI_MainWindow(QWidget):
             heatmap_plot.getAxis('left').setLabel('Translation in y')
             heatmap_plot.getAxis('left').setStyle(tickLength=0, showValues=False)
 
-            # Not letting user zoom out past axis limit
-            # heatmap_plot.vb.setLimits(xMin=-1, xMax=self.image_size+1, yMin=-1, yMax=self.image_size+1)
+            # disable being able to move plot around
+            heatmap_plot.setMouseEnabled(x=False, y=False)
+
 
         elif self.mode == 'piv':
+
             # when we are not showing the detail NERO
             if self.show_average:
                 for y in range(4):
@@ -3255,19 +3261,31 @@ class UI_MainWindow(QWidget):
                 # when double clicked, also plot the small rectangle to identify the detail area
                 elif self.double_click:
                     self.scatter_point = [{'pos': (rect_x, rect_y),
-                                            'size': self.image_size-8,
+                                            'size': self.image_size,
                                             'pen': {'color': 'red', 'width': 4},
                                             'brush': (0, 0, 0, 0)},
                                           {'pos': (self.detail_rect_x, self.detail_rect_y),
-                                            'size': 32,
-                                            'pen': {'color': 'magenta', 'width': 4},
+                                            'size': 8,
+                                            'pen': {'color': 'magenta', 'width': 2},
                                             'brush': (0, 0, 0, 0)}]
-                    # reset double click
-                    self.double_click = False
 
                 # add points to the item
                 scatter_item.setData(self.scatter_point)
                 heatmap_plot.addItem(scatter_item)
+
+                # draw lines that distinguish between different transformations
+                # line color is the average of all plot color
+                scatter_lut = self.color_map.getLookupTable(start=self.cm_range[1], stop=self.cm_range[0], nPts=500, alpha=False)
+                line_color =  QtGui.QColor(scatter_lut[249][0], scatter_lut[249][1], scatter_lut[249][2])
+                for i in range(1, 4):
+                    # horizontal
+                    heatmap_plot.plot([0, self.image_size*4],
+                                        [self.image_size*i, self.image_size*i],
+                                        pen = QtGui.QPen(line_color, 4))
+                    # vertical
+                    heatmap_plot.plot([self.image_size*i, self.image_size*i],
+                                        [0, self.image_size*4],
+                                        pen = QtGui.QPen(line_color, 4))
 
             elif mode == 'aggregate':
                 view_box = pg.ViewBox(invertY=True)
@@ -3278,10 +3296,22 @@ class UI_MainWindow(QWidget):
                 view_box.disableAutoRange()
                 heatmap_plot = pg.PlotItem(viewBox=view_box, title=title)
 
+                # draw lines that distinguish between different transformations
+                # line color is the average of all plot color
+                scatter_lut = self.color_map.getLookupTable(start=self.cm_range[1], stop=self.cm_range[0], nPts=500, alpha=False)
+                line_color =  QtGui.QColor(scatter_lut[249][0], scatter_lut[249][1], scatter_lut[249][2])
+                for i in range(1, 4):
+                    # horizontal
+                    heatmap_plot.plot([0, self.image_size*4],
+                                        [self.image_size*i, self.image_size*i],
+                                        pen = QtGui.QPen(line_color, 4))
+                    # vertical
+                    heatmap_plot.plot([self.image_size*i, self.image_size*i],
+                                        [0, self.image_size*4],
+                                        pen = QtGui.QPen(line_color, 4))
+
             heatmap_plot.getAxis('bottom').setStyle(tickLength=0, showValues=False)
             heatmap_plot.getAxis('left').setStyle(tickLength=0, showValues=False)
-
-            # heatmap_plot.vb.setLimits(xMin=-10, xMax=self.image_size*4, yMin=-10, yMax=self.image_size*4)
 
             # in show_average mode, also show the orbit indicator
             if self.show_average:
@@ -3473,16 +3503,9 @@ class UI_MainWindow(QWidget):
                         heatmap_plot.addItem(cur_F_image)
 
             # Not letting user zoom out past axis limit
-            # heatmap_plot.vb.setLimits(xMin=-1, xMax=self.image_size*4+1, yMin=-1, yMax=self.image_size*4+1)
+            heatmap_plot.vb.setLimits(xMin=-1, xMax=self.image_size*5, yMin=-1, yMax=self.image_size*5)
 
-        # color map
-        self.color_map = pg.colormap.get('viridis')
-        self.color_bar = pg.ColorBarItem(values=self.cm_range, colorMap=self.color_map)
         self.color_bar.setImageItem(heatmap, insert_in=heatmap_plot)
-
-        # disable being able to move plot around
-        heatmap_plot.setMouseEnabled(x=False, y=False)
-
 
         return heatmap_plot
 
@@ -3592,6 +3615,8 @@ class UI_MainWindow(QWidget):
             self.cm_range = (0, 1)
             self.heatmap_plot_1 = self.draw_individual_heatmap('single', data_1, self.view_box_1, self.single_nero_1, self.scatter_item_1)
             self.heatmap_plot_2 = self.draw_individual_heatmap('single', data_2, self.view_box_2, self.single_nero_2, self.scatter_item_2)
+            # reset double click
+            self.double_click = False
 
             # add to view
             self.heatmap_view_1.addItem(self.heatmap_plot_1)
@@ -3634,6 +3659,8 @@ class UI_MainWindow(QWidget):
             self.cm_range = (0, 1)
             self.aggregate_heatmap_plot_1 = self.draw_individual_heatmap('aggregate', data_1)
             self.aggregate_heatmap_plot_2 = self.draw_individual_heatmap('aggregate', data_2)
+            # reset double click
+            self.double_click = False
 
             # add to view
             self.aggregate_heatmap_view_1.addItem(self.aggregate_heatmap_plot_1)
@@ -3870,6 +3897,8 @@ class UI_MainWindow(QWidget):
                                                                 self.view_box_2,
                                                                 self.single_nero_2,
                                                                 self.scatter_item_2)
+            # reset double click
+            self.double_click = False
 
             # add to view
             self.heatmap_view_1.addItem(self.heatmap_plot_1)
@@ -3983,8 +4012,8 @@ class UI_MainWindow(QWidget):
 
         # get the selected vector data from ground turth and models' outputs
         # local position within this transformation
-        detail_rect_x_local = self.detail_rect_x - self.rect_index_x * self.image_size
-        detail_rect_y_local = self.detail_rect_y - self.rect_index_y * self.image_size
+        detail_rect_x_local = int(self.detail_rect_x - self.rect_index_x * self.image_size)
+        detail_rect_y_local = int(self.detail_rect_y - self.rect_index_y * self.image_size)
 
         # vector field around the selected center
         detail_ground_truth = self.all_ground_truths[self.rectangle_index][detail_rect_y_local-4:detail_rect_y_local+4,
@@ -4036,8 +4065,6 @@ class UI_MainWindow(QWidget):
             self.aggregate_result_layout.addWidget(self.piv_detail_view_2, 2, 5)
 
 
-
-
     # display MNIST aggregated results
     def display_mnist_aggregate_result(self):
 
@@ -4085,30 +4112,6 @@ class UI_MainWindow(QWidget):
 
         # draw result using bar plot
         if type == 'bar':
-            # create individual bar (item) for individual hover/click control
-            class InteractiveBarItem(pg.BarGraphItem):
-                def __init__(self, *args, **kwargs):
-                    super().__init__(*args, **kwargs)
-                    if self.opts['brush'] == 'blue':
-                        cur_class = int(self.opts.get('x0')[0] + 0.2)
-                        cur_value = self.opts.get('height')
-                    elif self.opts['brush'] == 'magenta':
-                        cur_class = int(self.opts.get('x0')[0] - 0.2)
-                        cur_value = self.opts.get('height')
-
-                    model_name = self.name()
-                    self.hover_text = f'{model_name}(x = {cur_class}) = {cur_value}'
-                    self.setToolTip(self.hover_text)
-
-                    # required in order to receive hoverEnter/Move/Leave events
-                    self.setAcceptHoverEvents(True)
-
-                def hoverEnterEvent(self, event):
-                    print('hover!')
-
-                def mousePressEvent(self, event):
-                    print('click!')
-
             self.bar_plot = pg.plot()
             # constrain plot showing limit by setting view box
             self.bar_plot.plotItem.vb.setLimits(xMin=-0.5, xMax=9.5, yMin=0, yMax=1.2)
@@ -4116,21 +4119,6 @@ class UI_MainWindow(QWidget):
             self.bar_plot.setFixedSize(self.plot_size, self.plot_size)
             self.bar_plot.getAxis('bottom').setLabel('Digit')
             self.bar_plot.getAxis('left').setLabel('Confidence')
-            # for i in range(10):
-            #     cur_graph_1 = InteractiveBarItem(name=f'{self.model_1_name}',
-            #                                      x0=[i-0.2],
-            #                                      height=self.output_1[i],
-            #                                      width=0.4,
-            #                                      brush='blue')
-
-            #     cur_graph_2 = InteractiveBarItem(name=f'{self.model_2_name}',
-            #                                      x0=[i+0.2],
-            #                                      height=self.output_2[i],
-            #                                      width=0.4,
-            #                                      brush='magenta')
-
-            #     self.bar_plot.addItem(cur_graph_1)
-            #     self.bar_plot.addItem(cur_graph_2)
 
             graph_1 = pg.BarGraphItem(x=np.arange(len(self.output_1))-0.2, height = list(self.output_1), width = 0.4, brush ='blue')
             graph_2 = pg.BarGraphItem(x=np.arange(len(self.output_1))+0.2, height = list(self.output_2), width = 0.4, brush ='magenta')
@@ -4248,7 +4236,7 @@ class UI_MainWindow(QWidget):
             # add points to the plot
             self.polar_plot.addItem(self.scatter_items)
             # connect click events on scatter items (disabled)
-            # self.scatter_items.sigClicked.connect(clicked)
+            self.scatter_items.sigClicked.connect(clicked)
 
             # used for clicking on the polar plot
             def polar_mouse_clicked(event):
@@ -4881,9 +4869,18 @@ class UI_MainWindow(QWidget):
 
 if __name__ == "__main__":
 
+    # input arguments
+    parser = argparse.ArgumentParser()
+    # mode (data, train, or test mode)
+    parser.add_argument('--mode', action='store', nargs=1, dest='mode')
+    args = parser.parse_args()
+    if args.mode:
+        mode = args.mode[0]
+    else:
+        mode = None
+
     app = QtWidgets.QApplication([])
-    widget = UI_MainWindow()
-    # widget.resize(1920, 1080)
+    widget = UI_MainWindow(mode)
     widget.show()
 
     # run the app
