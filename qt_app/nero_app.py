@@ -594,7 +594,8 @@ class UI_MainWindow(QWidget):
                 # buttons layout for run model
                 self.run_button_layout = QtWidgets.QGridLayout()
                 # no displayed test image as in the single case so layout row number-1
-                self.layout.addLayout(self.run_button_layout, 2, 0, 1, 2)
+                if not self.demo:
+                    self.layout.addLayout(self.run_button_layout, 2, 0, 1, 2)
 
                 self.run_button = QtWidgets.QPushButton('Analyze model')
                 self.run_button.setStyleSheet('font-size: 18px')
@@ -1026,9 +1027,8 @@ class UI_MainWindow(QWidget):
         self.image_menu.setEditable(True)
         self.image_menu.lineEdit().setReadOnly(True)
         self.image_menu.lineEdit().setAlignment(QtCore.Qt.AlignCenter)
-        if self.demo:
-            self.load_menu_layout.addWidget(self.image_menu, 0, 2)
-        else:
+        # not show in the demo mode
+        if not self.demo:
             self.load_menu_layout.addWidget(self.image_menu, 1, 3)
 
         # init flag to inidicate if an image has ever been loaded
@@ -1321,7 +1321,8 @@ class UI_MainWindow(QWidget):
         self.run_dr_button.setStyleSheet('font-size: 18px')
         self.run_dr_button.setFixedSize(QtCore.QSize(250, 50))
         self.run_dr_button.clicked.connect(self.run_dimension_reduction)
-        self.aggregate_plot_control_layout.addWidget(self.run_dr_button, 3, 0)
+        if not self.demo:
+            self.aggregate_plot_control_layout.addWidget(self.run_dr_button, 3, 0)
 
         # for PIV only, toggle between average or detail plot
         if self.mode == 'piv':
@@ -1340,6 +1341,7 @@ class UI_MainWindow(QWidget):
 
         self.dr_result_existed = True
 
+        # update the slider 1's text
         def update_slider_1_text():
             slider_1_text_pixmap = QPixmap(150, 50)
             slider_1_text_pixmap.fill(QtCore.Qt.white)
@@ -1349,6 +1351,7 @@ class UI_MainWindow(QWidget):
             painter.end()
             self.slider_1_text_label.setPixmap(slider_1_text_pixmap)
 
+        # update the slider 2's text
         def update_slider_2_text():
             slider_2_text_pixmap = QPixmap(150, 50)
             slider_2_text_pixmap.fill(QtCore.Qt.white)
@@ -1376,9 +1379,8 @@ class UI_MainWindow(QWidget):
 
             return low_dim
 
-
         # helper function for clicking inside the scatter plot
-        def low_dim_scatter_clicked(item, points):
+        def low_dim_scatter_clicked(item=None, points=None):
 
             @QtCore.Slot()
             def slider_1_left_button_clicked():
@@ -1495,8 +1497,15 @@ class UI_MainWindow(QWidget):
                 self.dr_result_sliders_existed = True
 
             # get the clicked scatter item's information
-            self.image_index = int(item.opts['name'])
-            print(f'clicked image index {self.image_index}')
+            # when item is not none, it is from real click
+            if not self.demo:
+                self.image_index = int(item.opts['name'])
+                print(f'clicked image index {self.image_index}')
+            # when the input is empty, it is called automatically
+            else:
+                # image index should be defined
+                if self.image_index == None:
+                    raise Exception('image_index should be defined prior to calling run_dimension_reduction')
 
             # get the ranking in each colorbar and change its value while locking both sliders
             # slider 1
@@ -2019,6 +2028,12 @@ class UI_MainWindow(QWidget):
             self.dr_result_sliders_existed = False
         display_dimension_reduction()
 
+        # demo mode automatically selects an image and trigger individual NERO
+        if self.demo:
+            print(f'Preselected image {self.cur_class_indices[0]} from scatter plot')
+            self.image_index = self.cur_class_indices[0]
+            low_dim_scatter_clicked()
+
 
     # run model on the aggregate dataset
     def run_model_aggregated(self):
@@ -2345,6 +2360,9 @@ class UI_MainWindow(QWidget):
             # display the result
             self.display_piv_aggregate_result()
 
+        # automatically run dimensin reduction in demo mode
+        if self.demo:
+            self.run_dimension_reduction()
 
     # run model on a single test sample with no transfomations
     def run_model_once(self):
@@ -4269,9 +4287,13 @@ class UI_MainWindow(QWidget):
         self.aggregate_result_layout.addWidget(self.model_1_menu, 0, 1, 1, 1, QtCore.Qt.AlignCenter)
         self.aggregate_result_layout.addWidget(self.model_2_menu, 0, 2, 1, 1, QtCore.Qt.AlignCenter)
 
-        # move run button in the first column (after aggregate heatmap control)
-        self.aggregate_plot_control_layout.addWidget(self.run_button, 4, 0)
-        self.aggregate_plot_control_layout.addWidget(self.use_cache_checkbox, 5, 0)
+        # move run button in the first column (after aggregate heatmap control) in non-demo mode
+        if not self.demo:
+            self.aggregate_plot_control_layout.addWidget(self.run_button, 4, 0)
+            self.aggregate_plot_control_layout.addWidget(self.use_cache_checkbox, 5, 0)
+        else:
+            self.run_button_layout.removeWidget(self.run_button)
+            self.run_button_layout.removeWidget(self.use_cache_checkbox)
 
         self.aggregate_result_existed = True
 
@@ -4500,8 +4522,12 @@ class UI_MainWindow(QWidget):
         self.aggregate_result_layout.addWidget(self.model_2_menu, 0, 2, 1, 1, QtCore.Qt.AlignCenter)
 
         # move run button in the first column (after aggregate heatmap control)
-        self.aggregate_plot_control_layout.addWidget(self.run_button, 4, 0)
-        self.aggregate_plot_control_layout.addWidget(self.use_cache_checkbox, 5, 0)
+        # self.aggregate_plot_control_layout.addWidget(self.run_button, 4, 0)
+        # self.aggregate_plot_control_layout.addWidget(self.use_cache_checkbox, 5, 0)
+        if not self.demo:
+            self.aggregate_plot_control_layout.addWidget(self.run_button, 4, 0)
+            self.aggregate_plot_control_layout.addWidget(self.use_cache_checkbox, 5, 0)
+
 
         self.aggregate_result_existed = True
 
