@@ -1339,6 +1339,24 @@ class UI_MainWindow(QWidget):
 
         self.dr_result_existed = True
 
+        def update_slider_1_text():
+            slider_1_text_pixmap = QPixmap(150, 50)
+            slider_1_text_pixmap.fill(QtCore.Qt.white)
+            painter = QtGui.QPainter(slider_1_text_pixmap)
+            painter.setFont(QFont('Helvetica', 12))
+            painter.drawText(0, 0, 150, 50, QtGui.Qt.AlignCenter, f'{self.dr_result_selection_slider_1.value()+1}/{len(self.cur_class_indices)}')
+            painter.end()
+            self.slider_1_text_label.setPixmap(slider_1_text_pixmap)
+
+        def update_slider_2_text():
+            slider_2_text_pixmap = QPixmap(150, 50)
+            slider_2_text_pixmap.fill(QtCore.Qt.white)
+            painter = QtGui.QPainter(slider_2_text_pixmap)
+            painter.setFont(QFont('Helvetica', 12))
+            painter.drawText(0, 0, 150, 50, QtGui.Qt.AlignCenter, f'{self.dr_result_selection_slider_2.value()+1}/{len(self.cur_class_indices)}')
+            painter.end()
+            self.slider_2_text_label.setPixmap(slider_2_text_pixmap)
+
         # helper function on computing dimension reductions
         def dimension_reduce(high_dim, target_dim):
 
@@ -1357,12 +1375,40 @@ class UI_MainWindow(QWidget):
 
             return low_dim
 
+
         # helper function for clicking inside the scatter plot
         def low_dim_scatter_clicked(item, points):
 
+            @QtCore.Slot()
+            def slider_1_left_button_clicked():
+                self.dr_result_selection_slider_1.setValue(self.dr_result_selection_slider_1.value()-1)
+                # update the text
+                update_slider_1_text()
+
+            @QtCore.Slot()
+            def slider_1_right_button_clicked():
+                self.dr_result_selection_slider_1.setValue(self.dr_result_selection_slider_1.value()+1)
+                # update the text
+                update_slider_1_text()
+
+            @QtCore.Slot()
+            def slider_2_left_button_clicked():
+                self.dr_result_selection_slider_2.setValue(self.dr_result_selection_slider_2.value()-1)
+                # update the text
+                update_slider_2_text()
+
+            @QtCore.Slot()
+            def slider_2_right_button_clicked():
+                self.dr_result_selection_slider_2.setValue(self.dr_result_selection_slider_2.value()+1)
+                # update the text
+                update_slider_2_text()
+
             # initialize sliders if first time clicked
             if not self.dr_result_sliders_existed:
+
                 # sliders that rank the dimension reduction result and can select one of them
+                # slider 1
+                self.slider_1_layout = QtWidgets.QGridLayout()
                 self.dr_result_selection_slider_1 = QtWidgets.QSlider(QtCore.Qt.Horizontal)
                 self.dr_result_selection_slider_1.setFixedSize(self.plot_size, 50)
                 self.dr_result_selection_slider_1.setMinimum(0)
@@ -1371,8 +1417,40 @@ class UI_MainWindow(QWidget):
                 self.dr_result_selection_slider_1.setTickPosition(QtWidgets.QSlider.TicksBelow)
                 self.dr_result_selection_slider_1.setTickInterval(1)
                 self.dr_result_selection_slider_1.valueChanged.connect(dr_result_selection_slider_1_changed)
-                self.aggregate_result_layout.addWidget(self.dr_result_selection_slider_1, 3, 1)
+                self.slider_1_layout.addWidget(self.dr_result_selection_slider_1, 0, 0, 1, 3)
+                # left and right buttons to move the slider around, with number in the middle
+                # left button
+                self.slider_1_left_button = QtWidgets.QToolButton()
+                self.slider_1_left_button.setArrowType(QtCore.Qt.LeftArrow)
+                self.slider_1_left_button.clicked.connect(slider_1_left_button_clicked)
+                self.slider_1_layout.addWidget(self.slider_1_left_button, 1, 0, 1, 1)
 
+                # middle text
+                slider_1_text_pixmap = QPixmap(150, 50)
+                slider_1_text_pixmap.fill(QtCore.Qt.white)
+                painter = QtGui.QPainter(slider_1_text_pixmap)
+                painter.setFont(QFont('Helvetica', 12))
+                painter.drawText(0, 0, 150, 50, QtGui.Qt.AlignCenter, f'{self.dr_result_selection_slider_1.value()+1}/{len(self.cur_class_indices)}')
+                painter.end()
+                # create label to contain the texts
+                self.slider_1_text_label = QLabel(self)
+                self.slider_1_text_label.setContentsMargins(0, 0, 0, 0)
+                self.slider_1_text_label.setFixedSize(QtCore.QSize(150, 50))
+                self.slider_1_text_label.setAlignment(QtCore.Qt.AlignCenter)
+                self.slider_1_text_label.setPixmap(slider_1_text_pixmap)
+                self.slider_1_layout.addWidget(self.slider_1_text_label, 1, 1, 1, 1)
+
+                # right button
+                self.slider_1_right_button = QtWidgets.QToolButton()
+                self.slider_1_right_button.setArrowType(QtCore.Qt.RightArrow)
+                self.slider_1_right_button.clicked.connect(slider_1_right_button_clicked)
+                self.slider_1_layout.addWidget(self.slider_1_right_button, 1, 2, 1, 1)
+
+                # add slider 1 layout to the general layout
+                self.aggregate_result_layout.addLayout(self.slider_1_layout, 3, 1)
+
+                # slider 2
+                self.slider_2_layout = QtWidgets.QGridLayout()
                 self.dr_result_selection_slider_2 = QtWidgets.QSlider(QtCore.Qt.Horizontal)
                 self.dr_result_selection_slider_2.setFixedSize(self.plot_size, 50)
                 self.dr_result_selection_slider_2.setMinimum(0)
@@ -1381,7 +1459,37 @@ class UI_MainWindow(QWidget):
                 self.dr_result_selection_slider_2.setTickPosition(QtWidgets.QSlider.TicksBelow)
                 self.dr_result_selection_slider_2.setTickInterval(1)
                 self.dr_result_selection_slider_2.valueChanged.connect(dr_result_selection_slider_2_changed)
-                self.aggregate_result_layout.addWidget(self.dr_result_selection_slider_2, 3, 2)
+                self.slider_2_layout.addWidget(self.dr_result_selection_slider_2, 0, 0, 1, 3)
+                # left and right buttons to move the slider around, with number in the middle
+                # left button
+                self.slider_2_left_button = QtWidgets.QToolButton()
+                self.slider_2_left_button.setArrowType(QtCore.Qt.LeftArrow)
+                self.slider_2_left_button.clicked.connect(slider_2_left_button_clicked)
+                self.slider_2_layout.addWidget(self.slider_2_left_button, 1, 0, 1, 1)
+
+                # middle text
+                slider_2_text_pixmap = QPixmap(150, 50)
+                slider_2_text_pixmap.fill(QtCore.Qt.white)
+                painter = QtGui.QPainter(slider_2_text_pixmap)
+                painter.setFont(QFont('Helvetica', 12))
+                painter.drawText(0, 0, 150, 50, QtGui.Qt.AlignCenter, f'{self.dr_result_selection_slider_2.value()+1}/{len(self.cur_class_indices)}')
+                painter.end()
+                # create label to contain the texts
+                self.slider_2_text_label = QLabel(self)
+                self.slider_2_text_label.setContentsMargins(0, 0, 0, 0)
+                self.slider_2_text_label.setFixedSize(QtCore.QSize(150, 50))
+                self.slider_2_text_label.setAlignment(QtCore.Qt.AlignCenter)
+                self.slider_2_text_label.setPixmap(slider_2_text_pixmap)
+                self.slider_2_layout.addWidget(self.slider_2_text_label, 1, 1, 1, 1)
+
+                # right button
+                self.slider_2_right_button = QtWidgets.QToolButton()
+                self.slider_2_right_button.setArrowType(QtCore.Qt.RightArrow)
+                self.slider_2_right_button.clicked.connect(slider_2_right_button_clicked)
+                self.slider_2_layout.addWidget(self.slider_2_right_button, 1, 2, 1, 1)
+
+                # add slider 2 layout to the general layout
+                self.aggregate_result_layout.addLayout(self.slider_2_layout, 3, 2)
 
                 self.dr_result_sliders_existed = True
 
@@ -1390,12 +1498,18 @@ class UI_MainWindow(QWidget):
             print(f'clicked image index {self.image_index}')
 
             # get the ranking in each colorbar and change its value while locking both sliders
+            # slider 1
             self.slider_1_locked = True
             self.slider_2_locked = True
             self.slider_1_selected_index = self.sorted_class_indices_1.index(self.image_index)
             self.dr_result_selection_slider_1.setValue(self.slider_1_selected_index)
+            # update the text
+            update_slider_1_text()
+            # slider 2
             self.slider_2_selected_index = self.sorted_class_indices_2.index(self.image_index)
             self.dr_result_selection_slider_2.setValue(self.slider_2_selected_index)
+            # update the text
+            update_slider_2_text()
             # update the scatter plot
             display_dimension_reduction()
             # unlock after changing the values
@@ -1708,11 +1822,15 @@ class UI_MainWindow(QWidget):
                 # get the clicked scatter item's information
                 self.image_index = self.sorted_class_indices_1[self.slider_1_selected_index]
                 print(f'slider 1 image index {self.image_index}, ranked position {self.slider_1_selected_index}')
+                # update the text
+                update_slider_1_text()
 
                 # change the other slider's value
                 self.slider_2_locked = True
                 self.slider_2_selected_index = self.sorted_class_indices_2.index(self.image_index)
                 self.dr_result_selection_slider_2.setValue(self.slider_2_selected_index)
+                # update the text
+                update_slider_2_text()
                 self.slider_2_locked = False
 
                 # update the scatter plot
@@ -1782,11 +1900,15 @@ class UI_MainWindow(QWidget):
                 # get the clicked scatter item's information
                 self.image_index = self.sorted_class_indices_2[self.slider_2_selected_index]
                 print(f'slider 2 image index {self.image_index}, ranked position {self.slider_2_selected_index}')
+                # update the text
+                update_slider_2_text()
 
                 # change the other slider's value
                 self.slider_1_locked = True
                 self.slider_1_selected_index = self.sorted_class_indices_1.index(self.image_index)
                 self.dr_result_selection_slider_1.setValue(self.slider_1_selected_index)
+                # update the text
+                update_slider_1_text()
                 self.slider_1_locked = False
 
                 # update the scatter plot
@@ -1867,13 +1989,13 @@ class UI_MainWindow(QWidget):
 
         self.mean_intensity_button = QRadioButton('Mean')
         self.mean_intensity_button.setFixedSize(QtCore.QSize(200, 30))
-        self.mean_intensity_button.setStyleSheet('QRadioButton{font: 18pt Helvetica;} QRadioButton::indicator { width: 14px; height: 14px;};')
+        self.mean_intensity_button.setStyleSheet('QRadioButton{font: 14pt Helvetica;} QRadioButton::indicator { width: 14px; height: 14px;};')
         self.mean_intensity_button.pressed.connect(mean_intensity_button_clicked)
         self.aggregate_plot_control_layout.addWidget(self.mean_intensity_button, 7, 0)
 
         self.variance_intensity_button = QRadioButton('Variance')
         self.variance_intensity_button.setFixedSize(QtCore.QSize(200, 30))
-        self.variance_intensity_button.setStyleSheet('QRadioButton{font: 18pt Helvetica;} QRadioButton::indicator { width: 14px; height: 14px;};')
+        self.variance_intensity_button.setStyleSheet('QRadioButton{font: 14pt Helvetica;} QRadioButton::indicator { width: 14px; height: 14px;};')
         self.variance_intensity_button.pressed.connect(variance_intensity_button_clicked)
         self.aggregate_plot_control_layout.addWidget(self.variance_intensity_button, 8, 0)
 
@@ -1891,10 +2013,8 @@ class UI_MainWindow(QWidget):
         self.slider_1_selected_index = None
         self.slider_2_selected_index = None
         if self.dr_result_sliders_existed:
-            self.aggregate_result_layout.removeWidget(self.dr_result_selection_slider_1)
-            self.aggregate_result_layout.removeWidget(self.dr_result_selection_slider_2)
-            self.dr_result_selection_slider_1.deleteLater()
-            self.dr_result_selection_slider_2.deleteLater()
+            self.clear_layout(self.slider_1_layout)
+            self.clear_layout(self.slider_2_layout)
             self.dr_result_sliders_existed = False
         display_dimension_reduction()
 
