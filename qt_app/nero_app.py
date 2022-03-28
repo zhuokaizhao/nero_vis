@@ -2,6 +2,7 @@ from operator import truediv
 import os
 import sys
 import glob
+from sklearn.multiclass import OutputCodeClassifier
 import torch
 import argparse
 import numpy as np
@@ -3095,7 +3096,7 @@ class UI_MainWindow(QWidget):
 
 
     # draw detailed look of COCO models output on cropped regions
-    def draw_model_output(self):
+    def draw_model_output(self, take_from_aggregate_output=False):
         def draw_detailed_plot(detailed_display_image, model_output, color):
 
             # prepare a pixmap for the image
@@ -3167,10 +3168,14 @@ class UI_MainWindow(QWidget):
 
         # size of the enlarged image
         # convert and resize current selected FOV to QImage for display purpose
-        self.detailed_display_image = nero_utilities.tensor_to_qt_image(self.loaded_image_pt[self.y_min:self.y_max, self.x_min:self.x_max, :]).scaledToWidth(self.plot_size)
-        # run model with the cropped view
-        self.cropped_image_pt = self.loaded_image_pt[self.y_min:self.y_max, self.x_min:self.x_max, :] / 255
-        self.run_model_once()
+        if take_from_aggregate_output:
+            self.output_1 = [[self.aggregate_outputs_1[self.block_y, self.block_x][self.image_index]]]
+            self.output_2 = [[self.aggregate_outputs_2[self.block_y, self.block_x][self.image_index]]]
+        else:
+            self.detailed_display_image = nero_utilities.tensor_to_qt_image(self.loaded_image_pt[self.y_min:self.y_max, self.x_min:self.x_max, :]).scaledToWidth(self.plot_size)
+            # run model with the cropped view
+            self.cropped_image_pt = self.loaded_image_pt[self.y_min:self.y_max, self.x_min:self.x_max, :] / 255
+            self.run_model_once()
 
         # display for model 1
         self.detailed_image_label_1, self.detailed_text_label_1 = draw_detailed_plot(self.detailed_display_image, self.output_1, 'blue')
@@ -3702,13 +3707,18 @@ class UI_MainWindow(QWidget):
                 super().__init__()
 
             def mouseClickEvent(self, event):
+
                 print(f'Clicked on heatmap at ({event.pos().x()}, {event.pos().y()})')
+                # the position of un-repeated aggregate result
+                outer_self.block_x = int(np.floor(event.pos().x()//outer_self.translation_step_single))
+                outer_self.block_y = int(np.floor(event.pos().y()//outer_self.translation_step_single))
+
                 # in COCO mode, clicked location indicates translation
                 # draw a point(rect) that represents current selection of location
-                outer_self.cur_x_tran = int(event.pos().x()//outer_self.translation_step_single) * outer_self.translation_step_single
-                outer_self.cur_y_tran = int(event.pos().y()//outer_self.translation_step_single) * outer_self.translation_step_single
-                # print(f'Correspond to rect_x = {outer_self.cur_x_tran}, rect_y = {outer_self.cur_y_tran}')
-
+                # although in this case we are taking results from the aggregate result
+                # we need these locations for input modification
+                outer_self.cur_x_tran = int(np.floor(event.pos().x()//outer_self.translation_step_single)) * outer_self.translation_step_single
+                outer_self.cur_y_tran = int(np.floor(event.pos().y()//outer_self.translation_step_single)) * outer_self.translation_step_single
                 outer_self.x_tran = outer_self.cur_x_tran + outer_self.x_translation[0]
                 outer_self.y_tran = outer_self.cur_y_tran + outer_self.y_translation[0]
 
@@ -3718,8 +3728,8 @@ class UI_MainWindow(QWidget):
                 # update the input image with FOV mask and ground truth labelling
                 outer_self.display_coco_image()
 
-                # redisplay model output
-                outer_self.draw_model_output()
+                # redisplay model output (result taken from the aggregate results)
+                outer_self.draw_model_output(take_from_aggregate_output=True)
 
                 # remove existing selection indicater from both scatter plots
                 outer_self.heatmap_plot_1.removeItem(outer_self.scatter_item_1)
