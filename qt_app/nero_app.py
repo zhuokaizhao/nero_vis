@@ -1986,19 +1986,19 @@ class UI_MainWindow(QWidget):
         intensity_button_label.setTextFormat(QtGui.Qt.AutoText)
         intensity_button_label.setPixmap(intensity_button_pixmap)
         # add to the layout
-        self.aggregate_plot_control_layout.addWidget(intensity_button_label, 6, 0)
+        self.aggregate_plot_control_layout.addWidget(intensity_button_label, 7, 0)
 
         self.mean_intensity_button = QRadioButton('Mean')
         self.mean_intensity_button.setFixedSize(QtCore.QSize(200, 30))
         self.mean_intensity_button.setStyleSheet('QRadioButton{font: 14pt Helvetica;} QRadioButton::indicator { width: 14px; height: 14px;};')
         self.mean_intensity_button.pressed.connect(mean_intensity_button_clicked)
-        self.aggregate_plot_control_layout.addWidget(self.mean_intensity_button, 7, 0)
+        self.aggregate_plot_control_layout.addWidget(self.mean_intensity_button, 8, 0)
 
         self.variance_intensity_button = QRadioButton('Variance')
         self.variance_intensity_button.setFixedSize(QtCore.QSize(200, 30))
         self.variance_intensity_button.setStyleSheet('QRadioButton{font: 14pt Helvetica;} QRadioButton::indicator { width: 14px; height: 14px;};')
         self.variance_intensity_button.pressed.connect(variance_intensity_button_clicked)
-        self.aggregate_plot_control_layout.addWidget(self.variance_intensity_button, 8, 0)
+        self.aggregate_plot_control_layout.addWidget(self.variance_intensity_button, 9, 0)
 
         # by default the intensities are computed via mean
         self.mean_intensity_button.setChecked(True)
