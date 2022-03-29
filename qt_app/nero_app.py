@@ -1417,7 +1417,7 @@ class UI_MainWindow(QWidget):
                 self.dr_result_selection_slider_1.setMinimum(0)
                 self.dr_result_selection_slider_1.setMaximum(len(self.all_high_dim_points_1)-1)
                 self.dr_result_selection_slider_1.setValue(0)
-                self.dr_result_selection_slider_1.setTickPosition(QtWidgets.QSlider.TicksBelow)
+                self.dr_result_selection_slider_1.setTickPosition(QtWidgets.QSlider.NoTicks)
                 self.dr_result_selection_slider_1.setTickInterval(1)
                 self.dr_result_selection_slider_1.valueChanged.connect(dr_result_selection_slider_1_changed)
                 self.slider_1_layout.addWidget(self.dr_result_selection_slider_1, 0, 0, 1, 3)
@@ -1459,7 +1459,7 @@ class UI_MainWindow(QWidget):
                 self.dr_result_selection_slider_2.setMinimum(0)
                 self.dr_result_selection_slider_2.setMaximum(len(self.all_high_dim_points_2)-1)
                 self.dr_result_selection_slider_2.setValue(0)
-                self.dr_result_selection_slider_2.setTickPosition(QtWidgets.QSlider.TicksBelow)
+                self.dr_result_selection_slider_2.setTickPosition(QtWidgets.QSlider.NoTicks)
                 self.dr_result_selection_slider_2.setTickInterval(1)
                 self.dr_result_selection_slider_2.valueChanged.connect(dr_result_selection_slider_2_changed)
                 self.slider_2_layout.addWidget(self.dr_result_selection_slider_2, 0, 0, 1, 3)
@@ -1498,7 +1498,7 @@ class UI_MainWindow(QWidget):
 
             # get the clicked scatter item's information
             # when item is not none, it is from real click
-            if not self.demo:
+            if item != None:
                 self.image_index = int(item.opts['name'])
                 print(f'clicked image index {self.image_index}')
             # when the input is empty, it is called automatically
@@ -1781,6 +1781,11 @@ class UI_MainWindow(QWidget):
                     elif self.quantity_name == 'IOU':
                         cur_value_1 = cur_iou_1
                         cur_value_2 = cur_iou_2
+                    elif self.quantity_name == 'Consensus':
+                        cur_value_1 = self.aggregate_consensus_1[y, x, index]
+                        cur_value_2 = self.aggregate_consensus_1[y, x, index]
+
+                    # below values exist in non-demo mode
                     elif self.quantity_name == 'Precision':
                         cur_value_1 = self.aggregate_precision_1[y, x][index]
                         cur_value_2 = self.aggregate_precision_2[y, x][index]
@@ -3187,6 +3192,8 @@ class UI_MainWindow(QWidget):
         # size of the enlarged image
         # convert and resize current selected FOV to QImage for display purpose
         if take_from_aggregate_output:
+            # still needs the new cropped image for detail model readout vis
+            self.detailed_display_image = nero_utilities.tensor_to_qt_image(self.loaded_image_pt[self.y_min:self.y_max, self.x_min:self.x_max, :]).scaledToWidth(self.plot_size)
             self.output_1 = [[self.aggregate_outputs_1[self.block_y, self.block_x][self.image_index]]]
             self.output_2 = [[self.aggregate_outputs_2[self.block_y, self.block_x][self.image_index]]]
         else:
@@ -4515,6 +4522,73 @@ class UI_MainWindow(QWidget):
             raise Exception('Unsupported display mode')
 
 
+    # function that computes consensus among different experiments
+    def compute_consensus(self, mode):
+        if self.mode == 'object_detection':
+            if mode == 'single':
+                for y in range(self.aggregate_outputs_1.shape[0]):
+                    for x in range(self.aggregate_outputs_1.shape[1]):
+                        # correct translation amount
+                        x_tran = self.x_translation[x] + 1e-5
+                        y_tran = self.y_translation[y] + 1e-5
+
+                        # current bounding box center from model 1 and 2
+                        cur_center_x_1 = (self.all_quantities_1[y, x, 0] + self.all_quantities_1[y, x, 2]) / 2
+                        cur_center_y_1 = (self.all_quantities_1[y, x, 1] + self.all_quantities_1[y, x, 3]) / 2
+                        cur_center_x_2 = (self.all_quantities_2[y, x, 0] + self.all_quantities_2[y, x, 2]) / 2
+                        cur_center_y_2 = (self.all_quantities_2[y, x, 1] + self.all_quantities_2[y, x, 3]) / 2
+
+                        # model output translation
+                        x_tran_model_1 = cur_center_x_1 - self.image_size//2 - 1
+                        y_tran_model_1 = cur_center_y_1 - self.image_size//2 - 1
+                        x_tran_model_2 = cur_center_x_2 - self.image_size//2 - 1
+                        y_tran_model_2 = cur_center_y_2 - self.image_size//2 - 1
+
+                        # compute percentage
+                        self.cur_single_plot_quantity_1[y, x] = 1 - np.sqrt((x_tran_model_1-x_tran)**2 + (y_tran_model_1-y_tran)**2) / np.sqrt(x_tran**2 + y_tran**2)
+                        self.cur_single_plot_quantity_2[y, x] = 1 - np.sqrt((x_tran_model_2-x_tran)**2 + (y_tran_model_2-y_tran)**2) / np.sqrt(x_tran**2 + y_tran**2)
+
+            elif mode == 'aggregate':
+                self.aggregate_consensus_1 = np.zeros((self.aggregate_outputs_1.shape[0],
+                                                        self.aggregate_outputs_1.shape[1],
+                                                        len(self.aggregate_outputs_1[0, 0])))
+
+                self.aggregate_consensus_2 = np.zeros((self.aggregate_outputs_2.shape[0],
+                                                        self.aggregate_outputs_2.shape[1],
+                                                        len(self.aggregate_outputs_2[0, 0])))
+                # for each position, compute its bounding box center
+                for y in range(self.aggregate_outputs_1.shape[0]):
+                    for x in range(self.aggregate_outputs_1.shape[1]):
+                        # correct translation amount
+                        x_tran = self.x_translation[x] + 1e-5
+                        y_tran = self.y_translation[y] + 1e-5
+
+                        # current bounding box center from model 1 and 2 for each object
+                        for k in range(len(self.aggregate_outputs_1[y, x])):
+                            cur_center_x_1 = (self.aggregate_outputs_1[y, x][k][0, 0] + self.aggregate_outputs_1[y, x][k][0, 2]) / 2
+                            cur_center_y_1 = (self.aggregate_outputs_1[y, x][k][0, 1] + self.aggregate_outputs_1[y, x][k][0, 3]) / 2
+                            cur_center_x_2 = (self.aggregate_outputs_1[y, x][k][0, 0] + self.aggregate_outputs_1[y, x][k][0, 2]) / 2
+                            cur_center_y_2 = (self.aggregate_outputs_1[y, x][k][0, 1] + self.aggregate_outputs_1[y, x][k][0, 3]) / 2
+
+                            # model output translation
+                            x_tran_model_1 = cur_center_x_1 - self.image_size//2 - 1
+                            y_tran_model_1 = cur_center_y_1 - self.image_size//2 - 1
+                            x_tran_model_2 = cur_center_x_2 - self.image_size//2 - 1
+                            y_tran_model_2 = cur_center_y_2 - self.image_size//2 - 1
+
+                            # compute percentage
+                            self.aggregate_consensus_1[y, x, k] = 1 - np.sqrt((x_tran_model_1-x_tran)**2 + (y_tran_model_1-y_tran)**2) / np.sqrt(x_tran**2 + y_tran**2)
+                            self.aggregate_consensus_2[y, x, k] = 1 - np.sqrt((x_tran_model_2-x_tran)**2 + (y_tran_model_2-y_tran)**2) / np.sqrt(x_tran**2 + y_tran**2)
+
+                        self.cur_aggregate_plot_quantity_1[y, x] = np.average(self.aggregate_consensus_1[y, x])
+                        self.cur_aggregate_plot_quantity_2[y, x] = np.average(self.aggregate_consensus_2[y, x])
+
+
+        elif self.mode == 'piv':
+            raise NotImplementedError
+
+
+
     # display COCO aggregate results
     def display_coco_aggregate_result(self):
         # move the model menu on top of the each aggregate NERO plot
@@ -4544,6 +4618,10 @@ class UI_MainWindow(QWidget):
             elif text == 'IOU':
                 self.cur_aggregate_plot_quantity_1 = self.aggregate_avg_iou_1
                 self.cur_aggregate_plot_quantity_2 = self.aggregate_avg_iou_2
+            elif text == 'Consensus':
+                self.compute_consensus('aggregate')
+
+            # below quantities won't show in the demo mode
             elif text == 'Precision':
                 self.cur_aggregate_plot_quantity_1 = self.aggregate_avg_precision_1
                 self.cur_aggregate_plot_quantity_2 = self.aggregate_avg_precision_2
@@ -4602,37 +4680,9 @@ class UI_MainWindow(QWidget):
                                 self.cur_single_plot_quantity_1[y, x] = self.aggregate_outputs_1[y, x][self.image_index][0, 6]
                                 self.cur_single_plot_quantity_2[y, x] = self.aggregate_outputs_2[y, x][self.image_index][0, 6]
 
+                # Consensus computing
                 elif text == 'Consensus':
-                    self.cur_single_plot_quantity_1 = np.zeros((self.all_quantities_1.shape[0], self.all_quantities_1.shape[1]))
-                    self.cur_single_plot_quantity_2 = np.zeros((self.all_quantities_2.shape[0], self.all_quantities_2.shape[1]))
-                    # for each position, compute its bounding box center
-                    # x_ratio = int(self.image_size // self.all_quantities_1.shape[0])
-                    # y_ratio = int(self.image_size // self.all_quantities_1.shape[1])
-                    for i in range(self.all_quantities_1.shape[0]):
-                        for j in range(self.all_quantities_1.shape[1]):
-                            # correct translation amount
-                            x_tran = self.all_translations[i, j, 0]
-                            y_tran = self.all_translations[i, j, 1]
-
-                            # current bounding box center from model 1 and 2
-                            cur_center_x_1 = (self.all_quantities_1[i, j, 0] + self.all_quantities_1[i, j, 2]) / 2
-                            cur_center_y_1 = (self.all_quantities_1[i, j, 1] + self.all_quantities_1[i, j, 3]) / 2
-                            cur_center_x_2 = (self.all_quantities_2[i, j, 0] + self.all_quantities_2[i, j, 2]) / 2
-                            cur_center_y_2 = (self.all_quantities_2[i, j, 1] + self.all_quantities_2[i, j, 3]) / 2
-
-                            # model output translation
-                            x_tran_model_1 = cur_center_x_1 - self.image_size//2 - 1
-                            y_tran_model_1 = cur_center_y_1 - self.image_size//2 - 1
-                            x_tran_model_2 = cur_center_x_2 - self.image_size//2 - 1
-                            y_tran_model_2 = cur_center_y_2 - self.image_size//2 - 1
-
-                            # compute percentage
-                            if np.sqrt(x_tran**2 + y_tran**2) == 0:
-                                self.cur_single_plot_quantity_1[i, j] = 1
-                                self.cur_single_plot_quantity_2[i, j] = 1
-                            else:
-                                self.cur_single_plot_quantity_1[i, j] = 1 - np.sqrt((x_tran_model_1-x_tran)**2 + (y_tran_model_1-y_tran)**2) / np.sqrt(x_tran**2 + y_tran**2)
-                                self.cur_single_plot_quantity_2[i, j] = 1 - np.sqrt((x_tran_model_2-x_tran)**2 + (y_tran_model_2-y_tran)**2) / np.sqrt(x_tran**2 + y_tran**2)
+                    self.compute_consensus('single')
 
                 # re-display the heatmap
                 self.draw_coco_nero(mode='single')
@@ -4648,10 +4698,14 @@ class UI_MainWindow(QWidget):
         quantity_menu.addItem('Confidence*IOU')
         quantity_menu.addItem('Confidence')
         quantity_menu.addItem('IOU')
-        quantity_menu.addItem('Precision')
-        quantity_menu.addItem('Recall')
-        quantity_menu.addItem('AP')
-        quantity_menu.addItem('F1 Score')
+        quantity_menu.addItem('Consensus')
+        # some extra qualities to plot (not available in individual NERO plot)
+        if not self.demo:
+            quantity_menu.addItem('Precision')
+            quantity_menu.addItem('Recall')
+            quantity_menu.addItem('AP')
+            quantity_menu.addItem('F1 Score')
+
         # self.quantity_menu.setCurrentIndex(0)
         quantity_menu.setCurrentText('Confidence*IOU')
 
@@ -4953,8 +5007,6 @@ class UI_MainWindow(QWidget):
             # average element-wise loss to scalar and normalize between 0 and 1
             self.cur_single_plot_quantity_1 = cur_losses_1
             self.cur_single_plot_quantity_2 = cur_losses_2
-
-
 
         @QtCore.Slot()
         def piv_nero_quantity_changed(text):
