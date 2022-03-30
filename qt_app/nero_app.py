@@ -3038,20 +3038,6 @@ class UI_MainWindow(QWidget):
                 self.display_piv_single_result()
 
 
-    # draw an arrow, used between input image(s) and model outputs
-    def draw_arrow(self, painter, pen, width, height, boundary_width):
-        # draw arrow to indicate feeding
-        pen.setWidth(boundary_width)
-        pen.setColor(QtGui.QColor('black'))
-        painter.setPen(pen)
-        # horizontal line
-        painter.drawLine(0, height//2, width, height//2)
-        # upper arrow
-        painter.drawLine(int(0.6*width), int(0.25*height), width, height//2)
-        # bottom arrow
-        painter.drawLine(int(0.6*width), int(0.75*height), width, height//2)
-
-
     # draw a rectangle
     def draw_rectangle(self, painter, center_x, center_y, width, height, color=None, alpha=255, fill=None, boundary_width=5, label=None):
         if center_x == 0 and center_y == 0 and width == 0 and height == 0:
@@ -5040,14 +5026,9 @@ class UI_MainWindow(QWidget):
             # keep the same dimension
             cur_losses_1 = np.zeros((self.num_transformations, self.image_size, self.image_size))
             cur_losses_2 = np.zeros((self.num_transformations, self.image_size, self.image_size))
-            # used to compute normalization range, depending on single-sample average
-            mean_losses_1 = np.zeros(self.num_transformations)
-            mean_losses_2 = np.zeros(self.num_transformations)
             for i in range(self.num_transformations):
                 cur_losses_1[i] = self.loss_module(self.all_ground_truths[i], self.all_quantities_1[i], reduction='none').numpy().mean(axis=2)
                 cur_losses_2[i] = self.loss_module(self.all_ground_truths[i], self.all_quantities_2[i], reduction='none').numpy().mean(axis=2)
-                mean_losses_1 = self.loss_module(self.all_ground_truths[i], self.all_quantities_1[i], reduction='mean').numpy()
-                mean_losses_2 = self.loss_module(self.all_ground_truths[i], self.all_quantities_2[i], reduction='mean').numpy()
 
             # get the 0 and 80 percentile as the threshold for colormap
             # when in aggregate mode, continue using aggregate range
