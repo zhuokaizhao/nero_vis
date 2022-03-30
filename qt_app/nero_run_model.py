@@ -338,7 +338,7 @@ def process_model_outputs(outputs, targets, iou_thres=0.5, conf_thres=0):
         F_measure = (2 * precision * recall) / (precision + recall + 1e-16)
 
         # rank all outputs based on IOU and then convert to numpy array
-        qualified_output = np.array(sorted(qualified_output, key=lambda x: x[-1])[::-1])
+        qualified_output = np.array(sorted(qualified_output, key=lambda x: x[6])[::-1])
         all_qualified_outputs[i] = qualified_output
         all_precisions[i] = precision
         all_recalls[i] = recall

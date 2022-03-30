@@ -2555,8 +2555,8 @@ class UI_MainWindow(QWidget):
                     self.all_quantities_1 = self.load_from_cache(name=f'{self.mode}_{self.data_mode}_{self.model_1_cache_name}_{self.image_index}')
                     self.all_quantities_2 = self.load_from_cache(name=f'{self.mode}_{self.data_mode}_{self.model_2_cache_name}_{self.image_index}')
                 else:
-                    self.all_quantities_1 = np.zeros((num_y_translations, num_x_translations, 7))
-                    self.all_quantities_2 = np.zeros((num_y_translations, num_x_translations, 7))
+                    self.all_quantities_1 = np.zeros((num_y_translations, num_x_translations, 8))
+                    self.all_quantities_2 = np.zeros((num_y_translations, num_x_translations, 8))
 
                 for y, y_tran in enumerate(self.y_translation):
                     for x, x_tran in enumerate(self.x_translation):
@@ -3763,7 +3763,10 @@ class UI_MainWindow(QWidget):
                 outer_self.display_coco_image()
 
                 # redisplay model output (result taken from the aggregate results)
-                outer_self.draw_model_output(take_from_aggregate_output=True)
+                if outer_self.data_mode == 'aggregate':
+                    outer_self.draw_model_output(take_from_aggregate_output=True)
+                else:
+                    outer_self.draw_model_output()
 
                 # remove existing selection indicater from both scatter plots
                 outer_self.heatmap_plot_1.removeItem(outer_self.scatter_item_1)
