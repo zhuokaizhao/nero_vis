@@ -2678,6 +2678,8 @@ class UI_MainWindow(QWidget):
 
         elif self.mode == 'piv':
 
+            self.show_average = True
+
             # flags on controlling current image tensor
             self.rotate_ccw = False
             self.rotate_cw = False

@@ -1,5 +1,6 @@
 # the script gets called by nero_app when running the model
 from dataclasses import dataclass
+import cv2
 import os
 import sys
 from sympy import EX
@@ -466,7 +467,7 @@ def run_piv_once(mode, model_name, model, image_1, image_2):
     if mode == 'single':
 
         if model_name == 'PIV-LiteFlowNet-en':
-            # permute from [index, height, width, dim] to [index, dim, height, width]
+            # permute from [height, width, dim] to [dim, height, width] and add index upfront
             img1 = image_1.permute(2, 0, 1).unsqueeze(0).float().to(device)
             img2 = image_2.permute(2, 0, 1).unsqueeze(0).float().to(device)
             # get prediction from loaded model
@@ -478,28 +479,29 @@ def run_piv_once(mode, model_name, model, image_1, image_2):
             cur_label_pred_pt = cur_label_pred_pt.permute(0, 2, 3, 1)
             cur_label_pred_pt = cur_label_pred_pt[0]
 
+            u = (cur_label_pred_pt[:, :, 0]/256).numpy()
+            v = (cur_label_pred_pt[:, :, 1]/256).numpy()
+            print(f'ML average u {np.mean(u)}, average v {np.mean(v)}')
+
         elif model_name == 'Horn-Schunck':
-            image_1_pil_gray = ImageOps.grayscale(Image.fromarray(image_1.numpy(), 'RGB'))
-            image_2_pil_gray = ImageOps.grayscale(Image.fromarray(image_2.numpy(), 'RGB'))
-            image_1_np_gray = np.array(image_1_pil_gray)
-            image_2_np_gray = np.array(image_2_pil_gray)
+            image_1_np_gray = np.dot(image_1.numpy()[:, :, :3], [0.299, 0.587, 0.114])
+            image_2_np_gray = np.dot(image_2.numpy()[:, :, :3], [0.299, 0.587, 0.114])
+            image_1_np_gray = np.array(image_1_np_gray, dtype=np.uint8)
+            image_2_np_gray = np.array(image_2_np_gray, dtype=np.uint8)
 
             # prepare images for HS
             img1 = image_1_np_gray * 1.0/255.0
             img2 = image_2_np_gray * 1.0/255.0
-            # img1 = image_1_np_gray
-            # img2 = image_2_np_gray
             img_height, img_width = img1.shape[:2]
-
-            u, v = models.Horn_Schunck(img1, img2)
+            # u, v = models.Horn_Schunck(img1, img2)
+            # print(f'Horn-Schunck average u {np.mean(u)}, average v {np.mean(v)}')
             # u, v = models.Lucas_Kanade(img1, img2)
-            # import cv2
-            # cur_label_pred_np = cv2.calcOpticalFlowFarneback(img1, img2, None, 0.5, 3, 15, 3, 5, 1.2, 0)
-            # cur_label_pred_pt = torch.from_numpy(cur_label_pred_np)
-            # u, v = models.simple_piv(img1, img2)
-            # print(u)
-            # print(v)
-            # exit()
+            # print(f'Lucas-Kanade average u {np.mean(u)}, average v {np.mean(v)}')
+            cur_label_pred_np = cv2.calcOpticalFlowFarneback(img1, img2, None, 0.5, 3, 15, 3, 5, 1.2, 0)
+            u = cur_label_pred_np[:, :, 0]
+            v = cur_label_pred_np[:, :, 1]
+            print(f'Farneback average u {np.mean(u)}, average v {np.mean(v)}')
+
             if u.shape[0:2] != img1.shape[0:2]:
                 # repeat in row
                 temp = np.repeat(u, img1.shape[0]/u.shape[1], axis=0)
@@ -540,14 +542,26 @@ def run_piv_once(mode, model_name, model, image_1, image_2):
 
             # prepare images for HS, HS does not run in batch
             for i in range(num_images):
-                img1 = np.asarray(ImageOps.grayscale(Image.fromarray(image_1[i].numpy(), 'RGB'))) * 1.0/255.0
-                img2 = np.asarray(ImageOps.grayscale(Image.fromarray(image_2[i].numpy(), 'RGB'))) * 1.0/255.0
+                img1 = image_1[i]
+                img1 = image_2[i]
+                image_1_np_gray = np.dot(img1.numpy()[:, :, :3], [0.299, 0.587, 0.114])
+                image_2_np_gray = np.dot(img1.numpy()[:, :, :3], [0.299, 0.587, 0.114])
+                image_1_np_gray = np.array(image_1_np_gray, dtype=np.uint8)
+                image_2_np_gray = np.array(image_2_np_gray, dtype=np.uint8)
+
+                # prepare images for HS
+                img1 = image_1_np_gray * 1.0/255.0
+                img2 = image_2_np_gray * 1.0/255.0
                 img_height, img_width = img1.shape[:2]
 
-                u, v = models.Horn_Schunck(img1, img2)
-                cur_label_pred_pt = torch.zeros((img_height, img_width, 2))
-                cur_label_pred_pt[:, :, 0] = torch.from_numpy(u)
-                cur_label_pred_pt[:, :, 1] = torch.from_numpy(v)
+                # u, v = models.Horn_Schunck(img1, img2)
+                # u = u * image_1.shape[1]
+                # v = v * image_1.shape[2]
+                # cur_label_pred_pt = torch.zeros((img_height, img_width, 2))
+                # cur_label_pred_pt[:, :, 0] = torch.from_numpy(u)
+                # cur_label_pred_pt[:, :, 1] = torch.from_numpy(v)
+                cur_label_pred_np = cv2.calcOpticalFlowFarneback(img1, img2, None, 0.5, 3, 15, 3, 5, 1.2, 0)
+                cur_label_pred_pt = torch.from_numpy(cur_label_pred_np)
 
                 cur_labels_pred_pt[i] = cur_label_pred_pt
 
