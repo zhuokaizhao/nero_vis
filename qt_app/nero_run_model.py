@@ -312,11 +312,10 @@ def process_model_outputs(outputs, targets, iou_thres=0.5, conf_thres=0):
         for j, pred_box in enumerate(pred_boxes):
             # compute iou
             cur_iou = bbox_iou(pred_box.unsqueeze(0), true_boxes)
-            # even it might be wrong, we want the output
-            qualified_output.append(np.append(cur_object_outputs[j].numpy(), cur_iou))
 
             # if the label is predicted correctly
             if pred_labels[j] == true_labels[0]:
+                label_correctness = 1
                 # if iou passed threshold
                 if cur_iou > iou_thres:
                     num_true_positive += 1
@@ -324,7 +323,11 @@ def process_model_outputs(outputs, targets, iou_thres=0.5, conf_thres=0):
                     num_false_positive += 1
             # if the label is wrong, mark as false positive
             else:
+                label_correctness = 0
                 num_false_positive += 1
+
+            # even it might be wrong, we want the output
+            qualified_output.append(np.append(cur_object_outputs[j].numpy(), (cur_iou, label_correctness)))
 
         # Number of TP and FP is computed from all predictions (un-iou thresheld)
         # precision = TP / (TP + FP)
