@@ -34,7 +34,7 @@ else:
 
 
 class UI_MainWindow(QWidget):
-    def __init__(self, pre_selected_mode, demo):
+    def __init__(self, pre_selected_mode, demo, cache_path):
         super().__init__()
         # window size
         # self.setFixedSize(1920, 1080)
@@ -74,14 +74,18 @@ class UI_MainWindow(QWidget):
 
         # load/initialize program cache
         self.use_cache = False
-        self.cache_dir = os.path.join(os.getcwd(), 'cache')
-        if not os.path.isdir(self.cache_dir):
-            os.mkdir(self.cache_dir)
 
-        self.cache_path = os.path.join(self.cache_dir, 'nero_cache.npz')
-        # if not exist, creat one
-        if not os.path.isfile(self.cache_path):
-            np.savez(self.cache_path)
+        if cache_path != None:
+            self.cache_path = cache_path
+        else:
+            self.cache_dir = os.path.join(os.getcwd(), 'cache')
+            if not os.path.isdir(self.cache_dir):
+                os.mkdir(self.cache_dir)
+
+            self.cache_path = os.path.join(self.cache_dir, 'nero_cache.npz')
+            # if not exist, creat one
+            if not os.path.isfile(self.cache_path):
+                np.savez(self.cache_path)
 
         self.cache = dict(np.load(self.cache_path, allow_pickle=True))
 
@@ -5185,16 +5189,21 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     # mode (data, train, or test mode)
     parser.add_argument('--mode', action='store', nargs=1, dest='mode')
+    parser.add_argument('--cache_path', action='store', nargs=1, dest='cache_path')
     parser.add_argument('--demo', action='store_true', dest='demo', default=False)
     args = parser.parse_args()
     if args.mode:
         mode = args.mode[0]
     else:
         mode = None
+    if args.cache_path:
+        cache_path = args.cache_path[0]
+    else:
+        cache_path = None
     demo = args.demo
 
     app = QtWidgets.QApplication([])
-    widget = UI_MainWindow(mode, demo)
+    widget = UI_MainWindow(mode, demo, cache_path)
     widget.show()
 
     # run the app
