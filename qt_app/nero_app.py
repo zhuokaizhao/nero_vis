@@ -4533,10 +4533,17 @@ class UI_MainWindow(QWidget):
                         y_tran = self.y_translation[y] + 1e-5
 
                         # current bounding box center from model 1 and 2
-                        cur_center_x_1 = (self.all_quantities_1[y, x, 0] + self.all_quantities_1[y, x, 2]) / 2
-                        cur_center_y_1 = (self.all_quantities_1[y, x, 1] + self.all_quantities_1[y, x, 3]) / 2
-                        cur_center_x_2 = (self.all_quantities_2[y, x, 0] + self.all_quantities_2[y, x, 2]) / 2
-                        cur_center_y_2 = (self.all_quantities_2[y, x, 1] + self.all_quantities_2[y, x, 3]) / 2
+                        if self.data_mode == 'single':
+                            cur_center_x_1 = (self.all_quantities_1[y, x, 0] + self.all_quantities_1[y, x, 2]) / 2
+                            cur_center_y_1 = (self.all_quantities_1[y, x, 1] + self.all_quantities_1[y, x, 3]) / 2
+                            cur_center_x_2 = (self.all_quantities_2[y, x, 0] + self.all_quantities_2[y, x, 2]) / 2
+                            cur_center_y_2 = (self.all_quantities_2[y, x, 1] + self.all_quantities_2[y, x, 3]) / 2
+                        # when in the three level mode (access single from aggregate result)
+                        elif self.data_mode == 'aggregate':
+                            cur_center_x_1 = (self.aggregate_outputs_1[y, x][self.image_index][0, 0] + self.aggregate_outputs_1[y, x][self.image_index][0, 2]) / 2
+                            cur_center_y_1 = (self.aggregate_outputs_1[y, x][self.image_index][0, 1] + self.aggregate_outputs_1[y, x][self.image_index][0, 3]) / 2
+                            cur_center_x_2 = (self.aggregate_outputs_2[y, x][self.image_index][0, 0] + self.aggregate_outputs_2[y, x][self.image_index][0, 2]) / 2
+                            cur_center_y_2 = (self.aggregate_outputs_2[y, x][self.image_index][0, 1] + self.aggregate_outputs_2[y, x][self.image_index][0, 3]) / 2
 
                         # model output translation
                         x_tran_model_1 = cur_center_x_1 - self.image_size//2 - 1
@@ -4567,8 +4574,8 @@ class UI_MainWindow(QWidget):
                         for k in range(len(self.aggregate_outputs_1[y, x])):
                             cur_center_x_1 = (self.aggregate_outputs_1[y, x][k][0, 0] + self.aggregate_outputs_1[y, x][k][0, 2]) / 2
                             cur_center_y_1 = (self.aggregate_outputs_1[y, x][k][0, 1] + self.aggregate_outputs_1[y, x][k][0, 3]) / 2
-                            cur_center_x_2 = (self.aggregate_outputs_1[y, x][k][0, 0] + self.aggregate_outputs_1[y, x][k][0, 2]) / 2
-                            cur_center_y_2 = (self.aggregate_outputs_1[y, x][k][0, 1] + self.aggregate_outputs_1[y, x][k][0, 3]) / 2
+                            cur_center_x_2 = (self.aggregate_outputs_2[y, x][k][0, 0] + self.aggregate_outputs_2[y, x][k][0, 2]) / 2
+                            cur_center_y_2 = (self.aggregate_outputs_2[y, x][k][0, 1] + self.aggregate_outputs_2[y, x][k][0, 3]) / 2
 
                             # model output translation
                             x_tran_model_1 = cur_center_x_1 - self.image_size//2 - 1
