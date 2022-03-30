@@ -77,6 +77,7 @@ class UI_MainWindow(QWidget):
 
         if cache_path != None:
             self.cache_path = cache_path
+            self.cache_dir = self.cache_path.removesuffix(self.cache_path.split('/')[-1])
         else:
             self.cache_dir = os.path.join(os.getcwd(), 'cache')
             if not os.path.isdir(self.cache_dir):
