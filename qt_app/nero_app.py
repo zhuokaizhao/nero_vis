@@ -1832,6 +1832,12 @@ class UI_MainWindow(QWidget):
             self.all_intensity_1 = np.var(self.all_high_dim_points_1, axis=1)
             self.all_intensity_2 = np.var(self.all_high_dim_points_2, axis=1)
 
+            # normalize to colormap range
+            intensity_min = min(np.min(self.all_intensity_1), np.min(self.all_intensity_2))
+            intensity_max = max(np.max(self.all_intensity_1), np.max(self.all_intensity_2))
+            self.all_intensity_1 = nero_utilities.lerp(self.all_intensity_1, intensity_min, intensity_max, self.cm_range[0], self.cm_range[1])
+            self.all_intensity_2 = nero_utilities.lerp(self.all_intensity_2, intensity_min, intensity_max, self.cm_range[0], self.cm_range[1])
+
             # re-display the scatter plot
             display_dimension_reduction()
 
@@ -2225,14 +2231,14 @@ class UI_MainWindow(QWidget):
 
             # output are dense 2D velocity field of the input image pairs
             # output for all transformation, has shape (num_transformations, num_samples, image_size, image_size, 2)
-            self.aggregate_outputs_1 = torch.zeros((self.num_transformations, len(self.all_images_1_paths),  self.image_size, self.image_size, 2))
-            self.aggregate_outputs_2 = torch.zeros((self.num_transformations, len(self.all_images_2_paths), self.image_size, self.image_size, 2))
-            self.aggregate_ground_truths = torch.zeros((self.num_transformations, len(self.all_labels_paths), self.image_size, self.image_size, 2))
+            self.aggregate_outputs_1 = np.zeros((self.num_transformations, len(self.all_images_1_paths),  self.image_size, self.image_size, 2))
+            self.aggregate_outputs_2 = np.zeros((self.num_transformations, len(self.all_images_2_paths), self.image_size, self.image_size, 2))
+            self.aggregate_ground_truths = np.zeros((self.num_transformations, len(self.all_labels_paths), self.image_size, self.image_size, 2))
 
             if self.use_cache:
-                self.aggregate_outputs_1 = torch.from_numpy(self.load_from_cache(f'{self.mode}_{self.data_mode}_{self.model_1_cache_name}_outputs'))
-                self.aggregate_outputs_2 = torch.from_numpy(self.load_from_cache(f'{self.mode}_{self.data_mode}_{self.model_2_cache_name}_outputs'))
-                self.aggregate_ground_truths = torch.from_numpy(self.load_from_cache(f'{self.mode}_{self.data_mode}_ground_truths'))
+                self.aggregate_outputs_1 = self.load_from_cache(f'{self.mode}_{self.data_mode}_{self.model_1_cache_name}_outputs')
+                self.aggregate_outputs_2 = self.load_from_cache(f'{self.mode}_{self.data_mode}_{self.model_2_cache_name}_outputs')
+                self.aggregate_ground_truths = self.load_from_cache(f'{self.mode}_{self.data_mode}_ground_truths')
             else:
                 # take a batch of images
                 num_batches = int(len(self.all_images_1_paths) / self.batch_size)
@@ -4863,7 +4869,7 @@ class UI_MainWindow(QWidget):
             self.cur_single_plot_quantity_2 = self.all_quantities_2[:, :, 4] * self.all_quantities_2[:, :, 6]
         elif self.data_mode == 'aggregate':
             # add plot control layout to general layout
-            self.aggregate_result_layout.addLayout(self.single_plot_control_layout, 0, 3)
+            self.aggregate_result_layout.addLayout(self.single_plot_control_layout, 2, 3)
             # current selected individual images' result on all transformations
             self.cur_single_plot_quantity_1 = np.zeros((len(self.y_translation), len(self.x_translation)))
             self.cur_single_plot_quantity_2 = np.zeros((len(self.y_translation), len(self.x_translation)))

@@ -3,7 +3,7 @@ from dataclasses import dataclass
 import cv2
 import os
 import sys
-from sympy import EX
+from sympy import EX, Q
 import torch
 import torchvision
 import numpy as np
@@ -271,11 +271,10 @@ def process_model_outputs(outputs, targets, iou_thres=0.5, conf_thres=0):
 
         iou = inter_area / (b1_area + b2_area - inter_area + 1e-16)
 
-        return iou
+        return iou.item()
 
     # get all the outputs (the model proposes multiple bounding boxes for each object)
     all_qualified_outputs = np.zeros(len(outputs), dtype=np.ndarray)
-    # all_qualified_outputs = []
     all_precisions = np.zeros(len(outputs))
     all_recalls = np.zeros(len(outputs))
     all_F_measure = np.zeros(len(outputs))
@@ -356,32 +355,23 @@ def run_coco_once(mode, model_name, model, test_image, custom_names, pytorch_nam
     if torch.cuda.is_available():
         # device set up
         device = torch.device('cuda')
-        Tensor = torch.cuda.FloatTensor
     else:
         device = torch.device('cpu')
-        Tensor = torch.FloatTensor
 
     # prepare input image shapes
     if mode == 'single':
         # reformat input image from (height, width, channel) to (batch size, channel, height, width)
         test_image = test_image.permute((2, 0, 1))[None, :, :, :].float()
         with torch.no_grad():
-
             # single image mode
             # prepare current batch's testing data
             test_image = test_image.to(device)
-
             # run model inference
             outputs_dict = model(test_image)
             outputs = clean_model_outputs(model_name, outputs_dict, pytorch_names, custom_names)
 
             if outputs != []:
                 all_qualified_output, all_precision, all_recall, all_F_measure = process_model_outputs(outputs, torch.from_numpy(test_label))
-                # since single mode has 1 image input, it could be directly converted to numpy array
-                all_qualified_output = np.array(all_qualified_output)
-                all_precision = np.array(all_precision)
-                all_recall = np.array(all_recall)
-                all_F_measure = np.array(all_F_measure)
             else:
                 # no qualified output
                 all_qualified_output = np.zeros((1, 1, 7))
