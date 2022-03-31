@@ -23,6 +23,9 @@ import nero_transform
 import nero_utilities
 import nero_run_model
 
+import warnings
+warnings.filterwarnings("ignore")
+
 # globa configurations
 pg.setConfigOptions(antialias=True, background='w')
 # use pyside gpu acceleration if gpu detected
