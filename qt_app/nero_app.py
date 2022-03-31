@@ -2,14 +2,13 @@ from operator import truediv
 import os
 import sys
 import glob
-from sklearn.multiclass import OutputCodeClassifier
 import torch
 import argparse
 import numpy as np
 import flowiz as fz
 from PIL import Image
 import pyqtgraph as pg
-from PySide6 import QtCore, QtWidgets, QtGui
+from PySide6 import QtCore, QtGui, QtWidgets
 from PySide6.QtGui  import QPixmap, QFont
 from PySide6.QtWidgets import QWidget, QLabel, QRadioButton
 
@@ -1387,7 +1386,7 @@ class UI_MainWindow(QWidget):
 
             return low_dim
 
-        # helper function for clicking inside the scatter plot
+        # when clicked on the scatter plot item
         def low_dim_scatter_clicked(item=None, points=None):
 
             @QtCore.Slot()
@@ -1586,6 +1585,10 @@ class UI_MainWindow(QWidget):
             # run model all and display results (Individual NERO plot)
             self.run_model_all()
 
+        # when hovered on the scatter plot item
+        def low_dim_scatter_hovered(item, points):
+            item.setToolTip(item.opts['hover_text'])
+
         # helper function on normalizing low dimension points within [-1, 1] sqaure
         def normalize_low_dim_result(low_dim):
             # to preserve shape, largest bound are taken from either axis
@@ -1629,7 +1632,8 @@ class UI_MainWindow(QWidget):
                     continue
                 # add individual items for getting the item's name later when clicking
                 # Set pxMode=True to have scatter items stay at the same screen size
-                low_dim_scatter_item = pg.ScatterPlotItem(pxMode=True)
+                low_dim_scatter_item = pg.ScatterPlotItem(pxMode=True, hoverable=True)
+                low_dim_scatter_item.opts['hover_text'] = f'{self.intensity_method}: {round(sorted_intensity[i], 3)}'
                 low_dim_scatter_item.setSymbol('o')
                 low_dim_point = [{'pos': (low_dim[i, 0], low_dim[i, 1]),
                                     'size': self.scatter_item_size,
@@ -1640,11 +1644,13 @@ class UI_MainWindow(QWidget):
                 low_dim_scatter_item.setData(low_dim_point, name=str(index))
                 # connect click events on scatter items
                 low_dim_scatter_item.sigClicked.connect(low_dim_scatter_clicked)
+                low_dim_scatter_item.sigHovered.connect(low_dim_scatter_hovered)
                 # add points to the plot
                 low_dim_scatter_plot.addItem(low_dim_scatter_item)
 
             # add the current selected one
-            low_dim_scatter_item = pg.ScatterPlotItem(pxMode=True)
+            low_dim_scatter_item = pg.ScatterPlotItem(pxMode=True, hoverable=True)
+            low_dim_scatter_item.opts['hover_text'] = f'{self.intensity_method}: {round(sorted_intensity[sorted_selected_index], 3)}'
             low_dim_scatter_item.setSymbol('o')
             # set red pen indicator if slider selects
             if slider_selected_index != None:
@@ -1661,6 +1667,7 @@ class UI_MainWindow(QWidget):
             low_dim_scatter_item.setData(low_dim_point, name=str(sorted_class_indices[sorted_selected_index]))
             # connect click events on scatter items
             low_dim_scatter_item.sigClicked.connect(low_dim_scatter_clicked)
+            low_dim_scatter_item.sigHovered.connect(low_dim_scatter_hovered)
             # add points to the plot
             low_dim_scatter_plot.addItem(low_dim_scatter_item)
 
