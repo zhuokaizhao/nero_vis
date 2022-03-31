@@ -111,8 +111,7 @@ class UI_MainWindow(QWidget):
             return self.cache[name]
         else:
             print(f'No precomputed result named {name}')
-            return None
-        # return getattr(self.cache, name)
+            return np.zeros(0)
 
 
     def save_to_cache(self, name, content):
@@ -1528,7 +1527,7 @@ class UI_MainWindow(QWidget):
             # update the text
             update_slider_2_text()
             # update the scatter plot
-            display_dimension_reduction()
+            display_dimension_reduction(compute_dr=False)
             # unlock after changing the values
             self.slider_1_locked = False
             self.slider_2_locked = False
@@ -1672,7 +1671,8 @@ class UI_MainWindow(QWidget):
             low_dim_scatter_plot.addItem(low_dim_scatter_item)
 
         # helper function on displaying the 2D scatter plot
-        def display_dimension_reduction():
+        # when compute_dr is true, dimension reduction is computed
+        def display_dimension_reduction(compute_dr=True):
 
             # scatter plot on low-dim points
             self.low_dim_scatter_view_1 = pg.GraphicsLayoutWidget()
@@ -1702,23 +1702,36 @@ class UI_MainWindow(QWidget):
             self.scatter_item_size = 12
 
             # run dimension reduction algorithm
-            self.low_dim_1 = dimension_reduce(self.all_high_dim_points_1, target_dim=2)
-            self.low_dim_1 = normalize_low_dim_result(self.low_dim_1)
-            self.low_dim_2 = dimension_reduce(self.all_high_dim_points_2, target_dim=2)
-            self.low_dim_2 = normalize_low_dim_result(self.low_dim_2)
+            if compute_dr:
+                # try to load from cache
+                low_dim_1_name = f'{self.mode}_{self.model_1_name}_{self.class_selection}_{self.quantity_name}_{self.dr_selection}'
+                low_dim_2_name = f'{self.mode}_{self.model_2_name}_{self.class_selection}_{self.quantity_name}_{self.dr_selection}'
+                if self.load_from_cache(low_dim_1_name) != np.zeros(0):
+                    self.low_dim_1 = self.load_from_cache(low_dim_1_name)
+                else:
+                    self.low_dim_1 = dimension_reduce(self.all_high_dim_points_1, target_dim=2)
+                    self.low_dim_1 = normalize_low_dim_result(self.low_dim_1)
+                    self.save_to_cache(low_dim_1_name, self.low_dim_1)
 
-            # plot both scatter plots
-            # rank the intensity values (small to large)
-            self.sorted_intensity_indices_1 = np.argsort(self.all_intensity_1)
-            self.sorted_intensity_1 = sorted(self.all_intensity_1)
-            self.sorted_class_indices_1 = [self.cur_class_indices[idx] for idx in self.sorted_intensity_indices_1]
-            self.sorted_intensity_indices_2 = np.argsort(self.all_intensity_2)
-            self.sorted_intensity_2 = sorted(self.all_intensity_2)
-            self.sorted_class_indices_2 = [self.cur_class_indices[idx] for idx in self.sorted_intensity_indices_2]
+                if self.load_from_cache(low_dim_2_name) != np.zeros(0):
+                    self.low_dim_2 = self.load_from_cache(low_dim_2_name)
+                else:
+                    self.low_dim_2 = dimension_reduce(self.all_high_dim_points_2, target_dim=2)
+                    self.low_dim_2 = normalize_low_dim_result(self.low_dim_2)
+                    self.save_to_cache(low_dim_2_name, self.low_dim_2)
 
-            # sort the low dim points accordingly
-            self.low_dim_1 = self.low_dim_1[self.sorted_intensity_indices_1]
-            self.low_dim_2 = self.low_dim_2[self.sorted_intensity_indices_2]
+                # plot both scatter plots
+                # rank the intensity values (small to large)
+                self.sorted_intensity_indices_1 = np.argsort(self.all_intensity_1)
+                self.sorted_intensity_1 = sorted(self.all_intensity_1)
+                self.sorted_class_indices_1 = [self.cur_class_indices[idx] for idx in self.sorted_intensity_indices_1]
+                self.sorted_intensity_indices_2 = np.argsort(self.all_intensity_2)
+                self.sorted_intensity_2 = sorted(self.all_intensity_2)
+                self.sorted_class_indices_2 = [self.cur_class_indices[idx] for idx in self.sorted_intensity_indices_2]
+
+                # sort the low dim points accordingly
+                self.low_dim_1 = self.low_dim_1[self.sorted_intensity_indices_1]
+                self.low_dim_2 = self.low_dim_2[self.sorted_intensity_indices_2]
 
             # plot the dimension reduction scatter plot
             plot_dr_scatter(self.low_dim_scatter_plot_1,
@@ -1834,7 +1847,7 @@ class UI_MainWindow(QWidget):
             self.all_intensity_2 = np.mean(self.all_high_dim_points_2, axis=1)
 
             # re-display the scatter plot
-            display_dimension_reduction()
+            display_dimension_reduction(compute_dr=False)
 
         @QtCore.Slot()
         def variance_intensity_button_clicked():
@@ -1849,7 +1862,7 @@ class UI_MainWindow(QWidget):
             self.all_intensity_2 = nero_utilities.lerp(self.all_intensity_2, intensity_min, intensity_max, self.cm_range[0], self.cm_range[1])
 
             # re-display the scatter plot
-            display_dimension_reduction()
+            display_dimension_reduction(compute_dr=False)
 
         @QtCore.Slot()
         def dr_result_selection_slider_1_changed():
@@ -1875,7 +1888,7 @@ class UI_MainWindow(QWidget):
                 self.slider_2_locked = False
 
                 # update the scatter plot
-                display_dimension_reduction()
+                display_dimension_reduction(compute_dr=False)
 
                 # get the corresponding image path
                 if self.mode == 'digit_recognition' or self.mode == 'object_detection':
@@ -1953,7 +1966,7 @@ class UI_MainWindow(QWidget):
                 self.slider_1_locked = False
 
                 # update the scatter plot
-                display_dimension_reduction()
+                display_dimension_reduction(compute_dr=False)
 
                 # get the corresponding image path
                 if self.mode == 'digit_recognition' or self.mode == 'object_detection':
@@ -2014,7 +2027,7 @@ class UI_MainWindow(QWidget):
         intensity_button_pixmap.fill(QtCore.Qt.white)
         painter = QtGui.QPainter(intensity_button_pixmap)
         painter.setFont(QFont('Helvetica', 14))
-        painter.drawText(0, 0, 300, 30, QtGui.Qt.AlignLeft, 'Color-encoded by: ')
+        painter.drawText(0, 0, 300, 30, QtGui.Qt.AlignLeft, 'Scatter plots colored and ranked by: ')
         painter.end()
 
         # create label to contain the texts
@@ -3791,19 +3804,26 @@ class UI_MainWindow(QWidget):
                 outer_self.heatmap_plot_2.addItem(outer_self.scatter_item_2)
 
 
-            def mouseDragEvent(self, event):
-                if event.button() != QtCore.Qt.LeftButton:
-                    event.ignore()
-                    return
+            # def mouseDragEvent(self, event):
+            #     if event.button() != QtCore.Qt.LeftButton:
+            #         event.ignore()
+            #         return
 
-                if event.isStart():
-                    print('Dragging starts', event.buttonDownPos())
+            #     if event.isStart():
+            #         print('Dragging starts', event.buttonDownPos())
 
-                elif event.isFinish():
-                    print('Dragging stops', event.pos())
+            #     elif event.isFinish():
+            #         print('Dragging stops', event.pos())
 
-                else:
-                    print("Drag", event.pos())
+            #     else:
+            #         print("Drag", event.pos())
+
+            def hoverEvent(self, event):
+                if not event.isExit():
+                    block_x = int(np.floor(event.pos().x()//outer_self.translation_step_single))
+                    block_y = int(np.floor(event.pos().y()//outer_self.translation_step_single))
+                    hover_text = str(round(outer_self.cur_aggregate_plot_quantity_1[block_y][block_x], 3))
+                    self.setToolTip(hover_text)
 
         # add to general layout
         if mode == 'single':
