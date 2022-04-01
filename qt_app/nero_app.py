@@ -4151,6 +4151,14 @@ class UI_MainWindow(QWidget):
                 # redraw the nero plot with new rectangle display
                 outer_self.draw_piv_nero('single')
 
+                # the detailed plot of PIV
+                outer_self.detail_rect_x = np.where(outer_self.piv_nero_layout==outer_self.rectangle_index)[1] * outer_self.image_size + outer_self.image_size // 2
+                outer_self.detail_rect_y = np.where(outer_self.piv_nero_layout==outer_self.rectangle_index)[0] * outer_self.image_size + outer_self.image_size // 2
+                # np.where returns ndarray, but we know there is only one
+                outer_self.detail_rect_x = outer_self.detail_rect_x[0]
+                outer_self.detail_rect_y = outer_self.detail_rect_y[0]
+                outer_self.draw_piv_details()
+
             def hoverEvent(self, event):
                 if not event.isExit():
                     rect_x = int(event.pos().x() // outer_self.image_size)
