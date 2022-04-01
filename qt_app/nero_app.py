@@ -1836,8 +1836,12 @@ class UI_MainWindow(QWidget):
                     self.all_high_dim_points_2[i, j] = cur_value_2
 
                 elif self.mode == 'piv':
-                    self.all_high_dim_points_1[i, j] = self.loss_module(self.aggregate_outputs_1[j, i], self.aggregate_ground_truths[j, i], reduction='mean')
-                    self.all_high_dim_points_2[i, j] = self.loss_module(self.aggregate_outputs_2[j, i], self.aggregate_ground_truths[j, i], reduction='mean')
+                    self.all_high_dim_points_1[i, j] = self.loss_module(self.aggregate_outputs_1[j, i],
+                                                                        self.aggregate_ground_truths[j, i],
+                                                                        reduction='mean')
+                    self.all_high_dim_points_2[i, j] = self.loss_module(self.aggregate_outputs_2[j, i],
+                                                                        self.aggregate_ground_truths[j, i],
+                                                                        reduction='mean')
 
         # radio buttons on choosing quantity used to compute intensity
         @QtCore.Slot()
@@ -2254,14 +2258,14 @@ class UI_MainWindow(QWidget):
 
             # output are dense 2D velocity field of the input image pairs
             # output for all transformation, has shape (num_transformations, num_samples, image_size, image_size, 2)
-            self.aggregate_outputs_1 = np.zeros((self.num_transformations, len(self.all_images_1_paths),  self.image_size, self.image_size, 2))
-            self.aggregate_outputs_2 = np.zeros((self.num_transformations, len(self.all_images_2_paths), self.image_size, self.image_size, 2))
-            self.aggregate_ground_truths = np.zeros((self.num_transformations, len(self.all_labels_paths), self.image_size, self.image_size, 2))
+            self.aggregate_outputs_1 = torch.zeros((self.num_transformations, len(self.all_images_1_paths),  self.image_size, self.image_size, 2))
+            self.aggregate_outputs_2 = torch.zeros((self.num_transformations, len(self.all_images_2_paths), self.image_size, self.image_size, 2))
+            self.aggregate_ground_truths = torch.zeros((self.num_transformations, len(self.all_labels_paths), self.image_size, self.image_size, 2))
 
             if self.use_cache:
-                self.aggregate_outputs_1 = self.load_from_cache(f'{self.mode}_{self.data_mode}_{self.model_1_cache_name}_outputs')
-                self.aggregate_outputs_2 = self.load_from_cache(f'{self.mode}_{self.data_mode}_{self.model_2_cache_name}_outputs')
-                self.aggregate_ground_truths = self.load_from_cache(f'{self.mode}_{self.data_mode}_ground_truths')
+                self.aggregate_outputs_1 = torch.from_numpy(self.load_from_cache(f'{self.mode}_{self.data_mode}_{self.model_1_cache_name}_outputs'))
+                self.aggregate_outputs_2 = torch.from_numpy(self.load_from_cache(f'{self.mode}_{self.data_mode}_{self.model_2_cache_name}_outputs'))
+                self.aggregate_ground_truths = torch.from_numpy(self.load_from_cache(f'{self.mode}_{self.data_mode}_ground_truths'))
             else:
                 # take a batch of images
                 num_batches = int(len(self.all_images_1_paths) / self.batch_size)
@@ -2721,11 +2725,11 @@ class UI_MainWindow(QWidget):
                 # add buttons for controlling the single GIF
                 self.gif_control_layout = QtWidgets.QHBoxLayout()
                 self.gif_control_layout.setAlignment(QtGui.Qt.AlignTop)
-                self.gif_control_layout.setContentsMargins(50, 0, 50, 50)
+                self.gif_control_layout.setContentsMargins(0, 0, 0, 0)
                 if self.data_mode == 'single':
                     self.single_result_layout.addLayout(self.gif_control_layout, 2, 0)
                 elif self.data_mode == 'aggregate':
-                    self.aggregate_result_layout.addLayout(self.gif_control_layout, 3, 3)
+                    self.aggregate_result_layout.addLayout(self.gif_control_layout, 2, 3)
 
                 # rotate 90 degrees counter-closewise
                 self.rotate_90_ccw_button = QtWidgets.QPushButton(self)
@@ -3805,20 +3809,20 @@ class UI_MainWindow(QWidget):
                     outer_self.heatmap_plot_1.addItem(outer_self.scatter_item_1)
                     outer_self.heatmap_plot_2.addItem(outer_self.scatter_item_2)
 
+            def mouseDragEvent(self, event):
+                if self.plot_type == 'single':
+                    # if event.button() != QtCore.Qt.LeftButton:
+                    #     event.ignore()
+                    #     return
+                    # print(event.pos())
+                    if event.isStart():
+                        print('Dragging starts', event.pos())
 
-            # def mouseDragEvent(self, event):
-            #     if event.button() != QtCore.Qt.LeftButton:
-            #         event.ignore()
-            #         return
+                    elif event.isFinish():
+                        print('Dragging stops', event.pos())
 
-            #     if event.isStart():
-            #         print('Dragging starts', event.buttonDownPos())
-
-            #     elif event.isFinish():
-            #         print('Dragging stops', event.pos())
-
-            #     else:
-            #         print("Drag", event.pos())
+                    else:
+                        print("Drag", event.pos())
 
             def hoverEvent(self, event):
                 if not event.isExit():
@@ -4059,6 +4063,21 @@ class UI_MainWindow(QWidget):
 
                 # redraw the nero plot with new rectangle display
                 outer_self.draw_piv_nero('single')
+
+            def mouseDragEvent(self, event):
+                if self.plot_type == 'single':
+                    # if event.button() != QtCore.Qt.LeftButton:
+                    #     event.ignore()
+                    #     return
+                    # print(event.pos())
+                    if event.isStart():
+                        print('Dragging starts', event.pos())
+
+                    elif event.isFinish():
+                        print('Dragging stops', event.pos())
+
+                    else:
+                        print("Drag", event.pos())
 
             def hoverEvent(self, event):
                 if not event.isExit():
@@ -4952,14 +4971,14 @@ class UI_MainWindow(QWidget):
             # keep the same dimension
             cur_losses_1 = np.zeros((self.num_transformations, len(self.aggregate_outputs_1[0]), self.image_size, self.image_size))
             cur_losses_2 = np.zeros((self.num_transformations, len(self.aggregate_outputs_1[0]), self.image_size, self.image_size))
-            mean_losses_1 = np.zeros((self.num_transformations, len(self.aggregate_outputs_1[0])))
-            mean_losses_2 = np.zeros((self.num_transformations, len(self.aggregate_outputs_1[0])))
             for i in range(self.num_transformations):
                 for j in range(len(self.aggregate_outputs_1[i])):
-                        cur_losses_1[i, j] = self.loss_module(self.aggregate_ground_truths[i, j], self.aggregate_outputs_1[i, j], reduction='none').numpy().mean(axis=2)
-                        cur_losses_2[i, j] = self.loss_module(self.aggregate_ground_truths[i, j], self.aggregate_outputs_2[i, j], reduction='none').numpy().mean(axis=2)
-                        mean_losses_1[i, j] = self.loss_module(self.aggregate_ground_truths[i, j], self.aggregate_outputs_1[i, j], reduction='mean').numpy()
-                        mean_losses_2[i, j] = self.loss_module(self.aggregate_ground_truths[i, j], self.aggregate_outputs_2[i, j], reduction='mean').numpy()
+                    cur_losses_1[i, j] = self.loss_module(self.aggregate_ground_truths[i, j],
+                                                          self.aggregate_outputs_1[i, j],
+                                                          reduction='none').numpy().mean(axis=2)
+                    cur_losses_2[i, j] = self.loss_module(self.aggregate_ground_truths[i, j],
+                                                          self.aggregate_outputs_2[i, j],
+                                                          reduction='none').numpy().mean(axis=2)
 
             # get the 0 and 80 percentile as the threshold for colormap
             all_losses = np.concatenate([cur_losses_1.flatten(), cur_losses_2.flatten()])
@@ -4976,14 +4995,9 @@ class UI_MainWindow(QWidget):
                 # keep the same dimension
                 cur_losses_1 = np.zeros((self.num_transformations, self.image_size, self.image_size))
                 cur_losses_2 = np.zeros((self.num_transformations, self.image_size, self.image_size))
-                # used to compute normalization range, depending on single-sample average
-                mean_losses_1 = np.zeros(self.num_transformations)
-                mean_losses_2 = np.zeros(self.num_transformations)
                 for i in range(self.num_transformations):
                     cur_losses_1[i] = self.loss_module(self.all_ground_truths[i], self.all_quantities_1[i], reduction='none').numpy().mean(axis=2)
                     cur_losses_2[i] = self.loss_module(self.all_ground_truths[i], self.all_quantities_2[i], reduction='none').numpy().mean(axis=2)
-                    mean_losses_1 = self.loss_module(self.all_ground_truths[i], self.all_quantities_1[i], reduction='mean').numpy()
-                    mean_losses_2 = self.loss_module(self.all_ground_truths[i], self.all_quantities_2[i], reduction='mean').numpy()
 
                 # average element-wise loss to scalar and normalize between 0 and 1
                 self.cur_single_plot_quantity_1 = cur_losses_1
@@ -5075,8 +5089,12 @@ class UI_MainWindow(QWidget):
             cur_losses_1 = np.zeros((self.num_transformations, self.image_size, self.image_size))
             cur_losses_2 = np.zeros((self.num_transformations, self.image_size, self.image_size))
             for i in range(self.num_transformations):
-                cur_losses_1[i] = self.loss_module(self.all_ground_truths[i], self.all_quantities_1[i], reduction='none').numpy().mean(axis=2)
-                cur_losses_2[i] = self.loss_module(self.all_ground_truths[i], self.all_quantities_2[i], reduction='none').numpy().mean(axis=2)
+                cur_losses_1[i] = self.loss_module(self.all_ground_truths[i],
+                                                    self.all_quantities_1[i],
+                                                    reduction='none').numpy().mean(axis=2)
+                cur_losses_2[i] = self.loss_module(self.all_ground_truths[i],
+                                                    self.all_quantities_2[i],
+                                                    reduction='none').numpy().mean(axis=2)
 
             # get the 0 and 80 percentile as the threshold for colormap
             # when in aggregate mode, continue using aggregate range
