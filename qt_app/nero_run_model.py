@@ -526,6 +526,10 @@ def run_piv_once(mode, model_name, model, image_1, image_2):
             # change label shape to (height, width, dim)
             cur_labels_pred_pt = cur_labels_pred_pt.permute(0, 2, 3, 1)
 
+            u = (cur_labels_pred_pt[:, :, :, 0]/256).numpy()
+            v = (cur_labels_pred_pt[:, :, :, 1]/256).numpy()
+            print(f'ML average u {np.mean(u)}, average v {np.mean(v)}')
+
         elif model_name == 'Horn-Schunck':
             # number of images
             num_images = len(image_1)
@@ -534,9 +538,9 @@ def run_piv_once(mode, model_name, model, image_1, image_2):
             # prepare images for HS, HS does not run in batch
             for i in range(num_images):
                 img1 = image_1[i]
-                img1 = image_2[i]
+                img2 = image_2[i]
                 image_1_np_gray = np.dot(img1.numpy()[:, :, :3], [0.299, 0.587, 0.114])
-                image_2_np_gray = np.dot(img1.numpy()[:, :, :3], [0.299, 0.587, 0.114])
+                image_2_np_gray = np.dot(img2.numpy()[:, :, :3], [0.299, 0.587, 0.114])
                 image_1_np_gray = np.array(image_1_np_gray, dtype=np.uint8)
                 image_2_np_gray = np.array(image_2_np_gray, dtype=np.uint8)
 
@@ -546,6 +550,10 @@ def run_piv_once(mode, model_name, model, image_1, image_2):
                 cur_label_pred_np = cv2.calcOpticalFlowFarneback(img1, img2, None, 0.5, 3, 15, 3, 5, 1.2, 0)
                 cur_label_pred_pt = torch.from_numpy(cur_label_pred_np)
                 cur_labels_pred_pt[i] = cur_label_pred_pt
+
+            u = cur_labels_pred_pt[:, :, :, 0].numpy()
+            v = cur_labels_pred_pt[:, :, :, 1].numpy()
+            print(f'Farneback average u {np.mean(u)}, average v {np.mean(v)}')
 
 
         return cur_labels_pred_pt
