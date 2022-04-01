@@ -3416,7 +3416,7 @@ class UI_MainWindow(QWidget):
 
 
     # helper function on drawing individual heatmap (called by both individual and aggregate cases)
-    def draw_individual_heatmap(self, mode, data, view_box=None, heatmap=None, scatter_item=None, title=None, show_colorbar=False):
+    def draw_individual_heatmap(self, mode, data, heatmap=None, view_box=None, scatter_item=None, title=None, show_colorbar=False):
 
         # color map
         self.color_map = pg.colormap.get('viridis')
@@ -3447,7 +3447,7 @@ class UI_MainWindow(QWidget):
             elif mode == 'aggregate':
                 view_box = pg.ViewBox(invertY=True)
                 view_box.setAspectLocked(lock=True)
-                heatmap = pg.ImageItem()
+                # heatmap = pg.ImageItem()
                 heatmap.setImage(data)
                 view_box.addItem(heatmap)
                 heatmap_plot = pg.PlotItem(viewBox=view_box, title=title)
@@ -3755,53 +3755,55 @@ class UI_MainWindow(QWidget):
         outer_self = self
         # subclass of ImageItem that reimplements the control methods
         class COCO_heatmap(pg.ImageItem):
-            def __init__(self):
+            def __init__(self, plot_type, index):
                 super().__init__()
+                self.plot_type = plot_type
+                self.index = index
 
             def mouseClickEvent(self, event):
+                if self.plot_type == 'single':
+                    print(f'Clicked on heatmap at ({event.pos().x()}, {event.pos().y()})')
+                    # the position of un-repeated aggregate result
+                    outer_self.block_x = int(np.floor(event.pos().x()//outer_self.translation_step_single))
+                    outer_self.block_y = int(np.floor(event.pos().y()//outer_self.translation_step_single))
 
-                print(f'Clicked on heatmap at ({event.pos().x()}, {event.pos().y()})')
-                # the position of un-repeated aggregate result
-                outer_self.block_x = int(np.floor(event.pos().x()//outer_self.translation_step_single))
-                outer_self.block_y = int(np.floor(event.pos().y()//outer_self.translation_step_single))
+                    # in COCO mode, clicked location indicates translation
+                    # draw a point(rect) that represents current selection of location
+                    # although in this case we are taking results from the aggregate result
+                    # we need these locations for input modification
+                    outer_self.cur_x_tran = int(np.floor(event.pos().x()//outer_self.translation_step_single)) * outer_self.translation_step_single
+                    outer_self.cur_y_tran = int(np.floor(event.pos().y()//outer_self.translation_step_single)) * outer_self.translation_step_single
+                    outer_self.x_tran = outer_self.cur_x_tran + outer_self.x_translation[0]
+                    outer_self.y_tran = outer_self.cur_y_tran + outer_self.y_translation[0]
 
-                # in COCO mode, clicked location indicates translation
-                # draw a point(rect) that represents current selection of location
-                # although in this case we are taking results from the aggregate result
-                # we need these locations for input modification
-                outer_self.cur_x_tran = int(np.floor(event.pos().x()//outer_self.translation_step_single)) * outer_self.translation_step_single
-                outer_self.cur_y_tran = int(np.floor(event.pos().y()//outer_self.translation_step_single)) * outer_self.translation_step_single
-                outer_self.x_tran = outer_self.cur_x_tran + outer_self.x_translation[0]
-                outer_self.y_tran = outer_self.cur_y_tran + outer_self.y_translation[0]
+                    # udpate the correct coco label
+                    outer_self.update_coco_label()
 
-                # udpate the correct coco label
-                outer_self.update_coco_label()
+                    # update the input image with FOV mask and ground truth labelling
+                    outer_self.display_coco_image()
 
-                # update the input image with FOV mask and ground truth labelling
-                outer_self.display_coco_image()
+                    # redisplay model output (result taken from the aggregate results)
+                    if outer_self.data_mode == 'aggregate':
+                        outer_self.draw_model_output(take_from_aggregate_output=True)
+                    else:
+                        outer_self.draw_model_output()
 
-                # redisplay model output (result taken from the aggregate results)
-                if outer_self.data_mode == 'aggregate':
-                    outer_self.draw_model_output(take_from_aggregate_output=True)
-                else:
-                    outer_self.draw_model_output()
+                    # remove existing selection indicater from both scatter plots
+                    outer_self.heatmap_plot_1.removeItem(outer_self.scatter_item_1)
+                    outer_self.heatmap_plot_2.removeItem(outer_self.scatter_item_2)
 
-                # remove existing selection indicater from both scatter plots
-                outer_self.heatmap_plot_1.removeItem(outer_self.scatter_item_1)
-                outer_self.heatmap_plot_2.removeItem(outer_self.scatter_item_2)
+                    # new scatter points
+                    scatter_point = [{'pos': (outer_self.cur_x_tran+outer_self.translation_step_single//2,
+                                                outer_self.cur_y_tran+outer_self.translation_step_single//2),
+                                        'size': outer_self.translation_step_single,
+                                        'pen': {'color': 'red', 'width': 3},
+                                        'brush': (0, 0, 0, 0)}]
 
-                # new scatter points
-                scatter_point = [{'pos': (outer_self.cur_x_tran+outer_self.translation_step_single//2,
-                                            outer_self.cur_y_tran+outer_self.translation_step_single//2),
-                                    'size': outer_self.translation_step_single,
-                                    'pen': {'color': 'red', 'width': 3},
-                                    'brush': (0, 0, 0, 0)}]
-
-                # add points to both views
-                outer_self.scatter_item_1.setData(scatter_point)
-                outer_self.scatter_item_2.setData(scatter_point)
-                outer_self.heatmap_plot_1.addItem(outer_self.scatter_item_1)
-                outer_self.heatmap_plot_2.addItem(outer_self.scatter_item_2)
+                    # add points to both views
+                    outer_self.scatter_item_1.setData(scatter_point)
+                    outer_self.scatter_item_2.setData(scatter_point)
+                    outer_self.heatmap_plot_1.addItem(outer_self.scatter_item_1)
+                    outer_self.heatmap_plot_2.addItem(outer_self.scatter_item_2)
 
 
             # def mouseDragEvent(self, event):
@@ -3822,7 +3824,11 @@ class UI_MainWindow(QWidget):
                 if not event.isExit():
                     block_x = int(np.floor(event.pos().x()//outer_self.translation_step_single))
                     block_y = int(np.floor(event.pos().y()//outer_self.translation_step_single))
-                    hover_text = str(round(outer_self.cur_aggregate_plot_quantity_1[block_y][block_x], 3))
+                    if self.index == 1:
+                        hover_text = str(round(outer_self.cur_aggregate_plot_quantity_1[block_y][block_x], 3))
+                    elif self.index == 2:
+                        hover_text = str(round(outer_self.cur_aggregate_plot_quantity_2[block_y][block_x], 3))
+
                     self.setToolTip(hover_text)
 
         # add to general layout
@@ -3858,16 +3864,16 @@ class UI_MainWindow(QWidget):
             self.view_box_2 = pg.ViewBox(invertY=True)
             self.view_box_2.setAspectLocked(lock=True)
 
-            self.single_nero_1 = COCO_heatmap()
-            self.single_nero_2 = COCO_heatmap()
+            self.single_nero_1 = COCO_heatmap(plot_type='single', index=1)
+            self.single_nero_2 = COCO_heatmap(plot_type='single', index=2)
             self.scatter_item_1 = pg.ScatterPlotItem(pxMode=False)
             self.scatter_item_1.setSymbol('s')
             self.scatter_item_2 = pg.ScatterPlotItem(pxMode=False)
             self.scatter_item_2.setSymbol('s')
             # all quantities plotted will have range from 0 to 1
             self.cm_range = (0, 1)
-            self.heatmap_plot_1 = self.draw_individual_heatmap('single', data_1, self.view_box_1, self.single_nero_1, self.scatter_item_1)
-            self.heatmap_plot_2 = self.draw_individual_heatmap('single', data_2, self.view_box_2, self.single_nero_2, self.scatter_item_2)
+            self.heatmap_plot_1 = self.draw_individual_heatmap('single', data_1, self.single_nero_1, self.view_box_1, self.scatter_item_1)
+            self.heatmap_plot_2 = self.draw_individual_heatmap('single', data_2, self.single_nero_2, self.view_box_2, self.scatter_item_2)
             # reset double click
             self.double_click = False
 
@@ -3902,16 +3908,22 @@ class UI_MainWindow(QWidget):
 
             # heatmap view
             self.aggregate_heatmap_view_1 = pg.GraphicsLayoutWidget()
-            # left top right bottom
-            self.aggregate_heatmap_view_1.ci.layout.setContentsMargins(0, 20, 0, 0)
+            self.aggregate_heatmap_view_1.ci.layout.setContentsMargins(0, 20, 0, 0) # left top right bottom
             self.aggregate_heatmap_view_1.setFixedSize(self.plot_size*1.3, self.plot_size*1.3)
+
             self.aggregate_heatmap_view_2 = pg.GraphicsLayoutWidget()
-            # left top right bottom
-            self.aggregate_heatmap_view_2.ci.layout.setContentsMargins(0, 20, 0, 0)
+            self.aggregate_heatmap_view_2.ci.layout.setContentsMargins(0, 20, 0, 0) # left top right bottom
             self.aggregate_heatmap_view_2.setFixedSize(self.plot_size*1.3, self.plot_size*1.3)
+
+            self.aggregate_nero_1 = COCO_heatmap(plot_type='aggregate', index=1)
+            self.aggregate_nero_2 = COCO_heatmap(plot_type='aggregate', index=2)
+
             self.cm_range = (0, 1)
-            self.aggregate_heatmap_plot_1 = self.draw_individual_heatmap('aggregate', data_1)
-            self.aggregate_heatmap_plot_2 = self.draw_individual_heatmap('aggregate', data_2)
+
+            self.aggregate_nero_1 = COCO_heatmap(plot_type='aggregate', index=1)
+            self.aggregate_nero_2 = COCO_heatmap(plot_type='aggregate', index=2)
+            self.aggregate_heatmap_plot_1 = self.draw_individual_heatmap('aggregate', data_1, self.aggregate_nero_1)
+            self.aggregate_heatmap_plot_2 = self.draw_individual_heatmap('aggregate', data_2, self.aggregate_nero_2)
             # reset double click
             self.double_click = False
 
@@ -4141,14 +4153,14 @@ class UI_MainWindow(QWidget):
             self.cm_range = (self.loss_high_bound, self.loss_low_bound)
             self.heatmap_plot_1 = self.draw_individual_heatmap('single',
                                                                 self.data_1,
-                                                                self.view_box_1,
                                                                 self.single_nero_1,
+                                                                self.view_box_1,
                                                                 self.scatter_item_1)
 
             self.heatmap_plot_2 = self.draw_individual_heatmap('single',
                                                                 self.data_2,
-                                                                self.view_box_2,
                                                                 self.single_nero_2,
+                                                                self.view_box_2,
                                                                 self.scatter_item_2)
             # reset double click
             self.double_click = False
