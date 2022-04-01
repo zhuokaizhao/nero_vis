@@ -255,8 +255,8 @@ def rotate_piv_data(image_1, image_2, label, degree):
 
     # about labels
     # can take images only
-    if label == np.zeros(0):
-        label_rotated = None
+    if label == np.zeros(1):
+        label_rotated = np.zeros(1)
     else:
         # rotate the label (counterclock wise)
         label_rotated_temp = torch.rot90(label, int(degree//90), dims=(0, 1))
@@ -272,15 +272,15 @@ def rotate_piv_data(image_1, image_2, label, degree):
 # flip the piv data (image label pair) either horizontally or vertically
 def flip_piv_data(image_1, image_2, label, flip_type):
 
-    if label == np.zeros(0):
-        label_flipped = None
+    if label == np.zeros(1):
+        label_flipped = np.zeros(1)
 
     # flip the images and label
     if flip_type == 'horizontal':
         image_1_flipped = torch.flip(image_1, dims=[1])
         image_2_flipped = torch.flip(image_2, dims=[1])
         # flip the ground truth horizontally (by y axis)
-        if label != np.zeros(0):
+        if label != np.zeros(1):
             label_flipped_temp = torch.flip(label, dims=[1])
             # flip the velocity vecter too
             label_flipped = torch.zeros(label.shape)
@@ -290,7 +290,7 @@ def flip_piv_data(image_1, image_2, label, flip_type):
         image_1_flipped = torch.flip(image_1, dims=[0])
         image_2_flipped = torch.flip(image_2, dims=[0])
         # flip the ground truth horizontally (by y axis)
-        if label != np.zeros(0):
+        if label != np.zeros(1):
             label_flipped_temp = torch.flip(label, dims=[0])
             # flip the velocity vecter too
             label_flipped = torch.zeros(label.shape)
@@ -306,7 +306,6 @@ def flip_piv_data(image_1, image_2, label, flip_type):
         image_1_rotated, image_2_rotated, label_rotated = rotate_piv_data(image_1, image_2, label, 90)
         image_1_flipped, image_2_flipped, label_flipped = flip_piv_data(image_1_rotated, image_2_rotated, label_rotated, flip_type='horizontal')
 
-
     return image_1_flipped, image_2_flipped, label_flipped
 
 
@@ -314,8 +313,8 @@ def flip_piv_data(image_1, image_2, label, flip_type):
 def time_reverse_piv_data(image_1, image_2, label):
 
     # can take images only
-    if label == np.zeros(0):
-        label_reversed = None
+    if label == np.zeros(1):
+        label_reversed = np.zeros(1)
     else:
         # reverse the velocity label vector
         label_reversed = -1 * label

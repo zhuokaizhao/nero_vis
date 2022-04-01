@@ -4065,76 +4065,77 @@ class UI_MainWindow(QWidget):
                 5'  5(left diag flip)   6(Rot270)            6'
                 '''
                 is_reversed = outer_self.rectangle_index // 8
-                outer_self.transformation_index = outer_self.rectangle_index % 8
-                print(is_reversed, outer_self.transformation_index)
+                transformation_index = outer_self.rectangle_index % 8
+
                 if is_reversed:
-                    outer_self.cur_image_1_pt = nero_transform.time_reverse_piv_data(outer_self.cur_image_1_pt,
-                                                                                        outer_self.cur_image_2_pt,
-                                                                                        np.zeros(0))
-                if outer_self.transformation_index == 0:
-                    outer_self.cur_image_1_pt = outer_self.cur_image_1_pt.clone()
-                    outer_self.cur_image_2_pt = outer_self.cur_image_2_pt.clone()
+                    temp_image_1_pt, \
+                    temp_image_2_pt, \
+                    _ = nero_transform.time_reverse_piv_data(outer_self.cur_image_1_pt,
+                                                                outer_self.cur_image_2_pt,
+                                                                np.zeros(1))
 
                 # 1: right diagonal flip (/)
-                elif outer_self.transformation_index == 1:
-                    outer_self.cur_image_1_pt, \
-                    outer_self.cur_image_2_pt, \
+                if transformation_index == 1:
+
+                    temp_image_1_pt, \
+                    temp_image_2_pt, \
                     _ = nero_transform.flip_piv_data(outer_self.cur_image_1_pt,
                                                         outer_self.cur_image_2_pt,
-                                                        np.zeros(0),
+                                                        np.zeros(1),
                                                         flip_type='right-diagonal')
+
                 # 2: counter-clockwise 90 rotation
-                elif outer_self.transformation_index == 2:
-                    outer_self.cur_image_1_pt, \
-                    outer_self.cur_image_2_pt, \
+                elif transformation_index == 2:
+                    temp_image_1_pt, \
+                    temp_image_2_pt, \
                     _ = nero_transform.rotate_piv_data(outer_self.cur_image_1_pt,
                                                         outer_self.cur_image_2_pt,
-                                                        np.zeros(0),
+                                                        np.zeros(1),
                                                         90)
                 # 3: horizontal flip (by y axis)
-                elif outer_self.transformation_index == 3:
-                    outer_self.cur_image_1_pt, \
-                    outer_self.cur_image_2_pt, \
+                elif transformation_index == 3:
+                    temp_image_1_pt, \
+                    temp_image_2_pt, \
                     _ = nero_transform.flip_piv_data(outer_self.cur_image_1_pt,
                                                         outer_self.cur_image_2_pt,
-                                                        np.zeros(0),
+                                                        np.zeros(1),
                                                         flip_type='horizontal')
                 # 4: counter-clockwise 180 rotation
-                elif outer_self.transformation_index == 4:
-                    outer_self.cur_image_1_pt, \
-                    outer_self.cur_image_2_pt, \
+                elif transformation_index == 4:
+                    temp_image_1_pt, \
+                    temp_image_2_pt, \
                     _ = nero_transform.rotate_piv_data(outer_self.cur_image_1_pt,
                                                         outer_self.cur_image_2_pt,
-                                                        np.zeros(0),
+                                                        np.zeros(1),
                                                         180)
                 # 5: \ diagnal flip
-                elif outer_self.transformation_index == 5:
-                    outer_self.cur_image_1_pt, \
-                    outer_self.cur_image_2_pt, \
+                elif transformation_index == 5:
+                    temp_image_1_pt, \
+                    temp_image_2_pt, \
                     _ = nero_transform.flip_piv_data(outer_self.cur_image_1_pt,
                                                         outer_self.cur_image_2_pt,
-                                                        np.zeros(0),
+                                                        np.zeros(1),
                                                         flip_type='left-diagonal')
                 # 6: counter-clockwise 270 rotation
-                elif outer_self.transformation_index == 6:
-                    outer_self.cur_image_1_pt, \
-                    outer_self.cur_image_2_pt, \
+                elif transformation_index == 6:
+                    temp_image_1_pt, \
+                    temp_image_2_pt, \
                     _ = nero_transform.rotate_piv_data(outer_self.cur_image_1_pt,
                                                         outer_self.cur_image_2_pt,
-                                                        np.zeros(0),
+                                                        np.zeros(1),
                                                         270)
                 # 7: vertical flip (by x axis)
-                elif outer_self.transformation_index == 7:
-                    outer_self.cur_image_1_pt, \
-                    outer_self.cur_image_2_pt, \
+                elif transformation_index == 7:
+                    temp_image_1_pt, \
+                    temp_image_2_pt, \
                     _ = nero_transform.flip_piv_data(outer_self.cur_image_1_pt,
                                                         outer_self.cur_image_2_pt,
                                                         np.zeros(0),
                                                         flip_type='vertical')
 
                 # create new GIF
-                display_image_1_pil = Image.fromarray(outer_self.cur_image_1_pt.numpy(), 'RGB')
-                display_image_2_pil = Image.fromarray(outer_self.cur_image_2_pt.numpy(), 'RGB')
+                display_image_1_pil = Image.fromarray(temp_image_1_pt.numpy(), 'RGB')
+                display_image_2_pil = Image.fromarray(temp_image_2_pt.numpy(), 'RGB')
                 other_images_pil = [display_image_1_pil, display_image_2_pil, display_image_2_pil, outer_self.blank_image_pil]
                 outer_self.gif_path = os.path.join(outer_self.cache_dir, '_clicked.gif')
                 display_image_1_pil.save(fp=outer_self.gif_path,
