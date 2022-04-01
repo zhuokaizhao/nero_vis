@@ -2307,11 +2307,11 @@ class UI_MainWindow(QWidget):
 
                                 # modify the data
                                 if is_time_reversed:
-                                    batch_d4_images_1_pt[i], \
-                                    batch_d4_images_2_pt[i], \
-                                    batch_ground_truth[i] = nero_transform.time_reverse_piv_data(cur_d4_image_1_pt,
-                                                                                                    cur_d4_image_2_pt,
-                                                                                                    cur_ground_truth)
+                                    cur_d4_image_1_pt, \
+                                    cur_d4_image_2_pt, \
+                                    cur_ground_truth = nero_transform.time_reverse_piv_data(cur_d4_image_1_pt,
+                                                                                            cur_d4_image_2_pt,
+                                                                                            cur_ground_truth)
 
                                 # 0: no transformation (original)
                                 if transformation_index == 0:

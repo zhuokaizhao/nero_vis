@@ -285,15 +285,17 @@ def flip_piv_data(image_1, image_2, label, flip_type):
             # flip the velocity vecter too
             label_flipped = torch.zeros(label.shape)
             label_flipped[:, :, 0] = -label_flipped_temp[:, :, 0]
+            label_flipped[:, :, 1] = label_flipped_temp[:, :, 1]
 
     elif flip_type == 'vertical':
         image_1_flipped = torch.flip(image_1, dims=[0])
         image_2_flipped = torch.flip(image_2, dims=[0])
-        # flip the ground truth horizontally (by y axis)
+        # flip the ground truth vertically (by x axis)
         if label != np.zeros(1):
             label_flipped_temp = torch.flip(label, dims=[0])
             # flip the velocity vecter too
             label_flipped = torch.zeros(label.shape)
+            label_flipped[:, :, 0] = label_flipped_temp[:, :, 0]
             label_flipped[:, :, 1] = -label_flipped_temp[:, :, 1]
 
     # / diagonal = rotate 90 ccw + vertical flip
