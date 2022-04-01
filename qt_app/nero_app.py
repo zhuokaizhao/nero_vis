@@ -498,7 +498,7 @@ class UI_MainWindow(QWidget):
                                          format='GIF',
                                          append_images=other_images_pil,
                                          save_all=True,
-                                         duration=400,
+                                         duration=300,
                                          loop=0)
 
             # load the ground truth flow field
@@ -1578,7 +1578,7 @@ class UI_MainWindow(QWidget):
                                             format='GIF',
                                             append_images=other_images_pil,
                                             save_all=True,
-                                            duration=400,
+                                            duration=300,
                                             loop=0)
 
             # run model all and display results (Individual NERO plot)
@@ -1940,7 +1940,7 @@ class UI_MainWindow(QWidget):
                                                 format='GIF',
                                                 append_images=other_images_pil,
                                                 save_all=True,
-                                                duration=400,
+                                                duration=300,
                                                 loop=0)
 
                 # run model all and display results (Individual NERO plot)
@@ -2018,7 +2018,7 @@ class UI_MainWindow(QWidget):
                                                 format='GIF',
                                                 append_images=other_images_pil,
                                                 save_all=True,
-                                                duration=400,
+                                                duration=300,
                                                 loop=0)
 
                 # run model all and display results (Individual NERO plot)
@@ -2532,6 +2532,59 @@ class UI_MainWindow(QWidget):
             self.cur_image_label[i, 1:5] = self.compute_label(self.loaded_image_label[i, :4], self.x_min, self.y_min, (self.image_size, self.image_size))
 
 
+    # modify the image tensor and the associated GIF as user rotates, flips or time-reverses
+    def modify_display_gif(self):
+
+        # torch rot treats ccw as positive
+        if self.rotate_ccw:
+            self.cur_image_1_pt = torch.rot90(self.cur_image_1_pt, 1)
+            self.cur_image_2_pt = torch.rot90(self.cur_image_2_pt, 1)
+            self.rotate_ccw = False
+
+        elif self.rotate_cw:
+            self.cur_image_1_pt = torch.rot90(self.cur_image_1_pt, -1)
+            self.cur_image_2_pt = torch.rot90(self.cur_image_2_pt, -1)
+            self.rotate_cw = False
+
+        # vertical flip is by x axis
+        elif self.vertical_flip:
+            self.cur_image_1_pt = torch.flip(self.cur_image_1_pt, [0])
+            self.cur_image_2_pt = torch.flip(self.cur_image_2_pt, [0])
+            self.vertical_flip = False
+
+        # horizontal flip is by y axis
+        elif self.horizontal_flip:
+            self.cur_image_1_pt = torch.flip(self.cur_image_1_pt, [1])
+            self.cur_image_2_pt = torch.flip(self.cur_image_2_pt, [1])
+            self.horizontal_flip = False
+
+        # reverse the order in pair
+        elif self.time_reverse:
+            self.cur_image_2_pt, self.cur_image_1_pt = self.cur_image_1_pt, self.cur_image_2_pt
+
+        # create new GIF
+        display_image_1_pil = Image.fromarray(self.cur_image_1_pt.numpy(), 'RGB')
+        display_image_2_pil = Image.fromarray(self.cur_image_2_pt.numpy(), 'RGB')
+        other_images_pil = [display_image_1_pil, display_image_2_pil, display_image_2_pil, self.blank_image_pil]
+        self.gif_path = os.path.join(self.cache_dir, self.loaded_image_1_name.split('.')[0] + '.gif')
+        display_image_1_pil.save(fp=self.gif_path,
+                                    format='GIF',
+                                    append_images=other_images_pil,
+                                    save_all=True,
+                                    duration=300,
+                                    loop=0)
+
+        # get the rectangle index from cayley graph
+        if self.time_reverse:
+            if self.rectangle_index + 8 <= 15:
+                self.rectangle_index += 8
+            else:
+                self.rectangle_index -= 8
+
+            self.time_reverse = False
+        else:
+            self.rectangle_index = self.cayley_table[self.transform_index, self.rectangle_index]
+
     # run model on all the available transformations on a single sample
     def run_model_all(self):
 
@@ -2771,59 +2824,6 @@ class UI_MainWindow(QWidget):
                 self.time_reverse_button.clicked.connect(time_reverse)
                 self.gif_control_layout.addWidget(self.time_reverse_button)
 
-            # modify the image tensor and the associated GIF as user rotates, flips or time-reverses
-            def modify_display_gif():
-
-                # torch rot treats ccw as positive
-                if self.rotate_ccw:
-                    self.cur_image_1_pt = torch.rot90(self.cur_image_1_pt, 1)
-                    self.cur_image_2_pt = torch.rot90(self.cur_image_2_pt, 1)
-                    self.rotate_ccw = False
-
-                elif self.rotate_cw:
-                    self.cur_image_1_pt = torch.rot90(self.cur_image_1_pt, -1)
-                    self.cur_image_2_pt = torch.rot90(self.cur_image_2_pt, -1)
-                    self.rotate_cw = False
-
-                # vertical flip is by x axis
-                elif self.vertical_flip:
-                    self.cur_image_1_pt = torch.flip(self.cur_image_1_pt, [0])
-                    self.cur_image_2_pt = torch.flip(self.cur_image_2_pt, [0])
-                    self.vertical_flip = False
-
-                # horizontal flip is by y axis
-                elif self.horizontal_flip:
-                    self.cur_image_1_pt = torch.flip(self.cur_image_1_pt, [1])
-                    self.cur_image_2_pt = torch.flip(self.cur_image_2_pt, [1])
-                    self.horizontal_flip = False
-
-                # reverse the order in pair
-                elif self.time_reverse:
-                    self.cur_image_2_pt, self.cur_image_1_pt = self.cur_image_1_pt, self.cur_image_2_pt
-
-                # create new GIF
-                display_image_1_pil = Image.fromarray(self.cur_image_1_pt.numpy(), 'RGB')
-                display_image_2_pil = Image.fromarray(self.cur_image_2_pt.numpy(), 'RGB')
-                other_images_pil = [display_image_1_pil, display_image_2_pil, display_image_2_pil, self.blank_image_pil]
-                self.gif_path = os.path.join(self.cache_dir, self.loaded_image_1_name.split('.')[0] + '.gif')
-                display_image_1_pil.save(fp=self.gif_path,
-                                            format='GIF',
-                                            append_images=other_images_pil,
-                                            save_all=True,
-                                            duration=400,
-                                            loop=0)
-
-                # get the rectangle index from cayley graph
-                if self.time_reverse:
-                    if self.rectangle_index + 8 <= 15:
-                        self.rectangle_index += 8
-                    else:
-                        self.rectangle_index -= 8
-
-                    self.time_reverse = False
-                else:
-                    self.rectangle_index = self.cayley_table[self.transform_index, self.rectangle_index]
-
             @QtCore.Slot()
             def rotate_90_ccw():
                 self.rotate_ccw = True
@@ -2831,7 +2831,7 @@ class UI_MainWindow(QWidget):
                 print(f'Rotate 90 degrees counter clockwise')
 
                 # modify the image, display and current triangle index
-                modify_display_gif()
+                self.modify_display_gif()
 
                 # display the image
                 self.display_image()
@@ -2848,7 +2848,7 @@ class UI_MainWindow(QWidget):
                 print(f'Rotate 90 degrees clockwise')
 
                 # modify the image, display and current triangle index
-                modify_display_gif()
+                self.modify_display_gif()
 
                 # display the image
                 self.display_image()
@@ -2864,7 +2864,7 @@ class UI_MainWindow(QWidget):
                 self.vertical_flip = True
                 print(f'Flip vertically')
                 # modify the image, display and current triangle index
-                modify_display_gif()
+                self.modify_display_gif()
 
                 # display the image
                 self.display_image()
@@ -2880,7 +2880,7 @@ class UI_MainWindow(QWidget):
                 self.transform_index = 3
                 print(f'Flip horizontally')
                 # modify the image, display and current triangle index
-                modify_display_gif()
+                self.modify_display_gif()
 
                 # display the image
                 self.display_image()
@@ -2895,7 +2895,7 @@ class UI_MainWindow(QWidget):
                 self.time_reverse = True
                 print(f'Time reverse')
                 # modify the image, display and current triangle index
-                modify_display_gif()
+                self.modify_display_gif()
 
                 # display the image
                 self.display_image()
@@ -4057,27 +4057,98 @@ class UI_MainWindow(QWidget):
 
                 # current/new rectangle selection index
                 outer_self.rectangle_index = outer_self.piv_nero_layout[rect_y, rect_x]
+                # from rectangle index get the needed transformations to the original image
+                '''
+                2'  2(Rot90)            1(right diag flip)   1'
+                3'  3(hori flip)        0(original)          0'
+                4'  4(Rot180)           7(vert flip)         7'
+                5'  5(left diag flip)   6(Rot270)            6'
+                '''
+                is_reversed = outer_self.rectangle_index // 8
+                outer_self.transformation_index = outer_self.rectangle_index % 8
+                print(is_reversed, outer_self.transformation_index)
+                if is_reversed:
+                    outer_self.cur_image_1_pt = nero_transform.time_reverse_piv_data(outer_self.cur_image_1_pt,
+                                                                                        outer_self.cur_image_2_pt,
+                                                                                        np.zeros(0))
+                if outer_self.transformation_index == 0:
+                    outer_self.cur_image_1_pt = outer_self.cur_image_1_pt.clone()
+                    outer_self.cur_image_2_pt = outer_self.cur_image_2_pt.clone()
+
+                # 1: right diagonal flip (/)
+                elif outer_self.transformation_index == 1:
+                    outer_self.cur_image_1_pt, \
+                    outer_self.cur_image_2_pt, \
+                    _ = nero_transform.flip_piv_data(outer_self.cur_image_1_pt,
+                                                        outer_self.cur_image_2_pt,
+                                                        np.zeros(0),
+                                                        flip_type='right-diagonal')
+                # 2: counter-clockwise 90 rotation
+                elif outer_self.transformation_index == 2:
+                    outer_self.cur_image_1_pt, \
+                    outer_self.cur_image_2_pt, \
+                    _ = nero_transform.rotate_piv_data(outer_self.cur_image_1_pt,
+                                                        outer_self.cur_image_2_pt,
+                                                        np.zeros(0),
+                                                        90)
+                # 3: horizontal flip (by y axis)
+                elif outer_self.transformation_index == 3:
+                    outer_self.cur_image_1_pt, \
+                    outer_self.cur_image_2_pt, \
+                    _ = nero_transform.flip_piv_data(outer_self.cur_image_1_pt,
+                                                        outer_self.cur_image_2_pt,
+                                                        np.zeros(0),
+                                                        flip_type='horizontal')
+                # 4: counter-clockwise 180 rotation
+                elif outer_self.transformation_index == 4:
+                    outer_self.cur_image_1_pt, \
+                    outer_self.cur_image_2_pt, \
+                    _ = nero_transform.rotate_piv_data(outer_self.cur_image_1_pt,
+                                                        outer_self.cur_image_2_pt,
+                                                        np.zeros(0),
+                                                        180)
+                # 5: \ diagnal flip
+                elif outer_self.transformation_index == 5:
+                    outer_self.cur_image_1_pt, \
+                    outer_self.cur_image_2_pt, \
+                    _ = nero_transform.flip_piv_data(outer_self.cur_image_1_pt,
+                                                        outer_self.cur_image_2_pt,
+                                                        np.zeros(0),
+                                                        flip_type='left-diagonal')
+                # 6: counter-clockwise 270 rotation
+                elif outer_self.transformation_index == 6:
+                    outer_self.cur_image_1_pt, \
+                    outer_self.cur_image_2_pt, \
+                    _ = nero_transform.rotate_piv_data(outer_self.cur_image_1_pt,
+                                                        outer_self.cur_image_2_pt,
+                                                        np.zeros(0),
+                                                        270)
+                # 7: vertical flip (by x axis)
+                elif outer_self.transformation_index == 7:
+                    outer_self.cur_image_1_pt, \
+                    outer_self.cur_image_2_pt, \
+                    _ = nero_transform.flip_piv_data(outer_self.cur_image_1_pt,
+                                                        outer_self.cur_image_2_pt,
+                                                        np.zeros(0),
+                                                        flip_type='vertical')
+
+                # create new GIF
+                display_image_1_pil = Image.fromarray(outer_self.cur_image_1_pt.numpy(), 'RGB')
+                display_image_2_pil = Image.fromarray(outer_self.cur_image_2_pt.numpy(), 'RGB')
+                other_images_pil = [display_image_1_pil, display_image_2_pil, display_image_2_pil, outer_self.blank_image_pil]
+                outer_self.gif_path = os.path.join(outer_self.cache_dir, '_clicked.gif')
+                display_image_1_pil.save(fp=outer_self.gif_path,
+                                            format='GIF',
+                                            append_images=other_images_pil,
+                                            save_all=True,
+                                            duration=300,
+                                            loop=0)
 
                 # display the input image
                 outer_self.display_image()
 
                 # redraw the nero plot with new rectangle display
                 outer_self.draw_piv_nero('single')
-
-            def mouseDragEvent(self, event):
-                if self.plot_type == 'single':
-                    # if event.button() != QtCore.Qt.LeftButton:
-                    #     event.ignore()
-                    #     return
-                    # print(event.pos())
-                    if event.isStart():
-                        print('Dragging starts', event.pos())
-
-                    elif event.isFinish():
-                        print('Dragging stops', event.pos())
-
-                    else:
-                        print("Drag", event.pos())
 
             def hoverEvent(self, event):
                 if not event.isExit():
@@ -4096,6 +4167,21 @@ class UI_MainWindow(QWidget):
                 outer_self.detail_rect_y = event.pos().y()
 
                 outer_self.draw_piv_details()
+
+            def mouseDragEvent(self, event):
+                if self.plot_type == 'single':
+                    # if event.button() != QtCore.Qt.LeftButton:
+                    #     event.ignore()
+                    #     return
+                    # print(event.pos())
+                    if event.isStart():
+                        print('Dragging starts', event.pos())
+
+                    elif event.isFinish():
+                        print('Dragging stops', event.pos())
+
+                    else:
+                        print("Drag", event.pos())
 
         # helper function on reshaping data
         def prepare_plot_data(input_data):
