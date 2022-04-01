@@ -1248,8 +1248,10 @@ class UI_MainWindow(QWidget):
         def detail_nero_checkbox_clicked(state):
             if state == QtCore.Qt.Checked:
                 self.show_average = False
+                self.piv_heatmap_click_enable = True
             else:
                 self.show_average = True
+                self.piv_heatmap_click_enable = False
 
             self.draw_piv_nero('aggregate')
 
@@ -1257,6 +1259,7 @@ class UI_MainWindow(QWidget):
                 # show the previously selected detail area when in detail mode
                 if self.show_average == False:
                     self.double_click = True
+                    self.piv_heatmap_click_enable = True
                 self.draw_piv_nero('single')
 
 
@@ -1337,6 +1340,7 @@ class UI_MainWindow(QWidget):
             self.detail_nero_checkbox.setFixedSize(QtCore.QSize(300, 50))
             self.detail_nero_checkbox.stateChanged.connect(detail_nero_checkbox_clicked)
             self.show_average = True
+            self.piv_heatmap_click_enable = False
             self.detail_nero_checkbox.setChecked(False)
             self.aggregate_plot_control_layout.addWidget(self.detail_nero_checkbox, 6, 0)
 
@@ -2765,6 +2769,7 @@ class UI_MainWindow(QWidget):
         elif self.mode == 'piv':
 
             self.show_average = True
+            self.piv_heatmap_click_enable = False
 
             # flags on controlling current image tensor
             self.rotate_ccw = False
@@ -3040,8 +3045,10 @@ class UI_MainWindow(QWidget):
                 # default detail view starts at the center of the original rectangle
                 if self.show_average:
                     self.double_click = False
+                    self.piv_heatmap_click_enable = False
                 else:
                     self.double_click = True
+                    self.piv_heatmap_click_enable = True
                 self.detail_rect_x = np.where(self.piv_nero_layout==self.rectangle_index)[1] * self.image_size + self.image_size // 2
                 self.detail_rect_y = np.where(self.piv_nero_layout==self.rectangle_index)[0] * self.image_size + self.image_size // 2
                 # np.where returns ndarray, but we know there is only one
@@ -3061,8 +3068,10 @@ class UI_MainWindow(QWidget):
                 self.rectangle_index = 0
                 if self.show_average:
                     self.double_click = False
+                    self.piv_heatmap_click_enable = False
                 else:
                     self.double_click = True
+                    self.piv_heatmap_click_enable = True
                 self.detail_rect_x = np.where(self.piv_nero_layout==self.rectangle_index)[1] * self.image_size + self.image_size // 2
                 self.detail_rect_y = np.where(self.piv_nero_layout==self.rectangle_index)[0] * self.image_size + self.image_size // 2
                 # np.where returns ndarray, but we know there is only one
@@ -4050,114 +4059,123 @@ class UI_MainWindow(QWidget):
         # subclass of ImageItem that reimplements the control methods
         class PIV_heatmap(pg.ImageItem):
             def mouseClickEvent(self, event):
-                print(f'Clicked on PIV heatmap at ({event.pos().x()}, {event.pos().y()})')
-                # in PIV mode, a pop up window shows the nearby area's quiver plot
-                rect_x = int(event.pos().x() // outer_self.image_size)
-                rect_y = int(event.pos().y() // outer_self.image_size)
+                if outer_self.piv_heatmap_click_enable:
+                    print(f'Clicked on PIV heatmap at ({event.pos().x()}, {event.pos().y()})')
+                    # in PIV mode, a pop up window shows the nearby area's quiver plot
+                    rect_x = int(event.pos().x() // outer_self.image_size)
+                    rect_y = int(event.pos().y() // outer_self.image_size)
 
-                # current/new rectangle selection index
-                outer_self.rectangle_index = outer_self.piv_nero_layout[rect_y, rect_x]
-                # from rectangle index get the needed transformations to the original image
-                '''
-                2'  2(Rot90)            1(right diag flip)   1'
-                3'  3(hori flip)        0(original)          0'
-                4'  4(Rot180)           7(vert flip)         7'
-                5'  5(left diag flip)   6(Rot270)            6'
-                '''
-                is_reversed = outer_self.rectangle_index // 8
-                transformation_index = outer_self.rectangle_index % 8
+                    # current/new rectangle selection index
+                    outer_self.rectangle_index = outer_self.piv_nero_layout[rect_y, rect_x]
+                    # from rectangle index get the needed transformations to the original image
+                    '''
+                    2'  2(Rot90)            1(right diag flip)   1'
+                    3'  3(hori flip)        0(original)          0'
+                    4'  4(Rot180)           7(vert flip)         7'
+                    5'  5(left diag flip)   6(Rot270)            6'
+                    '''
+                    is_reversed = outer_self.rectangle_index // 8
+                    transformation_index = outer_self.rectangle_index % 8
 
-                if is_reversed:
-                    temp_image_1_pt, \
-                    temp_image_2_pt, \
-                    _ = nero_transform.time_reverse_piv_data(outer_self.cur_image_1_pt,
-                                                                outer_self.cur_image_2_pt,
-                                                                np.zeros(1))
+                    if is_reversed:
+                        start_image_1_pt, \
+                        start_image_2_pt, \
+                        _ = nero_transform.time_reverse_piv_data(outer_self.cur_image_1_pt,
+                                                                    outer_self.cur_image_2_pt,
+                                                                    np.zeros(1))
+                    else:
+                        start_image_1_pt = outer_self.cur_image_1_pt.clone()
+                        start_image_2_pt = outer_self.cur_image_2_pt.clone()
 
-                # 1: right diagonal flip (/)
-                if transformation_index == 1:
+                    # no transformation
+                    if transformation_index == 0:
+                        temp_image_1_pt = start_image_1_pt.clone()
+                        temp_image_2_pt = start_image_2_pt.clone()
 
-                    temp_image_1_pt, \
-                    temp_image_2_pt, \
-                    _ = nero_transform.flip_piv_data(outer_self.cur_image_1_pt,
-                                                        outer_self.cur_image_2_pt,
-                                                        np.zeros(1),
-                                                        flip_type='right-diagonal')
+                    # 1: right diagonal flip (/)
+                    if transformation_index == 1:
 
-                # 2: counter-clockwise 90 rotation
-                elif transformation_index == 2:
-                    temp_image_1_pt, \
-                    temp_image_2_pt, \
-                    _ = nero_transform.rotate_piv_data(outer_self.cur_image_1_pt,
-                                                        outer_self.cur_image_2_pt,
-                                                        np.zeros(1),
-                                                        90)
-                # 3: horizontal flip (by y axis)
-                elif transformation_index == 3:
-                    temp_image_1_pt, \
-                    temp_image_2_pt, \
-                    _ = nero_transform.flip_piv_data(outer_self.cur_image_1_pt,
-                                                        outer_self.cur_image_2_pt,
-                                                        np.zeros(1),
-                                                        flip_type='horizontal')
-                # 4: counter-clockwise 180 rotation
-                elif transformation_index == 4:
-                    temp_image_1_pt, \
-                    temp_image_2_pt, \
-                    _ = nero_transform.rotate_piv_data(outer_self.cur_image_1_pt,
-                                                        outer_self.cur_image_2_pt,
-                                                        np.zeros(1),
-                                                        180)
-                # 5: \ diagnal flip
-                elif transformation_index == 5:
-                    temp_image_1_pt, \
-                    temp_image_2_pt, \
-                    _ = nero_transform.flip_piv_data(outer_self.cur_image_1_pt,
-                                                        outer_self.cur_image_2_pt,
-                                                        np.zeros(1),
-                                                        flip_type='left-diagonal')
-                # 6: counter-clockwise 270 rotation
-                elif transformation_index == 6:
-                    temp_image_1_pt, \
-                    temp_image_2_pt, \
-                    _ = nero_transform.rotate_piv_data(outer_self.cur_image_1_pt,
-                                                        outer_self.cur_image_2_pt,
-                                                        np.zeros(1),
-                                                        270)
-                # 7: vertical flip (by x axis)
-                elif transformation_index == 7:
-                    temp_image_1_pt, \
-                    temp_image_2_pt, \
-                    _ = nero_transform.flip_piv_data(outer_self.cur_image_1_pt,
-                                                        outer_self.cur_image_2_pt,
-                                                        np.zeros(0),
-                                                        flip_type='vertical')
+                        temp_image_1_pt, \
+                        temp_image_2_pt, \
+                        _ = nero_transform.flip_piv_data(start_image_1_pt,
+                                                            start_image_2_pt,
+                                                            np.zeros(1),
+                                                            flip_type='right-diagonal')
 
-                # create new GIF
-                display_image_1_pil = Image.fromarray(temp_image_1_pt.numpy(), 'RGB')
-                display_image_2_pil = Image.fromarray(temp_image_2_pt.numpy(), 'RGB')
-                other_images_pil = [display_image_1_pil, display_image_2_pil, display_image_2_pil, outer_self.blank_image_pil]
-                outer_self.gif_path = os.path.join(outer_self.cache_dir, '_clicked.gif')
-                display_image_1_pil.save(fp=outer_self.gif_path,
-                                            format='GIF',
-                                            append_images=other_images_pil,
-                                            save_all=True,
-                                            duration=300,
-                                            loop=0)
+                    # 2: counter-clockwise 90 rotation
+                    elif transformation_index == 2:
+                        temp_image_1_pt, \
+                        temp_image_2_pt, \
+                        _ = nero_transform.rotate_piv_data(start_image_1_pt,
+                                                            start_image_2_pt,
+                                                            np.zeros(1),
+                                                            90)
+                    # 3: horizontal flip (by y axis)
+                    elif transformation_index == 3:
+                        temp_image_1_pt, \
+                        temp_image_2_pt, \
+                        _ = nero_transform.flip_piv_data(start_image_1_pt,
+                                                            start_image_2_pt,
+                                                            np.zeros(1),
+                                                            flip_type='horizontal')
+                    # 4: counter-clockwise 180 rotation
+                    elif transformation_index == 4:
+                        temp_image_1_pt, \
+                        temp_image_2_pt, \
+                        _ = nero_transform.rotate_piv_data(start_image_1_pt,
+                                                            start_image_2_pt,
+                                                            np.zeros(1),
+                                                            180)
+                    # 5: \ diagnal flip
+                    elif transformation_index == 5:
+                        temp_image_1_pt, \
+                        temp_image_2_pt, \
+                        _ = nero_transform.flip_piv_data(start_image_1_pt,
+                                                            start_image_2_pt,
+                                                            np.zeros(1),
+                                                            flip_type='left-diagonal')
+                    # 6: counter-clockwise 270 rotation
+                    elif transformation_index == 6:
+                        temp_image_1_pt, \
+                        temp_image_2_pt, \
+                        _ = nero_transform.rotate_piv_data(start_image_1_pt,
+                                                            start_image_2_pt,
+                                                            np.zeros(1),
+                                                            270)
+                    # 7: vertical flip (by x axis)
+                    elif transformation_index == 7:
+                        temp_image_1_pt, \
+                        temp_image_2_pt, \
+                        _ = nero_transform.flip_piv_data(start_image_1_pt,
+                                                            start_image_2_pt,
+                                                            np.zeros(1),
+                                                            flip_type='vertical')
 
-                # display the input image
-                outer_self.display_image()
+                    # create new GIF
+                    display_image_1_pil = Image.fromarray(temp_image_1_pt.numpy(), 'RGB')
+                    display_image_2_pil = Image.fromarray(temp_image_2_pt.numpy(), 'RGB')
+                    other_images_pil = [display_image_1_pil, display_image_2_pil, display_image_2_pil, outer_self.blank_image_pil]
+                    outer_self.gif_path = os.path.join(outer_self.cache_dir, '_clicked.gif')
+                    display_image_1_pil.save(fp=outer_self.gif_path,
+                                                format='GIF',
+                                                append_images=other_images_pil,
+                                                save_all=True,
+                                                duration=300,
+                                                loop=0)
 
-                # redraw the nero plot with new rectangle display
-                outer_self.draw_piv_nero('single')
+                    # display the input image
+                    outer_self.display_image()
 
-                # the detailed plot of PIV
-                outer_self.detail_rect_x = np.where(outer_self.piv_nero_layout==outer_self.rectangle_index)[1] * outer_self.image_size + outer_self.image_size // 2
-                outer_self.detail_rect_y = np.where(outer_self.piv_nero_layout==outer_self.rectangle_index)[0] * outer_self.image_size + outer_self.image_size // 2
-                # np.where returns ndarray, but we know there is only one
-                outer_self.detail_rect_x = outer_self.detail_rect_x[0]
-                outer_self.detail_rect_y = outer_self.detail_rect_y[0]
-                outer_self.draw_piv_details()
+                    # redraw the nero plot with new rectangle display
+                    outer_self.draw_piv_nero('single')
+
+                    # the detailed plot of PIV
+                    outer_self.detail_rect_x = np.where(outer_self.piv_nero_layout==outer_self.rectangle_index)[1] * outer_self.image_size + outer_self.image_size // 2
+                    outer_self.detail_rect_y = np.where(outer_self.piv_nero_layout==outer_self.rectangle_index)[0] * outer_self.image_size + outer_self.image_size // 2
+                    # np.where returns ndarray, but we know there is only one
+                    outer_self.detail_rect_x = outer_self.detail_rect_x[0]
+                    outer_self.detail_rect_y = outer_self.detail_rect_y[0]
+                    outer_self.draw_piv_details()
 
             def hoverEvent(self, event):
                 if not event.isExit():
