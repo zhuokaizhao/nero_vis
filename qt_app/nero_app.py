@@ -912,14 +912,14 @@ class UI_MainWindow(QWidget):
 
         # initialize layout for loading menus
         self.load_menu_layout = QtWidgets.QGridLayout()
-        self.load_menu_layout.setContentsMargins(50, 0, 0, 50)
+        # self.load_menu_layout.setContentsMargins(50, 0, 0, 50)
 
         # draw text
         model_pixmap = QPixmap(300, 30)
         model_pixmap.fill(QtCore.Qt.white)
         painter = QtGui.QPainter(model_pixmap)
         painter.setFont(QFont('Helvetica', 18))
-        painter.drawText(0, 0, 300, 30, QtGui.Qt.AlignLeft, 'Data Selection: ')
+        painter.drawText(0, 0, 300, 30, QtGui.Qt.AlignLeft, 'Input Data Set: ')
         painter.end()
 
         # create label to contain the texts
@@ -978,7 +978,7 @@ class UI_MainWindow(QWidget):
         self.aggregate_image_menu.lineEdit().setReadOnly(True)
         self.aggregate_image_menu.lineEdit().setAlignment(QtCore.Qt.AlignCenter)
         if self.demo:
-            self.load_menu_layout.addWidget(self.aggregate_image_menu, 0, 1)
+            self.load_menu_layout.addWidget(self.aggregate_image_menu, 1, 0)
         else:
             self.load_menu_layout.addWidget(self.aggregate_image_menu, 0, 3)
 
@@ -1124,7 +1124,10 @@ class UI_MainWindow(QWidget):
         self.load_menu_layout.addWidget(self.model_2_menu, 3, 3)
 
         # add this layout to the general layout
-        self.layout.addLayout(self.load_menu_layout, 0, 1)
+        if self.demo:
+            self.layout.addLayout(self.load_menu_layout, 0, 0)
+        else:
+            self.layout.addLayout(self.load_menu_layout, 0, 1)
 
         # demo mode selects the aggregate dataset to start three-level view
         if self.demo:
@@ -1277,8 +1280,29 @@ class UI_MainWindow(QWidget):
         self.aggregate_result_layout.addLayout(self.aggregate_plot_control_layout, 0, 0, 3, 1)
 
         # drop down menu on choosing the display class
+        # draw text
+        class_selection_pixmap = QPixmap(300, 30)
+        class_selection_pixmap.fill(QtCore.Qt.white)
+        painter = QtGui.QPainter(class_selection_pixmap)
+        painter.setFont(QFont('Helvetica', 18))
+        painter.drawText(0, 0, 300, 30, QtGui.Qt.AlignLeft, 'Input Data Subset: ')
+        painter.end()
+        # create label to contain the texts
+        self.class_selection_label = QLabel(self)
+        self.class_selection_label.setContentsMargins(0, 20, 0, 0)
+        self.class_selection_label.setFixedSize(QtCore.QSize(300, 50))
+        self.class_selection_label.setAlignment(QtCore.Qt.AlignLeft)
+        self.class_selection_label.setWordWrap(True)
+        self.class_selection_label.setTextFormat(QtGui.Qt.AutoText)
+        self.class_selection_label.setPixmap(class_selection_pixmap)
+        # add to the layout
+        if self.demo:
+            self.load_menu_layout.addWidget(self.class_selection_label, 3, 0)
+        else:
+            self.aggregate_plot_control_layout.addWidget(self.class_selection_label, 0, 0)
+
         self.class_selection_menu = QtWidgets.QComboBox()
-        self.class_selection_menu.setFixedSize(QtCore.QSize(250, 50))
+        self.class_selection_menu.setFixedSize(QtCore.QSize(300, 50))
         self.class_selection_menu.setStyleSheet('font-size: 18px')
         if self.mode == 'digit_recognition':
             self.class_selection_menu.addItem(f'Averaged over all digits')
@@ -1305,11 +1329,33 @@ class UI_MainWindow(QWidget):
         self.class_selection_menu.lineEdit().setReadOnly(True)
         self.class_selection_menu.lineEdit().setAlignment(QtCore.Qt.AlignRight)
         # add to local layout
-        self.aggregate_plot_control_layout.addWidget(self.class_selection_menu, 0, 0)
+        if self.demo:
+            self.load_menu_layout.addWidget(self.class_selection_menu, 4, 0)
+        else:
+            self.aggregate_plot_control_layout.addWidget(self.class_selection_menu, 1, 0)
 
         # drop down menu on choosing the dimension reduction method
+        # draw text
+        dr_selection_pixmap = QPixmap(300, 30)
+        dr_selection_pixmap.fill(QtCore.Qt.white)
+        painter = QtGui.QPainter(dr_selection_pixmap)
+        painter.setFont(QFont('Helvetica', 18))
+        painter.drawText(0, 0, 300, 30, QtGui.Qt.AlignLeft, 'Scatterplot Layout: ')
+        painter.end()
+        # create label to contain the texts
+        self.dr_selection_label = QLabel(self)
+        self.dr_selection_label.setContentsMargins(0, 0, 0, 0)
+        self.dr_selection_label.setFixedSize(QtCore.QSize(200, 50))
+        self.dr_selection_label.setAlignment(QtCore.Qt.AlignLeft)
+        self.dr_selection_label.setWordWrap(True)
+        self.dr_selection_label.setTextFormat(QtGui.Qt.AutoText)
+        self.dr_selection_label.setPixmap(dr_selection_pixmap)
+        # add to the layout
+        if self.demo:
+            self.load_menu_layout.addWidget(self.dr_selection_label, 0, 1)
+
         self.dr_selection_menu = QtWidgets.QComboBox()
-        self.dr_selection_menu.setFixedSize(QtCore.QSize(250, 50))
+        self.dr_selection_menu.setFixedSize(QtCore.QSize(100, 50))
         self.dr_selection_menu.setStyleSheet('font-size: 18px')
         dr_algorithms = ['PCA', 'ICA', 'ISOMAP', 't-SNE', 'UMAP']
         for algo in dr_algorithms:
@@ -1323,7 +1369,10 @@ class UI_MainWindow(QWidget):
         self.dr_selection_menu.lineEdit().setReadOnly(True)
         self.dr_selection_menu.lineEdit().setAlignment(QtCore.Qt.AlignRight)
         # add to local layout
-        self.aggregate_plot_control_layout.addWidget(self.dr_selection_menu, 2, 0)
+        if self.demo:
+            self.load_menu_layout.addWidget(self.dr_selection_menu, 0, 2)
+        else:
+            self.aggregate_plot_control_layout.addWidget(self.dr_selection_menu, 2, 0)
 
         # push button on running PCA
         self.run_dr_button = QtWidgets.QPushButton('Run Dimension Reduction')
@@ -2034,8 +2083,8 @@ class UI_MainWindow(QWidget):
         intensity_button_pixmap = QPixmap(300, 30)
         intensity_button_pixmap.fill(QtCore.Qt.white)
         painter = QtGui.QPainter(intensity_button_pixmap)
-        painter.setFont(QFont('Helvetica', 14))
-        painter.drawText(0, 0, 300, 30, QtGui.Qt.AlignLeft, 'Scatter plots colored and ranked by: ')
+        painter.setFont(QFont('Helvetica', 18))
+        painter.drawText(0, 0, 300, 30, QtGui.Qt.AlignLeft, 'Scatterplot Sorting: ')
         painter.end()
 
         # create label to contain the texts
@@ -2047,19 +2096,28 @@ class UI_MainWindow(QWidget):
         intensity_button_label.setTextFormat(QtGui.Qt.AutoText)
         intensity_button_label.setPixmap(intensity_button_pixmap)
         # add to the layout
-        self.aggregate_plot_control_layout.addWidget(intensity_button_label, 7, 0)
+        if self.demo:
+            self.load_menu_layout.addWidget(intensity_button_label, 1, 1, 2, 1)
+        else:
+            self.aggregate_plot_control_layout.addWidget(intensity_button_label, 7, 0)
 
         self.mean_intensity_button = QRadioButton('Mean')
-        self.mean_intensity_button.setFixedSize(QtCore.QSize(200, 30))
+        self.mean_intensity_button.setFixedSize(QtCore.QSize(100, 30))
         self.mean_intensity_button.setStyleSheet('QRadioButton{font: 14pt Helvetica;} QRadioButton::indicator { width: 14px; height: 14px;};')
         self.mean_intensity_button.pressed.connect(mean_intensity_button_clicked)
-        self.aggregate_plot_control_layout.addWidget(self.mean_intensity_button, 8, 0)
+        if self.demo:
+            self.load_menu_layout.addWidget(self.mean_intensity_button, 1, 2, 1, 1)
+        else:
+            self.aggregate_plot_control_layout.addWidget(self.mean_intensity_button, 8, 0)
 
         self.variance_intensity_button = QRadioButton('Variance')
-        self.variance_intensity_button.setFixedSize(QtCore.QSize(200, 30))
+        self.variance_intensity_button.setFixedSize(QtCore.QSize(100, 30))
         self.variance_intensity_button.setStyleSheet('QRadioButton{font: 14pt Helvetica;} QRadioButton::indicator { width: 14px; height: 14px;};')
         self.variance_intensity_button.pressed.connect(variance_intensity_button_clicked)
-        self.aggregate_plot_control_layout.addWidget(self.variance_intensity_button, 9, 0)
+        if self.demo:
+            self.load_menu_layout.addWidget(self.variance_intensity_button, 2, 2, 1, 1)
+        else:
+            self.aggregate_plot_control_layout.addWidget(self.variance_intensity_button, 9, 0)
 
         # by default the intensities are computed via mean
         self.mean_intensity_button.setChecked(True)
