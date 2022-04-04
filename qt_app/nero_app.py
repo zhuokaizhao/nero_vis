@@ -542,7 +542,8 @@ class UI_MainWindow(QWidget):
                 self.run_button_existed = False
                 print('Previous single result layout deleted')
 
-            self.init_aggregate_result_layout()
+            if not self.demo:
+                self.init_aggregate_result_layout()
 
             print('Loaded dataset:', text)
             self.data_mode = 'aggregate'
@@ -911,28 +912,27 @@ class UI_MainWindow(QWidget):
             painter.end()
 
         # initialize layout for loading menus
-        self.load_menu_layout = QtWidgets.QGridLayout()
+        if self.demo:
+            self.column_0_layout = QtWidgets.QGridLayout()
+        else:
+            self.load_menu_layout = QtWidgets.QGridLayout()
         # self.load_menu_layout.setContentsMargins(50, 0, 0, 50)
 
         # draw text
-        model_pixmap = QPixmap(300, 30)
+        model_pixmap = QPixmap(350, 50)
         model_pixmap.fill(QtCore.Qt.white)
         painter = QtGui.QPainter(model_pixmap)
         painter.setFont(QFont('Helvetica', 18))
-        painter.drawText(0, 0, 300, 30, QtGui.Qt.AlignLeft, 'Input Data Set: ')
+        painter.drawText(50, 0, 300, 50, QtGui.Qt.AlignLeft, 'Input Data Set: ')
         painter.end()
 
         # create label to contain the texts
         self.model_label = QLabel(self)
-        self.model_label.setContentsMargins(0, 0, 0, 0)
-        self.model_label.setFixedSize(QtCore.QSize(300, 30))
-        self.model_label.setAlignment(QtCore.Qt.AlignLeft)
-        self.model_label.setWordWrap(True)
-        self.model_label.setTextFormat(QtGui.Qt.AutoText)
+        self.model_label.setFixedSize(QtCore.QSize(350, 50))
         self.model_label.setPixmap(model_pixmap)
         # add to the layout
         if self.demo:
-            self.load_menu_layout.addWidget(self.model_label, 0, 0)
+            self.column_0_layout.addWidget(self.model_label, 0, 0)
         else:
             self.load_menu_layout.addWidget(self.model_label, 0, 2)
 
@@ -978,7 +978,10 @@ class UI_MainWindow(QWidget):
         self.aggregate_image_menu.lineEdit().setReadOnly(True)
         self.aggregate_image_menu.lineEdit().setAlignment(QtCore.Qt.AlignCenter)
         if self.demo:
-            self.load_menu_layout.addWidget(self.aggregate_image_menu, 1, 0)
+            aggregate_image_menu_layout = QtWidgets.QHBoxLayout()
+            aggregate_image_menu_layout.setContentsMargins(50, 0, 0, 0)
+            aggregate_image_menu_layout.addWidget(self.aggregate_image_menu)
+            self.column_0_layout.addLayout(aggregate_image_menu_layout, 1, 0)
         else:
             self.load_menu_layout.addWidget(self.aggregate_image_menu, 0, 3)
 
@@ -1054,7 +1057,7 @@ class UI_MainWindow(QWidget):
         draw_circle(painter, 12, 12, 10, 'blue')
 
         self.model_1_menu = QtWidgets.QComboBox()
-        self.model_1_menu.setFixedSize(QtCore.QSize(300, 50))
+        self.model_1_menu.setFixedSize(QtCore.QSize(300, 30))
         self.model_1_menu.setStyleSheet('font-size: 18px')
         if self.mode == 'digit_recognition':
             self.model_1_menu.addItem(model_1_icon, 'Original model')
@@ -1080,7 +1083,13 @@ class UI_MainWindow(QWidget):
         self.model_1_menu.setEditable(True)
         self.model_1_menu.lineEdit().setReadOnly(True)
         self.model_1_menu.lineEdit().setAlignment(QtCore.Qt.AlignCenter)
-        self.load_menu_layout.addWidget(self.model_1_menu, 2, 3)
+        if self.demo:
+            model_1_menu_layout = QtWidgets.QHBoxLayout()
+            model_1_menu_layout.setContentsMargins(70, 50, 0, 0)
+            model_1_menu_layout.addWidget(self.model_1_menu)
+            self.column_0_layout.addLayout(model_1_menu_layout, 4, 0)
+        else:
+            self.load_menu_layout.addWidget(self.model_1_menu, 2, 3)
 
         # model 2
         # graphic representation
@@ -1094,7 +1103,7 @@ class UI_MainWindow(QWidget):
         draw_circle(painter, 12, 12, 10, 'magenta')
 
         self.model_2_menu = QtWidgets.QComboBox()
-        self.model_2_menu.setFixedSize(QtCore.QSize(300, 50))
+        self.model_2_menu.setFixedSize(QtCore.QSize(300, 30))
         self.model_2_menu.setStyleSheet('font-size: 18px')
         self.model_2_menu.setEditable(True)
         self.model_2_menu.lineEdit().setReadOnly(True)
@@ -1121,11 +1130,17 @@ class UI_MainWindow(QWidget):
 
         # connect the drop down menu with actions
         self.model_2_menu.currentTextChanged.connect(model_2_selection_changed)
-        self.load_menu_layout.addWidget(self.model_2_menu, 3, 3)
+        if self.demo:
+            model_2_menu_layout = QtWidgets.QHBoxLayout()
+            model_2_menu_layout.setContentsMargins(70, 50, 0, 0)
+            model_2_menu_layout.addWidget(self.model_2_menu)
+            self.column_0_layout.addLayout(model_2_menu_layout, 6, 0)
+        else:
+            self.load_menu_layout.addWidget(self.model_2_menu, 3, 3)
 
         # add this layout to the general layout
         if self.demo:
-            self.layout.addLayout(self.load_menu_layout, 0, 0)
+            self.layout.addLayout(self.column_0_layout, 0, 0)
         else:
             self.layout.addLayout(self.load_menu_layout, 0, 1)
 
@@ -1277,27 +1292,28 @@ class UI_MainWindow(QWidget):
         # layout that controls the plotting items
         self.aggregate_plot_control_layout = QtWidgets.QGridLayout()
         # add plot control layout to general layout
-        self.aggregate_result_layout.addLayout(self.aggregate_plot_control_layout, 0, 0, 3, 1)
+        if not self.demo:
+            self.aggregate_result_layout.addLayout(self.aggregate_plot_control_layout, 0, 0, 3, 1)
 
         # drop down menu on choosing the display class
         # draw text
-        class_selection_pixmap = QPixmap(300, 30)
+        class_selection_pixmap = QPixmap(350, 100)
         class_selection_pixmap.fill(QtCore.Qt.white)
         painter = QtGui.QPainter(class_selection_pixmap)
         painter.setFont(QFont('Helvetica', 18))
-        painter.drawText(0, 0, 300, 30, QtGui.Qt.AlignLeft, 'Input Data Subset: ')
+        painter.drawText(50, 50, 300, 50, QtGui.Qt.AlignLeft, 'Input Data Subset: ')
         painter.end()
         # create label to contain the texts
         self.class_selection_label = QLabel(self)
-        self.class_selection_label.setContentsMargins(0, 20, 0, 0)
-        self.class_selection_label.setFixedSize(QtCore.QSize(300, 50))
-        self.class_selection_label.setAlignment(QtCore.Qt.AlignLeft)
-        self.class_selection_label.setWordWrap(True)
-        self.class_selection_label.setTextFormat(QtGui.Qt.AutoText)
+        # self.class_selection_label.setContentsMargins(0, 50, 0, 0)
+        self.class_selection_label.setFixedSize(QtCore.QSize(350, 100))
+        # self.class_selection_label.setAlignment(QtCore.Qt.AlignLeft)
+        # self.class_selection_label.setWordWrap(True)
+        # self.class_selection_label.setTextFormat(QtGui.Qt.AutoText)
         self.class_selection_label.setPixmap(class_selection_pixmap)
         # add to the layout
         if self.demo:
-            self.load_menu_layout.addWidget(self.class_selection_label, 3, 0)
+            self.column_0_layout.addWidget(self.class_selection_label, 2, 0)
         else:
             self.aggregate_plot_control_layout.addWidget(self.class_selection_label, 0, 0)
 
@@ -1327,10 +1343,13 @@ class UI_MainWindow(QWidget):
         self.class_selection_menu.currentTextChanged.connect(aggregate_class_selection_changed)
         self.class_selection_menu.setEditable(True)
         self.class_selection_menu.lineEdit().setReadOnly(True)
-        self.class_selection_menu.lineEdit().setAlignment(QtCore.Qt.AlignRight)
+        self.class_selection_menu.lineEdit().setAlignment(QtCore.Qt.AlignCenter)
         # add to local layout
         if self.demo:
-            self.load_menu_layout.addWidget(self.class_selection_menu, 4, 0)
+            class_selection_menu_layout = QtWidgets.QHBoxLayout()
+            class_selection_menu_layout.setContentsMargins(50, 0, 0, 0)
+            class_selection_menu_layout.addWidget(self.class_selection_menu)
+            self.column_0_layout.addLayout(class_selection_menu_layout, 3, 0)
         else:
             self.aggregate_plot_control_layout.addWidget(self.class_selection_menu, 1, 0)
 
@@ -1352,7 +1371,11 @@ class UI_MainWindow(QWidget):
         self.dr_selection_label.setPixmap(dr_selection_pixmap)
         # add to the layout
         if self.demo:
-            self.load_menu_layout.addWidget(self.dr_selection_label, 0, 1)
+            self.column_1_layout = QtWidgets.QGridLayout()
+            self.layout.addLayout(self.column_1_layout, 0, 1)
+            self.column_1_layout.addWidget(self.dr_selection_label, 0, 0, 1, 1)
+        else:
+            self.load_menu_layout.addWidget(self.dr_selection_label, 1, 1)
 
         self.dr_selection_menu = QtWidgets.QComboBox()
         self.dr_selection_menu.setFixedSize(QtCore.QSize(100, 50))
@@ -1370,7 +1393,8 @@ class UI_MainWindow(QWidget):
         self.dr_selection_menu.lineEdit().setAlignment(QtCore.Qt.AlignRight)
         # add to local layout
         if self.demo:
-            self.load_menu_layout.addWidget(self.dr_selection_menu, 0, 2)
+            # self.load_menu_layout.addWidget(self.dr_selection_menu, 1, 2)
+            self.column_1_layout.addWidget(self.dr_selection_menu, 0, 1, 1, 1)
         else:
             self.aggregate_plot_control_layout.addWidget(self.dr_selection_menu, 2, 0)
 
@@ -1509,7 +1533,10 @@ class UI_MainWindow(QWidget):
                 self.slider_1_layout.addWidget(self.slider_1_right_button, 1, 2, 1, 1)
 
                 # add slider 1 layout to the general layout
-                self.aggregate_result_layout.addLayout(self.slider_1_layout, 3, 1)
+                if self.demo:
+                    self.column_1_layout.addLayout(self.slider_1_layout, 6, 0)
+                else:
+                    self.aggregate_result_layout.addLayout(self.slider_1_layout, 3, 1)
 
                 # slider 2
                 self.slider_2_layout = QtWidgets.QGridLayout()
@@ -1551,7 +1578,10 @@ class UI_MainWindow(QWidget):
                 self.slider_2_layout.addWidget(self.slider_2_right_button, 1, 2, 1, 1)
 
                 # add slider 2 layout to the general layout
-                self.aggregate_result_layout.addLayout(self.slider_2_layout, 3, 2)
+                if self.demo:
+                    self.column_1_layout.addLayout(self.slider_1_layout, 8, 0)
+                else:
+                    self.aggregate_result_layout.addLayout(self.slider_2_layout, 3, 2)
 
                 self.dr_result_sliders_existed = True
 
@@ -1803,9 +1833,13 @@ class UI_MainWindow(QWidget):
                 self.aggregate_result_layout.addWidget(self.low_dim_scatter_view_1, 1, 3)
                 self.aggregate_result_layout.addWidget(self.low_dim_scatter_view_2, 2, 3)
             elif self.mode == 'object_detection':
-                # aggregate result layout at the very left
-                self.aggregate_result_layout.addWidget(self.low_dim_scatter_view_1, 2, 1)
-                self.aggregate_result_layout.addWidget(self.low_dim_scatter_view_2, 2, 2)
+                if self.demo:
+                    self.column_1_layout.addWidget(self.low_dim_scatter_view_1, 5, 0, 1, 2)
+                    self.column_1_layout.addWidget(self.low_dim_scatter_view_1, 7, 0, 1, 2)
+                else:
+                    # aggregate result layout at the very left
+                    self.aggregate_result_layout.addWidget(self.low_dim_scatter_view_1, 2, 1)
+                    self.aggregate_result_layout.addWidget(self.low_dim_scatter_view_2, 2, 2)
             elif self.mode == 'piv':
                 # aggregate result layout at the very left
                 self.aggregate_result_layout.addWidget(self.low_dim_scatter_view_1, 2, 1)
@@ -2090,14 +2124,15 @@ class UI_MainWindow(QWidget):
         # create label to contain the texts
         intensity_button_label = QLabel(self)
         intensity_button_label.setContentsMargins(0, 0, 0, 0)
-        intensity_button_label.setFixedSize(QtCore.QSize(300, 30))
+        intensity_button_label.setFixedSize(QtCore.QSize(300, 50))
         intensity_button_label.setAlignment(QtCore.Qt.AlignLeft)
         intensity_button_label.setWordWrap(True)
         intensity_button_label.setTextFormat(QtGui.Qt.AutoText)
         intensity_button_label.setPixmap(intensity_button_pixmap)
         # add to the layout
         if self.demo:
-            self.load_menu_layout.addWidget(intensity_button_label, 1, 1, 2, 1)
+            # the title occupies two rows
+            self.column_1_layout.addWidget(intensity_button_label, 1, 0, 2, 1)
         else:
             self.aggregate_plot_control_layout.addWidget(intensity_button_label, 7, 0)
 
@@ -2106,7 +2141,7 @@ class UI_MainWindow(QWidget):
         self.mean_intensity_button.setStyleSheet('QRadioButton{font: 14pt Helvetica;} QRadioButton::indicator { width: 14px; height: 14px;};')
         self.mean_intensity_button.pressed.connect(mean_intensity_button_clicked)
         if self.demo:
-            self.load_menu_layout.addWidget(self.mean_intensity_button, 1, 2, 1, 1)
+            self.column_1_layout.addWidget(self.mean_intensity_button, 1, 1, 1, 1)
         else:
             self.aggregate_plot_control_layout.addWidget(self.mean_intensity_button, 8, 0)
 
@@ -2115,7 +2150,7 @@ class UI_MainWindow(QWidget):
         self.variance_intensity_button.setStyleSheet('QRadioButton{font: 14pt Helvetica;} QRadioButton::indicator { width: 14px; height: 14px;};')
         self.variance_intensity_button.pressed.connect(variance_intensity_button_clicked)
         if self.demo:
-            self.load_menu_layout.addWidget(self.variance_intensity_button, 2, 2, 1, 1)
+            self.column_1_layout.addWidget(self.variance_intensity_button, 2, 1, 1, 1)
         else:
             self.aggregate_plot_control_layout.addWidget(self.variance_intensity_button, 9, 0)
 
@@ -3314,11 +3349,19 @@ class UI_MainWindow(QWidget):
             self.single_result_layout.addWidget(self.detailed_image_label_2, 3, 2)
             self.single_result_layout.addWidget(self.detailed_text_label_2, 4, 2)
         elif self.data_mode == 'aggregate':
-            self.aggregate_result_layout.addWidget(self.detailed_image_label_1, 2, 4)
-            self.aggregate_result_layout.addItem(image_text_spacer, 3, 5)
-            self.aggregate_result_layout.addWidget(self.detailed_text_label_1, 3, 4)
-            self.aggregate_result_layout.addWidget(self.detailed_image_label_2, 2, 5)
-            self.aggregate_result_layout.addWidget(self.detailed_text_label_2, 3, 5)
+            if self.demo:
+                self.column_4_layout = QtWidgets.QGridLayout()
+                self.layout.addLayout(self.column_4_layout, 0, 4)
+                self.column_3_layout.addWidget(self.detailed_image_label_1, 5, 0, 2, 1)
+                self.column_4_layout.addWidget(self.detailed_text_label_1, 5, 0, 2, 1)
+                self.column_3_layout.addWidget(self.detailed_image_label_2, 7, 0, 2, 1)
+                self.column_4_layout.addWidget(self.detailed_text_label_2, 7, 0, 2, 1)
+            else:
+                self.aggregate_result_layout.addWidget(self.detailed_image_label_1, 2, 4)
+                self.aggregate_result_layout.addItem(image_text_spacer, 3, 5)
+                self.aggregate_result_layout.addWidget(self.detailed_text_label_1, 3, 4)
+                self.aggregate_result_layout.addWidget(self.detailed_image_label_2, 2, 5)
+                self.aggregate_result_layout.addWidget(self.detailed_text_label_2, 3, 5)
 
 
     def display_image(self):
@@ -3338,7 +3381,12 @@ class UI_MainWindow(QWidget):
                 if self.mode == 'digit_recognition':
                     self.aggregate_result_layout.addWidget(self.image_label, 1, 4, 2, 1)
                 elif self.mode == 'object_detection':
-                    self.aggregate_result_layout.addWidget(self.image_label, 1, 3, 3, 1)
+                    if self.demo:
+                        self.column_3_layout = QtWidgets.QGridLayout()
+                        self.layout.addLayout(self.column_3_layout, 0, 3)
+                        self.column_3_layout.addWidget(self.image_label, 0, 0, 4, 1)
+                    else:
+                        self.aggregate_result_layout.addWidget(self.image_label, 1, 3, 3, 1)
                 elif self.mode == 'piv':
                     self.aggregate_result_layout.addWidget(self.image_label, 1, 3, 3, 1)
 
@@ -3814,7 +3862,11 @@ class UI_MainWindow(QWidget):
             # Not letting user zoom out past axis limit
             heatmap_plot.vb.setLimits(xMin=-1, xMax=self.image_size*5, yMin=-1, yMax=self.image_size*5)
 
-        self.color_bar.setImageItem(heatmap, insert_in=heatmap_plot)
+        # demo mode has colorbar elsewhere
+        if self.demo:
+            self.color_bar.setImageItem(heatmap)
+        else:
+            self.color_bar.setImageItem(heatmap, insert_in=heatmap_plot)
 
         return heatmap_plot
 
@@ -3956,8 +4008,12 @@ class UI_MainWindow(QWidget):
                 self.single_result_layout.addWidget(self.heatmap_view_1, 1, 1)
                 self.single_result_layout.addWidget(self.heatmap_view_2, 1, 2)
             elif self.data_mode == 'aggregate':
-                self.aggregate_result_layout.addWidget(self.heatmap_view_1, 1, 4)
-                self.aggregate_result_layout.addWidget(self.heatmap_view_2, 1, 5)
+                if self.demo:
+                    self.column_2_layout.addWidget(self.heatmap_view_1, 5, 0, 2, 1)
+                    self.column_2_layout.addWidget(self.heatmap_view_2, 7, 0, 2, 1)
+                else:
+                    self.aggregate_result_layout.addWidget(self.heatmap_view_1, 1, 4)
+                    self.aggregate_result_layout.addWidget(self.heatmap_view_2, 1, 5)
 
         elif mode == 'aggregate':
             # check if the data is in shape (self.image_size, self.image_size)
@@ -4002,8 +4058,12 @@ class UI_MainWindow(QWidget):
             self.aggregate_heatmap_view_1.addItem(self.aggregate_heatmap_plot_1)
             self.aggregate_heatmap_view_2.addItem(self.aggregate_heatmap_plot_2)
 
-            self.aggregate_result_layout.addWidget(self.aggregate_heatmap_view_1, 1, 1)
-            self.aggregate_result_layout.addWidget(self.aggregate_heatmap_view_2, 1, 2)
+            if self.demo:
+                self.column_0_layout.addWidget(self.aggregate_heatmap_view_1, 5, 0, 1, 2)
+                self.column_0_layout.addWidget(self.aggregate_heatmap_view_2, 7, 0, 1, 2)
+            else:
+                self.aggregate_result_layout.addWidget(self.aggregate_heatmap_view_1, 1, 1)
+                self.aggregate_result_layout.addWidget(self.aggregate_heatmap_view_2, 1, 2)
 
 
     def draw_aggregate_polar(self):
@@ -4530,8 +4590,9 @@ class UI_MainWindow(QWidget):
             self.draw_aggregate_polar()
 
         # move the model menu on top of the each aggregate NERO plot
-        self.aggregate_result_layout.addWidget(self.model_1_menu, 0, 1, 1, 1, QtCore.Qt.AlignCenter)
-        self.aggregate_result_layout.addWidget(self.model_2_menu, 0, 2, 1, 1, QtCore.Qt.AlignCenter)
+        if not self.demo:
+            self.aggregate_result_layout.addWidget(self.model_1_menu, 0, 1, 1, 1, QtCore.Qt.AlignCenter)
+            self.aggregate_result_layout.addWidget(self.model_2_menu, 0, 2, 1, 1, QtCore.Qt.AlignCenter)
 
         # move run button in the first column (after aggregate heatmap control) in non-demo mode
         if not self.demo:
@@ -4837,17 +4898,14 @@ class UI_MainWindow(QWidget):
 
     # display COCO aggregate results
     def display_coco_aggregate_result(self):
-        # move the model menu on top of the each aggregate NERO plot
-        self.aggregate_result_layout.addWidget(self.model_1_menu, 0, 1, 1, 1, QtCore.Qt.AlignCenter)
-        self.aggregate_result_layout.addWidget(self.model_2_menu, 0, 2, 1, 1, QtCore.Qt.AlignCenter)
 
-        # move run button in the first column (after aggregate heatmap control)
-        # self.aggregate_plot_control_layout.addWidget(self.run_button, 4, 0)
-        # self.aggregate_plot_control_layout.addWidget(self.use_cache_checkbox, 5, 0)
         if not self.demo:
+            # move the model menu on top of the each aggregate NERO plot
+            self.aggregate_result_layout.addWidget(self.model_1_menu, 0, 1, 1, 1, QtCore.Qt.AlignCenter)
+            self.aggregate_result_layout.addWidget(self.model_2_menu, 0, 2, 1, 1, QtCore.Qt.AlignCenter)
+            # move run button in the first column (after aggregate heatmap control)
             self.aggregate_plot_control_layout.addWidget(self.run_button, 4, 0)
             self.aggregate_plot_control_layout.addWidget(self.use_cache_checkbox, 5, 0)
-
 
         self.aggregate_result_existed = True
 
@@ -5058,12 +5116,13 @@ class UI_MainWindow(QWidget):
         # if single mode, change control menus' locations
         if self.data_mode == 'single':
             # move the model menu on top of the each individual NERO plot when in single mode
-            self.single_result_layout.addWidget(self.model_1_menu, 0, 1, 1, 1, QtCore.Qt.AlignCenter)
-            self.single_result_layout.addWidget(self.model_2_menu, 0, 2, 1, 1, QtCore.Qt.AlignCenter)
+            if not self.demo:
+                self.single_result_layout.addWidget(self.model_1_menu, 0, 1, 1, 1, QtCore.Qt.AlignCenter)
+                self.single_result_layout.addWidget(self.model_2_menu, 0, 2, 1, 1, QtCore.Qt.AlignCenter)
 
-            # move run button below the displayed image
-            self.single_result_layout.addWidget(self.run_button, 2, 0)
-            self.single_result_layout.addWidget(self.use_cache_checkbox, 3, 0)
+                # move run button below the displayed image
+                self.single_result_layout.addWidget(self.run_button, 2, 0)
+                self.single_result_layout.addWidget(self.use_cache_checkbox, 3, 0)
 
         # plot current field-of-view's detailed prediction results
         self.draw_model_output()
@@ -5078,8 +5137,6 @@ class UI_MainWindow(QWidget):
             else:
                 self.realtime_inference = False
 
-        # layout that controls the plotting items
-        self.single_plot_control_layout = QtWidgets.QVBoxLayout()
         # checkbox on if doing real-time inference
         self.realtime_inference_checkbox = QtWidgets.QCheckBox('Realtime inference when dragging')
         self.realtime_inference_checkbox.setStyleSheet('font-size: 18px')
@@ -5090,8 +5147,13 @@ class UI_MainWindow(QWidget):
         else:
             self.realtime_inference_checkbox.setChecked(False)
 
-        self.single_plot_control_layout.addWidget(self.realtime_inference_checkbox)
-
+        # layout that controls the plotting items
+        if self.demo:
+            self.column_2_layout = QtWidgets.QGridLayout()
+            self.column_2_layout.addWidget(self.realtime_inference_checkbox, 3, 0, 1, 1)
+        else:
+            self.single_plot_control_layout = QtWidgets.QVBoxLayout()
+            self.single_plot_control_layout.addWidget(self.realtime_inference_checkbox)
 
         # define default plotting quantity
         if self.data_mode == 'single':
@@ -5101,7 +5163,8 @@ class UI_MainWindow(QWidget):
             self.cur_single_plot_quantity_2 = self.all_quantities_2[:, :, 4] * self.all_quantities_2[:, :, 6]
         elif self.data_mode == 'aggregate':
             # add plot control layout to general layout
-            self.aggregate_result_layout.addLayout(self.single_plot_control_layout, 2, 3)
+            if not self.demo:
+                self.aggregate_result_layout.addLayout(self.single_plot_control_layout, 2, 3)
             # current selected individual images' result on all transformations
             self.cur_single_plot_quantity_1 = np.zeros((len(self.y_translation), len(self.x_translation)))
             self.cur_single_plot_quantity_2 = np.zeros((len(self.y_translation), len(self.x_translation)))
@@ -5116,13 +5179,14 @@ class UI_MainWindow(QWidget):
 
     # display COCO aggregate result
     def display_piv_aggregate_result(self):
-        # move the model menu on top of the each aggregate NERO plot
-        self.aggregate_result_layout.addWidget(self.model_1_menu, 0, 1, 1, 1, QtCore.Qt.AlignCenter)
-        self.aggregate_result_layout.addWidget(self.model_2_menu, 0, 2, 1, 1, QtCore.Qt.AlignCenter)
+        if not self.demo:
+            # move the model menu on top of the each aggregate NERO plot
+            self.aggregate_result_layout.addWidget(self.model_1_menu, 0, 1, 1, 1, QtCore.Qt.AlignCenter)
+            self.aggregate_result_layout.addWidget(self.model_2_menu, 0, 2, 1, 1, QtCore.Qt.AlignCenter)
 
-        # move run button in the first column (after aggregate heatmap control)
-        self.aggregate_plot_control_layout.addWidget(self.run_button, 4, 0)
-        self.aggregate_plot_control_layout.addWidget(self.use_cache_checkbox, 5, 0)
+            # move run button in the first column (after aggregate heatmap control)
+            self.aggregate_plot_control_layout.addWidget(self.run_button, 4, 0)
+            self.aggregate_plot_control_layout.addWidget(self.use_cache_checkbox, 5, 0)
 
         self.aggregate_result_existed = True
 
