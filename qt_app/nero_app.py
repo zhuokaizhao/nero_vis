@@ -913,7 +913,7 @@ class UI_MainWindow(QWidget):
 
         # initialize layout for loading menus
         if self.demo:
-            self.column_0_layout = QtWidgets.QGridLayout()
+            self.demo_layout = QtWidgets.QGridLayout()
         else:
             self.load_menu_layout = QtWidgets.QGridLayout()
         # self.load_menu_layout.setContentsMargins(50, 0, 0, 50)
@@ -932,7 +932,8 @@ class UI_MainWindow(QWidget):
         self.model_label.setPixmap(model_pixmap)
         # add to the layout
         if self.demo:
-            self.column_0_layout.addWidget(self.model_label, 0, 0)
+            self.demo_layout.addWidget(self.model_label, 0, 0)
+            self.demo_layout.setHorizontalSpacing(50)
         else:
             self.load_menu_layout.addWidget(self.model_label, 0, 2)
 
@@ -981,7 +982,7 @@ class UI_MainWindow(QWidget):
             aggregate_image_menu_layout = QtWidgets.QHBoxLayout()
             aggregate_image_menu_layout.setContentsMargins(50, 0, 0, 0)
             aggregate_image_menu_layout.addWidget(self.aggregate_image_menu)
-            self.column_0_layout.addLayout(aggregate_image_menu_layout, 1, 0)
+            self.demo_layout.addLayout(aggregate_image_menu_layout, 1, 0)
         else:
             self.load_menu_layout.addWidget(self.aggregate_image_menu, 0, 3)
 
@@ -1087,7 +1088,8 @@ class UI_MainWindow(QWidget):
             model_1_menu_layout = QtWidgets.QHBoxLayout()
             model_1_menu_layout.setContentsMargins(70, 50, 0, 0)
             model_1_menu_layout.addWidget(self.model_1_menu)
-            self.column_0_layout.addLayout(model_1_menu_layout, 4, 0)
+            self.demo_layout.addLayout(model_1_menu_layout, 4, 0)
+            self.demo_layout.setHorizontalSpacing(50)
         else:
             self.load_menu_layout.addWidget(self.model_1_menu, 2, 3)
 
@@ -1134,13 +1136,14 @@ class UI_MainWindow(QWidget):
             model_2_menu_layout = QtWidgets.QHBoxLayout()
             model_2_menu_layout.setContentsMargins(70, 50, 0, 0)
             model_2_menu_layout.addWidget(self.model_2_menu)
-            self.column_0_layout.addLayout(model_2_menu_layout, 6, 0)
+            self.demo_layout.addLayout(model_2_menu_layout, 6, 0)
+            self.demo_layout.setHorizontalSpacing(50)
         else:
             self.load_menu_layout.addWidget(self.model_2_menu, 3, 3)
 
         # add this layout to the general layout
         if self.demo:
-            self.layout.addLayout(self.column_0_layout, 0, 0)
+            self.layout.addLayout(self.demo_layout, 0, 0)
         else:
             self.layout.addLayout(self.load_menu_layout, 0, 1)
 
@@ -1313,7 +1316,8 @@ class UI_MainWindow(QWidget):
         self.class_selection_label.setPixmap(class_selection_pixmap)
         # add to the layout
         if self.demo:
-            self.column_0_layout.addWidget(self.class_selection_label, 2, 0)
+            self.demo_layout.addWidget(self.class_selection_label, 2, 0)
+            self.demo_layout.setHorizontalSpacing(50)
         else:
             self.aggregate_plot_control_layout.addWidget(self.class_selection_label, 0, 0)
 
@@ -1349,36 +1353,31 @@ class UI_MainWindow(QWidget):
             class_selection_menu_layout = QtWidgets.QHBoxLayout()
             class_selection_menu_layout.setContentsMargins(50, 0, 0, 0)
             class_selection_menu_layout.addWidget(self.class_selection_menu)
-            self.column_0_layout.addLayout(class_selection_menu_layout, 3, 0)
+            self.demo_layout.addLayout(class_selection_menu_layout, 3, 0)
         else:
             self.aggregate_plot_control_layout.addWidget(self.class_selection_menu, 1, 0)
 
         # drop down menu on choosing the dimension reduction method
         # draw text
-        dr_selection_pixmap = QPixmap(300, 30)
+        dr_selection_pixmap = QPixmap(200, 50)
         dr_selection_pixmap.fill(QtCore.Qt.white)
         painter = QtGui.QPainter(dr_selection_pixmap)
         painter.setFont(QFont('Helvetica', 18))
-        painter.drawText(0, 0, 300, 30, QtGui.Qt.AlignLeft, 'Scatterplot Layout: ')
+        painter.drawText(0, 10, 200, 50, QtGui.Qt.AlignLeft, 'Scatterplot Layout: ')
         painter.end()
         # create label to contain the texts
         self.dr_selection_label = QLabel(self)
-        self.dr_selection_label.setContentsMargins(0, 0, 0, 0)
         self.dr_selection_label.setFixedSize(QtCore.QSize(200, 50))
-        self.dr_selection_label.setAlignment(QtCore.Qt.AlignLeft)
-        self.dr_selection_label.setWordWrap(True)
-        self.dr_selection_label.setTextFormat(QtGui.Qt.AutoText)
         self.dr_selection_label.setPixmap(dr_selection_pixmap)
         # add to the layout
         if self.demo:
-            self.column_1_layout = QtWidgets.QGridLayout()
-            self.layout.addLayout(self.column_1_layout, 0, 1)
-            self.column_1_layout.addWidget(self.dr_selection_label, 0, 0, 1, 1)
+            scatterplot_layout = QtWidgets.QHBoxLayout()
+            scatterplot_layout.addWidget(self.dr_selection_label)
         else:
             self.load_menu_layout.addWidget(self.dr_selection_label, 1, 1)
 
         self.dr_selection_menu = QtWidgets.QComboBox()
-        self.dr_selection_menu.setFixedSize(QtCore.QSize(100, 50))
+        self.dr_selection_menu.setFixedSize(QtCore.QSize(100, 40))
         self.dr_selection_menu.setStyleSheet('font-size: 18px')
         dr_algorithms = ['PCA', 'ICA', 'ISOMAP', 't-SNE', 'UMAP']
         for algo in dr_algorithms:
@@ -1393,8 +1392,9 @@ class UI_MainWindow(QWidget):
         self.dr_selection_menu.lineEdit().setAlignment(QtCore.Qt.AlignRight)
         # add to local layout
         if self.demo:
-            # self.load_menu_layout.addWidget(self.dr_selection_menu, 1, 2)
-            self.column_1_layout.addWidget(self.dr_selection_menu, 0, 1, 1, 1)
+            scatterplot_layout.addWidget(self.dr_selection_menu)
+            self.demo_layout.addLayout(scatterplot_layout, 0, 1, 2, 2)
+            self.demo_layout.setHorizontalSpacing(50)
         else:
             self.aggregate_plot_control_layout.addWidget(self.dr_selection_menu, 2, 0)
 
@@ -1534,7 +1534,7 @@ class UI_MainWindow(QWidget):
 
                 # add slider 1 layout to the general layout
                 if self.demo:
-                    self.column_1_layout.addLayout(self.slider_1_layout, 6, 0)
+                    self.scatter_1_layout.addLayout(self.slider_1_layout, 1, 0)
                 else:
                     self.aggregate_result_layout.addLayout(self.slider_1_layout, 3, 1)
 
@@ -1579,7 +1579,7 @@ class UI_MainWindow(QWidget):
 
                 # add slider 2 layout to the general layout
                 if self.demo:
-                    self.column_1_layout.addLayout(self.slider_1_layout, 8, 0)
+                    self.scatter_2_layout.addLayout(self.slider_2_layout, 1, 0)
                 else:
                     self.aggregate_result_layout.addLayout(self.slider_2_layout, 3, 2)
 
@@ -1834,8 +1834,14 @@ class UI_MainWindow(QWidget):
                 self.aggregate_result_layout.addWidget(self.low_dim_scatter_view_2, 2, 3)
             elif self.mode == 'object_detection':
                 if self.demo:
-                    self.column_1_layout.addWidget(self.low_dim_scatter_view_1, 5, 0, 1, 2)
-                    self.column_1_layout.addWidget(self.low_dim_scatter_view_1, 7, 0, 1, 2)
+                    self.scatter_1_layout = QtWidgets.QGridLayout()
+                    self.scatter_1_layout.addWidget(self.low_dim_scatter_view_1, 0, 0)
+                    self.demo_layout.addLayout(self.scatter_1_layout, 5, 1, 2, 2)
+                    self.demo_layout.setHorizontalSpacing(50)
+                    self.scatter_2_layout = QtWidgets.QGridLayout()
+                    self.scatter_2_layout.addWidget(self.low_dim_scatter_view_2, 0, 0)
+                    self.demo_layout.addLayout(self.scatter_2_layout, 7, 1, 2, 2)
+                    self.demo_layout.setHorizontalSpacing(50)
                 else:
                     # aggregate result layout at the very left
                     self.aggregate_result_layout.addWidget(self.low_dim_scatter_view_1, 2, 1)
@@ -2114,11 +2120,11 @@ class UI_MainWindow(QWidget):
 
         # radio buittons on choosing the intensity quantity
         # Title on the two radio buttons
-        intensity_button_pixmap = QPixmap(300, 30)
+        intensity_button_pixmap = QPixmap(300, 50)
         intensity_button_pixmap.fill(QtCore.Qt.white)
         painter = QtGui.QPainter(intensity_button_pixmap)
         painter.setFont(QFont('Helvetica', 18))
-        painter.drawText(0, 0, 300, 30, QtGui.Qt.AlignLeft, 'Scatterplot Sorting: ')
+        painter.drawText(20, 10, 300, 50, QtGui.Qt.AlignLeft, 'Scatterplot Sorting: ')
         painter.end()
 
         # create label to contain the texts
@@ -2131,8 +2137,9 @@ class UI_MainWindow(QWidget):
         intensity_button_label.setPixmap(intensity_button_pixmap)
         # add to the layout
         if self.demo:
+            scatterplot_sorting_layout = QtWidgets.QGridLayout()
             # the title occupies two rows
-            self.column_1_layout.addWidget(intensity_button_label, 1, 0, 2, 1)
+            scatterplot_sorting_layout.addWidget(intensity_button_label, 0, 0, 2, 1)
         else:
             self.aggregate_plot_control_layout.addWidget(intensity_button_label, 7, 0)
 
@@ -2141,7 +2148,7 @@ class UI_MainWindow(QWidget):
         self.mean_intensity_button.setStyleSheet('QRadioButton{font: 14pt Helvetica;} QRadioButton::indicator { width: 14px; height: 14px;};')
         self.mean_intensity_button.pressed.connect(mean_intensity_button_clicked)
         if self.demo:
-            self.column_1_layout.addWidget(self.mean_intensity_button, 1, 1, 1, 1)
+            scatterplot_sorting_layout.addWidget(self.mean_intensity_button, 0, 1, 1, 1)
         else:
             self.aggregate_plot_control_layout.addWidget(self.mean_intensity_button, 8, 0)
 
@@ -2150,7 +2157,9 @@ class UI_MainWindow(QWidget):
         self.variance_intensity_button.setStyleSheet('QRadioButton{font: 14pt Helvetica;} QRadioButton::indicator { width: 14px; height: 14px;};')
         self.variance_intensity_button.pressed.connect(variance_intensity_button_clicked)
         if self.demo:
-            self.column_1_layout.addWidget(self.variance_intensity_button, 2, 1, 1, 1)
+            scatterplot_sorting_layout.addWidget(self.variance_intensity_button, 1, 1, 1, 1)
+            self.demo_layout.addLayout(scatterplot_sorting_layout, 2, 1, 2, 2)
+            self.demo_layout.setHorizontalSpacing(50)
         else:
             self.aggregate_plot_control_layout.addWidget(self.variance_intensity_button, 9, 0)
 
@@ -4009,8 +4018,8 @@ class UI_MainWindow(QWidget):
                 self.single_result_layout.addWidget(self.heatmap_view_2, 1, 2)
             elif self.data_mode == 'aggregate':
                 if self.demo:
-                    self.column_2_layout.addWidget(self.heatmap_view_1, 5, 0, 2, 1)
-                    self.column_2_layout.addWidget(self.heatmap_view_2, 7, 0, 2, 1)
+                    self.column_2_layout.addWidget(self.heatmap_view_1, 4, 0)
+                    self.column_2_layout.addWidget(self.heatmap_view_2, 6, 0)
                 else:
                     self.aggregate_result_layout.addWidget(self.heatmap_view_1, 1, 4)
                     self.aggregate_result_layout.addWidget(self.heatmap_view_2, 1, 5)
@@ -4059,8 +4068,10 @@ class UI_MainWindow(QWidget):
             self.aggregate_heatmap_view_2.addItem(self.aggregate_heatmap_plot_2)
 
             if self.demo:
-                self.column_0_layout.addWidget(self.aggregate_heatmap_view_1, 5, 0, 1, 2)
-                self.column_0_layout.addWidget(self.aggregate_heatmap_view_2, 7, 0, 1, 2)
+                self.demo_layout.addWidget(self.aggregate_heatmap_view_1, 5, 0, 1, 2)
+                self.demo_layout.setHorizontalSpacing(50)
+                self.demo_layout.addWidget(self.aggregate_heatmap_view_2, 7, 0, 1, 2)
+                self.demo_layout.setHorizontalSpacing(50)
             else:
                 self.aggregate_result_layout.addWidget(self.aggregate_heatmap_view_1, 1, 1)
                 self.aggregate_result_layout.addWidget(self.aggregate_heatmap_view_2, 1, 2)
