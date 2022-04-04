@@ -1393,7 +1393,7 @@ class UI_MainWindow(QWidget):
         # add to local layout
         if self.demo:
             scatterplot_layout.addWidget(self.dr_selection_menu)
-            self.demo_layout.addLayout(scatterplot_layout, 0, 1, 2, 2)
+            self.demo_layout.addLayout(scatterplot_layout, 0, 1, 2, 1)
             self.demo_layout.setHorizontalSpacing(50)
         else:
             self.aggregate_plot_control_layout.addWidget(self.dr_selection_menu, 2, 0)
@@ -1836,11 +1836,11 @@ class UI_MainWindow(QWidget):
                 if self.demo:
                     self.scatter_1_layout = QtWidgets.QGridLayout()
                     self.scatter_1_layout.addWidget(self.low_dim_scatter_view_1, 0, 0)
-                    self.demo_layout.addLayout(self.scatter_1_layout, 5, 1, 2, 2)
+                    self.demo_layout.addLayout(self.scatter_1_layout, 5, 1, 2, 1)
                     self.demo_layout.setHorizontalSpacing(50)
                     self.scatter_2_layout = QtWidgets.QGridLayout()
                     self.scatter_2_layout.addWidget(self.low_dim_scatter_view_2, 0, 0)
-                    self.demo_layout.addLayout(self.scatter_2_layout, 7, 1, 2, 2)
+                    self.demo_layout.addLayout(self.scatter_2_layout, 7, 1, 2, 1)
                     self.demo_layout.setHorizontalSpacing(50)
                 else:
                     # aggregate result layout at the very left
@@ -1895,10 +1895,10 @@ class UI_MainWindow(QWidget):
                     cur_iou_2 = self.aggregate_outputs_2[y, x][index][0, 6]
                     cur_correctness_2 = self.aggregate_outputs_2[y, x][index][0, 7]
 
+                    # if self.quantity_name == 'Confidence*IOU':
+                    #     cur_value_1 = cur_conf_1 * cur_iou_1
+                    #     cur_value_2 = cur_conf_2 * cur_iou_2
                     if self.quantity_name == 'Confidence*IOU':
-                        cur_value_1 = cur_conf_1 * cur_iou_1
-                        cur_value_2 = cur_conf_2 * cur_iou_2
-                    elif self.quantity_name == 'Confidence*IOU*Correctness':
                         cur_value_1 = cur_conf_1 * cur_iou_1 * cur_correctness_1
                         cur_value_2 = cur_conf_2 * cur_iou_2 * cur_correctness_2
                     elif self.quantity_name == 'Confidence':
@@ -2158,7 +2158,7 @@ class UI_MainWindow(QWidget):
         self.variance_intensity_button.pressed.connect(variance_intensity_button_clicked)
         if self.demo:
             scatterplot_sorting_layout.addWidget(self.variance_intensity_button, 1, 1, 1, 1)
-            self.demo_layout.addLayout(scatterplot_sorting_layout, 2, 1, 2, 2)
+            self.demo_layout.addLayout(scatterplot_sorting_layout, 2, 1, 2, 1)
             self.demo_layout.setHorizontalSpacing(50)
         else:
             self.aggregate_plot_control_layout.addWidget(self.variance_intensity_button, 9, 0)
@@ -4924,10 +4924,10 @@ class UI_MainWindow(QWidget):
         def coco_nero_quantity_changed(text):
             print('Plotting:', text, 'on aggregate NERO plot')
             self.quantity_name = text
+            # if text == 'Confidence*IOU':
+            #     self.cur_aggregate_plot_quantity_1 = self.aggregate_avg_conf_1 * self.aggregate_avg_iou_1
+            #     self.cur_aggregate_plot_quantity_2 = self.aggregate_avg_conf_2 * self.aggregate_avg_iou_2
             if text == 'Confidence*IOU':
-                self.cur_aggregate_plot_quantity_1 = self.aggregate_avg_conf_1 * self.aggregate_avg_iou_1
-                self.cur_aggregate_plot_quantity_2 = self.aggregate_avg_conf_2 * self.aggregate_avg_iou_2
-            elif text == 'Confidence*IOU*Correctness':
                 self.cur_aggregate_plot_quantity_1 = self.aggregate_avg_conf_correctness_1 * self.aggregate_avg_iou_correctness_1
                 self.cur_aggregate_plot_quantity_2 = self.aggregate_avg_conf_correctness_2 * self.aggregate_avg_iou_correctness_2
             elif text == 'Confidence':
@@ -5017,6 +5017,21 @@ class UI_MainWindow(QWidget):
                 self.draw_coco_nero(mode='single')
 
         # drop down menu on selection which quantity to plot
+        # title
+        # draw text
+        plot_quantity_pixmap = QPixmap(300, 50)
+        plot_quantity_pixmap.fill(QtCore.Qt.white)
+        painter = QtGui.QPainter(plot_quantity_pixmap)
+        painter.setFont(QFont('Helvetica', 18))
+        painter.drawText(50, 0, 300, 50, QtGui.Qt.AlignLeft, 'NERO plot of: ')
+        painter.end()
+
+        # create label to contain the texts
+        self.plot_quantity_label = QLabel(self)
+        self.plot_quantity_label.setFixedSize(QtCore.QSize(300, 50))
+        self.plot_quantity_label.setPixmap(plot_quantity_pixmap)
+
+        # menu
         quantity_menu = QtWidgets.QComboBox()
         quantity_menu.setFixedSize(QtCore.QSize(250, 50))
         quantity_menu.setStyleSheet('font-size: 18px')
@@ -5041,7 +5056,13 @@ class UI_MainWindow(QWidget):
 
         # connect the drop down menu with actions
         quantity_menu.currentTextChanged.connect(coco_nero_quantity_changed)
-        self.aggregate_plot_control_layout.addWidget(quantity_menu, 1, 0)
+        if self.demo:
+            self.plot_info_layout = QtWidgets.QGridLayout()
+            self.plot_info_layout.addWidget(self.plot_quantity_label, 0, 0)
+            self.plot_info_layout.addWidget(quantity_menu, 0, 1)
+            self.demo_layout.addLayout(self.plot_info_layout, 0, 2, 2, 2)
+        else:
+            self.aggregate_plot_control_layout.addWidget(quantity_menu, 1, 0)
 
         # define default plotting quantity (IOU*Confidence)
         self.quantity_name = 'Confidence*IOU'
