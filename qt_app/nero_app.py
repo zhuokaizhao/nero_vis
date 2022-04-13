@@ -915,6 +915,7 @@ class UI_MainWindow(QWidget):
         # initialize layout for loading menus
         if self.demo:
             self.demo_layout = QtWidgets.QGridLayout()
+            self.demo_layout.setHorizontalSpacing(100)
         else:
             self.load_menu_layout = QtWidgets.QGridLayout()
         # self.load_menu_layout.setContentsMargins(50, 0, 0, 50)
@@ -934,7 +935,6 @@ class UI_MainWindow(QWidget):
         # add to the layout
         if self.demo:
             self.demo_layout.addWidget(self.model_label, 0, 0)
-            # self.demo_layout.setHorizontalSpacing(500)
         else:
             self.load_menu_layout.addWidget(self.model_label, 0, 2)
 
@@ -1090,7 +1090,6 @@ class UI_MainWindow(QWidget):
             model_1_menu_layout.setContentsMargins(70, 50, 0, 0)
             model_1_menu_layout.addWidget(self.model_1_menu)
             self.demo_layout.addLayout(model_1_menu_layout, 4, 0)
-            # self.demo_layout.setHorizontalSpacing(50)
         else:
             self.load_menu_layout.addWidget(self.model_1_menu, 2, 3)
 
@@ -1138,7 +1137,6 @@ class UI_MainWindow(QWidget):
             model_2_menu_layout.setContentsMargins(70, 50, 0, 0)
             model_2_menu_layout.addWidget(self.model_2_menu)
             self.demo_layout.addLayout(model_2_menu_layout, 6, 0)
-            self.demo_layout.setHorizontalSpacing(150)
         else:
             self.load_menu_layout.addWidget(self.model_2_menu, 3, 3)
 
@@ -1318,7 +1316,6 @@ class UI_MainWindow(QWidget):
         # add to the layout
         if self.demo:
             self.demo_layout.addWidget(self.class_selection_label, 2, 0)
-            # self.demo_layout.setHorizontalSpacing(50)
         else:
             self.aggregate_plot_control_layout.addWidget(self.class_selection_label, 0, 0)
 
@@ -1395,7 +1392,6 @@ class UI_MainWindow(QWidget):
         if self.demo:
             scatterplot_layout.addWidget(self.dr_selection_menu)
             self.demo_layout.addLayout(scatterplot_layout, 0, 1, 2, 1)
-            # self.demo_layout.setHorizontalSpacing(50)
         else:
             self.aggregate_plot_control_layout.addWidget(self.dr_selection_menu, 2, 0)
 
@@ -1838,11 +1834,9 @@ class UI_MainWindow(QWidget):
                     self.scatter_1_layout = QtWidgets.QGridLayout()
                     self.scatter_1_layout.addWidget(self.low_dim_scatter_view_1, 0, 0)
                     self.demo_layout.addLayout(self.scatter_1_layout, 5, 1, 2, 1)
-                    # self.demo_layout.setHorizontalSpacing(50)
                     self.scatter_2_layout = QtWidgets.QGridLayout()
                     self.scatter_2_layout.addWidget(self.low_dim_scatter_view_2, 0, 0)
                     self.demo_layout.addLayout(self.scatter_2_layout, 7, 1, 2, 1)
-                    # self.demo_layout.setHorizontalSpacing(50)
                 else:
                     # aggregate result layout at the very left
                     self.aggregate_result_layout.addWidget(self.low_dim_scatter_view_1, 2, 1)
@@ -2160,7 +2154,6 @@ class UI_MainWindow(QWidget):
         if self.demo:
             scatterplot_sorting_layout.addWidget(self.variance_intensity_button, 1, 1, 1, 1)
             self.demo_layout.addLayout(scatterplot_sorting_layout, 2, 1, 2, 1)
-            # self.demo_layout.setHorizontalSpacing(50)
         else:
             self.aggregate_plot_control_layout.addWidget(self.variance_intensity_button, 9, 0)
 
@@ -3348,37 +3341,19 @@ class UI_MainWindow(QWidget):
                     return len(self._data[0])
 
 
-            table = QtGui.QTabletWidget(rows=num_boxes_1+1, columns=4)
-            columnLabels = ['', 'Class', 'Conf', 'IOU']
-            table.setHorizontalHeaderLabels(columnLabels)
-            # add a new label for text
-            detailed_text_label = QLabel(self)
-            detailed_text_label.setFixedSize(self.plot_size+20, 100)
-            # left top right bottom
-            detailed_text_label.setContentsMargins(20, 0, 0, 0)
-            detailed_text_label.setAlignment(QtCore.Qt.AlignTop)
-            # font and size
-            detailed_text_label.setFont(QFont('Helvetica', 12))
+            detailed_image_table = QtWidgets.QTableView()
 
-            # display_text = f'Ground Truth: {self.custom_coco_names[int(self.loaded_image_label[0][4])]}\n'
-            display_text = []
+            data = [['', 'Class', 'Conf', 'IOU']]
             for i in range(num_boxes_1):
-                if i == 0:
-                    cur_text = ''
-                elif i == 1:
-                    cur_text = 'Class'
-                elif i == 2:
-                    cur_text = 'Conf'
-                elif i == 3:
-                    cur_text = 'IOU'
+                data.append([i+1,
+                             self.custom_coco_names[int(model_output[0][0][i, 5]-1)],
+                             model_output[0][0][i, 4],
+                             model_output[0][0][i, 6]])
 
-            display_text += f'Prediction {i+1}: {self.custom_coco_names[int(model_output[0][0][i, 5]-1)]}, Conf: {model_output[0][0][i, 4]:.3f}, IOU: {model_output[0][0][i, 6]:.3f}\n'
+            model = TableModel(data)
+            detailed_image_table.setModel(model)
 
-            display_text += '\n'
-
-            detailed_text_label.setText(display_text)
-
-            return detailed_image_label, detailed_text_label
+            return detailed_image_label, detailed_image_table
 
         # size of the enlarged image
         # convert and resize current selected FOV to QImage for display purpose
@@ -3438,7 +3413,7 @@ class UI_MainWindow(QWidget):
                     self.aggregate_result_layout.addWidget(self.image_label, 1, 4, 2, 1)
                 elif self.mode == 'object_detection':
                     if self.demo:
-                        self.demo_layout.addWidget(self.image_label, 0, 4, 3, 1)
+                        self.demo_layout.addWidget(self.image_label, 0, 4, 4, 1)
                     else:
                         self.aggregate_result_layout.addWidget(self.image_label, 1, 3, 3, 1)
                 elif self.mode == 'piv':
@@ -4080,9 +4055,7 @@ class UI_MainWindow(QWidget):
             elif self.data_mode == 'aggregate':
                 if self.demo:
                     self.demo_layout.addWidget(self.heatmap_view_1, 5, 2, 1, 1)
-                    # self.demo_layout.setHorizontalSpacing(50)
                     self.demo_layout.addWidget(self.heatmap_view_2, 7, 2, 1, 1)
-                    # self.demo_layout.setHorizontalSpacing(50)
                 else:
                     self.aggregate_result_layout.addWidget(self.heatmap_view_1, 1, 4)
                     self.aggregate_result_layout.addWidget(self.heatmap_view_2, 1, 5)

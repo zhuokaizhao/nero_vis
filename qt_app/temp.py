@@ -31,8 +31,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.table = QtWidgets.QTableView()
 
         data = np.array([
-          [1, 9, 2],
-          [1, 0, -1],
+          ['aaa', 9, 2],
+          ['bb', 0, -1],
           [3, 5, 2],
           [3, 3, 2],
           [5, 8, 9],
