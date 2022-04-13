@@ -1,38 +1,50 @@
 import sys
-import pyqtgraph as pg
+from PySide6 import QtCore, QtGui, QtWidgets
+from PySide6.QtCore import Qt
 import numpy as np
-from PySide6 import QtWidgets
 
-class DrawingImage(pg.ImageItem):
-    def mouseClickEvent(self, event):
-        print("Click", event.pos())
 
-    def mouseDragEvent(self, event):
-        if event.isStart():
-            print("Start drag", event.pos())
-        elif event.isFinish():
-            print("Stop drag", event.pos())
-        else:
-            print("Drag", event.pos())
+class TableModel(QtCore.QAbstractTableModel):
 
-    def hoverEvent(self, event):
-        if not event.isExit():
-            # the mouse is hovering over the image; make sure no other items
-            # will receive left click/drag events from here.
-            event.acceptDrags(pg.QtCore.Qt.LeftButton)
-            event.acceptClicks(pg.QtCore.Qt.LeftButton)
+    def __init__(self, data):
+        super(TableModel, self).__init__()
+        self._data = data
 
-#GUI control object
-app = QtWidgets.QApplication(sys.argv)
-win = pg.GraphicsLayoutWidget()
-img = DrawingImage(np.random.normal(size=(100, 150)), axisOrder='row-major')
-# view = win.addPlot()
-# view.addItem(img)
-view_box = pg.ViewBox()
-view_box.addItem(img)
-#Plot object creation&View created above_set box
-plot = pg.PlotItem(viewBox=view_box)
-#Add plot to window
-win.addItem(plot)
-win.show()
-sys.exit(app.exec_())
+    def data(self, index, role):
+        if role == Qt.DisplayRole:
+            # Note: self._data[index.row()][index.column()] will also work
+            value = self._data[index.row(), index.column()]
+            return str(value)
+
+    def rowCount(self, index):
+        return self._data.shape[0]
+
+    def columnCount(self, index):
+        return self._data.shape[1]
+
+
+class MainWindow(QtWidgets.QMainWindow):
+
+    def __init__(self):
+        super().__init__()
+
+        self.table = QtWidgets.QTableView()
+
+        data = np.array([
+          [1, 9, 2],
+          [1, 0, -1],
+          [3, 5, 2],
+          [3, 3, 2],
+          [5, 8, 9],
+        ])
+
+        self.model = TableModel(data)
+        self.table.setModel(self.model)
+
+        self.setCentralWidget(self.table)
+
+
+app=QtWidgets.QApplication(sys.argv)
+window=MainWindow()
+window.show()
+app.exec_()

@@ -2,6 +2,7 @@ from operator import truediv
 import os
 import sys
 import glob
+import PySide6
 import torch
 import argparse
 import numpy as np
@@ -3311,7 +3312,45 @@ class UI_MainWindow(QWidget):
             # force repaint
             detailed_image_label.repaint()
 
-            # detailed information showed beneath the image
+            # detailed information showed next to the image
+            class TableModel(QtCore.QAbstractTableModel):
+
+                def __init__(self, data):
+                    super(TableModel, self).__init__()
+                    self._data = data
+
+                def data(self, index, role):
+                    if role == PySide6.QtCore.Qt.DisplayRole:
+                        # See below for the nested-list data structure.
+                        # .row() indexes into the outer list,
+                        # .column() indexes into the sub-list
+                        value = self._data[index.row()][index.column()]
+
+
+                        if isinstance(value, float):
+                            # Render float to 2 dp
+                            return "%.2f" % value
+
+                        if isinstance(value, str):
+                            # Render strings with quotes
+                            return '"%s"' % value
+
+                        # Default (anything not captured above: e.g. int)
+                        return value
+
+                def rowCount(self, index):
+                    # The length of the outer list.
+                    return len(self._data)
+
+                def columnCount(self, index):
+                    # The following takes the first sub-list, and returns
+                    # the length (only works if all rows are an equal length)
+                    return len(self._data[0])
+
+
+            table = QtGui.QTabletWidget(rows=num_boxes_1+1, columns=4)
+            columnLabels = ['', 'Class', 'Conf', 'IOU']
+            table.setHorizontalHeaderLabels(columnLabels)
             # add a new label for text
             detailed_text_label = QLabel(self)
             detailed_text_label.setFixedSize(self.plot_size+20, 100)
@@ -3322,9 +3361,19 @@ class UI_MainWindow(QWidget):
             detailed_text_label.setFont(QFont('Helvetica', 12))
 
             # display_text = f'Ground Truth: {self.custom_coco_names[int(self.loaded_image_label[0][4])]}\n'
-            display_text = ''
+            display_text = []
             for i in range(num_boxes_1):
-                display_text += f'Prediction {i+1}: {self.custom_coco_names[int(model_output[0][0][i, 5]-1)]}, Conf: {model_output[0][0][i, 4]:.3f}, IOU: {model_output[0][0][i, 6]:.3f}\n'
+                if i == 0:
+                    cur_text = ''
+                elif i == 1:
+                    cur_text = 'Class'
+                elif i == 2:
+                    cur_text = 'Conf'
+                elif i == 3:
+                    cur_text = 'IOU'
+
+            display_text += f'Prediction {i+1}: {self.custom_coco_names[int(model_output[0][0][i, 5]-1)]}, Conf: {model_output[0][0][i, 4]:.3f}, IOU: {model_output[0][0][i, 6]:.3f}\n'
+
             display_text += '\n'
 
             detailed_text_label.setText(display_text)
