@@ -933,7 +933,7 @@ class UI_MainWindow(QWidget):
         # add to the layout
         if self.demo:
             self.demo_layout.addWidget(self.model_label, 0, 0)
-            self.demo_layout.setHorizontalSpacing(50)
+            # self.demo_layout.setHorizontalSpacing(500)
         else:
             self.load_menu_layout.addWidget(self.model_label, 0, 2)
 
@@ -1089,7 +1089,7 @@ class UI_MainWindow(QWidget):
             model_1_menu_layout.setContentsMargins(70, 50, 0, 0)
             model_1_menu_layout.addWidget(self.model_1_menu)
             self.demo_layout.addLayout(model_1_menu_layout, 4, 0)
-            self.demo_layout.setHorizontalSpacing(50)
+            # self.demo_layout.setHorizontalSpacing(50)
         else:
             self.load_menu_layout.addWidget(self.model_1_menu, 2, 3)
 
@@ -1137,7 +1137,7 @@ class UI_MainWindow(QWidget):
             model_2_menu_layout.setContentsMargins(70, 50, 0, 0)
             model_2_menu_layout.addWidget(self.model_2_menu)
             self.demo_layout.addLayout(model_2_menu_layout, 6, 0)
-            self.demo_layout.setHorizontalSpacing(50)
+            self.demo_layout.setHorizontalSpacing(150)
         else:
             self.load_menu_layout.addWidget(self.model_2_menu, 3, 3)
 
@@ -1317,7 +1317,7 @@ class UI_MainWindow(QWidget):
         # add to the layout
         if self.demo:
             self.demo_layout.addWidget(self.class_selection_label, 2, 0)
-            self.demo_layout.setHorizontalSpacing(50)
+            # self.demo_layout.setHorizontalSpacing(50)
         else:
             self.aggregate_plot_control_layout.addWidget(self.class_selection_label, 0, 0)
 
@@ -1394,7 +1394,7 @@ class UI_MainWindow(QWidget):
         if self.demo:
             scatterplot_layout.addWidget(self.dr_selection_menu)
             self.demo_layout.addLayout(scatterplot_layout, 0, 1, 2, 1)
-            self.demo_layout.setHorizontalSpacing(50)
+            # self.demo_layout.setHorizontalSpacing(50)
         else:
             self.aggregate_plot_control_layout.addWidget(self.dr_selection_menu, 2, 0)
 
@@ -1837,11 +1837,11 @@ class UI_MainWindow(QWidget):
                     self.scatter_1_layout = QtWidgets.QGridLayout()
                     self.scatter_1_layout.addWidget(self.low_dim_scatter_view_1, 0, 0)
                     self.demo_layout.addLayout(self.scatter_1_layout, 5, 1, 2, 1)
-                    self.demo_layout.setHorizontalSpacing(50)
+                    # self.demo_layout.setHorizontalSpacing(50)
                     self.scatter_2_layout = QtWidgets.QGridLayout()
                     self.scatter_2_layout.addWidget(self.low_dim_scatter_view_2, 0, 0)
                     self.demo_layout.addLayout(self.scatter_2_layout, 7, 1, 2, 1)
-                    self.demo_layout.setHorizontalSpacing(50)
+                    # self.demo_layout.setHorizontalSpacing(50)
                 else:
                     # aggregate result layout at the very left
                     self.aggregate_result_layout.addWidget(self.low_dim_scatter_view_1, 2, 1)
@@ -2159,7 +2159,7 @@ class UI_MainWindow(QWidget):
         if self.demo:
             scatterplot_sorting_layout.addWidget(self.variance_intensity_button, 1, 1, 1, 1)
             self.demo_layout.addLayout(scatterplot_sorting_layout, 2, 1, 2, 1)
-            self.demo_layout.setHorizontalSpacing(50)
+            # self.demo_layout.setHorizontalSpacing(50)
         else:
             self.aggregate_plot_control_layout.addWidget(self.variance_intensity_button, 9, 0)
 
@@ -3359,12 +3359,10 @@ class UI_MainWindow(QWidget):
             self.single_result_layout.addWidget(self.detailed_text_label_2, 4, 2)
         elif self.data_mode == 'aggregate':
             if self.demo:
-                self.column_4_layout = QtWidgets.QGridLayout()
-                self.layout.addLayout(self.column_4_layout, 0, 4)
-                self.column_3_layout.addWidget(self.detailed_image_label_1, 5, 0, 2, 1)
-                self.column_4_layout.addWidget(self.detailed_text_label_1, 5, 0, 2, 1)
-                self.column_3_layout.addWidget(self.detailed_image_label_2, 7, 0, 2, 1)
-                self.column_4_layout.addWidget(self.detailed_text_label_2, 7, 0, 2, 1)
+                self.demo_layout.addWidget(self.detailed_image_label_1, 5, 3, 1, 1)
+                self.demo_layout.addWidget(self.detailed_text_label_1, 5, 4, 1, 1)
+                self.demo_layout.addWidget(self.detailed_image_label_2, 7, 3, 1, 1)
+                self.demo_layout.addWidget(self.detailed_text_label_2, 7, 4, 1, 1)
             else:
                 self.aggregate_result_layout.addWidget(self.detailed_image_label_1, 2, 4)
                 self.aggregate_result_layout.addItem(image_text_spacer, 3, 5)
@@ -3391,9 +3389,7 @@ class UI_MainWindow(QWidget):
                     self.aggregate_result_layout.addWidget(self.image_label, 1, 4, 2, 1)
                 elif self.mode == 'object_detection':
                     if self.demo:
-                        self.column_3_layout = QtWidgets.QGridLayout()
-                        self.layout.addLayout(self.column_3_layout, 0, 3)
-                        self.column_3_layout.addWidget(self.image_label, 0, 0, 4, 1)
+                        self.demo_layout.addWidget(self.image_label, 0, 4, 3, 1)
                     else:
                         self.aggregate_result_layout.addWidget(self.image_label, 1, 3, 3, 1)
                 elif self.mode == 'piv':
@@ -3548,7 +3544,23 @@ class UI_MainWindow(QWidget):
 
         # color map
         self.color_map = pg.colormap.get('viridis')
-        self.color_bar = pg.ColorBarItem(values=self.cm_range, colorMap=self.color_map)
+        self.color_bar = pg.ColorBarItem(values=self.cm_range,
+                                         colorMap=self.color_map,
+                                         interactive=False,
+                                         orientation='horizontal',
+                                         width=30)
+        # add colorbar once in demo mode
+        if self.demo:
+            dummy_view = pg.GraphicsLayoutWidget()
+            dummy_plot = pg.PlotItem()
+            dummy_plot.setFixedHeight(0)
+            dummy_plot.setFixedWidth(self.plot_size*1.3)
+            dummy_plot.hideAxis('bottom')
+            dummy_plot.hideAxis('left')
+            dummy_view.addItem(dummy_plot)
+            dummy_image = pg.ImageItem()
+            self.color_bar.setImageItem(dummy_image, insert_in=dummy_plot)
+            self.demo_layout.addWidget(dummy_view, 1, 2, 1, 2)
 
         if self.mode == 'object_detection':
             # single mode needs to have input view_box, heatmap and scatter_item for interactively handling
@@ -4018,8 +4030,10 @@ class UI_MainWindow(QWidget):
                 self.single_result_layout.addWidget(self.heatmap_view_2, 1, 2)
             elif self.data_mode == 'aggregate':
                 if self.demo:
-                    self.demo_layout.addWidget(self.heatmap_view_1, 4, 2, 2, 1)
-                    self.demo_layout.addWidget(self.heatmap_view_2, 6, 2, 2, 1)
+                    self.demo_layout.addWidget(self.heatmap_view_1, 5, 2, 1, 1)
+                    # self.demo_layout.setHorizontalSpacing(50)
+                    self.demo_layout.addWidget(self.heatmap_view_2, 7, 2, 1, 1)
+                    # self.demo_layout.setHorizontalSpacing(50)
                 else:
                     self.aggregate_result_layout.addWidget(self.heatmap_view_1, 1, 4)
                     self.aggregate_result_layout.addWidget(self.heatmap_view_2, 1, 5)
@@ -4068,10 +4082,8 @@ class UI_MainWindow(QWidget):
             self.aggregate_heatmap_view_2.addItem(self.aggregate_heatmap_plot_2)
 
             if self.demo:
-                self.demo_layout.addWidget(self.aggregate_heatmap_view_1, 5, 0, 1, 2)
-                self.demo_layout.setHorizontalSpacing(50)
-                self.demo_layout.addWidget(self.aggregate_heatmap_view_2, 7, 0, 1, 2)
-                self.demo_layout.setHorizontalSpacing(50)
+                self.demo_layout.addWidget(self.aggregate_heatmap_view_1, 5, 0, 1, 1)
+                self.demo_layout.addWidget(self.aggregate_heatmap_view_2, 7, 0, 1, 1)
             else:
                 self.aggregate_result_layout.addWidget(self.aggregate_heatmap_view_1, 1, 1)
                 self.aggregate_result_layout.addWidget(self.aggregate_heatmap_view_2, 1, 2)
@@ -5019,28 +5031,27 @@ class UI_MainWindow(QWidget):
         # drop down menu on selection which quantity to plot
         # title
         # draw text
-        plot_quantity_pixmap = QPixmap(300, 50)
+        plot_quantity_pixmap = QPixmap(200, 50)
         plot_quantity_pixmap.fill(QtCore.Qt.white)
         painter = QtGui.QPainter(plot_quantity_pixmap)
         painter.setFont(QFont('Helvetica', 18))
-        painter.drawText(0, 5, 300, 50, QtGui.Qt.AlignLeft, 'NERO plot of: ')
+        painter.drawText(0, 5, 200, 50, QtGui.Qt.AlignLeft, 'NERO plot of: ')
         painter.end()
 
         # create label to contain the texts
         self.plot_quantity_label = QLabel(self)
-        self.plot_quantity_label.setFixedSize(QtCore.QSize(300, 50))
+        self.plot_quantity_label.setFixedSize(QtCore.QSize(200, 50))
         self.plot_quantity_label.setPixmap(plot_quantity_pixmap)
 
         # menu
         quantity_menu = QtWidgets.QComboBox()
-        quantity_menu.setFixedSize(QtCore.QSize(250, 50))
+        quantity_menu.setFixedSize(QtCore.QSize(200, 50))
         quantity_menu.setStyleSheet('font-size: 18px')
         quantity_menu.setEditable(True)
         quantity_menu.lineEdit().setReadOnly(True)
         quantity_menu.lineEdit().setAlignment(QtCore.Qt.AlignCenter)
 
         quantity_menu.addItem('Confidence*IOU')
-        quantity_menu.addItem('Confidence*IOU*Correctness')
         quantity_menu.addItem('Confidence')
         quantity_menu.addItem('IOU')
         quantity_menu.addItem('Consensus')
@@ -5060,7 +5071,7 @@ class UI_MainWindow(QWidget):
             self.plot_info_layout = QtWidgets.QHBoxLayout()
             self.plot_info_layout.addWidget(self.plot_quantity_label)
             self.plot_info_layout.addWidget(quantity_menu)
-            self.demo_layout.addLayout(self.plot_info_layout, 0, 2, 2, 1)
+            self.demo_layout.addLayout(self.plot_info_layout, 0, 2, 1, 1)
         else:
             self.aggregate_plot_control_layout.addWidget(quantity_menu, 1, 0)
 
@@ -5181,7 +5192,7 @@ class UI_MainWindow(QWidget):
 
         # layout that controls the plotting items
         if self.demo:
-            self.demo_layout.addWidget(self.realtime_inference_checkbox, 2, 3, 1, 1)
+            self.demo_layout.addWidget(self.realtime_inference_checkbox, 4, 2, 1, 1)
         else:
             self.single_plot_control_layout = QtWidgets.QVBoxLayout()
             self.single_plot_control_layout.addWidget(self.realtime_inference_checkbox)
