@@ -1363,7 +1363,7 @@ class UI_MainWindow(QWidget):
         dr_selection_pixmap.fill(QtCore.Qt.white)
         painter = QtGui.QPainter(dr_selection_pixmap)
         painter.setFont(QFont('Helvetica', 18))
-        painter.drawText(0, 10, 200, 50, QtGui.Qt.AlignLeft, 'Scatterplot Layout: ')
+        painter.drawText(0, 5, 200, 50, QtGui.Qt.AlignLeft, 'Scatterplot Layout: ')
         painter.end()
         # create label to contain the texts
         self.dr_selection_label = QLabel(self)
@@ -4018,8 +4018,8 @@ class UI_MainWindow(QWidget):
                 self.single_result_layout.addWidget(self.heatmap_view_2, 1, 2)
             elif self.data_mode == 'aggregate':
                 if self.demo:
-                    self.column_2_layout.addWidget(self.heatmap_view_1, 4, 0)
-                    self.column_2_layout.addWidget(self.heatmap_view_2, 6, 0)
+                    self.demo_layout.addWidget(self.heatmap_view_1, 4, 2, 2, 1)
+                    self.demo_layout.addWidget(self.heatmap_view_2, 6, 2, 2, 1)
                 else:
                     self.aggregate_result_layout.addWidget(self.heatmap_view_1, 1, 4)
                     self.aggregate_result_layout.addWidget(self.heatmap_view_2, 1, 5)
@@ -5023,7 +5023,7 @@ class UI_MainWindow(QWidget):
         plot_quantity_pixmap.fill(QtCore.Qt.white)
         painter = QtGui.QPainter(plot_quantity_pixmap)
         painter.setFont(QFont('Helvetica', 18))
-        painter.drawText(50, 0, 300, 50, QtGui.Qt.AlignLeft, 'NERO plot of: ')
+        painter.drawText(0, 5, 300, 50, QtGui.Qt.AlignLeft, 'NERO plot of: ')
         painter.end()
 
         # create label to contain the texts
@@ -5057,10 +5057,10 @@ class UI_MainWindow(QWidget):
         # connect the drop down menu with actions
         quantity_menu.currentTextChanged.connect(coco_nero_quantity_changed)
         if self.demo:
-            self.plot_info_layout = QtWidgets.QGridLayout()
-            self.plot_info_layout.addWidget(self.plot_quantity_label, 0, 0)
-            self.plot_info_layout.addWidget(quantity_menu, 0, 1)
-            self.demo_layout.addLayout(self.plot_info_layout, 0, 2, 2, 2)
+            self.plot_info_layout = QtWidgets.QHBoxLayout()
+            self.plot_info_layout.addWidget(self.plot_quantity_label)
+            self.plot_info_layout.addWidget(quantity_menu)
+            self.demo_layout.addLayout(self.plot_info_layout, 0, 2, 2, 1)
         else:
             self.aggregate_plot_control_layout.addWidget(quantity_menu, 1, 0)
 
@@ -5181,8 +5181,7 @@ class UI_MainWindow(QWidget):
 
         # layout that controls the plotting items
         if self.demo:
-            self.column_2_layout = QtWidgets.QGridLayout()
-            self.column_2_layout.addWidget(self.realtime_inference_checkbox, 3, 0, 1, 1)
+            self.demo_layout.addWidget(self.realtime_inference_checkbox, 2, 3, 1, 1)
         else:
             self.single_plot_control_layout = QtWidgets.QVBoxLayout()
             self.single_plot_control_layout.addWidget(self.realtime_inference_checkbox)
@@ -5507,7 +5506,7 @@ if __name__ == "__main__":
 
     # input arguments
     parser = argparse.ArgumentParser()
-    # mode (data, train, or test mode)
+    # mode (digit_recognition, object_detection or piv)
     parser.add_argument('--mode', action='store', nargs=1, dest='mode')
     parser.add_argument('--cache_path', action='store', nargs=1, dest='cache_path')
     parser.add_argument('--demo', action='store_true', dest='demo', default=False)
