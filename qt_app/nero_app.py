@@ -3312,6 +3312,7 @@ class UI_MainWindow(QWidget):
                     super(TableModel, self).__init__()
                     self._data = data
 
+                # When subclassing QAbstractTableModel, you must implement rowCount(), columnCount(), and data()
                 def data(self, index, role):
                     if role == PySide6.QtCore.Qt.DisplayRole:
                         # See below for the nested-list data structure.
@@ -3319,14 +3320,13 @@ class UI_MainWindow(QWidget):
                         # .column() indexes into the sub-list
                         value = self._data[index.row()][index.column()]
 
-
                         if isinstance(value, float):
-                            # Render float to 2 dp
-                            return "%.2f" % value
+                            # Render float to 3 dp
+                            return '%.3f' % value
 
                         if isinstance(value, str):
-                            # Render strings with quotes
-                            return '"%s"' % value
+                            # Render strings without quotes
+                            return '%s' % value
 
                         # Default (anything not captured above: e.g. int)
                         return value
@@ -3342,8 +3342,15 @@ class UI_MainWindow(QWidget):
 
 
             detailed_image_table = QtWidgets.QTableView()
+            detailed_image_table.setShowGrid(False)
+            detailed_image_table.horizontalHeader().hide()
+            detailed_image_table.verticalHeader().hide()
+            detailed_image_table.horizontalScrollBar().hide()
+            detailed_image_table.verticalScrollBar().hide()
+            detailed_image_table.setFrameStyle(QtWidgets.QFrame.NoFrame)
+            detailed_image_table.setColumnWidth(0, 20)
 
-            data = [['', 'Class', 'Conf', 'IOU']]
+            data = [['Prediction #', 'Class', 'Conf', 'IOU']]
             for i in range(num_boxes_1):
                 data.append([i+1,
                              self.custom_coco_names[int(model_output[0][0][i, 5]-1)],
