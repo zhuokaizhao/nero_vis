@@ -40,8 +40,8 @@ class UI_MainWindow(QWidget):
     def __init__(self, pre_selected_mode, demo, cache_path):
         super().__init__()
         # window size
-        # self.setFixedSize(1920, 1080)
-        self.resize(2560, 1280)
+        # self.resize(1920, 1080)
+        self.resize(2260, 1080)
         # set window title
         self.setWindowTitle('Non-Equivariance Revealed on Orbits')
         # white background color
@@ -246,7 +246,7 @@ class UI_MainWindow(QWidget):
                 # image (cropped) size that is fed into the model
                 self.image_size = 128
                 # image size that is used for display
-                self.display_image_size = 256
+                self.display_image_size = 320
                 # heatmap and detailed image plot size
                 self.plot_size = 320
                 # image (input data) modification mode
@@ -915,7 +915,7 @@ class UI_MainWindow(QWidget):
         # initialize layout for loading menus
         if self.demo:
             self.demo_layout = QtWidgets.QGridLayout()
-            self.demo_layout.setHorizontalSpacing(100)
+            self.demo_layout.setHorizontalSpacing(50)
             self.demo_layout.setVerticalSpacing(0)
         else:
             self.load_menu_layout = QtWidgets.QGridLayout()
@@ -3263,19 +3263,19 @@ class UI_MainWindow(QWidget):
 
             # add a new label for loaded image
             detailed_image_label = QLabel(self)
-            detailed_image_label.setFixedSize(self.plot_size+20, self.plot_size)
+            detailed_image_label.setFixedSize(self.plot_size*1.12, self.plot_size*1.12)
             # left top right bottom
-            detailed_image_label.setContentsMargins(20, 0, 0, 0)
+            detailed_image_label.setContentsMargins(0, 0, 0, 0)
             detailed_image_label.setAlignment(QtCore.Qt.AlignCenter)
 
             # draw bounding boxes on the enlarged view
             # draw ground truth
             painter = QtGui.QPainter(detailed_image_pixmap)
             # draw the ground truth label
-            gt_display_center_x = (self.cur_image_label[0, 1] + self.cur_image_label[0, 3]) // 2 * (self.plot_size/self.image_size)
-            gt_display_center_y = (self.cur_image_label[0, 2] + self.cur_image_label[0, 4]) // 2 * (self.plot_size/self.image_size)
-            gt_display_rect_width = (self.cur_image_label[0, 3] - self.cur_image_label[0, 1]) * (self.plot_size/self.image_size)
-            gt_display_rect_height = (self.cur_image_label[0, 4] - self.cur_image_label[0, 2]) * (self.plot_size/self.image_size)
+            gt_display_center_x = (self.cur_image_label[0, 1] + self.cur_image_label[0, 3]) // 2 * (self.plot_size*1.12/self.image_size)
+            gt_display_center_y = (self.cur_image_label[0, 2] + self.cur_image_label[0, 4]) // 2 * (self.plot_size*1.12/self.image_size)
+            gt_display_rect_width = (self.cur_image_label[0, 3] - self.cur_image_label[0, 1]) * (self.plot_size*1.12/self.image_size)
+            gt_display_rect_height = (self.cur_image_label[0, 4] - self.cur_image_label[0, 2]) * (self.plot_size*1.12/self.image_size)
             self.draw_rectangle(painter, gt_display_center_x, gt_display_center_y, gt_display_rect_width, gt_display_rect_height, color='yellow', alpha=166, label='Ground Truth')
 
             # box from model 1
@@ -3285,10 +3285,10 @@ class UI_MainWindow(QWidget):
             # showing a maximum of 3 bounding boxes
             num_boxes_1 = min(3, len(bounding_boxes))
             for i in range(num_boxes_1):
-                center_x = (bounding_boxes[i, 0] + bounding_boxes[i, 2]) // 2 * (self.plot_size/self.image_size)
-                center_y = (bounding_boxes[i, 1] + bounding_boxes[i, 3]) // 2 * (self.plot_size/self.image_size)
-                model_display_rect_width = (bounding_boxes[i, 2] - bounding_boxes[i, 0]) * (self.plot_size/self.image_size)
-                model_display_rect_height = (bounding_boxes[i, 3] - bounding_boxes[i, 1]) * (self.plot_size/self.image_size)
+                center_x = (bounding_boxes[i, 0] + bounding_boxes[i, 2]) // 2 * (self.plot_size*1.12/self.image_size)
+                center_y = (bounding_boxes[i, 1] + bounding_boxes[i, 3]) // 2 * (self.plot_size*1.12/self.image_size)
+                model_display_rect_width = (bounding_boxes[i, 2] - bounding_boxes[i, 0]) * (self.plot_size*1.12/self.image_size)
+                model_display_rect_height = (bounding_boxes[i, 3] - bounding_boxes[i, 1]) * (self.plot_size*1.12/self.image_size)
 
                 # compute alpha value based on confidence
                 cur_alpha = nero_utilities.lerp(confidences[i], 0, 1, 255/4, 255)
@@ -3366,11 +3366,11 @@ class UI_MainWindow(QWidget):
         # convert and resize current selected FOV to QImage for display purpose
         if take_from_aggregate_output:
             # still needs the new cropped image for detail model readout vis
-            self.detailed_display_image = nero_utilities.tensor_to_qt_image(self.loaded_image_pt[self.y_min:self.y_max, self.x_min:self.x_max, :]).scaledToWidth(self.plot_size)
+            self.detailed_display_image = nero_utilities.tensor_to_qt_image(self.loaded_image_pt[self.y_min:self.y_max, self.x_min:self.x_max, :]).scaledToWidth(self.plot_size*1.12)
             self.output_1 = [[self.aggregate_outputs_1[self.block_y, self.block_x][self.image_index]]]
             self.output_2 = [[self.aggregate_outputs_2[self.block_y, self.block_x][self.image_index]]]
         else:
-            self.detailed_display_image = nero_utilities.tensor_to_qt_image(self.loaded_image_pt[self.y_min:self.y_max, self.x_min:self.x_max, :]).scaledToWidth(self.plot_size)
+            self.detailed_display_image = nero_utilities.tensor_to_qt_image(self.loaded_image_pt[self.y_min:self.y_max, self.x_min:self.x_max, :]).scaledToWidth(self.plot_size*1.12)
             # run model with the cropped view
             self.cropped_image_pt = self.loaded_image_pt[self.y_min:self.y_max, self.x_min:self.x_max, :] / 255
             self.run_model_once()
@@ -3420,7 +3420,7 @@ class UI_MainWindow(QWidget):
                     self.aggregate_result_layout.addWidget(self.image_label, 1, 4, 2, 1)
                 elif self.mode == 'object_detection':
                     if self.demo:
-                        self.demo_layout.addWidget(self.image_label, 0, 4, 4, 1)
+                        self.demo_layout.addWidget(self.image_label, 0, 4, 5, 1)
                     else:
                         self.aggregate_result_layout.addWidget(self.image_label, 1, 3, 3, 1)
                 elif self.mode == 'piv':
