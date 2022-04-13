@@ -916,9 +916,9 @@ class UI_MainWindow(QWidget):
         if self.demo:
             self.demo_layout = QtWidgets.QGridLayout()
             self.demo_layout.setHorizontalSpacing(100)
+            self.demo_layout.setVerticalSpacing(0)
         else:
             self.load_menu_layout = QtWidgets.QGridLayout()
-        # self.load_menu_layout.setContentsMargins(50, 0, 0, 50)
 
         # draw text
         model_pixmap = QPixmap(350, 50)
@@ -1492,8 +1492,9 @@ class UI_MainWindow(QWidget):
                 # sliders that rank the dimension reduction result and can select one of them
                 # slider 1
                 self.slider_1_layout = QtWidgets.QGridLayout()
+                self.slider_1_layout.setVerticalSpacing(0)
                 self.dr_result_selection_slider_1 = QtWidgets.QSlider(QtCore.Qt.Horizontal)
-                self.dr_result_selection_slider_1.setFixedSize(self.plot_size, 50)
+                self.dr_result_selection_slider_1.setFixedSize(self.plot_size, 20)
                 self.dr_result_selection_slider_1.setMinimum(0)
                 self.dr_result_selection_slider_1.setMaximum(len(self.all_high_dim_points_1)-1)
                 self.dr_result_selection_slider_1.setValue(0)
@@ -1509,11 +1510,11 @@ class UI_MainWindow(QWidget):
                 self.slider_1_layout.addWidget(self.slider_1_left_button, 1, 0, 1, 1)
 
                 # middle text
-                slider_1_text_pixmap = QPixmap(150, 50)
+                slider_1_text_pixmap = QPixmap(150, 30)
                 slider_1_text_pixmap.fill(QtCore.Qt.white)
                 painter = QtGui.QPainter(slider_1_text_pixmap)
                 painter.setFont(QFont('Helvetica', 12))
-                painter.drawText(0, 0, 150, 50, QtGui.Qt.AlignCenter, f'{self.dr_result_selection_slider_1.value()+1}/{len(self.cur_class_indices)}')
+                painter.drawText(0, 0, 150, 30, QtGui.Qt.AlignCenter, f'{self.dr_result_selection_slider_1.value()+1}/{len(self.cur_class_indices)}')
                 painter.end()
                 # create label to contain the texts
                 self.slider_1_text_label = QLabel(self)
@@ -1531,14 +1532,15 @@ class UI_MainWindow(QWidget):
 
                 # add slider 1 layout to the general layout
                 if self.demo:
-                    self.scatter_1_layout.addLayout(self.slider_1_layout, 1, 0)
+                    self.demo_layout.addLayout(self.slider_1_layout, 6, 1, 1, 1)
                 else:
                     self.aggregate_result_layout.addLayout(self.slider_1_layout, 3, 1)
 
                 # slider 2
                 self.slider_2_layout = QtWidgets.QGridLayout()
+                self.slider_2_layout.setVerticalSpacing(0)
                 self.dr_result_selection_slider_2 = QtWidgets.QSlider(QtCore.Qt.Horizontal)
-                self.dr_result_selection_slider_2.setFixedSize(self.plot_size, 50)
+                self.dr_result_selection_slider_2.setFixedSize(self.plot_size, 20)
                 self.dr_result_selection_slider_2.setMinimum(0)
                 self.dr_result_selection_slider_2.setMaximum(len(self.all_high_dim_points_2)-1)
                 self.dr_result_selection_slider_2.setValue(0)
@@ -1554,11 +1556,11 @@ class UI_MainWindow(QWidget):
                 self.slider_2_layout.addWidget(self.slider_2_left_button, 1, 0, 1, 1)
 
                 # middle text
-                slider_2_text_pixmap = QPixmap(150, 50)
+                slider_2_text_pixmap = QPixmap(150, 30)
                 slider_2_text_pixmap.fill(QtCore.Qt.white)
                 painter = QtGui.QPainter(slider_2_text_pixmap)
                 painter.setFont(QFont('Helvetica', 12))
-                painter.drawText(0, 0, 150, 50, QtGui.Qt.AlignCenter, f'{self.dr_result_selection_slider_2.value()+1}/{len(self.cur_class_indices)}')
+                painter.drawText(0, 0, 150, 30, QtGui.Qt.AlignCenter, f'{self.dr_result_selection_slider_2.value()+1}/{len(self.cur_class_indices)}')
                 painter.end()
                 # create label to contain the texts
                 self.slider_2_text_label = QLabel(self)
@@ -1576,7 +1578,7 @@ class UI_MainWindow(QWidget):
 
                 # add slider 2 layout to the general layout
                 if self.demo:
-                    self.scatter_2_layout.addLayout(self.slider_2_layout, 1, 0)
+                    self.demo_layout.addLayout(self.slider_2_layout, 8, 1, 1, 1)
                 else:
                     self.aggregate_result_layout.addLayout(self.slider_2_layout, 3, 2)
 
@@ -1757,9 +1759,11 @@ class UI_MainWindow(QWidget):
             # scatter plot on low-dim points
             self.low_dim_scatter_view_1 = pg.GraphicsLayoutWidget()
             self.low_dim_scatter_view_1.setBackground('white')
-            self.low_dim_scatter_view_1.setFixedSize(self.plot_size, self.plot_size)
+            self.low_dim_scatter_view_1.setFixedSize(self.plot_size*1.1, self.plot_size*1.1)
             # add plot
             self.low_dim_scatter_plot_1 = self.low_dim_scatter_view_1.addPlot()
+            self.low_dim_scatter_plot_1.hideAxis('left')
+            self.low_dim_scatter_plot_1.hideAxis('bottom')
 
             # set axis range
             self.low_dim_scatter_plot_1.setXRange(-1.2, 1.2, padding=0)
@@ -1769,9 +1773,11 @@ class UI_MainWindow(QWidget):
 
             self.low_dim_scatter_view_2 = pg.GraphicsLayoutWidget()
             self.low_dim_scatter_view_2.setBackground('white')
-            self.low_dim_scatter_view_2.setFixedSize(self.plot_size, self.plot_size)
+            self.low_dim_scatter_view_2.setFixedSize(self.plot_size*1.1, self.plot_size*1.1)
             # add plot
             self.low_dim_scatter_plot_2 = self.low_dim_scatter_view_2.addPlot()
+            self.low_dim_scatter_plot_2.hideAxis('left')
+            self.low_dim_scatter_plot_2.hideAxis('bottom')
 
             # set axis range
             self.low_dim_scatter_plot_2.setXRange(-1.2, 1.2, padding=0)
@@ -1831,12 +1837,8 @@ class UI_MainWindow(QWidget):
                 self.aggregate_result_layout.addWidget(self.low_dim_scatter_view_2, 2, 3)
             elif self.mode == 'object_detection':
                 if self.demo:
-                    self.scatter_1_layout = QtWidgets.QGridLayout()
-                    self.scatter_1_layout.addWidget(self.low_dim_scatter_view_1, 0, 0)
-                    self.demo_layout.addLayout(self.scatter_1_layout, 5, 1, 2, 1)
-                    self.scatter_2_layout = QtWidgets.QGridLayout()
-                    self.scatter_2_layout.addWidget(self.low_dim_scatter_view_2, 0, 0)
-                    self.demo_layout.addLayout(self.scatter_2_layout, 7, 1, 2, 1)
+                    self.demo_layout.addWidget(self.low_dim_scatter_view_1, 5, 1, 1, 1)
+                    self.demo_layout.addWidget(self.low_dim_scatter_view_2, 7, 1, 1, 1)
                 else:
                     # aggregate result layout at the very left
                     self.aggregate_result_layout.addWidget(self.low_dim_scatter_view_1, 2, 1)
@@ -1890,9 +1892,7 @@ class UI_MainWindow(QWidget):
                     cur_iou_2 = self.aggregate_outputs_2[y, x][index][0, 6]
                     cur_correctness_2 = self.aggregate_outputs_2[y, x][index][0, 7]
 
-                    # if self.quantity_name == 'Confidence*IOU':
-                    #     cur_value_1 = cur_conf_1 * cur_iou_1
-                    #     cur_value_2 = cur_conf_2 * cur_iou_2
+                    # always have the correctness involved
                     if self.quantity_name == 'Confidence*IOU':
                         cur_value_1 = cur_conf_1 * cur_iou_1 * cur_correctness_1
                         cur_value_2 = cur_conf_2 * cur_iou_2 * cur_correctness_2
@@ -1979,7 +1979,7 @@ class UI_MainWindow(QWidget):
                 update_slider_2_text()
                 self.slider_2_locked = False
 
-                # update the scatter plot
+                # update the scatter plot without re-computing dimension reduction algorithm
                 display_dimension_reduction(compute_dr=False)
 
                 # get the corresponding image path
