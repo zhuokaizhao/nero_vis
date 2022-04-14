@@ -1165,7 +1165,6 @@ class UI_MainWindow(QWidget):
         # loaded images and model result layout
         self.single_result_layout = QtWidgets.QGridLayout()
         self.single_result_layout.setContentsMargins(30, 50, 30, 50)
-        # self.single_result_layout.setContentsMargins(0, 0, 0, 0)
 
         # add to general layout
         if self.data_mode == 'single':
@@ -1396,7 +1395,10 @@ class UI_MainWindow(QWidget):
             self.show_average = True
             self.piv_heatmap_click_enable = False
             self.detail_nero_checkbox.setChecked(False)
-            self.aggregate_plot_control_layout.addWidget(self.detail_nero_checkbox, 6, 0)
+            if self.demo:
+                self.demo_layout.addWidget(self.detail_nero_checkbox, 4, 2, 1, 1)
+            else:
+                self.aggregate_plot_control_layout.addWidget(self.detail_nero_checkbox, 6, 0)
 
 
     # run PCA on demand
@@ -2861,14 +2863,14 @@ class UI_MainWindow(QWidget):
             # prepare input image transformations
             def init_input_control():
                 # add buttons for controlling the single GIF
-                self.gif_control_layout = QtWidgets.QHBoxLayout()
+                self.gif_control_layout = QtWidgets.QVBoxLayout()
                 self.gif_control_layout.setAlignment(QtGui.Qt.AlignTop)
                 self.gif_control_layout.setContentsMargins(0, 0, 0, 0)
                 if self.data_mode == 'single':
                     self.single_result_layout.addLayout(self.gif_control_layout, 2, 0)
                 elif self.data_mode == 'aggregate':
                     if self.demo:
-                        self.demo_layout.addLayout(self.gif_control_layout, 4, 4)
+                        self.demo_layout.addLayout(self.gif_control_layout, 0, 5, 4, 1)
                     else:
                         self.aggregate_result_layout.addLayout(self.gif_control_layout, 2, 3)
 
@@ -3125,6 +3127,8 @@ class UI_MainWindow(QWidget):
 
                 # display the piv single case result
                 self.rectangle_index = 0
+                self.quiver_pos_x = self.image_size // 2
+                self.quiver_pos_y = self.image_size // 2
                 # default detail view starts at the center of the original rectangle
                 if self.show_average:
                     self.double_click = False
@@ -3149,6 +3153,8 @@ class UI_MainWindow(QWidget):
 
                 # display the piv single case result
                 self.rectangle_index = 0
+                self.quiver_pos_x = self.image_size // 2
+                self.quiver_pos_y = self.image_size // 2
                 if self.show_average:
                     self.double_click = False
                     self.piv_heatmap_click_enable = False
@@ -3556,7 +3562,7 @@ class UI_MainWindow(QWidget):
 
 
     # helper function on drawing individual heatmap (called by both individual and aggregate cases)
-    def draw_individual_heatmap(self, mode, data, heatmap=None, view_box=None, scatter_item=None, title=None, show_colorbar=False):
+    def draw_individual_heatmap(self, mode, data, heatmap=None, scatter_item=None, title=None, show_colorbar=False):
 
         # color map
         self.color_map = pg.colormap.get('viridis')
@@ -3579,6 +3585,10 @@ class UI_MainWindow(QWidget):
             self.demo_layout.addWidget(dummy_view, 1, 2, 1, 2)
 
         if self.mode == 'object_detection':
+            # viewbox that contains the heatmap
+            view_box = pg.ViewBox(invertY=True)
+            view_box.setAspectLocked(lock=True)
+
             # single mode needs to have input view_box, heatmap and scatter_item for interactively handling
             if mode == 'single':
                 heatmap_plot = pg.PlotItem(viewBox=view_box, title=title)
@@ -3601,8 +3611,6 @@ class UI_MainWindow(QWidget):
                 heatmap_plot.addItem(scatter_item)
 
             elif mode == 'aggregate':
-                view_box = pg.ViewBox(invertY=True)
-                view_box.setAspectLocked(lock=True)
                 # heatmap = pg.ImageItem()
                 heatmap.setImage(data)
                 view_box.addItem(heatmap)
@@ -3628,6 +3636,8 @@ class UI_MainWindow(QWidget):
 
             # single mode needs to have input view_box, heatmap and scatter_item for interactively handling
             if mode == 'single':
+                view_box = pg.ViewBox(invertY=True)
+                view_box.setAspectLocked(lock=True)
                 heatmap_plot = pg.PlotItem(viewBox=view_box, title=title)
                 heatmap.setOpts(axisOrder='row-major')
                 heatmap.setImage(data)
@@ -3646,27 +3656,6 @@ class UI_MainWindow(QWidget):
                 rect_x = self.rect_index_x*self.image_size + self.image_size // 2
                 rect_y = self.rect_index_y*self.image_size + self.image_size // 2
 
-                # when first click, just display the orbit position selection rectangle
-                if not self.double_click:
-                    self.scatter_point = [{'pos': (rect_x, rect_y),
-                                        'size': self.image_size-8,
-                                        'pen': {'color': 'red', 'width': 4},
-                                        'brush': (0, 0, 0, 0)}]
-                # when double clicked, also plot the small rectangle to identify the detail area
-                elif self.double_click:
-                    self.scatter_point = [{'pos': (rect_x, rect_y),
-                                            'size': self.image_size,
-                                            'pen': {'color': 'red', 'width': 4},
-                                            'brush': (0, 0, 0, 0)},
-                                          {'pos': (self.detail_rect_x, self.detail_rect_y),
-                                            'size': 8,
-                                            'pen': {'color': 'magenta', 'width': 2},
-                                            'brush': (0, 0, 0, 0)}]
-
-                # add points to the item
-                scatter_item.setData(self.scatter_point)
-                heatmap_plot.addItem(scatter_item)
-
                 # draw lines that distinguish between different transformations
                 # line color is the average of all plot color
                 scatter_lut = self.color_map.getLookupTable(start=self.cm_range[1], stop=self.cm_range[0], nPts=500, alpha=False)
@@ -3680,6 +3669,15 @@ class UI_MainWindow(QWidget):
                     heatmap_plot.plot([self.image_size*i, self.image_size*i],
                                         [0, self.image_size*4],
                                         pen = QtGui.QPen(line_color, 4))
+
+                # when clicked, display the orbit position selection rectangle
+                self.scatter_point = [{'pos': (rect_x, rect_y),
+                                        'size': self.image_size,
+                                        'pen': {'color': 'red', 'width': 4},
+                                        'brush': (0, 0, 0, 0)}]
+                # add points to the item
+                scatter_item.setData(self.scatter_point)
+                heatmap_plot.addItem(scatter_item)
 
             elif mode == 'aggregate':
                 view_box = pg.ViewBox(invertY=True)
@@ -3896,8 +3894,8 @@ class UI_MainWindow(QWidget):
                         cur_F_image.setPos(pos_x, pos_y)
                         heatmap_plot.addItem(cur_F_image)
 
-            # Not letting user zoom out past axis limit
-            heatmap_plot.vb.setLimits(xMin=-1, xMax=self.image_size*5, yMin=-1, yMax=self.image_size*5)
+            # Not letting user zoom
+            heatmap_plot.setMouseEnabled(x=False, y=False)
 
         # demo mode has colorbar elsewhere
         if self.demo:
@@ -3906,6 +3904,35 @@ class UI_MainWindow(QWidget):
             self.color_bar.setImageItem(heatmap, insert_in=heatmap_plot)
 
         return heatmap_plot
+
+
+    # helper function on drawing detailed heatmap (called by both individual and aggregate cases in PIV)
+    def draw_piv_detail_heatmap(self, data, heatmap):
+        view_box = pg.ViewBox(invertY=True)
+        view_box.setAspectLocked(lock=True)
+        detail_heatmap_plot = pg.PlotItem(viewBox=view_box)
+        heatmap.setOpts(axisOrder='row-major')
+        heatmap.setImage(data)
+        # add image to the viewbox
+        view_box.addItem(heatmap)
+        # so that showing indicator at the boundary does not jitter the plot
+        view_box.disableAutoRange()
+
+        # small indicator on where the quiver plot displays
+        detail_scatter_item = pg.ScatterPlotItem(pxMode=False)
+        detail_scatter_item.setSymbol('s')
+        detail_scatter_point = [{'pos': (self.quiver_pos_x, self.quiver_pos_y),
+                                    'size': 8,
+                                    'pen': {'color': 'red', 'width': 4},
+                                    'brush': (0, 0, 0, 0)}]
+        # add points to the item
+        detail_scatter_item.setData(detail_scatter_point)
+        detail_heatmap_plot.addItem(detail_scatter_item)
+
+        detail_heatmap_plot.getAxis('bottom').setStyle(tickLength=0, showValues=False)
+        detail_heatmap_plot.getAxis('left').setStyle(tickLength=0, showValues=False)
+
+        return detail_heatmap_plot
 
 
     # draw NERO plots for COCO experiment
@@ -4018,12 +4045,6 @@ class UI_MainWindow(QWidget):
             self.heatmap_view_2.ci.layout.setContentsMargins(0, 20, 0, 0) # left top right bottom
             self.heatmap_view_2.setFixedSize(self.plot_size*1.3, self.plot_size*1.3)
 
-            # create view box to contain the heatmaps
-            self.view_box_1 = pg.ViewBox(invertY=True)
-            self.view_box_1.setAspectLocked(lock=True)
-            self.view_box_2 = pg.ViewBox(invertY=True)
-            self.view_box_2.setAspectLocked(lock=True)
-
             self.single_nero_1 = COCO_heatmap(plot_type='single', index=1)
             self.single_nero_2 = COCO_heatmap(plot_type='single', index=2)
             self.scatter_item_1 = pg.ScatterPlotItem(pxMode=False)
@@ -4032,10 +4053,8 @@ class UI_MainWindow(QWidget):
             self.scatter_item_2.setSymbol('s')
             # all quantities plotted will have range from 0 to 1
             self.cm_range = (0, 1)
-            self.heatmap_plot_1 = self.draw_individual_heatmap('single', data_1, self.single_nero_1, self.view_box_1, self.scatter_item_1)
-            self.heatmap_plot_2 = self.draw_individual_heatmap('single', data_2, self.single_nero_2, self.view_box_2, self.scatter_item_2)
-            # reset double click
-            self.double_click = False
+            self.heatmap_plot_1 = self.draw_individual_heatmap('single', data_1, self.single_nero_1, self.scatter_item_1)
+            self.heatmap_plot_2 = self.draw_individual_heatmap('single', data_2, self.single_nero_2, self.scatter_item_2)
 
             # add to view
             self.heatmap_view_1.addItem(self.heatmap_plot_1)
@@ -4088,8 +4107,6 @@ class UI_MainWindow(QWidget):
             self.aggregate_nero_2 = COCO_heatmap(plot_type='aggregate', index=2)
             self.aggregate_heatmap_plot_1 = self.draw_individual_heatmap('aggregate', data_1, self.aggregate_nero_1)
             self.aggregate_heatmap_plot_2 = self.draw_individual_heatmap('aggregate', data_2, self.aggregate_nero_2)
-            # reset double click
-            self.double_click = False
 
             # add to view
             self.aggregate_heatmap_view_1.addItem(self.aggregate_heatmap_plot_1)
@@ -4211,11 +4228,13 @@ class UI_MainWindow(QWidget):
 
         # used to pass into subclass
         outer_self = self
+
+        # individual nero plot class
         # subclass of ImageItem that reimplements the control methods
         class PIV_heatmap(pg.ImageItem):
             def mouseClickEvent(self, event):
                 if outer_self.piv_heatmap_click_enable:
-                    print(f'Clicked on PIV heatmap at ({event.pos().x()}, {event.pos().y()})')
+                    print(f'Clicked on individual PIV NERO plot at ({event.pos().x()}, {event.pos().y()})')
                     # in PIV mode, a pop up window shows the nearby area's quiver plot
                     rect_x = int(event.pos().x() // outer_self.image_size)
                     rect_y = int(event.pos().y() // outer_self.image_size)
@@ -4340,8 +4359,9 @@ class UI_MainWindow(QWidget):
                     self.hover_text = outer_self.piv_nero_layout_names[rect_y][rect_x]
                     self.setToolTip(self.hover_text)
 
-        # subclass of scatter item that takes click
-        class myScatterPlotItem(pg.ScatterPlotItem):
+        # detail plot of the selected orbit position from individual nero plot
+        # subclass of ImageItem that reimplements the control methods
+        class PIV_detail_heatmap(pg.ImageItem):
             def mouseClickEvent(self, event):
                 print(f'Clicked on selected rectangle at ({event.pos().x()}, {event.pos().y()})')
                 outer_self.double_click = True
@@ -4424,38 +4444,29 @@ class UI_MainWindow(QWidget):
             self.heatmap_view_2.ci.layout.setContentsMargins(0, 20, 0, 0)
             self.heatmap_view_2.setFixedSize(self.plot_size*1.3, self.plot_size*1.3)
 
-            # create view box to contain the heatmaps
-            self.view_box_1 = pg.ViewBox(invertY=True)
-            self.view_box_1.setAspectLocked(lock=True)
-            self.view_box_2 = pg.ViewBox(invertY=True)
-            self.view_box_2.setAspectLocked(lock=True)
-
             self.single_nero_1 = PIV_heatmap()
             self.single_nero_2 = PIV_heatmap()
-            self.scatter_item_1 = myScatterPlotItem(pxMode=False)
+            self.scatter_item_1 = pg.ScatterPlotItem(pxMode=False)
             self.scatter_item_1.setSymbol('s')
-            self.scatter_item_2 = myScatterPlotItem(pxMode=False)
+            self.scatter_item_2 = pg.ScatterPlotItem(pxMode=False)
             self.scatter_item_2.setSymbol('s')
             # color map is flipped so that low error is bright
             self.cm_range = (self.loss_high_bound, self.loss_low_bound)
             self.heatmap_plot_1 = self.draw_individual_heatmap('single',
                                                                 self.data_1,
                                                                 self.single_nero_1,
-                                                                self.view_box_1,
                                                                 self.scatter_item_1)
 
             self.heatmap_plot_2 = self.draw_individual_heatmap('single',
                                                                 self.data_2,
                                                                 self.single_nero_2,
-                                                                self.view_box_2,
                                                                 self.scatter_item_2)
-            # reset double click
-            self.double_click = False
 
             # add to view
             self.heatmap_view_1.addItem(self.heatmap_plot_1)
             self.heatmap_view_2.addItem(self.heatmap_plot_2)
 
+            # add to layout
             if self.data_mode == 'single':
                 self.single_result_layout.addWidget(self.heatmap_view_1, 1, 1)
                 self.single_result_layout.addWidget(self.heatmap_view_2, 1, 2)
@@ -4466,6 +4477,39 @@ class UI_MainWindow(QWidget):
                 else:
                     self.aggregate_result_layout.addWidget(self.heatmap_view_1, 1, 4)
                     self.aggregate_result_layout.addWidget(self.heatmap_view_2, 1, 5)
+
+
+            # detail (selected from individual NERO plot) heatmap
+            # heatmap view
+            self.detail_heatmap_view_1 = pg.GraphicsLayoutWidget()
+            self.detail_heatmap_view_1.ci.layout.setContentsMargins(0, 20, 0, 0) # left top right bottom
+            self.detail_heatmap_view_1.setFixedSize(self.plot_size*1.3, self.plot_size*1.3)
+            self.detail_heatmap_view_2 = pg.GraphicsLayoutWidget()
+            self.detail_heatmap_view_2.ci.layout.setContentsMargins(0, 20, 0, 0) # left top right bottom
+            self.detail_heatmap_view_2.setFixedSize(self.plot_size*1.3, self.plot_size*1.3)
+
+            # heatmap plot
+            self.detail_heatmap_1 = PIV_detail_heatmap()
+            self.detail_heatmap_2 = PIV_detail_heatmap()
+            # color map is flipped so that low error is bright
+            self.detail_plot_1 = self.draw_piv_detail_heatmap(self.data_1, self.detail_heatmap_1)
+            self.detail_plot_2 = self.draw_piv_detail_heatmap(self.data_2, self.detail_heatmap_2)
+
+            # add to view
+            self.detail_heatmap_view_1.addItem(self.detail_plot_1)
+            self.detail_heatmap_view_2.addItem(self.detail_plot_2)
+
+            # add to layout
+            if self.data_mode == 'single':
+                self.single_result_layout.addWidget(self.detail_heatmap_view_1, 1, 1)
+                self.single_result_layout.addWidget(self.detail_heatmap_view_2, 1, 2)
+            elif self.data_mode == 'aggregate':
+                if self.demo:
+                    self.demo_layout.addWidget(self.detail_heatmap_view_1, 5, 3, 1, 1)
+                    self.demo_layout.addWidget(self.detail_heatmap_view_2, 7, 3, 1, 1)
+                else:
+                    self.aggregate_result_layout.addWidget(self.detail_heatmap_view_1, 1, 4)
+                    self.aggregate_result_layout.addWidget(self.detail_heatmap_view_2, 1, 5)
 
         elif mode == 'aggregate':
             # prepare data for piv individual nero plot (heatmap)
@@ -5335,6 +5379,18 @@ class UI_MainWindow(QWidget):
             if self.single_result_existed:
                 self.draw_piv_nero(mode='single')
 
+        # title
+        # draw text
+        plot_quantity_pixmap = QPixmap(200, 50)
+        plot_quantity_pixmap.fill(QtCore.Qt.white)
+        painter = QtGui.QPainter(plot_quantity_pixmap)
+        painter.setFont(QFont('Helvetica', 18))
+        painter.drawText(0, 5, 200, 50, QtGui.Qt.AlignLeft, 'NERO plot of: ')
+        painter.end()
+        # create label to contain the texts
+        self.plot_quantity_label = QLabel(self)
+        self.plot_quantity_label.setFixedSize(QtCore.QSize(200, 50))
+        self.plot_quantity_label.setPixmap(plot_quantity_pixmap)
         # drop down menu on selection which quantity to plot
         quantity_menu = QtWidgets.QComboBox()
         quantity_menu.setFixedSize(QtCore.QSize(250, 50))
@@ -5351,7 +5407,13 @@ class UI_MainWindow(QWidget):
 
         # connect the drop down menu with actions
         quantity_menu.currentTextChanged.connect(piv_nero_quantity_changed)
-        self.aggregate_plot_control_layout.addWidget(quantity_menu, 1, 0)
+        if self.demo:
+            self.plot_info_layout = QtWidgets.QHBoxLayout()
+            self.plot_info_layout.addWidget(self.plot_quantity_label)
+            self.plot_info_layout.addWidget(quantity_menu)
+            self.demo_layout.addLayout(self.plot_info_layout, 0, 2, 1, 1)
+        else:
+            self.aggregate_plot_control_layout.addWidget(quantity_menu, 1, 0)
 
         # define default plotting quantity (RMSE)
         self.quantity_name = 'RMSE'
