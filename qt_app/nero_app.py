@@ -50,7 +50,7 @@ class UI_MainWindow(QWidget):
         self.layout = QtWidgets.QGridLayout(self)
         self.layout.setAlignment(QtCore.Qt.AlignCenter)
         # left, top, right, and bottom margins
-        self.layout.setContentsMargins(50, 50, 50, 50)
+        self.layout.setContentsMargins(50, 0, 50, 0)
 
         # individual laytout for different widgets
         # mode selections
@@ -947,31 +947,15 @@ class UI_MainWindow(QWidget):
         # data dir
         self.aggregate_data_dirs = glob.glob(os.path.join(os.getcwd(), 'example_data', self.mode, f'aggregate'))
 
-        if self.mode == 'digit_recognition':
-            # load all images in the folder
-            for i in range(len(self.aggregate_data_dirs)):
-                self.aggregate_image_menu.addItem(f'Test {i}')
+        # load all images in the folder
+        for i in range(len(self.aggregate_data_dirs)):
+            self.aggregate_image_menu.addItem(f'Test {i}')
 
-            # set default to the prompt/description
-            self.aggregate_image_menu.setCurrentIndex(0)
-
-        elif self.mode == 'object_detection':
-            # load all images in the folder
-            for i in range(len(self.aggregate_data_dirs)):
-                self.aggregate_image_menu.addItem(f'Test {i}')
-
-            # set default to the prompt/description
-            if self.demo:
-                self.aggregate_image_menu.setCurrentIndex(1)
-            else:
-                self.aggregate_image_menu.setCurrentIndex(0)
-
-        elif self.mode == 'piv':
-            # load all images in the folder
-            for i in range(len(self.aggregate_data_dirs)):
-                self.aggregate_image_menu.addItem(f'Test {i}')
-
-            # set default to the prompt/description
+        # set default to the first test dataset
+        if self.demo:
+            self.aggregate_image_menu.setCurrentIndex(1)
+        # set default to the prompt/description
+        else:
             self.aggregate_image_menu.setCurrentIndex(0)
 
         # connect the drop down menu with actions
@@ -981,7 +965,7 @@ class UI_MainWindow(QWidget):
         self.aggregate_image_menu.lineEdit().setAlignment(QtCore.Qt.AlignCenter)
         if self.demo:
             aggregate_image_menu_layout = QtWidgets.QHBoxLayout()
-            aggregate_image_menu_layout.setContentsMargins(50, 0, 0, 0)
+            aggregate_image_menu_layout.setContentsMargins(0, 0, 0, 0)
             aggregate_image_menu_layout.addWidget(self.aggregate_image_menu)
             self.demo_layout.addLayout(aggregate_image_menu_layout, 1, 0)
         else:
@@ -1835,7 +1819,7 @@ class UI_MainWindow(QWidget):
             if self.mode == 'digit_recognition':
                 self.aggregate_result_layout.addWidget(self.low_dim_scatter_view_1, 1, 3)
                 self.aggregate_result_layout.addWidget(self.low_dim_scatter_view_2, 2, 3)
-            elif self.mode == 'object_detection':
+            elif self.mode == 'object_detection' or self.mode == 'piv':
                 if self.demo:
                     self.demo_layout.addWidget(self.low_dim_scatter_view_1, 5, 1, 1, 1)
                     self.demo_layout.addWidget(self.low_dim_scatter_view_2, 7, 1, 1, 1)
@@ -1843,10 +1827,10 @@ class UI_MainWindow(QWidget):
                     # aggregate result layout at the very left
                     self.aggregate_result_layout.addWidget(self.low_dim_scatter_view_1, 2, 1)
                     self.aggregate_result_layout.addWidget(self.low_dim_scatter_view_2, 2, 2)
-            elif self.mode == 'piv':
-                # aggregate result layout at the very left
-                self.aggregate_result_layout.addWidget(self.low_dim_scatter_view_1, 2, 1)
-                self.aggregate_result_layout.addWidget(self.low_dim_scatter_view_2, 2, 2)
+            # elif self.mode == 'piv':
+            #     # aggregate result layout at the very left
+            #     self.aggregate_result_layout.addWidget(self.low_dim_scatter_view_1, 2, 1)
+            #     self.aggregate_result_layout.addWidget(self.low_dim_scatter_view_2, 2, 2)
 
 
         # run dimension reduction of all images on the selected digit
@@ -2883,7 +2867,10 @@ class UI_MainWindow(QWidget):
                 if self.data_mode == 'single':
                     self.single_result_layout.addLayout(self.gif_control_layout, 2, 0)
                 elif self.data_mode == 'aggregate':
-                    self.aggregate_result_layout.addLayout(self.gif_control_layout, 2, 3)
+                    if self.demo:
+                        self.demo_layout.addLayout(self.gif_control_layout, 4, 4)
+                    else:
+                        self.aggregate_result_layout.addLayout(self.gif_control_layout, 2, 3)
 
                 # rotate 90 degrees counter-closewise
                 self.rotate_90_ccw_button = QtWidgets.QPushButton(self)
@@ -3418,13 +3405,11 @@ class UI_MainWindow(QWidget):
             elif self.data_mode == 'aggregate':
                 if self.mode == 'digit_recognition':
                     self.aggregate_result_layout.addWidget(self.image_label, 1, 4, 2, 1)
-                elif self.mode == 'object_detection':
+                elif self.mode == 'object_detection' or self.mode == 'piv':
                     if self.demo:
                         self.demo_layout.addWidget(self.image_label, 0, 4, 5, 1)
                     else:
                         self.aggregate_result_layout.addWidget(self.image_label, 1, 3, 3, 1)
-                elif self.mode == 'piv':
-                    self.aggregate_result_layout.addWidget(self.image_label, 1, 3, 3, 1)
 
 
         if self.mode == 'digit_recognition' or self.mode == 'object_detection':
@@ -4475,8 +4460,12 @@ class UI_MainWindow(QWidget):
                 self.single_result_layout.addWidget(self.heatmap_view_1, 1, 1)
                 self.single_result_layout.addWidget(self.heatmap_view_2, 1, 2)
             elif self.data_mode == 'aggregate':
-                self.aggregate_result_layout.addWidget(self.heatmap_view_1, 1, 4)
-                self.aggregate_result_layout.addWidget(self.heatmap_view_2, 1, 5)
+                if self.demo:
+                    self.demo_layout.addWidget(self.heatmap_view_1, 5, 2, 1, 1)
+                    self.demo_layout.addWidget(self.heatmap_view_2, 7, 2, 1, 1)
+                else:
+                    self.aggregate_result_layout.addWidget(self.heatmap_view_1, 1, 4)
+                    self.aggregate_result_layout.addWidget(self.heatmap_view_2, 1, 5)
 
         elif mode == 'aggregate':
             # prepare data for piv individual nero plot (heatmap)
@@ -4500,8 +4489,12 @@ class UI_MainWindow(QWidget):
             self.aggregate_heatmap_view_1.addItem(self.aggregate_heatmap_plot_1)
             self.aggregate_heatmap_view_2.addItem(self.aggregate_heatmap_plot_2)
 
-            self.aggregate_result_layout.addWidget(self.aggregate_heatmap_view_1, 1, 1)
-            self.aggregate_result_layout.addWidget(self.aggregate_heatmap_view_2, 1, 2)
+            if self.demo:
+                self.demo_layout.addWidget(self.aggregate_heatmap_view_1, 5, 0, 1, 1)
+                self.demo_layout.addWidget(self.aggregate_heatmap_view_2, 7, 0, 1, 1)
+            else:
+                self.aggregate_result_layout.addWidget(self.aggregate_heatmap_view_1, 1, 1)
+                self.aggregate_result_layout.addWidget(self.aggregate_heatmap_view_2, 1, 2)
 
 
     # helper function that draws the quiver plot with input vector fields
@@ -4628,8 +4621,12 @@ class UI_MainWindow(QWidget):
             self.single_result_layout.addWidget(self.piv_detail_view_1, 2, 1)
             self.single_result_layout.addWidget(self.piv_detail_view_2, 2, 2)
         elif self.data_mode == 'aggregate':
-            self.aggregate_result_layout.addWidget(self.piv_detail_view_1, 2, 4)
-            self.aggregate_result_layout.addWidget(self.piv_detail_view_2, 2, 5)
+            if self.demo:
+                self.demo_layout.addWidget(self.piv_detail_view_1, 5, 4, 1, 1)
+                self.demo_layout.addWidget(self.piv_detail_view_2, 7, 4, 1, 1)
+            else:
+                self.aggregate_result_layout.addWidget(self.piv_detail_view_1, 2, 4)
+                self.aggregate_result_layout.addWidget(self.piv_detail_view_2, 2, 5)
 
 
     # display MNIST aggregated results
