@@ -109,9 +109,11 @@ class UI_MainWindow(QWidget):
     def load_from_cache(self, name):
         # if it exists
         if name in self.cache.keys():
+            self.load_successfully = True
             return self.cache[name]
         else:
             print(f'No precomputed result named {name}')
+            self.load_successfully = False
             return np.zeros(0)
 
 
@@ -1814,17 +1816,15 @@ class UI_MainWindow(QWidget):
             if compute_dr:
                 # try to load from cache
                 low_dim_1_name = f'{self.mode}_{self.model_1_name}_{self.class_selection}_{self.quantity_name}_{self.dr_selection}'
-                low_dim_2_name = f'{self.mode}_{self.model_2_name}_{self.class_selection}_{self.quantity_name}_{self.dr_selection}'
-                if self.load_from_cache(low_dim_1_name) != np.zeros(0):
-                    self.low_dim_1 = self.load_from_cache(low_dim_1_name)
-                else:
+                self.low_dim_1 = self.load_from_cache(low_dim_1_name)
+                if not self.load_successfully:
                     self.low_dim_1 = dimension_reduce(self.all_high_dim_points_1, target_dim=2)
                     self.low_dim_1 = normalize_low_dim_result(self.low_dim_1)
                     self.save_to_cache(low_dim_1_name, self.low_dim_1)
 
-                if self.load_from_cache(low_dim_2_name) != np.zeros(0):
-                    self.low_dim_2 = self.load_from_cache(low_dim_2_name)
-                else:
+                low_dim_2_name = f'{self.mode}_{self.model_2_name}_{self.class_selection}_{self.quantity_name}_{self.dr_selection}'
+                self.low_dim_2 = self.load_from_cache(low_dim_2_name)
+                if not self.load_successfully:
                     self.low_dim_2 = dimension_reduce(self.all_high_dim_points_2, target_dim=2)
                     self.low_dim_2 = normalize_low_dim_result(self.low_dim_2)
                     self.save_to_cache(low_dim_2_name, self.low_dim_2)
@@ -2222,15 +2222,15 @@ class UI_MainWindow(QWidget):
             self.all_aggregate_angles = list(range(0, 365, 5))
 
             # load from cache if available
-            if self.use_cache:
-                self.all_avg_accuracy_1 = self.load_from_cache(f'{self.mode}_{self.data_mode}_{self.model_1_cache_name}_avg_accuracy')
-                self.all_avg_accuracy_per_digit_1 = self.load_from_cache(f'{self.mode}_{self.data_mode}_{self.model_1_cache_name}_avg_accuracy_per_digit')
-                self.all_outputs_1 = self.load_from_cache(f'{self.mode}_{self.data_mode}_{self.model_1_cache_name}_outputs')
+            self.all_avg_accuracy_1 = self.load_from_cache(f'{self.mode}_{self.data_mode}_{self.model_1_cache_name}_avg_accuracy')
+            self.all_avg_accuracy_per_digit_1 = self.load_from_cache(f'{self.mode}_{self.data_mode}_{self.model_1_cache_name}_avg_accuracy_per_digit')
+            self.all_outputs_1 = self.load_from_cache(f'{self.mode}_{self.data_mode}_{self.model_1_cache_name}_outputs')
 
-                self.all_avg_accuracy_2 = self.load_from_cache(f'{self.mode}_{self.data_mode}_{self.model_2_cache_name}_avg_accuracy')
-                self.all_avg_accuracy_per_digit_2 = self.load_from_cache(f'{self.mode}_{self.data_mode}_{self.model_2_cache_name}_avg_accuracy_per_digit')
-                self.all_outputs_2 = self.load_from_cache(f'{self.mode}_{self.data_mode}_{self.model_2_cache_name}_outputs')
-            else:
+            self.all_avg_accuracy_2 = self.load_from_cache(f'{self.mode}_{self.data_mode}_{self.model_2_cache_name}_avg_accuracy')
+            self.all_avg_accuracy_per_digit_2 = self.load_from_cache(f'{self.mode}_{self.data_mode}_{self.model_2_cache_name}_avg_accuracy_per_digit')
+            self.all_outputs_2 = self.load_from_cache(f'{self.mode}_{self.data_mode}_{self.model_2_cache_name}_outputs')
+
+            if not self.load_successfully:
                 # average accuracies over all digits under all rotations, has shape (num_rotations, 1)
                 self.all_avg_accuracy_1 = np.zeros(len(self.all_aggregate_angles))
                 self.all_avg_accuracy_2 = np.zeros(len(self.all_aggregate_angles))
@@ -2302,19 +2302,20 @@ class UI_MainWindow(QWidget):
             # mAP does not have individuals
             self.aggregate_mAP_2 = np.zeros((len(self.y_translation), len(self.x_translation)))
 
-            if self.use_cache:
-                self.aggregate_outputs_1 = self.load_from_cache(f'{self.mode}_{self.data_mode}_{self.model_1_cache_name}_outputs')
-                self.aggregate_precision_1 = self.load_from_cache(f'{self.mode}_{self.data_mode}_{self.model_1_cache_name}_precision')
-                self.aggregate_recall_1 = self.load_from_cache(f'{self.mode}_{self.data_mode}_{self.model_1_cache_name}_recall')
-                self.aggregate_mAP_1 = self.load_from_cache(f'{self.mode}_{self.data_mode}_{self.model_1_cache_name}_mAP')
-                self.aggregate_F_measure_1 = self.load_from_cache(f'{self.mode}_{self.data_mode}_{self.model_1_cache_name}_F_measure')
+            # always try loading from cache
+            self.aggregate_outputs_1 = self.load_from_cache(f'{self.mode}_{self.data_mode}_{self.model_1_cache_name}_outputs')
+            self.aggregate_precision_1 = self.load_from_cache(f'{self.mode}_{self.data_mode}_{self.model_1_cache_name}_precision')
+            self.aggregate_recall_1 = self.load_from_cache(f'{self.mode}_{self.data_mode}_{self.model_1_cache_name}_recall')
+            self.aggregate_mAP_1 = self.load_from_cache(f'{self.mode}_{self.data_mode}_{self.model_1_cache_name}_mAP')
+            self.aggregate_F_measure_1 = self.load_from_cache(f'{self.mode}_{self.data_mode}_{self.model_1_cache_name}_F_measure')
 
-                self.aggregate_outputs_2 = self.load_from_cache(f'{self.mode}_{self.data_mode}_{self.model_2_cache_name}_outputs')
-                self.aggregate_precision_2 = self.load_from_cache(f'{self.mode}_{self.data_mode}_{self.model_2_cache_name}_precision')
-                self.aggregate_recall_2 = self.load_from_cache(f'{self.mode}_{self.data_mode}_{self.model_2_cache_name}_recall')
-                self.aggregate_mAP_2 = self.load_from_cache(f'{self.mode}_{self.data_mode}_{self.model_2_cache_name}_mAP')
-                self.aggregate_F_measure_2 = self.load_from_cache(f'{self.mode}_{self.data_mode}_{self.model_2_cache_name}_F_measure')
-            else:
+            self.aggregate_outputs_2 = self.load_from_cache(f'{self.mode}_{self.data_mode}_{self.model_2_cache_name}_outputs')
+            self.aggregate_precision_2 = self.load_from_cache(f'{self.mode}_{self.data_mode}_{self.model_2_cache_name}_precision')
+            self.aggregate_recall_2 = self.load_from_cache(f'{self.mode}_{self.data_mode}_{self.model_2_cache_name}_recall')
+            self.aggregate_mAP_2 = self.load_from_cache(f'{self.mode}_{self.data_mode}_{self.model_2_cache_name}_mAP')
+            self.aggregate_F_measure_2 = self.load_from_cache(f'{self.mode}_{self.data_mode}_{self.model_2_cache_name}_F_measure')
+
+            if not self.load_successfully:
                 # for all the loaded images
                 for y, y_tran in enumerate(self.y_translation):
                     for x, x_tran in enumerate(self.x_translation):
@@ -2389,11 +2390,12 @@ class UI_MainWindow(QWidget):
             self.aggregate_outputs_2 = torch.zeros((self.num_transformations, len(self.all_images_2_paths), self.image_size, self.image_size, 2))
             self.aggregate_ground_truths = torch.zeros((self.num_transformations, len(self.all_labels_paths), self.image_size, self.image_size, 2))
 
-            if self.use_cache:
-                self.aggregate_outputs_1 = torch.from_numpy(self.load_from_cache(f'{self.mode}_{self.data_mode}_{self.model_1_cache_name}_outputs'))
-                self.aggregate_outputs_2 = torch.from_numpy(self.load_from_cache(f'{self.mode}_{self.data_mode}_{self.model_2_cache_name}_outputs'))
-                self.aggregate_ground_truths = torch.from_numpy(self.load_from_cache(f'{self.mode}_{self.data_mode}_ground_truths'))
-            else:
+            # always try loading from cache
+            self.aggregate_outputs_1 = torch.from_numpy(self.load_from_cache(f'{self.mode}_{self.data_mode}_{self.model_1_cache_name}_outputs'))
+            self.aggregate_outputs_2 = torch.from_numpy(self.load_from_cache(f'{self.mode}_{self.data_mode}_{self.model_2_cache_name}_outputs'))
+            self.aggregate_ground_truths = torch.from_numpy(self.load_from_cache(f'{self.mode}_{self.data_mode}_ground_truths'))
+
+            if not self.load_successfully:
                 # take a batch of images
                 num_batches = int(len(self.all_images_1_paths) / self.batch_size)
                 if len(self.all_images_1_paths) % self.batch_size != 0:
@@ -2765,66 +2767,66 @@ class UI_MainWindow(QWidget):
                 num_y_translations = len(self.y_translation)
                 self.all_translations = np.zeros((num_y_translations, num_x_translations, 2))
 
-                if self.use_cache:
-                    self.all_quantities_1 = self.load_from_cache(name=f'{self.mode}_{self.data_mode}_{self.model_1_cache_name}_{self.image_index}')
-                    self.all_quantities_2 = self.load_from_cache(name=f'{self.mode}_{self.data_mode}_{self.model_2_cache_name}_{self.image_index}')
-                else:
+                # always try loading from cache
+                self.all_quantities_1 = self.load_from_cache(name=f'{self.mode}_{self.data_mode}_{self.model_1_cache_name}_{self.image_index}')
+                self.all_quantities_2 = self.load_from_cache(name=f'{self.mode}_{self.data_mode}_{self.model_2_cache_name}_{self.image_index}')
+
+                if not self.load_successfully:
                     self.all_quantities_1 = np.zeros((num_y_translations, num_x_translations, 8))
                     self.all_quantities_2 = np.zeros((num_y_translations, num_x_translations, 8))
 
-                for y, y_tran in enumerate(self.y_translation):
-                    for x, x_tran in enumerate(self.x_translation):
+                    for y, y_tran in enumerate(self.y_translation):
+                        for x, x_tran in enumerate(self.x_translation):
 
-                        # translation amout
-                        # cur_x_tran and cur_y_tran are used to draw points on the heatmap to indicate translation amount
-                        self.cur_x_tran = x_tran - self.x_translation[0]
-                        self.cur_y_tran = y_tran - self.y_translation[0]
-                        # all_translations are for book keeping
-                        self.all_translations[y, x] = [x_tran, y_tran]
+                            # translation amout
+                            # cur_x_tran and cur_y_tran are used to draw points on the heatmap to indicate translation amount
+                            self.cur_x_tran = x_tran - self.x_translation[0]
+                            self.cur_y_tran = y_tran - self.y_translation[0]
+                            # all_translations are for book keeping
+                            self.all_translations[y, x] = [x_tran, y_tran]
 
-                        # udpate the correct coco label
-                        self.update_coco_label()
+                            # udpate the correct coco label
+                            self.update_coco_label()
 
-                        # skip running model if using cache
-                        if self.use_cache:
-                            continue
+                            # skip running model if using cache
+                            if self.use_cache:
+                                continue
 
-                        # re-display image for each rectangle drawn every 8 steps
-                        if (x_tran)%2 == 0 and (y_tran)%2 == 0:
-                            self.display_coco_image()
+                            # re-display image for each rectangle drawn every 8 steps
+                            if (x_tran)%2 == 0 and (y_tran)%2 == 0:
+                                self.display_coco_image()
 
-                        # run the model
-                        # update the model output
-                        self.output_1 = nero_run_model.run_coco_once('single',
-                                                                        self.model_1_name,
-                                                                        self.model_1,
-                                                                        self.cropped_image_pt,
-                                                                        self.custom_coco_names,
-                                                                        self.pytorch_coco_names,
-                                                                        test_label=self.cur_image_label)
+                            # run the model
+                            # update the model output
+                            self.output_1 = nero_run_model.run_coco_once('single',
+                                                                            self.model_1_name,
+                                                                            self.model_1,
+                                                                            self.cropped_image_pt,
+                                                                            self.custom_coco_names,
+                                                                            self.pytorch_coco_names,
+                                                                            test_label=self.cur_image_label)
 
-                        self.output_2 = nero_run_model.run_coco_once('single',
-                                                                        self.model_2_name,
-                                                                        self.model_2,
-                                                                        self.cropped_image_pt,
-                                                                        self.custom_coco_names,
-                                                                        self.pytorch_coco_names,
-                                                                        test_label=self.cur_image_label)
+                            self.output_2 = nero_run_model.run_coco_once('single',
+                                                                            self.model_2_name,
+                                                                            self.model_2,
+                                                                            self.cropped_image_pt,
+                                                                            self.custom_coco_names,
+                                                                            self.pytorch_coco_names,
+                                                                            test_label=self.cur_image_label)
 
-                        # plotting the quantity regarding the correct label
-                        quantity_1 = self.output_1[0][0][0]
-                        quantity_2 = self.output_2[0][0][0]
-                        self.all_quantities_1[y, x] = quantity_1
-                        self.all_quantities_2[y, x] = quantity_2
+                            # plotting the quantity regarding the correct label
+                            quantity_1 = self.output_1[0][0][0]
+                            quantity_2 = self.output_2[0][0][0]
+                            self.all_quantities_1[y, x] = quantity_1
+                            self.all_quantities_2[y, x] = quantity_2
 
-                # display as the final x_tran, y_tran
-                if self.use_cache:
-                    self.display_coco_image()
-
-                # save to cache
-                else:
+                    # save to cache
                     self.save_to_cache(name=f'{self.mode}_{self.data_mode}_{self.model_1_cache_name}_{self.image_index}', content=self.all_quantities_1)
                     self.save_to_cache(name=f'{self.mode}_{self.data_mode}_{self.model_2_cache_name}_{self.image_index}', content=self.all_quantities_2)
+
+                # display as the final x_tran, y_tran
+                self.display_coco_image()
+
 
             # when this is in aggregate mode, all the computations have been done
             elif self.data_mode == 'aggregate':
@@ -3120,10 +3122,11 @@ class UI_MainWindow(QWidget):
                 init_input_control()
 
                 # all_quantities has shape (16, 256, 256, 2)
-                if self.use_cache:
-                    self.all_quantities_1 = torch.from_numpy(self.load_from_cache(name=f'{self.mode}_{self.data_mode}_{self.model_1_cache_name}_{self.image_index}'))
-                    self.all_quantities_2 = torch.from_numpy(self.load_from_cache(name=f'{self.mode}_{self.data_mode}_{self.model_2_cache_name}_{self.image_index}'))
-                else:
+                # always try loading from cache
+                self.all_quantities_1 = torch.from_numpy(self.load_from_cache(name=f'{self.mode}_{self.data_mode}_{self.model_1_cache_name}_{self.image_index}'))
+                self.all_quantities_2 = torch.from_numpy(self.load_from_cache(name=f'{self.mode}_{self.data_mode}_{self.model_2_cache_name}_{self.image_index}'))
+
+                if not self.load_successfully:
                     # each model output are dense 2D velocity field of the input image
                     self.all_quantities_1 = torch.zeros((self.num_transformations, self.image_size, self.image_size, 2))
                     self.all_quantities_2 = torch.zeros((self.num_transformations, self.image_size, self.image_size, 2))
