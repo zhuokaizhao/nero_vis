@@ -1261,7 +1261,6 @@ class UI_MainWindow(QWidget):
             if self.single_result_existed:
                 # show the previously selected detail area when in detail mode
                 if self.show_average == False:
-                    self.double_click = True
                     self.piv_heatmap_click_enable = True
                 self.draw_piv_nero('single')
 
@@ -3127,20 +3126,13 @@ class UI_MainWindow(QWidget):
 
                 # display the piv single case result
                 self.rectangle_index = 0
-                self.quiver_pos_x = self.image_size // 2
-                self.quiver_pos_y = self.image_size // 2
                 # default detail view starts at the center of the original rectangle
                 if self.show_average:
-                    self.double_click = False
                     self.piv_heatmap_click_enable = False
                 else:
-                    self.double_click = True
                     self.piv_heatmap_click_enable = True
-                self.detail_rect_x = np.where(self.piv_nero_layout==self.rectangle_index)[1] * self.image_size + self.image_size // 2
-                self.detail_rect_y = np.where(self.piv_nero_layout==self.rectangle_index)[0] * self.image_size + self.image_size // 2
-                # np.where returns ndarray, but we know there is only one
-                self.detail_rect_x = self.detail_rect_x[0]
-                self.detail_rect_y = self.detail_rect_y[0]
+                self.detail_rect_x = self.image_size // 2
+                self.detail_rect_y = self.image_size // 2
                 self.display_piv_single_result()
 
             # when in aggregate mode but a certain sample has been selected
@@ -3153,19 +3145,12 @@ class UI_MainWindow(QWidget):
 
                 # display the piv single case result
                 self.rectangle_index = 0
-                self.quiver_pos_x = self.image_size // 2
-                self.quiver_pos_y = self.image_size // 2
                 if self.show_average:
-                    self.double_click = False
                     self.piv_heatmap_click_enable = False
                 else:
-                    self.double_click = True
                     self.piv_heatmap_click_enable = True
-                self.detail_rect_x = np.where(self.piv_nero_layout==self.rectangle_index)[1] * self.image_size + self.image_size // 2
-                self.detail_rect_y = np.where(self.piv_nero_layout==self.rectangle_index)[0] * self.image_size + self.image_size // 2
-                # np.where returns ndarray, but we know there is only one
-                self.detail_rect_x = self.detail_rect_x[0]
-                self.detail_rect_y = self.detail_rect_y[0]
+                self.detail_rect_x = self.image_size // 2
+                self.detail_rect_y = self.image_size // 2
                 self.display_piv_single_result()
 
 
@@ -3562,7 +3547,7 @@ class UI_MainWindow(QWidget):
 
 
     # helper function on drawing individual heatmap (called by both individual and aggregate cases)
-    def draw_individual_heatmap(self, mode, data, heatmap=None, scatter_item=None, title=None, show_colorbar=False):
+    def draw_individual_heatmap(self, mode, data, heatmap=None, scatter_item=None, title=None):
 
         # color map
         self.color_map = pg.colormap.get('viridis')
@@ -3571,7 +3556,7 @@ class UI_MainWindow(QWidget):
                                          interactive=False,
                                          orientation='horizontal',
                                          width=30)
-        # add colorbar once in demo mode
+        # add colorbar to a specific place if in demo mode
         if self.demo:
             dummy_view = pg.GraphicsLayoutWidget()
             dummy_plot = pg.PlotItem()
@@ -3913,6 +3898,8 @@ class UI_MainWindow(QWidget):
         detail_heatmap_plot = pg.PlotItem(viewBox=view_box)
         heatmap.setOpts(axisOrder='row-major')
         heatmap.setImage(data)
+        # use the same colorbar as the individual NERO plot
+        self.color_bar.setImageItem(heatmap)
         # add image to the viewbox
         view_box.addItem(heatmap)
         # so that showing indicator at the boundary does not jitter the plot
@@ -3921,7 +3908,7 @@ class UI_MainWindow(QWidget):
         # small indicator on where the quiver plot displays
         detail_scatter_item = pg.ScatterPlotItem(pxMode=False)
         detail_scatter_item.setSymbol('s')
-        detail_scatter_point = [{'pos': (self.quiver_pos_x, self.quiver_pos_y),
+        detail_scatter_point = [{'pos': (self.detail_rect_x, self.detail_rect_y),
                                     'size': 8,
                                     'pen': {'color': 'red', 'width': 4},
                                     'brush': (0, 0, 0, 0)}]
@@ -4344,11 +4331,8 @@ class UI_MainWindow(QWidget):
                     outer_self.draw_piv_nero('single')
 
                     # the detailed plot of PIV
-                    outer_self.detail_rect_x = np.where(outer_self.piv_nero_layout==outer_self.rectangle_index)[1] * outer_self.image_size + outer_self.image_size // 2
-                    outer_self.detail_rect_y = np.where(outer_self.piv_nero_layout==outer_self.rectangle_index)[0] * outer_self.image_size + outer_self.image_size // 2
-                    # np.where returns ndarray, but we know there is only one
-                    outer_self.detail_rect_x = outer_self.detail_rect_x[0]
-                    outer_self.detail_rect_y = outer_self.detail_rect_y[0]
+                    outer_self.detail_rect_x = outer_self.image_size // 2
+                    outer_self.detail_rect_y = outer_self.image_size // 2
                     outer_self.draw_piv_details()
 
             def hoverEvent(self, event):
@@ -4363,12 +4347,15 @@ class UI_MainWindow(QWidget):
         # subclass of ImageItem that reimplements the control methods
         class PIV_detail_heatmap(pg.ImageItem):
             def mouseClickEvent(self, event):
-                print(f'Clicked on selected rectangle at ({event.pos().x()}, {event.pos().y()})')
-                outer_self.double_click = True
+                print(f'Clicked on detail heatmap at ({event.pos().x()}, {event.pos().y()})')
                 outer_self.detail_rect_x = event.pos().x()
                 outer_self.detail_rect_y = event.pos().y()
 
+                # udpate the detail plot
+                outer_self.draw_piv_nero(mode='single')
+                # draw the quiver plot
                 outer_self.draw_piv_details()
+
 
             def mouseDragEvent(self, event):
                 if self.plot_type == 'single':
@@ -4491,9 +4478,14 @@ class UI_MainWindow(QWidget):
             # heatmap plot
             self.detail_heatmap_1 = PIV_detail_heatmap()
             self.detail_heatmap_2 = PIV_detail_heatmap()
+            # the data is based on selection in individual NERO plot
+            self.detail_data_1 = self.data_1[self.rect_index_y*self.image_size:(self.rect_index_y+1)*self.image_size,
+                                        self.rect_index_x*self.image_size:(self.rect_index_x+1)*self.image_size]
+            self.detail_data_2 = self.data_2[self.rect_index_y*self.image_size:(self.rect_index_y+1)*self.image_size,
+                                        self.rect_index_x*self.image_size:(self.rect_index_x+1)*self.image_size]
             # color map is flipped so that low error is bright
-            self.detail_plot_1 = self.draw_piv_detail_heatmap(self.data_1, self.detail_heatmap_1)
-            self.detail_plot_2 = self.draw_piv_detail_heatmap(self.data_2, self.detail_heatmap_2)
+            self.detail_plot_1 = self.draw_piv_detail_heatmap(self.detail_data_1, self.detail_heatmap_1)
+            self.detail_plot_2 = self.draw_piv_detail_heatmap(self.detail_data_2, self.detail_heatmap_2)
 
             # add to view
             self.detail_heatmap_view_1.addItem(self.detail_plot_1)
@@ -4616,8 +4608,8 @@ class UI_MainWindow(QWidget):
 
         # get the selected vector data from ground turth and models' outputs
         # local position within this transformation
-        detail_rect_x_local = int(self.detail_rect_x - self.rect_index_x * self.image_size)
-        detail_rect_y_local = int(self.detail_rect_y - self.rect_index_y * self.image_size)
+        detail_rect_x_local = int(self.detail_rect_x)
+        detail_rect_y_local = int(self.detail_rect_y)
 
         # vector field around the selected center
         detail_ground_truth = self.all_ground_truths[self.rectangle_index][detail_rect_y_local-4:detail_rect_y_local+4,
