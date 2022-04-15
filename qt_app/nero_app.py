@@ -1070,10 +1070,15 @@ class UI_MainWindow(QWidget):
         self.model_1_menu.lineEdit().setReadOnly(True)
         self.model_1_menu.lineEdit().setAlignment(QtCore.Qt.AlignCenter)
         if self.demo:
-            model_1_menu_layout = QtWidgets.QHBoxLayout()
-            model_1_menu_layout.setContentsMargins(70, 50, 0, 0)
-            model_1_menu_layout.addWidget(self.model_1_menu)
-            self.demo_layout.addLayout(model_1_menu_layout, 4, 0)
+            if self.mode == 'digit_recognition':
+                model_menus_layout = QtWidgets.QHBoxLayout()
+                model_menus_layout.setContentsMargins(0, 50, 0, 0)
+                model_menus_layout.addWidget(self.model_1_menu)
+            else:
+                model_1_menu_layout = QtWidgets.QHBoxLayout()
+                model_1_menu_layout.setContentsMargins(70, 50, 0, 0)
+                model_1_menu_layout.addWidget(self.model_1_menu)
+                self.demo_layout.addLayout(model_1_menu_layout, 4, 0)
         else:
             self.load_menu_layout.addWidget(self.model_1_menu, 2, 3)
 
@@ -1117,10 +1122,14 @@ class UI_MainWindow(QWidget):
         # connect the drop down menu with actions
         self.model_2_menu.currentTextChanged.connect(model_2_selection_changed)
         if self.demo:
-            model_2_menu_layout = QtWidgets.QHBoxLayout()
-            model_2_menu_layout.setContentsMargins(70, 50, 0, 0)
-            model_2_menu_layout.addWidget(self.model_2_menu)
-            self.demo_layout.addLayout(model_2_menu_layout, 6, 0)
+            if self.mode == 'digit_recognition':
+                model_menus_layout.addWidget(self.model_2_menu)
+                self.demo_layout.addLayout(model_menus_layout, 4, 0)
+            else:
+                model_2_menu_layout = QtWidgets.QHBoxLayout()
+                model_2_menu_layout.setContentsMargins(70, 50, 0, 0)
+                model_2_menu_layout.addWidget(self.model_2_menu)
+                self.demo_layout.addLayout(model_2_menu_layout, 6, 0)
         else:
             self.load_menu_layout.addWidget(self.model_2_menu, 3, 3)
 
@@ -1671,10 +1680,15 @@ class UI_MainWindow(QWidget):
         # plot all the scatter items with brush color reflecting the intensity
         def plot_dr_scatter(low_dim_scatter_plot, low_dim, sorted_intensity, sorted_class_indices, slider_selected_index):
             # same colorbar as used in aggregate NERO plot, to be used in color encode scatter points
-            if self.mode == 'piv':
-                scatter_lut = self.color_map.getLookupTable(start=self.cm_range[1], stop=self.cm_range[0], nPts=500, alpha=False)
-            else:
+            if self.mode == 'digit_recognition':
+                # digit recognition does not have color defined elsewhere like others since it never uses heatmaps
+                self.color_map = pg.colormap.get('viridis')
+                self.cm_range = [0, 1]
                 scatter_lut = self.color_map.getLookupTable(start=self.cm_range[0], stop=self.cm_range[1], nPts=500, alpha=False)
+            elif self.mode == 'object_detection':
+                scatter_lut = self.color_map.getLookupTable(start=self.cm_range[0], stop=self.cm_range[1], nPts=500, alpha=False)
+            elif self.mode == 'piv':
+                scatter_lut = self.color_map.getLookupTable(start=self.cm_range[1], stop=self.cm_range[0], nPts=500, alpha=False)
 
             # quantize all the intensity into color
             color_indices = []
@@ -1818,8 +1832,12 @@ class UI_MainWindow(QWidget):
                             self.slider_2_selected_index)
 
             if self.mode == 'digit_recognition':
-                self.aggregate_result_layout.addWidget(self.low_dim_scatter_view_1, 1, 3)
-                self.aggregate_result_layout.addWidget(self.low_dim_scatter_view_2, 2, 3)
+                if self.demo:
+                    self.demo_layout.addWidget(self.low_dim_scatter_view_1, 5, 1, 1, 1)
+                    self.demo_layout.addWidget(self.low_dim_scatter_view_2, 7, 1, 1, 1)
+                else:
+                    self.aggregate_result_layout.addWidget(self.low_dim_scatter_view_1, 1, 3)
+                    self.aggregate_result_layout.addWidget(self.low_dim_scatter_view_2, 2, 3)
             elif self.mode == 'object_detection' or self.mode == 'piv':
                 if self.demo:
                     self.demo_layout.addWidget(self.low_dim_scatter_view_1, 5, 1, 1, 1)
@@ -2505,7 +2523,7 @@ class UI_MainWindow(QWidget):
             self.output_2 = nero_run_model.run_mnist_once(self.model_2, self.cur_image_pt)
 
             # display result
-            self.display_mnist_single_result(type='bar', boundary_width=3)
+            self.display_mnist_single_result(type='bar')
 
         elif self.mode == 'object_detection':
 
@@ -2710,7 +2728,7 @@ class UI_MainWindow(QWidget):
                 self.all_quantities_2.append(quantity_2)
 
             # display result
-            self.display_mnist_single_result(type='polar', boundary_width=3)
+            self.display_mnist_single_result(type='polar')
 
         elif self.mode == 'object_detection':
             # when this is called in the single case
@@ -3395,7 +3413,10 @@ class UI_MainWindow(QWidget):
 
             elif self.data_mode == 'aggregate':
                 if self.mode == 'digit_recognition':
-                    self.aggregate_result_layout.addWidget(self.image_label, 1, 4, 2, 1)
+                    if self.demo:
+                        self.demo_layout.addWidget(self.image_label, 0, 4, 5, 1)
+                    else:
+                        self.aggregate_result_layout.addWidget(self.image_label, 1, 4, 2, 1)
                 elif self.mode == 'object_detection' or self.mode == 'piv':
                     if self.demo:
                         self.demo_layout.addWidget(self.image_label, 0, 4, 5, 1)
@@ -4164,8 +4185,8 @@ class UI_MainWindow(QWidget):
                                 'brush': QtGui.QColor('magenta')})
 
         # draw lines to better show shape
-        line_1 = self.aggregate_polar_plot.plot(all_x_1, all_y_1, pen = QtGui.QPen(QtGui.Qt.blue, 0.03))
-        line_2 = self.aggregate_polar_plot.plot(all_x_2, all_y_2, pen = QtGui.QPen(QtGui.Qt.magenta, 0.03))
+        self.aggregate_polar_plot.plot(all_x_1, all_y_1, pen = QtGui.QPen(QtGui.Qt.blue, 0.03))
+        self.aggregate_polar_plot.plot(all_x_2, all_y_2, pen = QtGui.QPen(QtGui.Qt.magenta, 0.03))
 
         # add points to the item
         self.aggregate_scatter_items.addPoints(all_points_1)
@@ -4179,7 +4200,10 @@ class UI_MainWindow(QWidget):
         self.aggregate_polar_plot.setMouseEnabled(x=False, y=False)
 
         # add the plot view to the layout
-        self.aggregate_result_layout.addWidget(polar_view, 1, 1, 2, 2)
+        if self.demo:
+            self.demo_layout.addWidget(polar_view, 4, 0, 4, 1)
+        else:
+            self.aggregate_result_layout.addWidget(polar_view, 1, 1, 2, 2)
 
 
     def draw_triangle(self, painter, points, pen_color=None, brush_color=None, boundary_width=None):
@@ -4690,6 +4714,21 @@ class UI_MainWindow(QWidget):
         self.aggregate_result_existed = True
 
         # drop down menu on selection which quantity to plot
+        # title
+        # draw text
+        plot_quantity_pixmap = QPixmap(200, 50)
+        plot_quantity_pixmap.fill(QtCore.Qt.white)
+        painter = QtGui.QPainter(plot_quantity_pixmap)
+        painter.setFont(QFont('Helvetica', 18))
+        painter.drawText(0, 5, 200, 50, QtGui.Qt.AlignLeft, 'NERO plot of: ')
+        painter.end()
+
+        # create label to contain the texts
+        self.plot_quantity_label = QLabel(self)
+        self.plot_quantity_label.setFixedSize(QtCore.QSize(200, 50))
+        self.plot_quantity_label.setPixmap(plot_quantity_pixmap)
+
+        # drop down menu on selection which quantity to plot
         quantity_menu = QtWidgets.QComboBox()
         quantity_menu.setFixedSize(QtCore.QSize(250, 50))
         quantity_menu.setStyleSheet('font-size: 18px')
@@ -4704,7 +4743,13 @@ class UI_MainWindow(QWidget):
 
         # connect the drop down menu with actions
         quantity_menu.currentTextChanged.connect(polar_quantity_changed)
-        self.aggregate_plot_control_layout.addWidget(quantity_menu, 1, 0)
+        if self.demo:
+            self.plot_info_layout = QtWidgets.QHBoxLayout()
+            self.plot_info_layout.addWidget(self.plot_quantity_label)
+            self.plot_info_layout.addWidget(quantity_menu)
+            self.demo_layout.addLayout(self.plot_info_layout, 0, 2, 1, 1)
+        else:
+            self.aggregate_plot_control_layout.addWidget(quantity_menu, 1, 0)
 
         # draw the aggregate polar plot
         self.draw_aggregate_polar()
@@ -4734,7 +4779,10 @@ class UI_MainWindow(QWidget):
             if self.data_mode == 'single':
                 self.single_result_layout.addWidget(self.bar_plot, 1, 2)
             elif self.data_mode == 'aggregate':
-                self.aggregate_result_layout.addWidget(self.bar_plot, 2, 6)
+                if self.demo:
+                    self.demo_layout.addWidget(self.bar_plot, 4, 4, 4, 1)
+                else:
+                    self.aggregate_result_layout.addWidget(self.bar_plot, 2, 6)
 
         elif type == 'polar':
 
@@ -4831,8 +4879,8 @@ class UI_MainWindow(QWidget):
                                     'brush': QtGui.QColor('magenta')})
 
             # draw lines to better show shape
-            line_1 = self.polar_plot.plot(all_x_1, all_y_1, pen = QtGui.QPen(QtGui.Qt.blue, 0.03))
-            line_2 = self.polar_plot.plot(all_x_2, all_y_2, pen = QtGui.QPen(QtGui.QColor('magenta'), 0.03))
+            self.polar_plot.plot(all_x_1, all_y_1, pen = QtGui.QPen(QtGui.Qt.blue, 0.03))
+            self.polar_plot.plot(all_x_2, all_y_2, pen = QtGui.QPen(QtGui.QColor('magenta'), 0.03))
 
             # add points to the item
             self.scatter_items.addPoints(all_points_1)
@@ -4901,7 +4949,10 @@ class UI_MainWindow(QWidget):
             if self.data_mode == 'single':
                 self.single_result_layout.addWidget(polar_view, 1, 3)
             elif self.data_mode == 'aggregate':
-                self.aggregate_result_layout.addWidget(polar_view, 1, 6)
+                if self.demo:
+                    self.demo_layout.addWidget(polar_view, 4, 3, 4, 1)
+                else:
+                    self.aggregate_result_layout.addWidget(polar_view, 1, 6)
 
         else:
             raise Exception('Unsupported display mode')
