@@ -1266,10 +1266,8 @@ class UI_MainWindow(QWidget):
         def detail_nero_checkbox_clicked(state):
             if state == QtCore.Qt.Checked:
                 self.show_average = False
-                self.piv_heatmap_click_enable = True
             else:
                 self.show_average = True
-                self.piv_heatmap_click_enable = False
 
             self.draw_piv_nero('aggregate')
 
@@ -1406,9 +1404,12 @@ class UI_MainWindow(QWidget):
             self.detail_nero_checkbox.setStyleSheet('font-size: 18px')
             self.detail_nero_checkbox.setFixedSize(QtCore.QSize(300, 50))
             self.detail_nero_checkbox.stateChanged.connect(detail_nero_checkbox_clicked)
-            self.show_average = True
-            self.piv_heatmap_click_enable = False
             self.detail_nero_checkbox.setChecked(False)
+            if self.detail_nero_checkbox.checkState() == QtCore.Qt.Checked:
+                self.show_average = False
+            else:
+                self.show_average = True
+
             if self.demo:
                 self.demo_layout.addWidget(self.detail_nero_checkbox, 4, 2, 1, 1)
             else:
@@ -2893,8 +2894,10 @@ class UI_MainWindow(QWidget):
 
         elif self.mode == 'piv':
 
-            self.show_average = True
-            self.piv_heatmap_click_enable = False
+            if self.detail_nero_checkbox.checkState() == QtCore.Qt.Checked:
+                self.show_average = False
+            else:
+                self.show_average = True
 
             # flags on controlling current image tensor
             self.rotate_ccw = False
@@ -3172,10 +3175,10 @@ class UI_MainWindow(QWidget):
                 # display the piv single case result
                 self.rectangle_index = 0
                 # default detail view starts at the center of the original rectangle
-                if self.show_average:
-                    self.piv_heatmap_click_enable = False
-                else:
-                    self.piv_heatmap_click_enable = True
+                # if self.show_average:
+                #     self.piv_heatmap_click_enable = False
+                # else:
+                #     self.piv_heatmap_click_enable = True
                 self.detail_rect_x = self.image_size // 2
                 self.detail_rect_y = self.image_size // 2
                 self.display_piv_single_result()
@@ -3190,10 +3193,10 @@ class UI_MainWindow(QWidget):
 
                 # display the piv single case result
                 self.rectangle_index = 0
-                if self.show_average:
-                    self.piv_heatmap_click_enable = False
-                else:
-                    self.piv_heatmap_click_enable = True
+                # if self.show_average:
+                #     self.piv_heatmap_click_enable = False
+                # else:
+                #     self.piv_heatmap_click_enable = True
                 self.detail_rect_x = self.image_size // 2
                 self.detail_rect_y = self.image_size // 2
                 self.display_piv_single_result()
@@ -4271,120 +4274,120 @@ class UI_MainWindow(QWidget):
         # subclass of ImageItem that reimplements the control methods
         class PIV_heatmap(pg.ImageItem):
             def mouseClickEvent(self, event):
-                if outer_self.piv_heatmap_click_enable:
-                    print(f'Clicked on individual PIV NERO plot at ({event.pos().x()}, {event.pos().y()})')
-                    # in PIV mode, a pop up window shows the nearby area's quiver plot
-                    rect_x = int(event.pos().x() // outer_self.image_size)
-                    rect_y = int(event.pos().y() // outer_self.image_size)
+                # if outer_self.piv_heatmap_click_enable:
+                print(f'Clicked on individual PIV NERO plot at ({event.pos().x()}, {event.pos().y()})')
+                # in PIV mode, a pop up window shows the nearby area's quiver plot
+                rect_x = int(event.pos().x() // outer_self.image_size)
+                rect_y = int(event.pos().y() // outer_self.image_size)
 
-                    # current/new rectangle selection index
-                    outer_self.rectangle_index = outer_self.piv_nero_layout[rect_y, rect_x]
-                    # from rectangle index get the needed transformations to the original image
-                    '''
-                    2'  2(Rot90)            1(right diag flip)   1'
-                    3'  3(hori flip)        0(original)          0'
-                    4'  4(Rot180)           7(vert flip)         7'
-                    5'  5(left diag flip)   6(Rot270)            6'
-                    '''
-                    is_reversed = outer_self.rectangle_index // 8
-                    transformation_index = outer_self.rectangle_index % 8
+                # current/new rectangle selection index
+                outer_self.rectangle_index = outer_self.piv_nero_layout[rect_y, rect_x]
+                # from rectangle index get the needed transformations to the original image
+                '''
+                2'  2(Rot90)            1(right diag flip)   1'
+                3'  3(hori flip)        0(original)          0'
+                4'  4(Rot180)           7(vert flip)         7'
+                5'  5(left diag flip)   6(Rot270)            6'
+                '''
+                is_reversed = outer_self.rectangle_index // 8
+                transformation_index = outer_self.rectangle_index % 8
 
-                    if is_reversed:
-                        start_image_1_pt, \
-                        start_image_2_pt, \
-                        _ = nero_transform.time_reverse_piv_data(outer_self.cur_image_1_pt,
-                                                                    outer_self.cur_image_2_pt,
-                                                                    np.zeros(1))
-                    else:
-                        start_image_1_pt = outer_self.cur_image_1_pt.clone()
-                        start_image_2_pt = outer_self.cur_image_2_pt.clone()
+                if is_reversed:
+                    start_image_1_pt, \
+                    start_image_2_pt, \
+                    _ = nero_transform.time_reverse_piv_data(outer_self.cur_image_1_pt,
+                                                                outer_self.cur_image_2_pt,
+                                                                np.zeros(1))
+                else:
+                    start_image_1_pt = outer_self.cur_image_1_pt.clone()
+                    start_image_2_pt = outer_self.cur_image_2_pt.clone()
 
-                    # no transformation
-                    if transformation_index == 0:
-                        temp_image_1_pt = start_image_1_pt.clone()
-                        temp_image_2_pt = start_image_2_pt.clone()
+                # no transformation
+                if transformation_index == 0:
+                    temp_image_1_pt = start_image_1_pt.clone()
+                    temp_image_2_pt = start_image_2_pt.clone()
 
-                    # 1: right diagonal flip (/)
-                    if transformation_index == 1:
+                # 1: right diagonal flip (/)
+                if transformation_index == 1:
 
-                        temp_image_1_pt, \
-                        temp_image_2_pt, \
-                        _ = nero_transform.flip_piv_data(start_image_1_pt,
-                                                            start_image_2_pt,
-                                                            np.zeros(1),
-                                                            flip_type='right-diagonal')
+                    temp_image_1_pt, \
+                    temp_image_2_pt, \
+                    _ = nero_transform.flip_piv_data(start_image_1_pt,
+                                                        start_image_2_pt,
+                                                        np.zeros(1),
+                                                        flip_type='right-diagonal')
 
-                    # 2: counter-clockwise 90 rotation
-                    elif transformation_index == 2:
-                        temp_image_1_pt, \
-                        temp_image_2_pt, \
-                        _ = nero_transform.rotate_piv_data(start_image_1_pt,
-                                                            start_image_2_pt,
-                                                            np.zeros(1),
-                                                            90)
-                    # 3: horizontal flip (by y axis)
-                    elif transformation_index == 3:
-                        temp_image_1_pt, \
-                        temp_image_2_pt, \
-                        _ = nero_transform.flip_piv_data(start_image_1_pt,
-                                                            start_image_2_pt,
-                                                            np.zeros(1),
-                                                            flip_type='horizontal')
-                    # 4: counter-clockwise 180 rotation
-                    elif transformation_index == 4:
-                        temp_image_1_pt, \
-                        temp_image_2_pt, \
-                        _ = nero_transform.rotate_piv_data(start_image_1_pt,
-                                                            start_image_2_pt,
-                                                            np.zeros(1),
-                                                            180)
-                    # 5: \ diagnal flip
-                    elif transformation_index == 5:
-                        temp_image_1_pt, \
-                        temp_image_2_pt, \
-                        _ = nero_transform.flip_piv_data(start_image_1_pt,
-                                                            start_image_2_pt,
-                                                            np.zeros(1),
-                                                            flip_type='left-diagonal')
-                    # 6: counter-clockwise 270 rotation
-                    elif transformation_index == 6:
-                        temp_image_1_pt, \
-                        temp_image_2_pt, \
-                        _ = nero_transform.rotate_piv_data(start_image_1_pt,
-                                                            start_image_2_pt,
-                                                            np.zeros(1),
-                                                            270)
-                    # 7: vertical flip (by x axis)
-                    elif transformation_index == 7:
-                        temp_image_1_pt, \
-                        temp_image_2_pt, \
-                        _ = nero_transform.flip_piv_data(start_image_1_pt,
-                                                            start_image_2_pt,
-                                                            np.zeros(1),
-                                                            flip_type='vertical')
+                # 2: counter-clockwise 90 rotation
+                elif transformation_index == 2:
+                    temp_image_1_pt, \
+                    temp_image_2_pt, \
+                    _ = nero_transform.rotate_piv_data(start_image_1_pt,
+                                                        start_image_2_pt,
+                                                        np.zeros(1),
+                                                        90)
+                # 3: horizontal flip (by y axis)
+                elif transformation_index == 3:
+                    temp_image_1_pt, \
+                    temp_image_2_pt, \
+                    _ = nero_transform.flip_piv_data(start_image_1_pt,
+                                                        start_image_2_pt,
+                                                        np.zeros(1),
+                                                        flip_type='horizontal')
+                # 4: counter-clockwise 180 rotation
+                elif transformation_index == 4:
+                    temp_image_1_pt, \
+                    temp_image_2_pt, \
+                    _ = nero_transform.rotate_piv_data(start_image_1_pt,
+                                                        start_image_2_pt,
+                                                        np.zeros(1),
+                                                        180)
+                # 5: \ diagnal flip
+                elif transformation_index == 5:
+                    temp_image_1_pt, \
+                    temp_image_2_pt, \
+                    _ = nero_transform.flip_piv_data(start_image_1_pt,
+                                                        start_image_2_pt,
+                                                        np.zeros(1),
+                                                        flip_type='left-diagonal')
+                # 6: counter-clockwise 270 rotation
+                elif transformation_index == 6:
+                    temp_image_1_pt, \
+                    temp_image_2_pt, \
+                    _ = nero_transform.rotate_piv_data(start_image_1_pt,
+                                                        start_image_2_pt,
+                                                        np.zeros(1),
+                                                        270)
+                # 7: vertical flip (by x axis)
+                elif transformation_index == 7:
+                    temp_image_1_pt, \
+                    temp_image_2_pt, \
+                    _ = nero_transform.flip_piv_data(start_image_1_pt,
+                                                        start_image_2_pt,
+                                                        np.zeros(1),
+                                                        flip_type='vertical')
 
-                    # create new GIF
-                    display_image_1_pil = Image.fromarray(temp_image_1_pt.numpy(), 'RGB')
-                    display_image_2_pil = Image.fromarray(temp_image_2_pt.numpy(), 'RGB')
-                    other_images_pil = [display_image_1_pil, display_image_2_pil, display_image_2_pil, outer_self.blank_image_pil]
-                    outer_self.gif_path = os.path.join(outer_self.cache_dir, '_clicked.gif')
-                    display_image_1_pil.save(fp=outer_self.gif_path,
-                                                format='GIF',
-                                                append_images=other_images_pil,
-                                                save_all=True,
-                                                duration=300,
-                                                loop=0)
+                # create new GIF
+                display_image_1_pil = Image.fromarray(temp_image_1_pt.numpy(), 'RGB')
+                display_image_2_pil = Image.fromarray(temp_image_2_pt.numpy(), 'RGB')
+                other_images_pil = [display_image_1_pil, display_image_2_pil, display_image_2_pil, outer_self.blank_image_pil]
+                outer_self.gif_path = os.path.join(outer_self.cache_dir, '_clicked.gif')
+                display_image_1_pil.save(fp=outer_self.gif_path,
+                                            format='GIF',
+                                            append_images=other_images_pil,
+                                            save_all=True,
+                                            duration=300,
+                                            loop=0)
 
-                    # display the input image
-                    outer_self.display_image()
+                # display the input image
+                outer_self.display_image()
 
-                    # redraw the nero plot with new rectangle display
-                    outer_self.draw_piv_nero('single')
+                # redraw the nero plot with new rectangle display
+                outer_self.draw_piv_nero('single')
 
-                    # the detailed plot of PIV
-                    outer_self.detail_rect_x = outer_self.image_size // 2
-                    outer_self.detail_rect_y = outer_self.image_size // 2
-                    outer_self.draw_piv_details()
+                # the detailed plot of PIV
+                outer_self.detail_rect_x = outer_self.image_size // 2
+                outer_self.detail_rect_y = outer_self.image_size // 2
+                outer_self.draw_piv_details()
 
             def hoverEvent(self, event):
                 if not event.isExit():
@@ -5384,17 +5387,25 @@ class UI_MainWindow(QWidget):
             elif self.quantity_name == 'AEE':
                 self.loss_module = nero_utilities.AEELoss()
 
-            # keep the same dimension
-            cur_losses_1 = np.zeros((self.num_transformations, len(self.aggregate_outputs_1[0]), self.image_size, self.image_size))
-            cur_losses_2 = np.zeros((self.num_transformations, len(self.aggregate_outputs_1[0]), self.image_size, self.image_size))
-            for i in range(self.num_transformations):
-                for j in range(len(self.aggregate_outputs_1[i])):
-                    cur_losses_1[i, j] = self.loss_module(self.aggregate_ground_truths[i, j],
-                                                          self.aggregate_outputs_1[i, j],
-                                                          reduction='none').numpy().mean(axis=2)
-                    cur_losses_2[i, j] = self.loss_module(self.aggregate_ground_truths[i, j],
-                                                          self.aggregate_outputs_2[i, j],
-                                                          reduction='none').numpy().mean(axis=2)
+            # try loading from cache
+            cur_losses_1 = self.load_from_cache(f'{self.mode}_{self.data_mode}_{self.model_1_cache_name}_{self.class_selection}_{self.quantity_name}_aggregate_1')
+            cur_losses_2 = self.load_from_cache(f'{self.mode}_{self.data_mode}_{self.model_1_cache_name}_{self.class_selection}_{self.quantity_name}_aggregate_2')
+            if not self.load_successfully:
+                # keep the same dimension
+                cur_losses_1 = np.zeros((self.num_transformations, len(self.aggregate_outputs_1[0]), self.image_size, self.image_size))
+                cur_losses_2 = np.zeros((self.num_transformations, len(self.aggregate_outputs_1[0]), self.image_size, self.image_size))
+                for i in range(self.num_transformations):
+                    for j in range(len(self.aggregate_outputs_1[i])):
+                        cur_losses_1[i, j] = self.loss_module(self.aggregate_ground_truths[i, j],
+                                                            self.aggregate_outputs_1[i, j],
+                                                            reduction='none').numpy().mean(axis=2)
+                        cur_losses_2[i, j] = self.loss_module(self.aggregate_ground_truths[i, j],
+                                                            self.aggregate_outputs_2[i, j],
+                                                            reduction='none').numpy().mean(axis=2)
+
+                # save to cache
+                self.save_to_cache(f'{self.mode}_{self.data_mode}_{self.model_1_cache_name}_{self.class_selection}_{self.quantity_name}_aggregate_1', cur_losses_1)
+                self.save_to_cache(f'{self.mode}_{self.data_mode}_{self.model_1_cache_name}_{self.class_selection}_{self.quantity_name}_aggregate_2', cur_losses_2)
 
             # get the 0 and 80 percentile as the threshold for colormap
             all_losses = np.concatenate([cur_losses_1.flatten(), cur_losses_2.flatten()])
@@ -5408,12 +5419,20 @@ class UI_MainWindow(QWidget):
 
             # compute single result if needed as well
             if self.single_result_existed:
-                # keep the same dimension
-                cur_losses_1 = np.zeros((self.num_transformations, self.image_size, self.image_size))
-                cur_losses_2 = np.zeros((self.num_transformations, self.image_size, self.image_size))
-                for i in range(self.num_transformations):
-                    cur_losses_1[i] = self.loss_module(self.all_ground_truths[i], self.all_quantities_1[i], reduction='none').numpy().mean(axis=2)
-                    cur_losses_2[i] = self.loss_module(self.all_ground_truths[i], self.all_quantities_2[i], reduction='none').numpy().mean(axis=2)
+                # try loading from cache
+                cur_losses_1 = self.load_from_cache(f'{self.mode}_{self.data_mode}_{self.model_1_cache_name}_{self.class_selection}_{self.quantity_name}_single_1')
+                cur_losses_2 = self.load_from_cache(f'{self.mode}_{self.data_mode}_{self.model_1_cache_name}_{self.class_selection}_{self.quantity_name}_single_2')
+                if not self.load_successfully:
+                    # keep the same dimension
+                    cur_losses_1 = np.zeros((self.num_transformations, self.image_size, self.image_size))
+                    cur_losses_2 = np.zeros((self.num_transformations, self.image_size, self.image_size))
+                    for i in range(self.num_transformations):
+                        cur_losses_1[i] = self.loss_module(self.all_ground_truths[i], self.all_quantities_1[i], reduction='none').numpy().mean(axis=2)
+                        cur_losses_2[i] = self.loss_module(self.all_ground_truths[i], self.all_quantities_2[i], reduction='none').numpy().mean(axis=2)
+
+                    # save to cache
+                    self.save_to_cache(f'{self.mode}_{self.data_mode}_{self.model_1_cache_name}_{self.class_selection}_{self.quantity_name}_single_1', cur_losses_1)
+                    self.save_to_cache(f'{self.mode}_{self.data_mode}_{self.model_1_cache_name}_{self.class_selection}_{self.quantity_name}_single_2', cur_losses_2)
 
                 # average element-wise loss to scalar and normalize between 0 and 1
                 self.cur_single_plot_quantity_1 = cur_losses_1
@@ -5519,16 +5538,24 @@ class UI_MainWindow(QWidget):
             elif self.quantity_name == 'AEE':
                 self.loss_module = nero_utilities.AEELoss()
 
-            # keep the same dimension
-            cur_losses_1 = np.zeros((self.num_transformations, self.image_size, self.image_size))
-            cur_losses_2 = np.zeros((self.num_transformations, self.image_size, self.image_size))
-            for i in range(self.num_transformations):
-                cur_losses_1[i] = self.loss_module(self.all_ground_truths[i],
-                                                    self.all_quantities_1[i],
-                                                    reduction='none').numpy().mean(axis=2)
-                cur_losses_2[i] = self.loss_module(self.all_ground_truths[i],
-                                                    self.all_quantities_2[i],
-                                                    reduction='none').numpy().mean(axis=2)
+            # try loading from cache
+            cur_losses_1 = self.load_from_cache(f'{self.mode}_{self.data_mode}_{self.model_1_cache_name}_{self.class_selection}_{self.quantity_name}_single_1')
+            cur_losses_2 = self.load_from_cache(f'{self.mode}_{self.data_mode}_{self.model_1_cache_name}_{self.class_selection}_{self.quantity_name}_single_2')
+            if not self.load_successfully:
+                # keep the same dimension
+                cur_losses_1 = np.zeros((self.num_transformations, self.image_size, self.image_size))
+                cur_losses_2 = np.zeros((self.num_transformations, self.image_size, self.image_size))
+                for i in range(self.num_transformations):
+                    cur_losses_1[i] = self.loss_module(self.all_ground_truths[i],
+                                                        self.all_quantities_1[i],
+                                                        reduction='none').numpy().mean(axis=2)
+                    cur_losses_2[i] = self.loss_module(self.all_ground_truths[i],
+                                                        self.all_quantities_2[i],
+                                                        reduction='none').numpy().mean(axis=2)
+
+                # save to cache
+                self.save_to_cache(f'{self.mode}_{self.data_mode}_{self.model_1_cache_name}_{self.class_selection}_{self.quantity_name}_single_1', cur_losses_1)
+                self.save_to_cache(f'{self.mode}_{self.data_mode}_{self.model_1_cache_name}_{self.class_selection}_{self.quantity_name}_single_2', cur_losses_2)
 
             # get the 0 and 80 percentile as the threshold for colormap
             # when in aggregate mode, continue using aggregate range
