@@ -186,7 +186,7 @@ class UI_MainWindow(QWidget):
                 # image size that is fed into the model
                 self.image_size = 29
                 # image size that is used for display
-                self.display_image_size = 150
+                self.display_image_size = 300
                 # heatmap and detailed image plot size
                 self.plot_size = 320
                 # image (input data) modification mode
@@ -1043,14 +1043,15 @@ class UI_MainWindow(QWidget):
         draw_circle(painter, 12, 12, 10, 'blue')
 
         self.model_1_menu = QtWidgets.QComboBox()
-        self.model_1_menu.setFixedSize(QtCore.QSize(300, 30))
         self.model_1_menu.setStyleSheet('font-size: 18px')
         if self.mode == 'digit_recognition':
+            self.model_1_menu.setFixedSize(QtCore.QSize(200, 30))
             self.model_1_menu.addItem(model_1_icon, 'Original model')
             self.model_1_menu.addItem(model_1_icon, 'E2CNN model')
             self.model_1_menu.addItem(model_1_icon, 'DA model')
             self.model_1_menu.setCurrentText('Original model')
         elif self.mode == 'object_detection':
+            self.model_1_menu.setFixedSize(QtCore.QSize(300, 30))
             self.model_1_menu.addItem(model_1_icon, 'FasterRCNN (0% jittering)')
             self.model_1_menu.addItem(model_1_icon, 'FasterRCNN (20% jittering)')
             self.model_1_menu.addItem(model_1_icon, 'FasterRCNN (40% jittering)')
@@ -1060,6 +1061,7 @@ class UI_MainWindow(QWidget):
             self.model_1_menu.addItem(model_1_icon, 'FasterRCNN (Pre-trained)')
             self.model_1_menu.setCurrentText('Custom-trained FasterRCNN')
         elif self.mode == 'piv':
+            self.model_1_menu.setFixedSize(QtCore.QSize(300, 30))
             self.model_1_menu.addItem(model_1_icon, 'PIV-LiteFlowNet-en')
             self.model_1_menu.addItem(model_1_icon, 'Horn-Schunck')
             self.model_1_menu.setCurrentText('PIV-LiteFlowNet-en')
@@ -1094,18 +1096,19 @@ class UI_MainWindow(QWidget):
         draw_circle(painter, 12, 12, 10, 'magenta')
 
         self.model_2_menu = QtWidgets.QComboBox()
-        self.model_2_menu.setFixedSize(QtCore.QSize(300, 30))
         self.model_2_menu.setStyleSheet('font-size: 18px')
         self.model_2_menu.setEditable(True)
         self.model_2_menu.lineEdit().setReadOnly(True)
         self.model_2_menu.lineEdit().setAlignment(QtCore.Qt.AlignCenter)
         if self.mode == 'digit_recognition':
+            self.model_2_menu.setFixedSize(QtCore.QSize(200, 30))
             self.model_2_menu.addItem(model_2_icon, 'Original model')
             self.model_2_menu.addItem(model_2_icon, 'E2CNN model')
             self.model_2_menu.addItem(model_2_icon, 'DA model')
             # model_2_menu.setCurrentText('E2CNN model')
             self.model_2_menu.setCurrentText('DA model')
         elif self.mode == 'object_detection':
+            self.model_2_menu.setFixedSize(QtCore.QSize(300, 30))
             self.model_2_menu.addItem(model_2_icon, 'FasterRCNN (0% jittering)')
             self.model_2_menu.addItem(model_2_icon, 'FasterRCNN (20% jittering)')
             self.model_2_menu.addItem(model_2_icon, 'FasterRCNN (40% jittering)')
@@ -1115,6 +1118,7 @@ class UI_MainWindow(QWidget):
             self.model_2_menu.addItem(model_2_icon, 'FasterRCNN (Pre-trained)')
             self.model_2_menu.setCurrentText('FasterRCNN (Pre-trained)')
         elif self.mode == 'piv':
+            self.model_2_menu.setFixedSize(QtCore.QSize(300, 30))
             self.model_2_menu.addItem(model_2_icon, 'PIV-LiteFlowNet-en')
             self.model_2_menu.addItem(model_2_icon, 'Horn-Schunck')
             self.model_2_menu.setCurrentText('Horn-Schunck')
@@ -1685,6 +1689,26 @@ class UI_MainWindow(QWidget):
                 self.color_map = pg.colormap.get('viridis')
                 self.cm_range = [0, 1]
                 scatter_lut = self.color_map.getLookupTable(start=self.cm_range[0], stop=self.cm_range[1], nPts=500, alpha=False)
+                # digit recognition has color bar only for scatter plot
+                if self.demo:
+                    self.color_bar = pg.ColorBarItem(values=self.cm_range,
+                                                    colorMap=self.color_map,
+                                                    interactive=False,
+                                                    orientation='horizontal',
+                                                    width=30)
+                    # add colorbar to a specific place if in demo mode
+                    dummy_view = pg.GraphicsLayoutWidget()
+                    dummy_plot = pg.PlotItem()
+                    dummy_plot.layout.setContentsMargins(10, 20, 0, 0)
+                    dummy_plot.setFixedHeight(0)
+                    dummy_plot.setFixedWidth(self.plot_size*1.2)
+                    dummy_plot.hideAxis('bottom')
+                    dummy_plot.hideAxis('left')
+                    dummy_view.addItem(dummy_plot)
+                    dummy_image = pg.ImageItem()
+                    self.color_bar.setImageItem(dummy_image, insert_in=dummy_plot)
+                    self.scatterplot_sorting_layout.addWidget(dummy_view, 2, 0, 1, 2)
+
             elif self.mode == 'object_detection':
                 scatter_lut = self.color_map.getLookupTable(start=self.cm_range[0], stop=self.cm_range[1], nPts=500, alpha=False)
             elif self.mode == 'piv':
@@ -2135,9 +2159,9 @@ class UI_MainWindow(QWidget):
         intensity_button_label.setPixmap(intensity_button_pixmap)
         # add to the layout
         if self.demo:
-            scatterplot_sorting_layout = QtWidgets.QGridLayout()
+            self.scatterplot_sorting_layout = QtWidgets.QGridLayout()
             # the title occupies two rows
-            scatterplot_sorting_layout.addWidget(intensity_button_label, 0, 0, 2, 1)
+            self.scatterplot_sorting_layout.addWidget(intensity_button_label, 0, 0, 2, 1)
         else:
             self.aggregate_plot_control_layout.addWidget(intensity_button_label, 7, 0)
 
@@ -2146,7 +2170,7 @@ class UI_MainWindow(QWidget):
         self.mean_intensity_button.setStyleSheet('QRadioButton{font: 14pt Helvetica;} QRadioButton::indicator { width: 14px; height: 14px;};')
         self.mean_intensity_button.pressed.connect(mean_intensity_button_clicked)
         if self.demo:
-            scatterplot_sorting_layout.addWidget(self.mean_intensity_button, 0, 1, 1, 1)
+            self.scatterplot_sorting_layout.addWidget(self.mean_intensity_button, 0, 1, 1, 1)
         else:
             self.aggregate_plot_control_layout.addWidget(self.mean_intensity_button, 8, 0)
 
@@ -2155,8 +2179,8 @@ class UI_MainWindow(QWidget):
         self.variance_intensity_button.setStyleSheet('QRadioButton{font: 14pt Helvetica;} QRadioButton::indicator { width: 14px; height: 14px;};')
         self.variance_intensity_button.pressed.connect(variance_intensity_button_clicked)
         if self.demo:
-            scatterplot_sorting_layout.addWidget(self.variance_intensity_button, 1, 1, 1, 1)
-            self.demo_layout.addLayout(scatterplot_sorting_layout, 2, 1, 2, 1)
+            self.scatterplot_sorting_layout.addWidget(self.variance_intensity_button, 1, 1, 1, 1)
+            self.demo_layout.addLayout(self.scatterplot_sorting_layout, 2, 1, 2, 1)
         else:
             self.aggregate_plot_control_layout.addWidget(self.variance_intensity_button, 9, 0)
 
@@ -2882,7 +2906,7 @@ class UI_MainWindow(QWidget):
                 # add buttons for controlling the single GIF
                 self.gif_control_layout = QtWidgets.QVBoxLayout()
                 self.gif_control_layout.setAlignment(QtGui.Qt.AlignTop)
-                self.gif_control_layout.setContentsMargins(0, 0, 0, 0)
+                self.gif_control_layout.setContentsMargins(0, 70, 0, 0)
                 if self.data_mode == 'single':
                     self.single_result_layout.addLayout(self.gif_control_layout, 2, 0)
                 elif self.data_mode == 'aggregate':
@@ -3414,7 +3438,7 @@ class UI_MainWindow(QWidget):
             elif self.data_mode == 'aggregate':
                 if self.mode == 'digit_recognition':
                     if self.demo:
-                        self.demo_layout.addWidget(self.image_label, 0, 4, 5, 1)
+                        self.demo_layout.addWidget(self.image_label, 0, 3, 5, 1)
                     else:
                         self.aggregate_result_layout.addWidget(self.image_label, 1, 4, 2, 1)
                 elif self.mode == 'object_detection' or self.mode == 'piv':
@@ -4201,7 +4225,7 @@ class UI_MainWindow(QWidget):
 
         # add the plot view to the layout
         if self.demo:
-            self.demo_layout.addWidget(polar_view, 4, 0, 4, 1)
+            self.demo_layout.addWidget(polar_view, 5, 0, 5, 1)
         else:
             self.aggregate_result_layout.addWidget(polar_view, 1, 1, 2, 2)
 
@@ -4766,7 +4790,7 @@ class UI_MainWindow(QWidget):
             # constrain plot showing limit by setting view box
             self.bar_plot.plotItem.vb.setLimits(xMin=-0.5, xMax=9.5, yMin=0, yMax=1.2)
             self.bar_plot.setBackground('w')
-            self.bar_plot.setFixedSize(self.plot_size, self.plot_size)
+            self.bar_plot.setFixedSize(self.plot_size*1.7, self.plot_size*1.7)
             self.bar_plot.getAxis('bottom').setLabel('Digit')
             self.bar_plot.getAxis('left').setLabel('Confidence')
 
@@ -4780,7 +4804,7 @@ class UI_MainWindow(QWidget):
                 self.single_result_layout.addWidget(self.bar_plot, 1, 2)
             elif self.data_mode == 'aggregate':
                 if self.demo:
-                    self.demo_layout.addWidget(self.bar_plot, 4, 4, 4, 1)
+                    self.demo_layout.addWidget(self.bar_plot, 5, 3, 5, 1)
                 else:
                     self.aggregate_result_layout.addWidget(self.bar_plot, 2, 6)
 
@@ -4839,7 +4863,7 @@ class UI_MainWindow(QWidget):
             # initialize view and plot
             polar_view = pg.GraphicsLayoutWidget()
             polar_view.setBackground('white')
-            polar_view.setFixedSize(self.plot_size, self.plot_size)
+            polar_view.setFixedSize(self.plot_size*1.7, self.plot_size*1.7)
             self.polar_plot = polar_view.addPlot()
             self.polar_plot = self.draw_polar(self.polar_plot)
 
@@ -4889,7 +4913,7 @@ class UI_MainWindow(QWidget):
             # add points to the plot
             self.polar_plot.addItem(self.scatter_items)
             # connect click events on scatter items (disabled)
-            self.scatter_items.sigClicked.connect(clicked)
+            # self.scatter_items.sigClicked.connect(clicked)
 
             # used for clicking on the polar plot
             def polar_mouse_clicked(event):
@@ -4942,7 +4966,6 @@ class UI_MainWindow(QWidget):
             self.polar_plot.scene().sigMouseMoved.connect(polar_mouse_moved)
 
             # fix zoom level
-            # self.polar_plot.vb.scaleBy((0.5, 0.5))
             self.polar_plot.setMouseEnabled(x=False, y=False)
 
             # add the plot view to the layout
@@ -4950,7 +4973,7 @@ class UI_MainWindow(QWidget):
                 self.single_result_layout.addWidget(polar_view, 1, 3)
             elif self.data_mode == 'aggregate':
                 if self.demo:
-                    self.demo_layout.addWidget(polar_view, 4, 3, 4, 1)
+                    self.demo_layout.addWidget(polar_view, 5, 2, 5, 1)
                 else:
                     self.aggregate_result_layout.addWidget(polar_view, 1, 6)
 
