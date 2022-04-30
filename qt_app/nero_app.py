@@ -50,7 +50,7 @@ class UI_MainWindow(QWidget):
         self.layout = QtWidgets.QGridLayout(self)
         self.layout.setAlignment(QtCore.Qt.AlignCenter)
         # left, top, right, and bottom margins
-        self.layout.setContentsMargins(50, 0, 50, 0)
+        self.layout.setContentsMargins(30, 30, 30, 30)
 
         # individual laytout for different widgets
         # mode selections
@@ -188,7 +188,7 @@ class UI_MainWindow(QWidget):
                 # image size that is fed into the model
                 self.image_size = 29
                 # image size that is used for display
-                self.display_image_size = 300
+                self.display_image_size = 450
                 # heatmap and detailed image plot size
                 self.plot_size = 320
                 # image (input data) modification mode
@@ -1076,7 +1076,7 @@ class UI_MainWindow(QWidget):
         if self.demo:
             if self.mode == 'digit_recognition':
                 model_menus_layout = QtWidgets.QHBoxLayout()
-                model_menus_layout.setContentsMargins(0, 50, 0, 0)
+                model_menus_layout.setContentsMargins(50, 0, 0, 0)
                 model_menus_layout.addWidget(self.model_1_menu)
             else:
                 model_1_menu_layout = QtWidgets.QHBoxLayout()
@@ -1130,7 +1130,8 @@ class UI_MainWindow(QWidget):
         if self.demo:
             if self.mode == 'digit_recognition':
                 model_menus_layout.addWidget(self.model_2_menu)
-                self.demo_layout.addLayout(model_menus_layout, 4, 0)
+                # self.demo_layout.addLayout(model_menus_layout, 4, 0) # when taking aggregate case screenshot
+                self.demo_layout.addLayout(model_menus_layout, 4, 2) # when taking single case screenshot
             else:
                 model_2_menu_layout = QtWidgets.QHBoxLayout()
                 model_2_menu_layout.setContentsMargins(70, 50, 0, 0)
@@ -1318,7 +1319,7 @@ class UI_MainWindow(QWidget):
         self.class_selection_menu.setFixedSize(QtCore.QSize(300, 50))
         self.class_selection_menu.setStyleSheet('font-size: 18px')
         if self.mode == 'digit_recognition':
-            self.class_selection_menu.addItem(f'Averaged over all digits')
+            self.class_selection_menu.addItem(f'All digits')
             # add all digits as items
             for i in range(10):
                 self.class_selection_menu.addItem(f'Digit {i}')
@@ -2598,6 +2599,7 @@ class UI_MainWindow(QWidget):
 
     # helper function on redisplaying COCO input image with FOV mask and ground truth labelling
     def display_coco_image(self):
+        print('line 2602')
         # display the whole image
         self.display_image()
 
@@ -2609,6 +2611,7 @@ class UI_MainWindow(QWidget):
         # since the translation measures on the movement of object instead of the point of view, the sign is reversed
         rect_center_x = self.display_image_size/2 - self.x_tran * (self.display_image_size/self.uncropped_image_size)
         rect_center_y = self.display_image_size/2 - self.y_tran * (self.display_image_size/self.uncropped_image_size)
+        print(rect_center_y, rect_center_x)
 
         # draw rectangles on the displayed image to indicate scanning process
         painter = QtGui.QPainter(self.image_pixmap)
@@ -2857,7 +2860,7 @@ class UI_MainWindow(QWidget):
                 self.cur_x_tran = self.image_size//2
                 self.cur_y_tran = self.image_size//2
 
-                # display the image and plot mask + ground truth
+                # initialiate the image object
                 self.display_image()
 
                 display_rect_width = self.display_image_size/2
@@ -2876,6 +2879,7 @@ class UI_MainWindow(QWidget):
                     self.cur_image_label[i, 1:5] = self.compute_label(self.loaded_image_label[i, :4], self.x_min, self.y_min, (self.image_size, self.image_size))
 
                 # draw the ground truth label
+                print('line 2881')
                 gt_display_center_x = (self.cur_image_label[0, 1] + self.cur_image_label[0, 3]) / 2 * (self.display_image_size/self.uncropped_image_size) + (rect_center_x - display_rect_width/2)
                 gt_display_center_y = (self.cur_image_label[0, 4] + self.cur_image_label[0, 2]) / 2 * (self.display_image_size/self.uncropped_image_size) + (rect_center_y - display_rect_height/2)
                 gt_display_rect_width = (self.cur_image_label[0, 3] - self.cur_image_label[0, 1]) * (self.display_image_size/self.uncropped_image_size)
@@ -3429,7 +3433,7 @@ class UI_MainWindow(QWidget):
 
 
     def display_image(self):
-        # add a new label for loaded image if no imager has existed
+        # add a new label for loaded image if no image has existed
         if not self.image_existed:
             self.image_label = QLabel(self)
             self.image_label.setAlignment(QtCore.Qt.AlignCenter)
@@ -3464,7 +3468,8 @@ class UI_MainWindow(QWidget):
 
             if self.mode == 'digit_recognition':
                 # plot_size should be bigger than the display_size, so that some margins exist
-                self.image_label.setFixedSize(self.plot_size, self.plot_size)
+                # self.image_label.setFixedSize(self.plot_size, self.plot_size)
+                self.image_label.setFixedSize(self.image_pixmap.size())
             elif self.mode == 'object_detection':
                 # set label to the size of pixmap so that when clicked it is wrt image
                 self.image_label.setFixedSize(self.image_pixmap.size())
@@ -3480,15 +3485,17 @@ class UI_MainWindow(QWidget):
 
                         # when the click selection is valid and model has been run before
                         if self.single_result_existed:
-
+                            print('line 3486')
                             # re-load clean image
                             self.image_pixmap = QPixmap(self.cur_display_image)
                             self.image_label.setPixmap(self.image_pixmap)
 
                             # draw the new FOV rectangle
                             # width and height of the rectangle
-                            display_rect_width = self.display_image_size//2
-                            display_rect_height = self.display_image_size//2
+                            display_rect_width = self.display_image_size/2
+                            display_rect_height = self.display_image_size/2
+                            # display_rect_width = self.image_size
+                            # display_rect_height = self.image_size
 
                             # restrict x and y value
                             if rect_center_x + display_rect_width//2 >= self.display_image_size:
@@ -3503,28 +3510,28 @@ class UI_MainWindow(QWidget):
 
                             # draw rectangle on the displayed image to indicate scanning process
                             painter = QtGui.QPainter(self.image_pixmap)
-                            # draw the rectangles
+                            # draw the rectangles that cover the non field of view
                             cover_color = QtGui.QColor(65, 65, 65, 225)
-                            self.draw_fov_mask(painter, rect_center_x, rect_center_y, display_rect_width, display_rect_height, cover_color)
+                            self.draw_fov_mask(painter, rect_center_x, rect_center_y, self.image_size, self.image_size, cover_color)
 
-                            # how much the clicked point is away from the image center
+                            # how much the fov center is away from the image center
                             x_dist = (rect_center_x - self.display_image_size/2) / (self.display_image_size/self.uncropped_image_size)
                             y_dist = (rect_center_y - self.display_image_size/2) / (self.display_image_size/self.uncropped_image_size)
                             # compute rectangle center wrt to the original image
                             cur_center_x = self.center_x + x_dist
                             cur_center_y = self.center_y + y_dist
-                            self.x_min = int(cur_center_x - display_rect_width/2)
-                            self.x_max = int(cur_center_x + display_rect_width/2)
-                            self.y_min = int(cur_center_y - display_rect_height/2)
-                            self.y_max = int(cur_center_y + display_rect_height/2)
+                            self.x_min = int(cur_center_x - self.image_size/2)
+                            self.x_max = int(cur_center_x + self.image_size/2)
+                            self.y_min = int(cur_center_y - self.image_size/2)
+                            self.y_max = int(cur_center_y + self.image_size/2)
 
                             # re-compute the ground truth label bounding boxes of the cropped image
                             for i in range(len(self.cur_image_label)):
                                 self.cur_image_label[i, 1:5] = self.compute_label(self.loaded_image_label[i, :4], self.x_min, self.y_min, (self.image_size, self.image_size))
 
                             # draw the ground truth label
-                            gt_display_center_x = (self.cur_image_label[0, 1] + self.cur_image_label[0, 3]) / 2 * (self.display_image_size/self.uncropped_image_size) + (rect_center_x - display_rect_width/2)
-                            gt_display_center_y = (self.cur_image_label[0, 4] + self.cur_image_label[0, 2]) / 2 * (self.display_image_size/self.uncropped_image_size) + (rect_center_y - display_rect_height/2)
+                            gt_display_center_x = (self.cur_image_label[0, 1] + self.cur_image_label[0, 3]) / 2 * (self.display_image_size/self.uncropped_image_size) + (rect_center_x - self.image_size/2)
+                            gt_display_center_y = (self.cur_image_label[0, 4] + self.cur_image_label[0, 2]) / 2 * (self.display_image_size/self.uncropped_image_size) + (rect_center_y - self.image_size/2)
                             gt_display_rect_width = (self.cur_image_label[0, 3] - self.cur_image_label[0, 1]) * (self.display_image_size/self.uncropped_image_size)
                             gt_display_rect_height = (self.cur_image_label[0, 4] - self.cur_image_label[0, 2]) * (self.display_image_size/self.uncropped_image_size)
                             self.draw_rectangle(painter, gt_display_center_x, gt_display_center_y, gt_display_rect_width, gt_display_rect_height, color='yellow', label='Ground Truth')
@@ -4766,9 +4773,10 @@ class UI_MainWindow(QWidget):
         quantity_menu.lineEdit().setReadOnly(True)
         quantity_menu.lineEdit().setAlignment(QtCore.Qt.AlignCenter)
 
-        quantity_menu.addItem('Accuracy')
-        # quantity_menu.addItem('Confidence')
-        quantity_menu.setCurrentText('Accuracy')
+        # quantity_menu.addItem('Accuracy') # for aggregate case
+        # quantity_menu.setCurrentText('Accuracy')
+        quantity_menu.addItem('Confidence') # for single case
+        quantity_menu.setCurrentText('Confidence')
         self.quantity_name = 'Accuracy'
 
         # connect the drop down menu with actions
@@ -4777,7 +4785,7 @@ class UI_MainWindow(QWidget):
             self.plot_info_layout = QtWidgets.QHBoxLayout()
             self.plot_info_layout.addWidget(self.plot_quantity_label)
             self.plot_info_layout.addWidget(quantity_menu)
-            self.demo_layout.addLayout(self.plot_info_layout, 0, 2, 1, 1)
+            self.demo_layout.addLayout(self.plot_info_layout, 1, 2, 1, 1)
         else:
             self.aggregate_plot_control_layout.addWidget(quantity_menu, 1, 0)
 
