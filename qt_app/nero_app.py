@@ -1968,7 +1968,7 @@ class UI_MainWindow(QWidget):
             self.all_intensity_2 = np.mean(self.all_high_dim_points_2, axis=1)
 
             # re-display the scatter plot
-            display_dimension_reduction(compute_dr=True)
+            display_dimension_reduction(compute_dr=False)
 
         @QtCore.Slot()
         def variance_intensity_button_clicked():
@@ -1983,7 +1983,7 @@ class UI_MainWindow(QWidget):
             self.all_intensity_2 = nero_utilities.lerp(self.all_intensity_2, intensity_min, intensity_max, self.cm_range[0], self.cm_range[1])
 
             # re-display the scatter plot
-            display_dimension_reduction(compute_dr=True)
+            display_dimension_reduction(compute_dr=False)
 
         @QtCore.Slot()
         def dr_result_selection_slider_1_changed():
@@ -3290,10 +3290,6 @@ class UI_MainWindow(QWidget):
 
             # add a new label for loaded image
             detailed_image_label = QLabel(self)
-            detailed_image_label.setFixedSize(self.plot_size*1.12, self.plot_size*1.12)
-            # left top right bottom
-            detailed_image_label.setContentsMargins(0, 0, 0, 0)
-            detailed_image_label.setAlignment(QtCore.Qt.AlignCenter)
 
             # draw bounding boxes on the enlarged view
             # draw ground truth
@@ -3393,11 +3389,11 @@ class UI_MainWindow(QWidget):
         # convert and resize current selected FOV to QImage for display purpose
         if take_from_aggregate_output:
             # still needs the new cropped image for detail model readout vis
-            self.detailed_display_image = nero_utilities.tensor_to_qt_image(self.loaded_image_pt[self.y_min:self.y_max, self.x_min:self.x_max, :]).scaledToWidth(self.plot_size*1.12)
+            self.detailed_display_image = nero_utilities.tensor_to_qt_image(self.loaded_image_pt[self.y_min:self.y_max, self.x_min:self.x_max, :]).scaledToWidth(self.display_image_size*1.12)
             self.output_1 = [[self.aggregate_outputs_1[self.block_y, self.block_x][self.image_index]]]
             self.output_2 = [[self.aggregate_outputs_2[self.block_y, self.block_x][self.image_index]]]
         else:
-            self.detailed_display_image = nero_utilities.tensor_to_qt_image(self.loaded_image_pt[self.y_min:self.y_max, self.x_min:self.x_max, :]).scaledToWidth(self.plot_size*1.12)
+            self.detailed_display_image = nero_utilities.tensor_to_qt_image(self.loaded_image_pt[self.y_min:self.y_max, self.x_min:self.x_max, :]).scaledToWidth(self.display_image_size*1.12)
             # run model with the cropped view
             self.cropped_image_pt = self.loaded_image_pt[self.y_min:self.y_max, self.x_min:self.x_max, :] / 255
             self.run_model_once()
