@@ -2610,7 +2610,6 @@ class UI_MainWindow(QWidget):
         # since the translation measures on the movement of object instead of the point of view, the sign is reversed
         rect_center_x = self.display_image_size/2 - self.x_tran * (self.display_image_size/self.uncropped_image_size)
         rect_center_y = self.display_image_size/2 - self.y_tran * (self.display_image_size/self.uncropped_image_size)
-        print(rect_center_y, rect_center_x)
 
         # draw rectangles on the displayed image to indicate scanning process
         painter = QtGui.QPainter(self.image_pixmap)
@@ -2627,8 +2626,8 @@ class UI_MainWindow(QWidget):
         # draw the ground truth label
         gt_display_center_x = (self.cur_image_label[0, 1] + self.cur_image_label[0, 3]) / 2 * (display_rect_width/self.image_size) + (rect_center_x - display_rect_width/2)
         gt_display_center_y = (self.cur_image_label[0, 2] + self.cur_image_label[0, 4]) / 2 * (display_rect_height/self.image_size) + (rect_center_y - display_rect_height/2)
-        gt_display_rect_width = (self.cur_image_label[0, 3] - self.cur_image_label[0, 1]) * (display_rect_width/self.image_size)
-        gt_display_rect_height = (self.cur_image_label[0, 4] - self.cur_image_label[0, 2]) * (display_rect_height/self.image_size)
+        gt_display_rect_width = (self.cur_image_label[0, 3] - self.cur_image_label[0, 1]) * (display_rect_width/self.image_size/1.12)
+        gt_display_rect_height = (self.cur_image_label[0, 4] - self.cur_image_label[0, 2]) * (display_rect_height/self.image_size/1.12)
         self.draw_rectangle(painter, gt_display_center_x, gt_display_center_y, gt_display_rect_width, gt_display_rect_height, color='yellow', label='Ground Truth')
         painter.end()
 
@@ -2880,8 +2879,8 @@ class UI_MainWindow(QWidget):
                 # draw the ground truth label
                 gt_display_center_x = (self.cur_image_label[0, 1] + self.cur_image_label[0, 3]) / 2 * (self.display_image_size/self.uncropped_image_size) + (rect_center_x - display_rect_width/2)
                 gt_display_center_y = (self.cur_image_label[0, 4] + self.cur_image_label[0, 2]) / 2 * (self.display_image_size/self.uncropped_image_size) + (rect_center_y - display_rect_height/2)
-                gt_display_rect_width = (self.cur_image_label[0, 3] - self.cur_image_label[0, 1]) * (self.display_image_size/self.uncropped_image_size)
-                gt_display_rect_height = (self.cur_image_label[0, 4] - self.cur_image_label[0, 2]) * (self.display_image_size/self.uncropped_image_size)
+                gt_display_rect_width = (self.cur_image_label[0, 3] - self.cur_image_label[0, 1]) * (self.display_image_size/self.uncropped_image_size/1.12)
+                gt_display_rect_height = (self.cur_image_label[0, 4] - self.cur_image_label[0, 2]) * (self.display_image_size/self.uncropped_image_size/1.12)
                 self.draw_rectangle(painter, gt_display_center_x, gt_display_center_y, gt_display_rect_width, gt_display_rect_height, color='yellow', label='Ground Truth')
                 painter.end()
 
@@ -3300,8 +3299,8 @@ class UI_MainWindow(QWidget):
             # draw ground truth
             painter = QtGui.QPainter(detailed_image_pixmap)
             # draw the ground truth label
-            gt_display_center_x = (self.cur_image_label[0, 1] + self.cur_image_label[0, 3]) // 2 * (self.plot_size*1.12/self.image_size)
-            gt_display_center_y = (self.cur_image_label[0, 2] + self.cur_image_label[0, 4]) // 2 * (self.plot_size*1.12/self.image_size)
+            gt_display_center_x = (self.cur_image_label[0, 1] + self.cur_image_label[0, 3]) / 2 * (self.plot_size*1.12/self.image_size)
+            gt_display_center_y = (self.cur_image_label[0, 2] + self.cur_image_label[0, 4]) / 2 * (self.plot_size*1.12/self.image_size)
             gt_display_rect_width = (self.cur_image_label[0, 3] - self.cur_image_label[0, 1]) * (self.plot_size*1.12/self.image_size)
             gt_display_rect_height = (self.cur_image_label[0, 4] - self.cur_image_label[0, 2]) * (self.plot_size*1.12/self.image_size)
             self.draw_rectangle(painter, gt_display_center_x, gt_display_center_y, gt_display_rect_width, gt_display_rect_height, color='yellow', alpha=166, label='Ground Truth')
@@ -3527,8 +3526,8 @@ class UI_MainWindow(QWidget):
                             # draw the ground truth label
                             gt_display_center_x = (self.cur_image_label[0, 1] + self.cur_image_label[0, 3]) / 2 * (self.display_image_size/self.uncropped_image_size) + (rect_center_x - display_rect_width/2)
                             gt_display_center_y = (self.cur_image_label[0, 4] + self.cur_image_label[0, 2]) / 2 * (self.display_image_size/self.uncropped_image_size) + (rect_center_y - display_rect_height/2)
-                            gt_display_rect_width = (self.cur_image_label[0, 3] - self.cur_image_label[0, 1]) * (self.display_image_size/self.uncropped_image_size)
-                            gt_display_rect_height = (self.cur_image_label[0, 4] - self.cur_image_label[0, 2]) * (self.display_image_size/self.uncropped_image_size)
+                            gt_display_rect_width = (self.cur_image_label[0, 3] - self.cur_image_label[0, 1]) * (self.display_image_size/self.uncropped_image_size/1.12)
+                            gt_display_rect_height = (self.cur_image_label[0, 4] - self.cur_image_label[0, 2]) * (self.display_image_size/self.uncropped_image_size/1.12)
                             self.draw_rectangle(painter, gt_display_center_x, gt_display_center_y, gt_display_rect_width, gt_display_rect_height, color='yellow', label='Ground Truth')
                             painter.end()
 
