@@ -74,6 +74,7 @@ class UI_MainWindow(QWidget):
         self.run_button_existed = False
         self.aggregate_result_existed = False
         self.single_result_existed = False
+        self.dr_result_existed = False
 
         # load/initialize program cache
         self.use_cache = False
@@ -1421,8 +1422,6 @@ class UI_MainWindow(QWidget):
     @QtCore.Slot()
     def run_dimension_reduction(self):
 
-        self.dr_result_existed = True
-
         # update the slider 1's text
         def update_slider_1_text():
             slider_1_text_pixmap = QPixmap(150, 50)
@@ -1610,7 +1609,7 @@ class UI_MainWindow(QWidget):
             self.dr_result_selection_slider_2.setValue(self.slider_2_selected_index)
             # update the text
             update_slider_2_text()
-            # update the scatter plot
+            # update the indicator of current selected item
             display_dimension_reduction(compute_dr=False)
             # unlock after changing the values
             self.slider_1_locked = False
@@ -1762,9 +1761,10 @@ class UI_MainWindow(QWidget):
             low_dim_scatter_item.setSymbol('o')
             # set red pen indicator if slider selects
             if slider_selected_index != None:
+                # smaller circles in accounting for the red ring
                 low_dim_point = [{'pos': (low_dim[sorted_selected_index, 0], low_dim[sorted_selected_index, 1]),
-                                    'size': self.scatter_item_size,
-                                    'pen': {'color': 'red', 'width': 3},
+                                    'size': self.scatter_item_size-2,
+                                    'pen': {'color': 'red', 'width': 2},
                                     'brush': QtGui.QColor(color_indices[sorted_selected_index][0], color_indices[sorted_selected_index][1], color_indices[sorted_selected_index][2])}]
             else:
                 low_dim_point = [{'pos': (low_dim[sorted_selected_index, 0], low_dim[sorted_selected_index, 1]),
@@ -1783,36 +1783,42 @@ class UI_MainWindow(QWidget):
         # when compute_dr is true, dimension reduction is computed
         def display_dimension_reduction(compute_dr=True):
 
-            # scatter plot on low-dim points
-            self.low_dim_scatter_view_1 = pg.GraphicsLayoutWidget()
-            self.low_dim_scatter_view_1.setBackground('white')
-            self.low_dim_scatter_view_1.setFixedSize(self.plot_size*1.1, self.plot_size*1.1)
-            # add plot
-            self.low_dim_scatter_plot_1 = self.low_dim_scatter_view_1.addPlot()
-            self.low_dim_scatter_plot_1.hideAxis('left')
-            self.low_dim_scatter_plot_1.hideAxis('bottom')
+            # initialize all the views, etc when the first time
+            if not self.dr_result_existed:
+                # scatter plot on low-dim points
+                self.low_dim_scatter_view_1 = pg.GraphicsLayoutWidget()
+                self.low_dim_scatter_view_1.setBackground('white')
+                self.low_dim_scatter_view_1.setFixedSize(self.plot_size*1.1, self.plot_size*1.1)
+                # add plot
+                self.low_dim_scatter_plot_1 = self.low_dim_scatter_view_1.addPlot()
+                self.low_dim_scatter_plot_1.hideAxis('left')
+                self.low_dim_scatter_plot_1.hideAxis('bottom')
 
-            # set axis range
-            self.low_dim_scatter_plot_1.setXRange(-1.2, 1.2, padding=0)
-            self.low_dim_scatter_plot_1.setYRange(-1.2, 1.2, padding=0)
-            # Not letting user zoom out past axis limit
-            self.low_dim_scatter_plot_1.vb.setLimits(xMin=-1.2, xMax=1.2, yMin=-1.2, yMax=1.2)
+                # set axis range
+                self.low_dim_scatter_plot_1.setXRange(-1.2, 1.2, padding=0)
+                self.low_dim_scatter_plot_1.setYRange(-1.2, 1.2, padding=0)
+                # Not letting user zoom out past axis limit
+                self.low_dim_scatter_plot_1.vb.setLimits(xMin=-1.2, xMax=1.2, yMin=-1.2, yMax=1.2)
+                # No auto range when adding new item (red indicator)
+                self.low_dim_scatter_plot_1.vb.disableAutoRange(axis=pg.ViewBox.XYAxes)
 
-            self.low_dim_scatter_view_2 = pg.GraphicsLayoutWidget()
-            self.low_dim_scatter_view_2.setBackground('white')
-            self.low_dim_scatter_view_2.setFixedSize(self.plot_size*1.1, self.plot_size*1.1)
-            # add plot
-            self.low_dim_scatter_plot_2 = self.low_dim_scatter_view_2.addPlot()
-            self.low_dim_scatter_plot_2.hideAxis('left')
-            self.low_dim_scatter_plot_2.hideAxis('bottom')
+                self.low_dim_scatter_view_2 = pg.GraphicsLayoutWidget()
+                self.low_dim_scatter_view_2.setBackground('white')
+                self.low_dim_scatter_view_2.setFixedSize(self.plot_size*1.1, self.plot_size*1.1)
+                # add plot
+                self.low_dim_scatter_plot_2 = self.low_dim_scatter_view_2.addPlot()
+                self.low_dim_scatter_plot_2.hideAxis('left')
+                self.low_dim_scatter_plot_2.hideAxis('bottom')
 
-            # set axis range
-            self.low_dim_scatter_plot_2.setXRange(-1.2, 1.2, padding=0)
-            self.low_dim_scatter_plot_2.setYRange(-1.2, 1.2, padding=0)
-            # Not letting user zoom out past axis limit
-            self.low_dim_scatter_plot_2.vb.setLimits(xMin=-1.2, xMax=1.2, yMin=-1.2, yMax=1.2)
-            # scatter item size
-            self.scatter_item_size = 12
+                # set axis range
+                self.low_dim_scatter_plot_2.setXRange(-1.2, 1.2, padding=0)
+                self.low_dim_scatter_plot_2.setYRange(-1.2, 1.2, padding=0)
+                # Not letting user zoom out past axis limit
+                self.low_dim_scatter_plot_2.vb.setLimits(xMin=-1.2, xMax=1.2, yMin=-1.2, yMax=1.2)
+                # scatter item size
+                self.scatter_item_size = 12
+
+                self.dr_result_existed = True
 
             # run dimension reduction algorithm
             if compute_dr:
@@ -1864,18 +1870,21 @@ class UI_MainWindow(QWidget):
                 else:
                     self.aggregate_result_layout.addWidget(self.low_dim_scatter_view_1, 1, 3)
                     self.aggregate_result_layout.addWidget(self.low_dim_scatter_view_2, 2, 3)
-            elif self.mode == 'object_detection' or self.mode == 'piv':
+            elif self.mode == 'object_detection':
                 if self.demo:
                     self.demo_layout.addWidget(self.low_dim_scatter_view_1, 5, 1, 1, 1)
                     self.demo_layout.addWidget(self.low_dim_scatter_view_2, 7, 1, 1, 1)
                 else:
-                    # aggregate result layout at the very left
                     self.aggregate_result_layout.addWidget(self.low_dim_scatter_view_1, 2, 1)
                     self.aggregate_result_layout.addWidget(self.low_dim_scatter_view_2, 2, 2)
-            # elif self.mode == 'piv':
-            #     # aggregate result layout at the very left
-            #     self.aggregate_result_layout.addWidget(self.low_dim_scatter_view_1, 2, 1)
-            #     self.aggregate_result_layout.addWidget(self.low_dim_scatter_view_2, 2, 2)
+            # arguebly the layout for PIV is the same as object detection, but separated them for future expandibility
+            elif self.mode == 'piv':
+                if self.demo:
+                    self.demo_layout.addWidget(self.low_dim_scatter_view_1, 5, 1, 1, 1)
+                    self.demo_layout.addWidget(self.low_dim_scatter_view_2, 7, 1, 1, 1)
+                else:
+                    self.aggregate_result_layout.addWidget(self.low_dim_scatter_view_1, 2, 1)
+                    self.aggregate_result_layout.addWidget(self.low_dim_scatter_view_2, 2, 2)
 
 
         # run dimension reduction of all images on the selected digit
@@ -2203,6 +2212,7 @@ class UI_MainWindow(QWidget):
             self.clear_layout(self.slider_1_layout)
             self.clear_layout(self.slider_2_layout)
             self.dr_result_sliders_existed = False
+        # draw the scatter plot
         display_dimension_reduction()
 
         # demo mode automatically selects an image and trigger individual NERO
