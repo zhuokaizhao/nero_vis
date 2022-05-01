@@ -474,7 +474,7 @@ class UI_MainWindow(QWidget):
             self.loaded_image_name = self.image_path.split('/')[-1]
 
             # take the cropped part of the entire input image to put in display image
-            self.cur_image_pt = self.loaded_image_pt[self.center_y-self.display_image_size//2:self.center_y+self.display_image_size//2, self.center_x-self.display_image_size//2:self.center_x+self.display_image_size//2, :]
+            self.cur_image_pt = self.loaded_image_pt[self.center_y-self.image_size:self.center_y+self.image_size, self.center_x-self.image_size:self.center_x+self.image_size, :]
 
         elif self.mode == 'piv':
             # keep the PIL image version of the loaded images in this mode because they are saved as gif using PIL
