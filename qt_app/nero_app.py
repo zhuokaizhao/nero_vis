@@ -2599,7 +2599,6 @@ class UI_MainWindow(QWidget):
 
     # helper function on redisplaying COCO input image with FOV mask and ground truth labelling
     def display_coco_image(self):
-        print('line 2602')
         # display the whole image
         self.display_image()
 
@@ -2879,7 +2878,6 @@ class UI_MainWindow(QWidget):
                     self.cur_image_label[i, 1:5] = self.compute_label(self.loaded_image_label[i, :4], self.x_min, self.y_min, (self.image_size, self.image_size))
 
                 # draw the ground truth label
-                print('line 2881')
                 gt_display_center_x = (self.cur_image_label[0, 1] + self.cur_image_label[0, 3]) / 2 * (self.display_image_size/self.uncropped_image_size) + (rect_center_x - display_rect_width/2)
                 gt_display_center_y = (self.cur_image_label[0, 4] + self.cur_image_label[0, 2]) / 2 * (self.display_image_size/self.uncropped_image_size) + (rect_center_y - display_rect_height/2)
                 gt_display_rect_width = (self.cur_image_label[0, 3] - self.cur_image_label[0, 1]) * (self.display_image_size/self.uncropped_image_size)
@@ -3485,7 +3483,6 @@ class UI_MainWindow(QWidget):
 
                         # when the click selection is valid and model has been run before
                         if self.single_result_existed:
-                            print('line 3486')
                             # re-load clean image
                             self.image_pixmap = QPixmap(self.cur_display_image)
                             self.image_label.setPixmap(self.image_pixmap)
@@ -3494,25 +3491,23 @@ class UI_MainWindow(QWidget):
                             # width and height of the rectangle
                             display_rect_width = self.display_image_size/2
                             display_rect_height = self.display_image_size/2
-                            # display_rect_width = self.image_size
-                            # display_rect_height = self.image_size
 
                             # restrict x and y value
-                            if rect_center_x + display_rect_width//2 >= self.display_image_size:
-                                rect_center_x = self.display_image_size - display_rect_width//2
-                            elif rect_center_x - display_rect_width//2 < 0:
-                                rect_center_x = display_rect_width//2
+                            if rect_center_x + display_rect_width/2 >= self.display_image_size:
+                                rect_center_x = self.display_image_size - display_rect_width/2
+                            elif rect_center_x - display_rect_width/2 < 0:
+                                rect_center_x = display_rect_width/2
 
-                            if rect_center_y + display_rect_height//2 >= self.display_image_size:
-                                rect_center_y = self.display_image_size - display_rect_height//2
-                            elif rect_center_y - display_rect_height//2 < 0:
-                                rect_center_y = display_rect_height//2
+                            if rect_center_y + display_rect_height/2 >= self.display_image_size:
+                                rect_center_y = self.display_image_size - display_rect_height/2
+                            elif rect_center_y - display_rect_height/2 < 0:
+                                rect_center_y = display_rect_height/2
 
                             # draw rectangle on the displayed image to indicate scanning process
                             painter = QtGui.QPainter(self.image_pixmap)
                             # draw the rectangles that cover the non field of view
                             cover_color = QtGui.QColor(65, 65, 65, 225)
-                            self.draw_fov_mask(painter, rect_center_x, rect_center_y, self.image_size, self.image_size, cover_color)
+                            self.draw_fov_mask(painter, rect_center_x, rect_center_y, display_rect_width, display_rect_height, cover_color)
 
                             # how much the fov center is away from the image center
                             x_dist = (rect_center_x - self.display_image_size/2) / (self.display_image_size/self.uncropped_image_size)
@@ -3530,8 +3525,8 @@ class UI_MainWindow(QWidget):
                                 self.cur_image_label[i, 1:5] = self.compute_label(self.loaded_image_label[i, :4], self.x_min, self.y_min, (self.image_size, self.image_size))
 
                             # draw the ground truth label
-                            gt_display_center_x = (self.cur_image_label[0, 1] + self.cur_image_label[0, 3]) / 2 * (self.display_image_size/self.uncropped_image_size) + (rect_center_x - self.image_size/2)
-                            gt_display_center_y = (self.cur_image_label[0, 4] + self.cur_image_label[0, 2]) / 2 * (self.display_image_size/self.uncropped_image_size) + (rect_center_y - self.image_size/2)
+                            gt_display_center_x = (self.cur_image_label[0, 1] + self.cur_image_label[0, 3]) / 2 * (self.display_image_size/self.uncropped_image_size) + (rect_center_x - display_rect_width/2)
+                            gt_display_center_y = (self.cur_image_label[0, 4] + self.cur_image_label[0, 2]) / 2 * (self.display_image_size/self.uncropped_image_size) + (rect_center_y - display_rect_height/2)
                             gt_display_rect_width = (self.cur_image_label[0, 3] - self.cur_image_label[0, 1]) * (self.display_image_size/self.uncropped_image_size)
                             gt_display_rect_height = (self.cur_image_label[0, 4] - self.cur_image_label[0, 2]) * (self.display_image_size/self.uncropped_image_size)
                             self.draw_rectangle(painter, gt_display_center_x, gt_display_center_y, gt_display_rect_width, gt_display_rect_height, color='yellow', label='Ground Truth')
