@@ -670,9 +670,7 @@ class UI_MainWindow(QWidget):
                 self.load_single_image()
 
                 # convert to QImage for display purpose
-                self.cur_display_image = nero_utilities.tensor_to_qt_image(self.cur_image_pt)
-                # resize the display QImage
-                self.cur_display_image = self.cur_display_image.scaledToWidth(self.display_image_size)
+                self.cur_display_image = nero_utilities.tensor_to_qt_image(self.cur_image_pt, self.display_image_size)
                 # additional preparation required for MNIST
                 self.cur_image_pt = nero_transform.prepare_mnist_image(self.cur_image_pt)
 
@@ -683,9 +681,7 @@ class UI_MainWindow(QWidget):
                 self.load_single_image()
 
                 # convert to QImage for display purpose
-                self.cur_display_image = nero_utilities.tensor_to_qt_image(self.cur_image_pt)
-                # resize the display QImage
-                self.cur_display_image = self.cur_display_image.scaledToWidth(self.display_image_size)
+                self.cur_display_image = nero_utilities.tensor_to_qt_image(self.cur_image_pt, self.display_image_size)
 
             elif self.mode == 'piv':
                 # prepare image paths
@@ -1637,9 +1633,7 @@ class UI_MainWindow(QWidget):
             # display individual view
             if self.mode == 'digit_recognition':
                 # convert to QImage for display purpose
-                self.cur_display_image = nero_utilities.tensor_to_qt_image(self.cur_image_pt)
-                # resize the display QImage
-                self.cur_display_image = self.cur_display_image.scaledToWidth(self.display_image_size)
+                self.cur_display_image = nero_utilities.tensor_to_qt_image(self.cur_image_pt, self.display_image_size)
                 # prepare image tensor for model purpose
                 self.cur_image_pt = nero_transform.prepare_mnist_image(self.cur_image_pt)
                 # run model once and display results (Detailed bar plot)
@@ -1647,9 +1641,7 @@ class UI_MainWindow(QWidget):
 
             elif self.mode == 'object_detection':
                 # convert to QImage for display purpose
-                self.cur_display_image = nero_utilities.tensor_to_qt_image(self.cur_image_pt)
-                # resize the display QImage
-                self.cur_display_image = self.cur_display_image.scaledToWidth(self.display_image_size)
+                self.cur_display_image = nero_utilities.tensor_to_qt_image(self.cur_image_pt, self.display_image_size)
 
             elif self.mode == 'piv':
                 # create new GIF
@@ -2042,9 +2034,7 @@ class UI_MainWindow(QWidget):
                 # display individual view
                 if self.mode == 'digit_recognition':
                     # convert to QImage for display purpose
-                    self.cur_display_image = nero_utilities.tensor_to_qt_image(self.cur_image_pt)
-                    # resize the display QImage
-                    self.cur_display_image = self.cur_display_image.scaledToWidth(self.display_image_size)
+                    self.cur_display_image = nero_utilities.tensor_to_qt_image(self.cur_image_pt, self.display_image_size)
                     # prepare image tensor for model purpose
                     self.cur_image_pt = nero_transform.prepare_mnist_image(self.cur_image_pt)
                     # run model once and display results (Detailed bar plot)
@@ -2052,9 +2042,7 @@ class UI_MainWindow(QWidget):
 
                 elif self.mode == 'object_detection':
                     # convert to QImage for display purpose
-                    self.cur_display_image = nero_utilities.tensor_to_qt_image(self.cur_image_pt)
-                    # resize the display QImage
-                    self.cur_display_image = self.cur_display_image.scaledToWidth(self.display_image_size)
+                    self.cur_display_image = nero_utilities.tensor_to_qt_image(self.cur_image_pt, self.display_image_size)
 
                 elif self.mode == 'piv':
                     # create new GIF
@@ -2120,9 +2108,7 @@ class UI_MainWindow(QWidget):
                 # display individual view
                 if self.mode == 'digit_recognition':
                     # convert to QImage for display purpose
-                    self.cur_display_image = nero_utilities.tensor_to_qt_image(self.cur_image_pt)
-                    # resize the display QImage
-                    self.cur_display_image = self.cur_display_image.scaledToWidth(self.display_image_size)
+                    self.cur_display_image = nero_utilities.tensor_to_qt_image(self.cur_image_pt, self.display_image_size)
                     # prepare image tensor for model purpose
                     self.cur_image_pt = nero_transform.prepare_mnist_image(self.cur_image_pt)
                     # run model once and display results (Detailed bar plot)
@@ -2130,9 +2116,7 @@ class UI_MainWindow(QWidget):
 
                 elif self.mode == 'object_detection':
                     # convert to QImage for display purpose
-                    self.cur_display_image = nero_utilities.tensor_to_qt_image(self.cur_image_pt)
-                    # resize the display QImage
-                    self.cur_display_image = self.cur_display_image.scaledToWidth(self.display_image_size)
+                    self.cur_display_image = nero_utilities.tensor_to_qt_image(self.cur_image_pt, self.display_image_size)
 
                 elif self.mode == 'piv':
                     # create new GIF
@@ -2745,7 +2729,7 @@ class UI_MainWindow(QWidget):
                 # rotate the image tensor
                 self.cur_image_pt = nero_transform.rotate_mnist_image(self.loaded_image_pt, self.cur_rotation_angle)
                 # convert image tensor to qt image and resize for display
-                self.cur_display_image = nero_utilities.tensor_to_qt_image(self.cur_image_pt).scaledToWidth(self.display_image_size)
+                self.cur_display_image = nero_utilities.tensor_to_qt_image(self.cur_image_pt, self.display_image_size)
                 # prepare image tensor for model purpose
                 self.cur_image_pt = nero_transform.prepare_mnist_image(self.cur_image_pt)
                 # update the pixmap and label
@@ -3399,11 +3383,11 @@ class UI_MainWindow(QWidget):
         # convert and resize current selected FOV to QImage for display purpose
         if take_from_aggregate_output:
             # still needs the new cropped image for detail model readout vis
-            self.detailed_display_image = nero_utilities.tensor_to_qt_image(self.loaded_image_pt[self.y_min:self.y_max, self.x_min:self.x_max, :]).scaledToWidth(self.display_image_size*1.12)
+            self.detailed_display_image = nero_utilities.tensor_to_qt_image(self.loaded_image_pt[self.y_min:self.y_max, self.x_min:self.x_max, :], self.display_image_size*1.12)
             self.output_1 = [[self.aggregate_outputs_1[self.block_y, self.block_x][self.image_index]]]
             self.output_2 = [[self.aggregate_outputs_2[self.block_y, self.block_x][self.image_index]]]
         else:
-            self.detailed_display_image = nero_utilities.tensor_to_qt_image(self.loaded_image_pt[self.y_min:self.y_max, self.x_min:self.x_max, :]).scaledToWidth(self.display_image_size*1.12)
+            self.detailed_display_image = nero_utilities.tensor_to_qt_image(self.loaded_image_pt[self.y_min:self.y_max, self.x_min:self.x_max, :], self.display_image_size*1.12)
             # run model with the cropped view
             self.cropped_image_pt = self.loaded_image_pt[self.y_min:self.y_max, self.x_min:self.x_max, :] / 255
             self.run_model_once()
@@ -4848,7 +4832,7 @@ class UI_MainWindow(QWidget):
                 self.cur_image_pt = nero_transform.rotate_mnist_image(self.loaded_image_pt, self.cur_rotation_angle)
                 # self.image_pixmap = self.image_pixmap.transformed(QtGui.QTransform().rotate(angle), QtCore.Qt.SmoothTransformation)
                 # convert image tensor to qt image and resize for display
-                self.cur_display_image = nero_utilities.tensor_to_qt_image(self.cur_image_pt).scaledToWidth(self.display_image_size)
+                self.cur_display_image = nero_utilities.tensor_to_qt_image(self.cur_image_pt, self.display_image_size)
                 # prepare image tensor for model purpose
                 self.cur_image_pt = nero_transform.prepare_mnist_image(self.cur_image_pt)
                 # update the pixmap and label
@@ -4948,7 +4932,7 @@ class UI_MainWindow(QWidget):
                     self.cur_image_pt = nero_transform.rotate_mnist_image(self.loaded_image_pt, self.cur_rotation_angle)
                     # self.image_pixmap = self.image_pixmap.transformed(QtGui.QTransform().rotate(angle), QtCore.Qt.SmoothTransformation)
                     # convert image tensor to qt image and resize for display
-                    self.cur_display_image = nero_utilities.tensor_to_qt_image(self.cur_image_pt).scaledToWidth(self.display_image_size)
+                    self.cur_display_image = nero_utilities.tensor_to_qt_image(self.cur_image_pt, self.display_image_size)
                     # prepare image tensor for model purpose
                     self.cur_image_pt = nero_transform.prepare_mnist_image(self.cur_image_pt)
                     # update the pixmap and label
@@ -5653,7 +5637,7 @@ class UI_MainWindow(QWidget):
             self.cur_image_pt = nero_transform.rotate_mnist_image(self.loaded_image_pt, self.cur_rotation_angle)
             # self.image_pixmap = self.image_pixmap.transformed(QtGui.QTransform().rotate(angle), QtCore.Qt.SmoothTransformation)
             # convert image tensor to qt image and resize for display
-            self.cur_display_image = nero_utilities.tensor_to_qt_image(self.cur_image_pt).scaledToWidth(self.display_image_size)
+            self.cur_display_image = nero_utilities.tensor_to_qt_image(self.cur_image_pt, self.display_image_size)
             # prepare image tensor for model purpose
             self.cur_image_pt = nero_transform.prepare_mnist_image(self.cur_image_pt)
             # update the pixmap and label

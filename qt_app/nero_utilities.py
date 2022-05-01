@@ -2,6 +2,7 @@
 import copy
 import torch
 import numpy as np
+from PIL import Image
 from PySide6 import QtGui
 
 
@@ -48,7 +49,7 @@ def qt_image_to_tensor(img, share_memory=False):
         return torch.from_numpy(copy.deepcopy(arr))
 
 
-def tensor_to_qt_image(img_pt):
+def tensor_to_qt_image(img_pt, new_size=None):
 
     # convert input torch tensor to numpy array
     img_np = img_pt.numpy()
@@ -62,6 +63,9 @@ def tensor_to_qt_image(img_pt):
         img_qt = QtGui.QImage(img_np, img_np.shape[1], img_np.shape[0], QtGui.QImage.Format_Grayscale8)
     elif img_np.shape[-1] == 3:
         img_qt = QtGui.QImage(img_np, img_np.shape[1], img_np.shape[0], QtGui.QImage.Format_RGB888)
+
+    if new_size != None:
+        img_qt = img_qt.scaled(new_size, new_size)
 
     return img_qt
 
