@@ -4169,16 +4169,31 @@ class UI_MainWindow(QWidget):
         all_y_1 = []
         all_x_2 = []
         all_y_2 = []
-        # plot selected digit's average accuracy/confidence across all rotations
+        # Aggregated NERO plot for model 1
         for i in range(len(self.all_aggregate_angles)):
             radian = self.all_aggregate_angles[i] / 180 * np.pi
-            # model 1 accuracy
+            # plot selected digit's average accuracy/confidence across all rotations
             if self.quantity_name == 'Accuracy':
                 if self.class_selection == 'all':
                     cur_quantity_1 = self.all_avg_accuracy_1[i]
                 else:
                     cur_quantity_1 = self.all_avg_accuracy_per_digit_1[i][self.class_selection]
-            # elif self.quantity_name == 'Confidence':
+            elif self.quantity_name == 'Confidence':
+                all_confidences = []
+                if self.class_selection == 'all':
+                    # output of each class's probablity of all samples, has shape (num_rotations, num_samples, 10)
+                    for j in range(len(self.all_outputs_1[0])):
+                        all_confidences.append(self.all_outputs_1[i][j][self.loaded_images_labels[j]])
+
+                    # take the mean correct confidence
+                    cur_quantity_1 = np.mean(all_confidences)
+                else:
+                    for j in range(len(self.all_outputs_1[0])):
+                        if self.loaded_images_labels[j] == self.class_selection:
+                            all_confidences.append(self.all_outputs_1[i][j][self.loaded_images_labels[j]])
+
+                    # take the mean correct confidence
+                    cur_quantity_1 = np.mean(all_confidences)
 
             # Transform to cartesian and plot
             x_1 = cur_quantity_1 * np.cos(radian)
@@ -4190,12 +4205,28 @@ class UI_MainWindow(QWidget):
                                 'pen': {'color': 'w', 'width': 0.1},
                                 'brush': QtGui.QColor('blue')})
 
-            # model 2 quantity
+            # Aggregated NERO plot for model 2
             if self.quantity_name == 'Accuracy':
                 if self.class_selection == 'all':
                     cur_quantity_2 = self.all_avg_accuracy_2[i]
                 else:
                     cur_quantity_2 = self.all_avg_accuracy_per_digit_2[i][self.class_selection]
+            elif self.quantity_name == 'Confidence':
+                all_confidences = []
+                if self.class_selection == 'all':
+                    # output of each class's probablity of all samples, has shape (num_rotations, num_samples, 10)
+                    for j in range(len(self.all_outputs_2[0])):
+                        all_confidences.append(self.all_outputs_2[i][j][self.loaded_images_labels[j]])
+
+                    # take the mean correct confidence
+                    cur_quantity_2 = np.mean(all_confidences)
+                else:
+                    for j in range(len(self.all_outputs_2[0])):
+                        if self.loaded_images_labels[j] == self.class_selection:
+                            all_confidences.append(self.all_outputs_2[i][j][self.loaded_images_labels[j]])
+
+                    # take the mean correct confidence
+                    cur_quantity_2 = np.mean(all_confidences)
 
             # Transform to cartesian and plot
             x_2 = cur_quantity_2 * np.cos(radian)
@@ -4759,11 +4790,11 @@ class UI_MainWindow(QWidget):
         quantity_menu.lineEdit().setReadOnly(True)
         quantity_menu.lineEdit().setAlignment(QtCore.Qt.AlignCenter)
 
-        # quantity_menu.addItem('Accuracy') # for aggregate case
+        quantity_menu.addItem('Accuracy') # for aggregate case only
+        quantity_menu.addItem('Confidence')
         # quantity_menu.setCurrentText('Accuracy')
-        quantity_menu.addItem('Confidence') # for single case
         quantity_menu.setCurrentText('Confidence')
-        self.quantity_name = 'Accuracy'
+        self.quantity_name = quantity_menu.currentText()
 
         # connect the drop down menu with actions
         quantity_menu.currentTextChanged.connect(polar_quantity_changed)
