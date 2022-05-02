@@ -28,6 +28,8 @@ def main():
     parser.add_argument('-i', '--input_dir', action='store', nargs=1, dest='input_dir')
     # output figs directory
     parser.add_argument('-o', '--output_dir', required=True, action='store', nargs=1, dest='output_dir')
+    # for object detection mode, if we are taking multiple objects from one sample
+    parser.add_argument('--no_repeat', action='store_true', dest='no_repeat', default=False)
     # if visualizing data
     parser.add_argument('--vis', action='store_true', dest='vis', default=False)
     # verbosity
@@ -39,6 +41,7 @@ def main():
     name = args.name[0]
     mode = args.mode[0]
     num_samples = int(args.num[0])
+    no_repeat = args.no_repeat
     vis = args.vis
     verbose = args.verbose
 
@@ -328,7 +331,8 @@ def main():
                         num_extracted += 1
 
                         # only take one image
-                        break
+                        if no_repeat:
+                            break
 
             # save the label names
             # name_path = os.path.join(output_dir, 'custom.names')
