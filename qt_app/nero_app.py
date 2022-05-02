@@ -551,8 +551,10 @@ class UI_MainWindow(QWidget):
 
             print('Loaded dataset:', text)
             self.data_mode = 'aggregate'
-            self.dataset_index = self.aggregate_image_menu.currentIndex()
+            # index 0 is the prompt
+            self.dataset_index = self.aggregate_image_menu.currentIndex() - 1
             self.dataset_dir = self.aggregate_data_dirs[self.dataset_index]
+            print(f'Loaded data from {self.dataset_dir}')
             # in digit recognition, all the images are loaded
             if self.mode == 'digit_recognition':
                 # load the image and scale the size
