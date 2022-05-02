@@ -549,7 +549,8 @@ class UI_MainWindow(QWidget):
             if not self.demo:
                 self.init_aggregate_result_layout()
 
-            print('Loaded dataset:', text)
+            self.dataset_name = text
+            print('Loaded dataset:', self.dataset_name)
             self.data_mode = 'aggregate'
             # index 0 is the prompt
             self.dataset_index = self.aggregate_image_menu.currentIndex() - 1
@@ -1816,14 +1817,14 @@ class UI_MainWindow(QWidget):
             # run dimension reduction algorithm
             if compute_dr:
                 # try to load from cache
-                low_dim_1_name = f'{self.mode}_{self.model_1_name}_{self.class_selection}_{self.quantity_name}_{self.dr_selection}'
+                low_dim_1_name = f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_1_name}_{self.class_selection}_{self.quantity_name}_{self.dr_selection}'
                 self.low_dim_1 = self.load_from_cache(low_dim_1_name)
                 if not self.load_successfully:
                     self.low_dim_1 = dimension_reduce(self.all_high_dim_points_1, target_dim=2)
                     self.low_dim_1 = normalize_low_dim_result(self.low_dim_1)
                     self.save_to_cache(low_dim_1_name, self.low_dim_1)
 
-                low_dim_2_name = f'{self.mode}_{self.model_2_name}_{self.class_selection}_{self.quantity_name}_{self.dr_selection}'
+                low_dim_2_name = f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_2_name}_{self.class_selection}_{self.quantity_name}_{self.dr_selection}'
                 self.low_dim_2 = self.load_from_cache(low_dim_2_name)
                 if not self.load_successfully:
                     self.low_dim_2 = dimension_reduce(self.all_high_dim_points_2, target_dim=2)
@@ -2219,13 +2220,13 @@ class UI_MainWindow(QWidget):
             self.all_aggregate_angles = list(range(0, 365, 5))
 
             # load from cache if available
-            self.all_avg_accuracy_1 = self.load_from_cache(f'{self.mode}_{self.data_mode}_{self.model_1_cache_name}_avg_accuracy')
-            self.all_avg_accuracy_per_digit_1 = self.load_from_cache(f'{self.mode}_{self.data_mode}_{self.model_1_cache_name}_avg_accuracy_per_digit')
-            self.all_outputs_1 = self.load_from_cache(f'{self.mode}_{self.data_mode}_{self.model_1_cache_name}_outputs')
+            self.all_avg_accuracy_1 = self.load_from_cache(f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_1_cache_name}_avg_accuracy')
+            self.all_avg_accuracy_per_digit_1 = self.load_from_cache(f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_1_cache_name}_avg_accuracy_per_digit')
+            self.all_outputs_1 = self.load_from_cache(f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_1_cache_name}_outputs')
 
-            self.all_avg_accuracy_2 = self.load_from_cache(f'{self.mode}_{self.data_mode}_{self.model_2_cache_name}_avg_accuracy')
-            self.all_avg_accuracy_per_digit_2 = self.load_from_cache(f'{self.mode}_{self.data_mode}_{self.model_2_cache_name}_avg_accuracy_per_digit')
-            self.all_outputs_2 = self.load_from_cache(f'{self.mode}_{self.data_mode}_{self.model_2_cache_name}_outputs')
+            self.all_avg_accuracy_2 = self.load_from_cache(f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_2_cache_name}_avg_accuracy')
+            self.all_avg_accuracy_per_digit_2 = self.load_from_cache(f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_2_cache_name}_avg_accuracy_per_digit')
+            self.all_outputs_2 = self.load_from_cache(f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_2_cache_name}_outputs')
 
             if not self.load_successfully:
                 # average accuracies over all digits under all rotations, has shape (num_rotations, 1)
@@ -2265,13 +2266,13 @@ class UI_MainWindow(QWidget):
                     self.all_outputs_2[i] = output_2
 
                 # save to cache
-                self.save_to_cache(f'{self.mode}_{self.data_mode}_{self.model_1_cache_name}_avg_accuracy', self.all_avg_accuracy_1)
-                self.save_to_cache(f'{self.mode}_{self.data_mode}_{self.model_1_cache_name}_avg_accuracy_per_digit', self.all_avg_accuracy_per_digit_1)
-                self.save_to_cache(f'{self.mode}_{self.data_mode}_{self.model_1_cache_name}_outputs', self.all_outputs_1)
+                self.save_to_cache(f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_1_cache_name}_avg_accuracy', self.all_avg_accuracy_1)
+                self.save_to_cache(f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_1_cache_name}_avg_accuracy_per_digit', self.all_avg_accuracy_per_digit_1)
+                self.save_to_cache(f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_1_cache_name}_outputs', self.all_outputs_1)
 
-                self.save_to_cache(f'{self.mode}_{self.data_mode}_{self.model_2_cache_name}_avg_accuracy', self.all_avg_accuracy_2)
-                self.save_to_cache(f'{self.mode}_{self.data_mode}_{self.model_2_cache_name}_avg_accuracy_per_digit', self.all_avg_accuracy_per_digit_2)
-                self.save_to_cache(f'{self.mode}_{self.data_mode}_{self.model_2_cache_name}_outputs', self.all_outputs_2)
+                self.save_to_cache(f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_2_cache_name}_avg_accuracy', self.all_avg_accuracy_2)
+                self.save_to_cache(f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_2_cache_name}_avg_accuracy_per_digit', self.all_avg_accuracy_per_digit_2)
+                self.save_to_cache(f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_2_cache_name}_outputs', self.all_outputs_2)
 
 
             # display the result
@@ -2283,17 +2284,17 @@ class UI_MainWindow(QWidget):
             self.y_translation = list(range(-self.image_size//2, self.image_size//2, self.translation_step_aggregate))
 
             # always try loading from cache
-            self.aggregate_outputs_1 = self.load_from_cache(f'{self.mode}_{self.data_mode}_{self.model_1_cache_name}_outputs')
-            self.aggregate_precision_1 = self.load_from_cache(f'{self.mode}_{self.data_mode}_{self.model_1_cache_name}_precision')
-            self.aggregate_recall_1 = self.load_from_cache(f'{self.mode}_{self.data_mode}_{self.model_1_cache_name}_recall')
-            self.aggregate_mAP_1 = self.load_from_cache(f'{self.mode}_{self.data_mode}_{self.model_1_cache_name}_mAP')
-            self.aggregate_F_measure_1 = self.load_from_cache(f'{self.mode}_{self.data_mode}_{self.model_1_cache_name}_F_measure')
+            self.aggregate_outputs_1 = self.load_from_cache(f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_1_cache_name}_outputs')
+            self.aggregate_precision_1 = self.load_from_cache(f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_1_cache_name}_precision')
+            self.aggregate_recall_1 = self.load_from_cache(f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_1_cache_name}_recall')
+            self.aggregate_mAP_1 = self.load_from_cache(f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_1_cache_name}_mAP')
+            self.aggregate_F_measure_1 = self.load_from_cache(f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_1_cache_name}_F_measure')
 
-            self.aggregate_outputs_2 = self.load_from_cache(f'{self.mode}_{self.data_mode}_{self.model_2_cache_name}_outputs')
-            self.aggregate_precision_2 = self.load_from_cache(f'{self.mode}_{self.data_mode}_{self.model_2_cache_name}_precision')
-            self.aggregate_recall_2 = self.load_from_cache(f'{self.mode}_{self.data_mode}_{self.model_2_cache_name}_recall')
-            self.aggregate_mAP_2 = self.load_from_cache(f'{self.mode}_{self.data_mode}_{self.model_2_cache_name}_mAP')
-            self.aggregate_F_measure_2 = self.load_from_cache(f'{self.mode}_{self.data_mode}_{self.model_2_cache_name}_F_measure')
+            self.aggregate_outputs_2 = self.load_from_cache(f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_2_cache_name}_outputs')
+            self.aggregate_precision_2 = self.load_from_cache(f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_2_cache_name}_precision')
+            self.aggregate_recall_2 = self.load_from_cache(f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_2_cache_name}_recall')
+            self.aggregate_mAP_2 = self.load_from_cache(f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_2_cache_name}_mAP')
+            self.aggregate_F_measure_2 = self.load_from_cache(f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_2_cache_name}_F_measure')
 
             if not self.load_successfully:
                 # output of each sample for all translations, has shape (num_y_trans, num_x_trans, num_samples, num_samples, 7)
@@ -2361,17 +2362,17 @@ class UI_MainWindow(QWidget):
                         self.aggregate_F_measure_2[y, x] = cur_F_measure_2
                         self.aggregate_mAP_2[y, x] = nero_utilities.compute_ap(cur_recall_2, cur_precision_2)
 
-                self.save_to_cache(name=f'{self.mode}_{self.data_mode}_{self.model_1_cache_name}_outputs', content=self.aggregate_outputs_1)
-                self.save_to_cache(name=f'{self.mode}_{self.data_mode}_{self.model_1_cache_name}_precision', content=self.aggregate_precision_1)
-                self.save_to_cache(name=f'{self.mode}_{self.data_mode}_{self.model_1_cache_name}_recall', content=self.aggregate_recall_1)
-                self.save_to_cache(name=f'{self.mode}_{self.data_mode}_{self.model_1_cache_name}_mAP', content=self.aggregate_mAP_1)
-                self.save_to_cache(name=f'{self.mode}_{self.data_mode}_{self.model_1_cache_name}_F_measure', content=self.aggregate_F_measure_1)
+                self.save_to_cache(name=f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_1_cache_name}_outputs', content=self.aggregate_outputs_1)
+                self.save_to_cache(name=f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_1_cache_name}_precision', content=self.aggregate_precision_1)
+                self.save_to_cache(name=f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_1_cache_name}_recall', content=self.aggregate_recall_1)
+                self.save_to_cache(name=f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_1_cache_name}_mAP', content=self.aggregate_mAP_1)
+                self.save_to_cache(name=f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_1_cache_name}_F_measure', content=self.aggregate_F_measure_1)
 
-                self.save_to_cache(name=f'{self.mode}_{self.data_mode}_{self.model_2_cache_name}_outputs', content=self.aggregate_outputs_2)
-                self.save_to_cache(name=f'{self.mode}_{self.data_mode}_{self.model_2_cache_name}_precision', content=self.aggregate_precision_2)
-                self.save_to_cache(name=f'{self.mode}_{self.data_mode}_{self.model_2_cache_name}_recall', content=self.aggregate_recall_2)
-                self.save_to_cache(name=f'{self.mode}_{self.data_mode}_{self.model_2_cache_name}_mAP', content=self.aggregate_mAP_2)
-                self.save_to_cache(name=f'{self.mode}_{self.data_mode}_{self.model_2_cache_name}_F_measure', content=self.aggregate_F_measure_2)
+                self.save_to_cache(name=f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_2_cache_name}_outputs', content=self.aggregate_outputs_2)
+                self.save_to_cache(name=f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_2_cache_name}_precision', content=self.aggregate_precision_2)
+                self.save_to_cache(name=f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_2_cache_name}_recall', content=self.aggregate_recall_2)
+                self.save_to_cache(name=f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_2_cache_name}_mAP', content=self.aggregate_mAP_2)
+                self.save_to_cache(name=f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_2_cache_name}_F_measure', content=self.aggregate_F_measure_2)
 
             # display the result
             self.display_coco_aggregate_result()
@@ -2388,9 +2389,9 @@ class UI_MainWindow(QWidget):
             self.aggregate_ground_truths = torch.zeros((self.num_transformations, len(self.all_labels_paths), self.image_size, self.image_size, 2))
 
             # always try loading from cache
-            self.aggregate_outputs_1 = torch.from_numpy(self.load_from_cache(f'{self.mode}_{self.data_mode}_{self.model_1_cache_name}_outputs'))
-            self.aggregate_outputs_2 = torch.from_numpy(self.load_from_cache(f'{self.mode}_{self.data_mode}_{self.model_2_cache_name}_outputs'))
-            self.aggregate_ground_truths = torch.from_numpy(self.load_from_cache(f'{self.mode}_{self.data_mode}_ground_truths'))
+            self.aggregate_outputs_1 = torch.from_numpy(self.load_from_cache(f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_1_cache_name}_outputs'))
+            self.aggregate_outputs_2 = torch.from_numpy(self.load_from_cache(f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_2_cache_name}_outputs'))
+            self.aggregate_ground_truths = torch.from_numpy(self.load_from_cache(f'{self.mode}_{self.data_mode}_{self.dataset_name}_ground_truths'))
 
             if not self.load_successfully:
                 # take a batch of images
@@ -2527,9 +2528,9 @@ class UI_MainWindow(QWidget):
 
 
                 # save to cache
-                self.save_to_cache(name=f'{self.mode}_{self.data_mode}_{self.model_1_cache_name}_outputs', content=self.aggregate_outputs_1)
-                self.save_to_cache(name=f'{self.mode}_{self.data_mode}_{self.model_2_cache_name}_outputs', content=self.aggregate_outputs_2)
-                self.save_to_cache(name=f'{self.mode}_{self.data_mode}_ground_truths', content=self.aggregate_ground_truths)
+                self.save_to_cache(name=f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_1_cache_name}_outputs', content=self.aggregate_outputs_1)
+                self.save_to_cache(name=f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_2_cache_name}_outputs', content=self.aggregate_outputs_2)
+                self.save_to_cache(name=f'{self.mode}_{self.data_mode}_{self.dataset_name}_ground_truths', content=self.aggregate_ground_truths)
 
             # display the result
             self.display_piv_aggregate_result()
@@ -2765,8 +2766,8 @@ class UI_MainWindow(QWidget):
                 self.all_translations = np.zeros((num_y_translations, num_x_translations, 2))
 
                 # always try loading from cache
-                self.all_quantities_1 = self.load_from_cache(name=f'{self.mode}_{self.data_mode}_{self.model_1_cache_name}_{self.image_index}')
-                self.all_quantities_2 = self.load_from_cache(name=f'{self.mode}_{self.data_mode}_{self.model_2_cache_name}_{self.image_index}')
+                self.all_quantities_1 = self.load_from_cache(name=f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_1_cache_name}_{self.image_index}')
+                self.all_quantities_2 = self.load_from_cache(name=f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_2_cache_name}_{self.image_index}')
 
                 if not self.load_successfully:
                     self.all_quantities_1 = np.zeros((num_y_translations, num_x_translations, 8))
@@ -2818,8 +2819,8 @@ class UI_MainWindow(QWidget):
                             self.all_quantities_2[y, x] = quantity_2
 
                     # save to cache
-                    self.save_to_cache(name=f'{self.mode}_{self.data_mode}_{self.model_1_cache_name}_{self.image_index}', content=self.all_quantities_1)
-                    self.save_to_cache(name=f'{self.mode}_{self.data_mode}_{self.model_2_cache_name}_{self.image_index}', content=self.all_quantities_2)
+                    self.save_to_cache(name=f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_1_cache_name}_{self.image_index}', content=self.all_quantities_1)
+                    self.save_to_cache(name=f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_2_cache_name}_{self.image_index}', content=self.all_quantities_2)
 
                 # display as the final x_tran, y_tran
                 self.display_coco_image()
@@ -3122,8 +3123,8 @@ class UI_MainWindow(QWidget):
 
                 # all_quantities has shape (16, 256, 256, 2)
                 # always try loading from cache
-                self.all_quantities_1 = torch.from_numpy(self.load_from_cache(name=f'{self.mode}_{self.data_mode}_{self.model_1_cache_name}_{self.image_index}'))
-                self.all_quantities_2 = torch.from_numpy(self.load_from_cache(name=f'{self.mode}_{self.data_mode}_{self.model_2_cache_name}_{self.image_index}'))
+                self.all_quantities_1 = torch.from_numpy(self.load_from_cache(name=f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_1_cache_name}_{self.image_index}'))
+                self.all_quantities_2 = torch.from_numpy(self.load_from_cache(name=f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_2_cache_name}_{self.image_index}'))
 
                 if not self.load_successfully:
                     # each model output are dense 2D velocity field of the input image
@@ -3165,8 +3166,8 @@ class UI_MainWindow(QWidget):
                         self.all_quantities_2[i] = quantity_2 / self.image_size
 
                     # save to cache
-                    self.save_to_cache(name=f'{self.mode}_{self.data_mode}_{self.model_1_cache_name}_{self.image_index}', content=self.all_quantities_1.numpy())
-                    self.save_to_cache(name=f'{self.mode}_{self.data_mode}_{self.model_2_cache_name}_{self.image_index}', content=self.all_quantities_2.numpy())
+                    self.save_to_cache(name=f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_1_cache_name}_{self.image_index}', content=self.all_quantities_1.numpy())
+                    self.save_to_cache(name=f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_2_cache_name}_{self.image_index}', content=self.all_quantities_2.numpy())
 
                 # display the piv single case result
                 self.rectangle_index = 0
@@ -5381,8 +5382,8 @@ class UI_MainWindow(QWidget):
                 self.loss_module = nero_utilities.AEELoss()
 
             # try loading from cache
-            cur_losses_1 = self.load_from_cache(f'{self.mode}_{self.data_mode}_{self.model_1_cache_name}_{self.class_selection}_{self.quantity_name}_aggregate_1')
-            cur_losses_2 = self.load_from_cache(f'{self.mode}_{self.data_mode}_{self.model_1_cache_name}_{self.class_selection}_{self.quantity_name}_aggregate_2')
+            cur_losses_1 = self.load_from_cache(f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_1_cache_name}_{self.class_selection}_{self.quantity_name}_aggregate_1')
+            cur_losses_2 = self.load_from_cache(f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_1_cache_name}_{self.class_selection}_{self.quantity_name}_aggregate_2')
             if not self.load_successfully:
                 # keep the same dimension
                 cur_losses_1 = np.zeros((self.num_transformations, len(self.aggregate_outputs_1[0]), self.image_size, self.image_size))
@@ -5397,8 +5398,8 @@ class UI_MainWindow(QWidget):
                                                             reduction='none').numpy().mean(axis=2)
 
                 # save to cache
-                self.save_to_cache(f'{self.mode}_{self.data_mode}_{self.model_1_cache_name}_{self.class_selection}_{self.quantity_name}_aggregate_1', cur_losses_1)
-                self.save_to_cache(f'{self.mode}_{self.data_mode}_{self.model_1_cache_name}_{self.class_selection}_{self.quantity_name}_aggregate_2', cur_losses_2)
+                self.save_to_cache(f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_1_cache_name}_{self.class_selection}_{self.quantity_name}_aggregate_1', cur_losses_1)
+                self.save_to_cache(f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_1_cache_name}_{self.class_selection}_{self.quantity_name}_aggregate_2', cur_losses_2)
 
             # get the 0 and 80 percentile as the threshold for colormap
             all_losses = np.concatenate([cur_losses_1.flatten(), cur_losses_2.flatten()])
@@ -5413,8 +5414,8 @@ class UI_MainWindow(QWidget):
             # compute single result if needed as well
             if self.single_result_existed:
                 # try loading from cache
-                cur_losses_1 = self.load_from_cache(f'{self.mode}_{self.data_mode}_{self.model_1_cache_name}_{self.class_selection}_{self.quantity_name}_single_1')
-                cur_losses_2 = self.load_from_cache(f'{self.mode}_{self.data_mode}_{self.model_1_cache_name}_{self.class_selection}_{self.quantity_name}_single_2')
+                cur_losses_1 = self.load_from_cache(f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_1_cache_name}_{self.class_selection}_{self.quantity_name}_single_1')
+                cur_losses_2 = self.load_from_cache(f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_1_cache_name}_{self.class_selection}_{self.quantity_name}_single_2')
                 if not self.load_successfully:
                     # keep the same dimension
                     cur_losses_1 = np.zeros((self.num_transformations, self.image_size, self.image_size))
@@ -5424,8 +5425,8 @@ class UI_MainWindow(QWidget):
                         cur_losses_2[i] = self.loss_module(self.all_ground_truths[i], self.all_quantities_2[i], reduction='none').numpy().mean(axis=2)
 
                     # save to cache
-                    self.save_to_cache(f'{self.mode}_{self.data_mode}_{self.model_1_cache_name}_{self.class_selection}_{self.quantity_name}_single_1', cur_losses_1)
-                    self.save_to_cache(f'{self.mode}_{self.data_mode}_{self.model_1_cache_name}_{self.class_selection}_{self.quantity_name}_single_2', cur_losses_2)
+                    self.save_to_cache(f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_1_cache_name}_{self.class_selection}_{self.quantity_name}_single_1', cur_losses_1)
+                    self.save_to_cache(f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_1_cache_name}_{self.class_selection}_{self.quantity_name}_single_2', cur_losses_2)
 
                 # average element-wise loss to scalar and normalize between 0 and 1
                 self.cur_single_plot_quantity_1 = cur_losses_1
@@ -5532,8 +5533,8 @@ class UI_MainWindow(QWidget):
                 self.loss_module = nero_utilities.AEELoss()
 
             # try loading from cache
-            cur_losses_1 = self.load_from_cache(f'{self.mode}_{self.data_mode}_{self.model_1_cache_name}_{self.class_selection}_{self.quantity_name}_single_1')
-            cur_losses_2 = self.load_from_cache(f'{self.mode}_{self.data_mode}_{self.model_1_cache_name}_{self.class_selection}_{self.quantity_name}_single_2')
+            cur_losses_1 = self.load_from_cache(f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_1_cache_name}_{self.class_selection}_{self.quantity_name}_single_1')
+            cur_losses_2 = self.load_from_cache(f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_1_cache_name}_{self.class_selection}_{self.quantity_name}_single_2')
             if not self.load_successfully:
                 # keep the same dimension
                 cur_losses_1 = np.zeros((self.num_transformations, self.image_size, self.image_size))
@@ -5547,8 +5548,8 @@ class UI_MainWindow(QWidget):
                                                         reduction='none').numpy().mean(axis=2)
 
                 # save to cache
-                self.save_to_cache(f'{self.mode}_{self.data_mode}_{self.model_1_cache_name}_{self.class_selection}_{self.quantity_name}_single_1', cur_losses_1)
-                self.save_to_cache(f'{self.mode}_{self.data_mode}_{self.model_1_cache_name}_{self.class_selection}_{self.quantity_name}_single_2', cur_losses_2)
+                self.save_to_cache(f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_1_cache_name}_{self.class_selection}_{self.quantity_name}_single_1', cur_losses_1)
+                self.save_to_cache(f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_1_cache_name}_{self.class_selection}_{self.quantity_name}_single_2', cur_losses_2)
 
             # get the 0 and 80 percentile as the threshold for colormap
             # when in aggregate mode, continue using aggregate range
