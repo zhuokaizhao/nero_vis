@@ -87,7 +87,7 @@ class UI_MainWindow(QWidget):
             if not os.path.isdir(self.cache_dir):
                 os.mkdir(self.cache_dir)
 
-            self.cache_path = os.path.join(self.cache_dir, 'nero_cache.npz')
+            self.cache_path = os.path.join(self.cache_dir, f'{self.mode}', 'nero_cache.npz')
             # if not exist, creat one
             if not os.path.isfile(self.cache_path):
                 np.savez(self.cache_path)
@@ -551,7 +551,7 @@ class UI_MainWindow(QWidget):
 
             print('Loaded dataset:', text)
             self.data_mode = 'aggregate'
-            self.dataset_index = int(text.split(' ')[-1])
+            self.dataset_index = self.aggregate_image_menu.currentIndex()
             self.dataset_dir = self.aggregate_data_dirs[self.dataset_index]
             # in digit recognition, all the images are loaded
             if self.mode == 'digit_recognition':
@@ -943,12 +943,11 @@ class UI_MainWindow(QWidget):
         self.aggregate_image_menu.setStyleSheet('font-size: 18px')
         self.aggregate_image_menu.addItem('Input dataset')
 
-        # data dir
-        self.aggregate_data_dirs = glob.glob(os.path.join(os.getcwd(), 'example_data', self.mode, f'aggregate'))
-
+        # data dir (sorted in a way that smaller dataset first)
+        self.aggregate_data_dirs = sorted(glob.glob(os.path.join(os.getcwd(), 'example_data', self.mode, f'COCO*')))
         # load all images in the folder
         for i in range(len(self.aggregate_data_dirs)):
-            self.aggregate_image_menu.addItem(f'Test {i}')
+            self.aggregate_image_menu.addItem(self.aggregate_data_dirs[i].split('/')[-1])
 
         # set default to the first test dataset
         if self.demo:
@@ -2281,23 +2280,6 @@ class UI_MainWindow(QWidget):
             self.x_translation = list(range(-self.image_size//2, self.image_size//2, self.translation_step_aggregate))
             self.y_translation = list(range(-self.image_size//2, self.image_size//2, self.translation_step_aggregate))
 
-            # output of each sample for all translations, has shape (num_y_trans, num_x_trans, num_samples, num_samples, 7)
-            self.aggregate_outputs_1 = np.zeros((len(self.y_translation), len(self.x_translation)), dtype=np.ndarray)
-            self.aggregate_outputs_2 = np.zeros((len(self.y_translation), len(self.x_translation)), dtype=np.ndarray)
-
-            # individual precision, recall, F measure and AP
-            self.aggregate_precision_1 = np.zeros((len(self.y_translation), len(self.x_translation)), dtype=np.ndarray)
-            self.aggregate_recall_1 = np.zeros((len(self.y_translation), len(self.x_translation)), dtype=np.ndarray)
-            self.aggregate_F_measure_1 = np.zeros((len(self.y_translation), len(self.x_translation)), dtype=np.ndarray)
-            # mAP does not have individuals
-            self.aggregate_mAP_1 = np.zeros((len(self.y_translation), len(self.x_translation)))
-
-            self.aggregate_precision_2 = np.zeros((len(self.y_translation), len(self.x_translation)), dtype=np.ndarray)
-            self.aggregate_recall_2 = np.zeros((len(self.y_translation), len(self.x_translation)), dtype=np.ndarray)
-            self.aggregate_F_measure_2 = np.zeros((len(self.y_translation), len(self.x_translation)), dtype=np.ndarray)
-            # mAP does not have individuals
-            self.aggregate_mAP_2 = np.zeros((len(self.y_translation), len(self.x_translation)))
-
             # always try loading from cache
             self.aggregate_outputs_1 = self.load_from_cache(f'{self.mode}_{self.data_mode}_{self.model_1_cache_name}_outputs')
             self.aggregate_precision_1 = self.load_from_cache(f'{self.mode}_{self.data_mode}_{self.model_1_cache_name}_precision')
@@ -2312,6 +2294,23 @@ class UI_MainWindow(QWidget):
             self.aggregate_F_measure_2 = self.load_from_cache(f'{self.mode}_{self.data_mode}_{self.model_2_cache_name}_F_measure')
 
             if not self.load_successfully:
+                # output of each sample for all translations, has shape (num_y_trans, num_x_trans, num_samples, num_samples, 7)
+                self.aggregate_outputs_1 = np.zeros((len(self.y_translation), len(self.x_translation)), dtype=np.ndarray)
+                self.aggregate_outputs_2 = np.zeros((len(self.y_translation), len(self.x_translation)), dtype=np.ndarray)
+
+                # individual precision, recall, F measure and AP
+                self.aggregate_precision_1 = np.zeros((len(self.y_translation), len(self.x_translation)), dtype=np.ndarray)
+                self.aggregate_recall_1 = np.zeros((len(self.y_translation), len(self.x_translation)), dtype=np.ndarray)
+                self.aggregate_F_measure_1 = np.zeros((len(self.y_translation), len(self.x_translation)), dtype=np.ndarray)
+                # mAP does not have individuals
+                self.aggregate_mAP_1 = np.zeros((len(self.y_translation), len(self.x_translation)))
+
+                self.aggregate_precision_2 = np.zeros((len(self.y_translation), len(self.x_translation)), dtype=np.ndarray)
+                self.aggregate_recall_2 = np.zeros((len(self.y_translation), len(self.x_translation)), dtype=np.ndarray)
+                self.aggregate_F_measure_2 = np.zeros((len(self.y_translation), len(self.x_translation)), dtype=np.ndarray)
+                # mAP does not have individuals
+                self.aggregate_mAP_2 = np.zeros((len(self.y_translation), len(self.x_translation)))
+
                 # for all the loaded images
                 for y, y_tran in enumerate(self.y_translation):
                     for x, x_tran in enumerate(self.x_translation):
