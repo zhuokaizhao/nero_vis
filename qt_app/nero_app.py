@@ -522,10 +522,7 @@ class UI_MainWindow(QWidget):
             # flag on if control has been set up
             self.aggregate_plot_control_existed = False
 
-            if self.demo:
-                # the models have default, just run
-                self.run_button_clicked()
-            else:
+            if not self.demo:
                 # clear the single image selection
                 self.image_menu.setCurrentIndex(0)
 
@@ -550,7 +547,7 @@ class UI_MainWindow(QWidget):
                     self.run_button_existed = False
                     print('Previous single result layout deleted')
 
-            if not self.demo:
+                # initialize layout
                 self.init_aggregate_result_layout()
 
             self.dataset_name = text
@@ -611,8 +608,9 @@ class UI_MainWindow(QWidget):
                 # run button
                 # buttons layout for run model
                 self.run_button_layout = QtWidgets.QGridLayout()
-                # no displayed test image as in the single case so layout row number-1
+                # demo mode has "virtual" run button, not in layout
                 if not self.demo:
+                    # no displayed test image as in the single case so layout row number-1
                     self.layout.addLayout(self.run_button_layout, 2, 0, 1, 2)
 
                 self.run_button = QtWidgets.QPushButton('Analyze model')
@@ -629,8 +627,14 @@ class UI_MainWindow(QWidget):
                 self.run_button_layout.addWidget(self.use_cache_checkbox)
 
                 self.run_button_existed = True
-            else:
+
+            elif not self.demo and self.run_button_existed:
                 self.run_button.setText('Analyze model')
+
+            elif self.demo:
+                # the models have default, just run
+                self.run_button_clicked()
+
 
         # load single image drop-down menu
         @QtCore.Slot()
