@@ -57,7 +57,7 @@ def tensor_to_qt_image(img_pt, new_size=None):
     # make sure numpy array is c contiguous, as required by QImage
     if not img_np.flags['C_CONTIGUOUS']:
         img_np = np.ascontiguousarray(img_np)
-    print(img_np.shape)
+
     if img_np.shape[-1] == 1:
         # qt image uses width, height
         img_qt = QtGui.QImage(img_np, img_np.shape[1], img_np.shape[0], QtGui.QImage.Format_Grayscale8)
