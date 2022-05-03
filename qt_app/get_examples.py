@@ -11,7 +11,7 @@ from tqdm import tqdm
 from shutil import copy
 from gluoncv import data
 from pycocotools.coco import COCO
-# from mlxtend.data import loadlocal_mnist
+from mlxtend.data import loadlocal_mnist
 
 random.seed(10)
 
@@ -74,11 +74,7 @@ def main():
         labels = labels.astype(np.int64)
         data_size = len(labels)
 
-        # normalization and conversion
-        # to_tensor = torchvision.transforms.ToTensor()
-        # normalize = torchvision.transforms.Normalize((0.1307,), (0.3081,))
-
-        # randomly pick 10 indices where each class has one
+        # randomly pick indices so that each digit has num_samples//10 images
         sample_indices = []
         existed_classes = []
         while len(sample_indices) < num_samples:
