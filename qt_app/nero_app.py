@@ -522,29 +522,33 @@ class UI_MainWindow(QWidget):
             # flag on if control has been set up
             self.aggregate_plot_control_existed = False
 
-            # clear the single image selection
-            self.image_menu.setCurrentIndex(0)
+            if self.demo:
+                # the models have default, just run
+                self.run_button_clicked()
+            else:
+                # clear the single image selection
+                self.image_menu.setCurrentIndex(0)
 
-            # clear previous result layout
-            if self.data_existed:
-                self.clear_layout(self.run_button_layout)
-                self.clear_layout(self.aggregate_result_layout)
-                self.aggregate_result_existed = False
-                self.data_existed = False
-                self.run_button_existed = False
-                print('Previous aggregate result layout deleted')
+                # clear previous result layout
+                if self.data_existed:
+                    self.clear_layout(self.run_button_layout)
+                    self.clear_layout(self.aggregate_result_layout)
+                    self.aggregate_result_existed = False
+                    self.data_existed = False
+                    self.run_button_existed = False
+                    print('Previous aggregate result layout deleted')
 
-            # since single case starts with image loading
-            if self.image_existed:
-                # move model selection menus back to load menu
-                self.load_menu_layout.addWidget(self.model_1_menu, 2, 3)
-                self.load_menu_layout.addWidget(self.model_2_menu, 3, 3)
-                self.clear_layout(self.run_button_layout)
-                self.clear_layout(self.single_result_layout)
-                self.single_result_existed = False
-                self.image_existed = False
-                self.run_button_existed = False
-                print('Previous single result layout deleted')
+                # since single case starts with image loading
+                if self.image_existed:
+                    # move model selection menus back to load menu
+                    self.load_menu_layout.addWidget(self.model_1_menu, 2, 3)
+                    self.load_menu_layout.addWidget(self.model_2_menu, 3, 3)
+                    self.clear_layout(self.run_button_layout)
+                    self.clear_layout(self.single_result_layout)
+                    self.single_result_existed = False
+                    self.image_existed = False
+                    self.run_button_existed = False
+                    print('Previous single result layout deleted')
 
             if not self.demo:
                 self.init_aggregate_result_layout()
@@ -947,7 +951,12 @@ class UI_MainWindow(QWidget):
         self.aggregate_image_menu.addItem('Input dataset')
 
         # data dir (sorted in a way that smaller dataset first)
-        self.aggregate_data_dirs = sorted(glob.glob(os.path.join(os.getcwd(), 'example_data', self.mode, f'COCO*')))
+        if self.mode == 'digit_recognition':
+            self.aggregate_data_dirs = sorted(glob.glob(os.path.join(os.getcwd(), 'example_data', self.mode, f'MNIST*')))
+        elif self.mode == 'object_detection':
+            self.aggregate_data_dirs = sorted(glob.glob(os.path.join(os.getcwd(), 'example_data', self.mode, f'COCO*')))
+        elif self.mode == 'piv':
+            self.aggregate_data_dirs = sorted(glob.glob(os.path.join(os.getcwd(), 'example_data', self.mode, f'COCO*')))
         # load all images in the folder
         for i in range(len(self.aggregate_data_dirs)):
             self.aggregate_image_menu.addItem(self.aggregate_data_dirs[i].split('/')[-1])
@@ -1147,7 +1156,7 @@ class UI_MainWindow(QWidget):
 
         # demo mode selects the aggregate dataset to start three-level view
         if self.demo:
-            aggregate_dataset_selection_changed('Test 0')
+            aggregate_dataset_selection_changed(self.aggregate_image_menu.currentText())
             self.use_cache_checkbox.setChecked(True)
             # the models have default, just run
             self.run_button_clicked()
@@ -2730,15 +2739,16 @@ class UI_MainWindow(QWidget):
                 self.all_angles.append(self.cur_rotation_angle)
                 # rotate the image tensor
                 self.cur_image_pt = nero_transform.rotate_mnist_image(self.loaded_image_pt, self.cur_rotation_angle)
+                # OPTIONAL: animation
                 # convert image tensor to qt image and resize for display
-                self.cur_display_image = nero_utilities.tensor_to_qt_image(self.cur_image_pt, self.display_image_size)
+                # self.cur_display_image = nero_utilities.tensor_to_qt_image(self.cur_image_pt, self.display_image_size)
                 # prepare image tensor for model purpose
                 self.cur_image_pt = nero_transform.prepare_mnist_image(self.cur_image_pt)
                 # update the pixmap and label
-                image_pixmap = QPixmap(self.cur_display_image)
-                self.image_label.setPixmap(image_pixmap)
+                # image_pixmap = QPixmap(self.cur_display_image)
+                # self.image_label.setPixmap(image_pixmap)
                 # force repaint
-                self.image_label.repaint()
+                # self.image_label.repaint()
 
                 # update the model output
                 self.output_1 = nero_run_model.run_mnist_once(self.model_1, self.cur_image_pt)
