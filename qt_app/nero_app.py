@@ -818,7 +818,7 @@ class UI_MainWindow(QWidget):
                         self.run_dimension_reduction()
 
                 elif self.data_mode == 'single':
-                    self.run_model_all()
+                    self.run_model_single()
                     self.single_result_existed = True
 
         @QtCore.Slot()
@@ -904,7 +904,7 @@ class UI_MainWindow(QWidget):
                         self.run_dimension_reduction()
 
                 elif self.data_mode == 'single':
-                    self.run_model_all()
+                    self.run_model_single()
                     self.single_result_existed = True
 
         # function used as model icon
@@ -1212,16 +1212,7 @@ class UI_MainWindow(QWidget):
 
         # single (single image selected) case
         elif self.data_mode == 'single':
-            if self.mode == 'digit_recognition':
-                # run model once and display bar result
-                self.run_model_once()
-                # run model all and display results (Individual NERO polar plot)
-                self.run_model_all()
-
-            elif self.mode == 'object_detection' or self.mode == 'piv':
-                # run model all and display results (Individual NERO plot)
-                self.run_model_all()
-
+            self.run_model_single()
             self.single_result_existed = True
 
 
@@ -1647,8 +1638,6 @@ class UI_MainWindow(QWidget):
                 self.cur_display_image = nero_utilities.tensor_to_qt_image(self.cur_image_pt, self.display_image_size)
                 # prepare image tensor for model purpose
                 self.cur_image_pt = nero_transform.prepare_mnist_image(self.cur_image_pt)
-                # run model once and display results (Detailed bar plot)
-                self.run_model_once()
 
             elif self.mode == 'object_detection':
                 # convert to QImage for display purpose
@@ -1668,7 +1657,7 @@ class UI_MainWindow(QWidget):
                                             loop=0)
 
             # run model all and display results (Individual NERO plot)
-            self.run_model_all()
+            self.run_model_single()
 
         # when hovered on the scatter plot item
         def low_dim_scatter_hovered(item, points):
@@ -2048,8 +2037,6 @@ class UI_MainWindow(QWidget):
                     self.cur_display_image = nero_utilities.tensor_to_qt_image(self.cur_image_pt, self.display_image_size)
                     # prepare image tensor for model purpose
                     self.cur_image_pt = nero_transform.prepare_mnist_image(self.cur_image_pt)
-                    # run model once and display results (Detailed bar plot)
-                    self.run_model_once()
 
                 elif self.mode == 'object_detection':
                     # convert to QImage for display purpose
@@ -2068,8 +2055,8 @@ class UI_MainWindow(QWidget):
                                                 duration=300,
                                                 loop=0)
 
-                # run model all and display results (Individual NERO plot)
-                self.run_model_all()
+                # run model all and display results (Individual NERO plot and detailed plot)
+                self.run_model_single()
 
         @QtCore.Slot()
         def dr_result_selection_slider_2_changed():
@@ -2122,8 +2109,6 @@ class UI_MainWindow(QWidget):
                     self.cur_display_image = nero_utilities.tensor_to_qt_image(self.cur_image_pt, self.display_image_size)
                     # prepare image tensor for model purpose
                     self.cur_image_pt = nero_transform.prepare_mnist_image(self.cur_image_pt)
-                    # run model once and display results (Detailed bar plot)
-                    self.run_model_once()
 
                 elif self.mode == 'object_detection':
                     # convert to QImage for display purpose
@@ -2143,7 +2128,7 @@ class UI_MainWindow(QWidget):
                                                 loop=0)
 
                 # run model all and display results (Individual NERO plot)
-                self.run_model_all()
+                self.run_model_single()
 
 
         # radio buittons on choosing the intensity quantity
@@ -2548,7 +2533,7 @@ class UI_MainWindow(QWidget):
         if self.demo:
             self.run_dimension_reduction()
 
-    # run model on a single test sample with no transfomations
+    # run model on a single test sample
     def run_model_once(self):
         if self.mode == 'digit_recognition':
 
@@ -2722,11 +2707,17 @@ class UI_MainWindow(QWidget):
             self.rectangle_index = self.cayley_table[self.transform_index, self.rectangle_index]
 
     # run model on all the available transformations on a single sample
-    def run_model_all(self):
+    def run_model_single(self):
 
         if self.mode == 'digit_recognition':
             # display the image
             self.display_image()
+
+            # get computed result from aggregate test
+            # self.all_angles = [self.cur_rotation_angle for self.cur_rotation_angle in range(0, 360+self.rotation_step, self.rotation_step)]
+            # # output of each class's probablity of all samples, has shape (num_rotations, num_samples, 10)
+            # self.all_quantities_1 = self.all_outputs_1[:, self.image_index, self.loaded_images_labels[self.image_index]]
+            # self.all_quantities_2 = self.all_outputs_2[:, self.image_index, self.loaded_images_labels[self.image_index]]
 
             self.all_angles = []
             # quantity that is displayed in the individual NERO plot
@@ -2762,7 +2753,10 @@ class UI_MainWindow(QWidget):
                 self.all_quantities_2.append(quantity_2)
 
             # display result
+            # individual NERO plot
             self.display_mnist_single_result(type='polar')
+            # detailed bar plot
+            self.display_mnist_single_result(type='bar')
 
         elif self.mode == 'object_detection':
             # when this is called in the single case
