@@ -1230,10 +1230,12 @@ class UI_MainWindow(QWidget):
         # aggregate class selection drop-down menu
         @QtCore.Slot()
         def aggregate_class_selection_changed(text):
+            # re-initialize the scatter plot
+            self.dr_result_existed = False
             # update the current digit selection
-            # first two cases are for digit recognition (MNIST)
+            # for digit recognition (MNIST)
             if self.mode == 'digit_recognition':
-                if text.split(' ')[0] == 'Averaged':
+                if text.split(' ')[0] == 'All':
                     self.class_selection = 'all'
                 elif text.split(' ')[0] == 'Digit':
                     self.class_selection = int(text.split(' ')[-1])
@@ -1243,7 +1245,7 @@ class UI_MainWindow(QWidget):
 
             # for object detection (COCO)
             elif self.mode == 'object_detection':
-                if text.split(' ')[0] == 'Averaged':
+                if text.split(' ')[0] == 'All':
                     self.class_selection = 'all'
                 else:
                     self.class_selection = text
@@ -1254,7 +1256,7 @@ class UI_MainWindow(QWidget):
             # for piv
             elif self.mode == 'piv':
                 # select different flows
-                if text.split(' ')[0] == 'Averaged':
+                if text.split(' ')[0] == 'All':
                     self.class_selection = 'all'
                 else:
                     self.class_selection = text
@@ -1263,7 +1265,7 @@ class UI_MainWindow(QWidget):
                 self.display_piv_aggregate_result()
 
             # after change class, run new dimension reduction if previously run
-            if self.dr_result_existed:
+            if self.demo or self.dr_result_existed:
                 self.run_dimension_reduction()
 
         @QtCore.Slot()
