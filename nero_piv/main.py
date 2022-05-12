@@ -178,7 +178,8 @@ def main():
 
 
         # model
-        piv_lfn_en = model.PIV_LiteFlowNet_en()
+        # piv_lfn_en = model.PIV_LiteFlowNet_en()
+        piv_lfn_en = model.piv_liteflownet()
 
         # load checkpoint info if existing
         starting_epoch = 0
