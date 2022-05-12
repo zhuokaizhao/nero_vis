@@ -4,7 +4,6 @@ import numpy as np
 import torchvision
 from scipy import signal
 from e2cnn import gspaces
-import torch.utils.model_zoo as model_zoo
 from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
 from scipy.ndimage.filters import convolve as filter2
 from typing import Optional, Tuple, List, Union
