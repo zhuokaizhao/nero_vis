@@ -71,28 +71,28 @@ def main():
     # mode (data, train, or test mode)
     parser.add_argument('--mode', required=True, action='store', nargs=1, dest='mode')
     # input training dataset director
-    parser.add_argument('--train-dir', action='store', nargs=1, dest='train_dir')
+    parser.add_argument('--train_dir', action='store', nargs=1, dest='train_dir')
     # input validation dataset ditectory
-    parser.add_argument('--val-dir', action='store', nargs=1, dest='val_dir')
+    parser.add_argument('--val_dir', action='store', nargs=1, dest='val_dir')
     # input testing dataset ditectory
-    parser.add_argument('--test-dir', action='store', nargs=1, dest='test_dir')
+    parser.add_argument('--test_dir', action='store', nargs=1, dest='test_dir')
     # epoch size
-    parser.add_argument('-e', '--num-epoch', action='store', nargs=1, dest='num_epoch')
+    parser.add_argument('-e', '--num_epoch', action='store', nargs=1, dest='num_epoch')
     # batch size
-    parser.add_argument('-b', '--batch-size', action='store', nargs=1, dest='batch_size')
+    parser.add_argument('-b', '--batch_size', action='store', nargs=1, dest='batch_size')
     # loss function
     parser.add_argument('-l', '--loss', action='store', nargs=1, dest='loss')
     # checkpoint path for continuing training
-    parser.add_argument('-c', '--checkpoint-dir', action='store', nargs=1, dest='checkpoint_path')
+    parser.add_argument('-c', '--checkpoint_dir', action='store', nargs=1, dest='checkpoint_path')
     # input or output model directory
-    parser.add_argument('-m', '--model-dir', action='store', nargs=1, dest='model_dir')
+    parser.add_argument('-m', '--model_dir', action='store', nargs=1, dest='model_dir')
     # output directory (tfrecord in 'data' mode, figure in 'training' mode)
-    parser.add_argument('-o', '--output-dir', action='store', nargs=1, dest='output_dir')
+    parser.add_argument('-o', '--output_dir', action='store', nargs=1, dest='output_dir')
     # save checkpoint interval
-    parser.add_argument('-f', '--save-freq', action='store', nargs=1, dest='save_freq')
+    parser.add_argument('-f', '--save_freq', action='store', nargs=1, dest='save_freq')
     # start and end t used when testing (both inclusive)
-    parser.add_argument('--start-t', action='store', nargs=1, dest='start_t')
-    parser.add_argument('--end-t', action='store', nargs=1, dest='end_t')
+    parser.add_argument('--start_t', action='store', nargs=1, dest='start_t')
+    parser.add_argument('--end_t', action='store', nargs=1, dest='end_t')
     # verbosity
     parser.add_argument('-v', '--verbose', action='store_true', dest='verbose', default=False)
     args = parser.parse_args()
@@ -243,7 +243,7 @@ def main():
                     num_batch = int(np.ceil(len(val_data) / batch_size))
 
                 for j, (batch_data, batch_labels) in enumerate(dataloader):
-                    # has shape (batch_size, 260, 1, 128, 128)
+                    # has shape (batch_size, 2, 256, 256)
                     batch_start_time = time.time()
                     # send data to GPU
                     batch_data = batch_data.to(device)
@@ -251,7 +251,8 @@ def main():
 
                     if phase == 'train':
                         # train/validate
-                        cur_label_pred = piv_lfn_en(batch_data)
+                        # cur_label_pred = piv_lfn_en(batch_data)
+                        cur_label_pred = piv_lfn_en(batch_data[:, 0:3, :, :], batch_data[:, 3:, :, :])
 
                         # compute loss
                         train_loss = loss_module(cur_label_pred, batch_labels)

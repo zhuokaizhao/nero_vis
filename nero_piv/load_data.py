@@ -56,11 +56,14 @@ def construct_dataset(img1_name_list,
     # print(f'Input image has size ({img_height}, {img_width})')
     # load first image, second image and labels
     # concatenate image pair on channel axis
-    image_pairs = np.zeros((amount, img_height, img_width, 2))
+    # image_pairs = np.zeros((amount, img_height, img_width, 2))
+    image_pairs = np.zeros((amount, img_height, img_width, 6))
     labels = np.zeros((amount, img_height, img_width, 2))
     for i in range(amount):
-        image_pairs[i, :, :, 0:1] = np.asarray(Image.open(img1_name_list[i])).reshape(img_height, img_width, 1) * 1.0/255.0
-        image_pairs[i, :, :, 1:] = np.asarray(Image.open(img2_name_list[i])).reshape(img_height, img_width, 1) * 1.0/255.0
+        # image_pairs[i, :, :, 0:1] = np.asarray(Image.open(img1_name_list[i])).reshape(img_height, img_width, 1) * 1.0/255.0
+        # image_pairs[i, :, :, 1:] = np.asarray(Image.open(img2_name_list[i])).reshape(img_height, img_width, 1) * 1.0/255.0
+        image_pairs[i, :, :, 0:3] = np.asarray(Image.open(img1_name_list[i]).convert('RGB')).reshape(img_height, img_width, 3) * 1.0/255.0
+        image_pairs[i, :, :, 3:] = np.asarray(Image.open(img2_name_list[i]).convert('RGB')).reshape(img_height, img_width, 3) * 1.0/255.0
         labels[i] = fz.read_flow(label_name_list[i])
 
     # prepare pytorch training data (channel first)

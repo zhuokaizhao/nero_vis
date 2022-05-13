@@ -6,6 +6,7 @@
 *.csv
 *.tif
 *.flo
+*.json
 
 # unused logging
 detection/yolov3/logs/*
