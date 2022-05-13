@@ -699,7 +699,7 @@ class LiteFlowNet(torch.nn.Module):
 									stride=1, padding=[0, 3, 3, 2, 2, 1, 1][pyr_level])
 				)
 
-			def forward(self, tensorFirst, tensorSecond, feat1, feat2, xflow):
+			def forward(self, tenFirst, tenSecond, feat1, feat2, xflow):
 				# feat1 = self.moduleFeat(feat1)
 				# feat2 = self.moduleFeat(feat2)
 
