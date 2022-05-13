@@ -4,6 +4,8 @@
 *.zip
 *.nrrd
 *.csv
+*.tif
+*.flo
 
 # unused logging
 detection/yolov3/logs/*
