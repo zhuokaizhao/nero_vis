@@ -290,7 +290,7 @@ def main():
 
                             # train/validate
                             # cur_label_pred = piv_lfn_en(batch_data)
-                            cur_label_pred = piv_lfn_en(batch_data[:, 0:3, :, :], batch_data[:, 3:, :, :])[-1][-1]
+                            cur_label_pred = piv_lfn_en(batch_data[:, 0:3, :, :], batch_data[:, 3:, :, :])
 
                             # compute loss
                             val_loss = loss_module(cur_label_pred, batch_labels)
