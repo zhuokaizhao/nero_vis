@@ -8,6 +8,7 @@ from typing import Optional, Tuple, List, Union
 
 import correlation
 import layers
+from correlation import FunctionCorrelation  # the custom cost volume layer
 
 # use cudnn
 torch.backends.cudnn.enabled = True
