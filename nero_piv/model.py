@@ -709,14 +709,14 @@ class LiteFlowNet(torch.nn.Module):
 
 				if self.upCorr_M is None:
 					corr_M_out = torch.nn.functional.leaky_relu(
-						input=FunctionCorrelation(tensorFirst=feat1,
-												  tensorSecond=feat2,
+						input=FunctionCorrelation(tenFirst=feat1,
+												  tenSecond=feat2,
 												  intStride=1),
 						negative_slope=0.1, inplace=False)
 				else:  # Upsampling the correlation result (for lower resolution level)
 					corr_M_out = self.upCorr_M(torch.nn.functional.leaky_relu(
-						input=FunctionCorrelation(tensorFirst=feat1,
-												  tensorSecond=feat2,
+						input=FunctionCorrelation(tenFirst=feat1,
+												  tenSecond=feat2,
 												  intStride=2),
 						negative_slope=0.1, inplace=False))
 
@@ -1046,14 +1046,14 @@ class LiteFlowNet2(torch.nn.Module):
 
 				if self.upCorr_M is None:
 					corr_M_out = torch.nn.functional.leaky_relu(
-						input=FunctionCorrelation(tensorFirst=feat1,
-												  tensorSecond=feat2,
+						input=FunctionCorrelation(tenFirst=feat1,
+												  tenSecond=feat2,
 												  intStride=1),
 						negative_slope=0.1, inplace=False)
 				else:  # Upsampling the correlation result (for lower resolution level)
 					corr_M_out = self.upCorr_M(torch.nn.functional.leaky_relu(
-						input=FunctionCorrelation(tensorFirst=feat1,
-												  tensorSecond=feat2,
+						input=FunctionCorrelation(tenFirst=feat1,
+												  tenSecond=feat2,
 												  intStride=2),
 						negative_slope=0.1, inplace=False))
 
