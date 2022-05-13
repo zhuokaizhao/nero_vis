@@ -250,6 +250,7 @@ def main():
                     batch_labels = batch_labels.to(device)
 
                     if phase == 'train':
+                        piv_lfn_en.train()
                         # train/validate
                         # cur_label_pred = piv_lfn_en(batch_data)
                         cur_label_pred = piv_lfn_en(batch_data[:, 0:3, :, :], batch_data[:, 3:, :, :])[-1][-1]
