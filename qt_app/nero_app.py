@@ -41,8 +41,8 @@ class UI_MainWindow(QWidget):
     def __init__(self, pre_selected_mode, demo, cache_path):
         super().__init__()
         # window size
-        # self.resize(1920, 1080)
-        self.resize(2260, 1080)
+        self.resize(1920, 1080)
+        # self.resize(2260, 1080)
         # set window title
         self.setWindowTitle("Non-Equivariance Revealed on Orbits")
         # white background color
@@ -1210,8 +1210,8 @@ class UI_MainWindow(QWidget):
         # initialize layout for loading menus
         if self.demo:
             self.demo_layout = QtWidgets.QGridLayout()
-            self.demo_layout.setHorizontalSpacing(50)
-            self.demo_layout.setVerticalSpacing(0)
+            self.demo_layout.setHorizontalSpacing(0)
+            self.demo_layout.setVerticalSpacing(30)
         else:
             self.load_menu_layout = QtWidgets.QGridLayout()
 
@@ -1219,8 +1219,8 @@ class UI_MainWindow(QWidget):
         model_pixmap = QPixmap(350, 50)
         model_pixmap.fill(QtCore.Qt.white)
         painter = QtGui.QPainter(model_pixmap)
-        painter.setFont(QFont("Helvetica", 18))
-        painter.drawText(50, 0, 300, 50, QtGui.Qt.AlignLeft, "Input Data Set: ")
+        painter.setFont(QFont("Helvetica", 24))
+        painter.drawText(0, 0, 350, 50, QtGui.Qt.AlignLeft, "Input Data Set: ")
         painter.end()
 
         # create label to contain the texts
@@ -1235,9 +1235,10 @@ class UI_MainWindow(QWidget):
 
         # aggregate images loading drop down menu
         self.aggregate_image_menu = QtWidgets.QComboBox()
-        self.aggregate_image_menu.setFixedSize(QtCore.QSize(300, 50))
-        self.aggregate_image_menu.setStyleSheet("font-size: 18px")
-        self.aggregate_image_menu.setStyleSheet("color: black")
+        self.aggregate_image_menu.setFixedSize(QtCore.QSize(200, 50))
+        self.aggregate_image_menu.setStyleSheet(
+            "color: black; font-size: 24px; font-family: Helvetica; font-style: normal;"
+        )
         self.aggregate_image_menu.addItem("Input dataset")
 
         # data dir (sorted in a way that smaller dataset first)
@@ -1271,17 +1272,18 @@ class UI_MainWindow(QWidget):
         self.aggregate_image_menu.lineEdit().setAlignment(QtCore.Qt.AlignCenter)
         if self.demo:
             aggregate_image_menu_layout = QtWidgets.QHBoxLayout()
-            aggregate_image_menu_layout.setContentsMargins(0, 0, 0, 0)
+            aggregate_image_menu_layout.setContentsMargins(150, 0, 0, 0)
             aggregate_image_menu_layout.addWidget(self.aggregate_image_menu)
-            self.demo_layout.addLayout(aggregate_image_menu_layout, 1, 0)
+            self.demo_layout.addLayout(aggregate_image_menu_layout, 0, 0)
         else:
             self.load_menu_layout.addWidget(self.aggregate_image_menu, 0, 3)
 
         # single image loading drop down menu
         self.image_menu = QtWidgets.QComboBox()
         self.image_menu.setFixedSize(QtCore.QSize(300, 50))
-        self.image_menu.setStyleSheet("font-size: 18px")
-        self.image_menu.setStyleSheet("color: black")
+        self.image_menu.setStyleSheet(
+            "color: black; font-size: 24px; font-family: Helvetica; font-style: normal;"
+        )
         self.image_menu.addItem("Input image")
 
         if self.mode == "digit_recognition":
@@ -1369,10 +1371,11 @@ class UI_MainWindow(QWidget):
         draw_circle(painter, 12, 12, 10, "blue")
 
         self.model_1_menu = QtWidgets.QComboBox()
-        self.model_1_menu.setStyleSheet("font-size: 18px")
-        self.model_1_menu.setStyleSheet("color: black")
+        self.model_1_menu.setStyleSheet(
+            "color: black; font-size: 24px; font-family: Helvetica; font-style: normal;"
+        )
         if self.mode == "digit_recognition":
-            self.model_1_menu.setFixedSize(QtCore.QSize(200, 50))
+            self.model_1_menu.setFixedSize(QtCore.QSize(250, 50))
             self.model_1_menu.addItem(model_1_icon, "Original model")
             self.model_1_menu.addItem(model_1_icon, "E2CNN model")
             self.model_1_menu.addItem(model_1_icon, "DA model")
@@ -1401,7 +1404,7 @@ class UI_MainWindow(QWidget):
         if self.demo:
             if self.mode == "digit_recognition":
                 model_menus_layout = QtWidgets.QHBoxLayout()
-                model_menus_layout.setContentsMargins(50, 0, 0, 0)
+                model_menus_layout.setContentsMargins(0, 0, 0, 0)
                 model_menus_layout.addWidget(self.model_1_menu)
             else:
                 model_1_menu_layout = QtWidgets.QHBoxLayout()
@@ -1423,13 +1426,14 @@ class UI_MainWindow(QWidget):
         draw_circle(painter, 12, 12, 10, "magenta")
 
         self.model_2_menu = QtWidgets.QComboBox()
-        self.model_2_menu.setStyleSheet("font-size: 18px")
-        self.model_2_menu.setStyleSheet("color: black")
+        self.model_2_menu.setStyleSheet(
+            "color: black; font-size: 24px; font-family: Helvetica; font-style: normal;"
+        )
         self.model_2_menu.setEditable(True)
         self.model_2_menu.lineEdit().setReadOnly(True)
         self.model_2_menu.lineEdit().setAlignment(QtCore.Qt.AlignCenter)
         if self.mode == "digit_recognition":
-            self.model_2_menu.setFixedSize(QtCore.QSize(200, 50))
+            self.model_2_menu.setFixedSize(QtCore.QSize(250, 50))
             self.model_2_menu.addItem(model_2_icon, "Original model")
             self.model_2_menu.addItem(model_2_icon, "E2CNN model")
             self.model_2_menu.addItem(model_2_icon, "DA model")
@@ -1611,30 +1615,31 @@ class UI_MainWindow(QWidget):
 
         # drop down menu on choosing the display class
         # draw text
-        class_selection_pixmap = QPixmap(350, 100)
+        class_selection_pixmap = QPixmap(350, 50)
         class_selection_pixmap.fill(QtCore.Qt.white)
         painter = QtGui.QPainter(class_selection_pixmap)
-        painter.setFont(QFont("Helvetica", 18))
-        painter.drawText(50, 50, 300, 50, QtGui.Qt.AlignLeft, "Input Data Subset: ")
+        painter.setFont(QFont("Helvetica", 24))
+        painter.drawText(0, 0, 350, 50, QtGui.Qt.AlignLeft, "Data Subset: ")
         painter.end()
         # create label to contain the texts
         self.class_selection_label = QLabel(self)
         # self.class_selection_label.setContentsMargins(0, 50, 0, 0)
-        self.class_selection_label.setFixedSize(QtCore.QSize(350, 100))
+        self.class_selection_label.setFixedSize(QtCore.QSize(350, 50))
         # self.class_selection_label.setAlignment(QtCore.Qt.AlignLeft)
         # self.class_selection_label.setWordWrap(True)
         # self.class_selection_label.setTextFormat(QtGui.Qt.AutoText)
         self.class_selection_label.setPixmap(class_selection_pixmap)
         # add to the layout
         if self.demo:
-            self.demo_layout.addWidget(self.class_selection_label, 2, 0)
+            self.demo_layout.addWidget(self.class_selection_label, 1, 0)
         else:
             self.aggregate_plot_control_layout.addWidget(self.class_selection_label, 0, 0)
 
         self.class_selection_menu = QtWidgets.QComboBox()
-        self.class_selection_menu.setFixedSize(QtCore.QSize(300, 50))
-        self.class_selection_menu.setStyleSheet("font-size: 18px")
-        self.class_selection_menu.setStyleSheet("color: black")
+        self.class_selection_menu.setFixedSize(QtCore.QSize(200, 50))
+        self.class_selection_menu.setStyleSheet(
+            "color: black; font-size: 24px; font-family: Helvetica; font-style: normal;"
+        )
         if self.mode == "digit_recognition":
             self.class_selection_menu.addItem(f"All digits")
             # add all digits as items
@@ -1662,23 +1667,23 @@ class UI_MainWindow(QWidget):
         # add to local layout
         if self.demo:
             class_selection_menu_layout = QtWidgets.QHBoxLayout()
-            class_selection_menu_layout.setContentsMargins(50, 0, 0, 0)
+            class_selection_menu_layout.setContentsMargins(150, 0, 0, 0)
             class_selection_menu_layout.addWidget(self.class_selection_menu)
-            self.demo_layout.addLayout(class_selection_menu_layout, 3, 0)
+            self.demo_layout.addLayout(class_selection_menu_layout, 1, 0)
         else:
             self.aggregate_plot_control_layout.addWidget(self.class_selection_menu, 1, 0)
 
         # drop down menu on choosing the dimension reduction method
         # draw text
-        dr_selection_pixmap = QPixmap(200, 50)
+        dr_selection_pixmap = QPixmap(300, 50)
         dr_selection_pixmap.fill(QtCore.Qt.white)
         painter = QtGui.QPainter(dr_selection_pixmap)
-        painter.setFont(QFont("Helvetica", 18))
-        painter.drawText(0, 5, 200, 50, QtGui.Qt.AlignLeft, "Scatterplot Layout: ")
+        painter.setFont(QFont("Helvetica", 24))
+        painter.drawText(0, 0, 300, 50, QtGui.Qt.AlignLeft, "Scatterplot Layout: ")
         painter.end()
         # create label to contain the texts
         self.dr_selection_label = QLabel(self)
-        self.dr_selection_label.setFixedSize(QtCore.QSize(200, 50))
+        self.dr_selection_label.setFixedSize(QtCore.QSize(300, 50))
         self.dr_selection_label.setPixmap(dr_selection_pixmap)
         # add to the layout
         if self.demo:
@@ -1688,9 +1693,10 @@ class UI_MainWindow(QWidget):
             self.load_menu_layout.addWidget(self.dr_selection_label, 1, 1)
 
         self.dr_selection_menu = QtWidgets.QComboBox()
-        self.dr_selection_menu.setFixedSize(QtCore.QSize(100, 40))
-        self.dr_selection_menu.setStyleSheet("font-size: 18px")
-        self.dr_selection_menu.setStyleSheet("color: black")
+        self.dr_selection_menu.setFixedSize(QtCore.QSize(130, 50))
+        self.dr_selection_menu.setStyleSheet(
+            "color: black; font-family: Helvetica; font-style: normal; font-size: 24px"
+        )
         dr_algorithms = ["PCA", "ICA", "ISOMAP", "t-SNE", "UMAP"]
         for algo in dr_algorithms:
             self.dr_selection_menu.addItem(f"{algo}")
@@ -1705,7 +1711,7 @@ class UI_MainWindow(QWidget):
         # add to local layout
         if self.demo:
             scatterplot_layout.addWidget(self.dr_selection_menu)
-            self.demo_layout.addLayout(scatterplot_layout, 0, 1, 2, 1)
+            self.demo_layout.addLayout(scatterplot_layout, 0, 1, 1, 1)
         else:
             self.aggregate_plot_control_layout.addWidget(self.dr_selection_menu, 2, 0)
 
@@ -2628,8 +2634,8 @@ class UI_MainWindow(QWidget):
         intensity_button_pixmap = QPixmap(300, 50)
         intensity_button_pixmap.fill(QtCore.Qt.white)
         painter = QtGui.QPainter(intensity_button_pixmap)
-        painter.setFont(QFont("Helvetica", 18))
-        painter.drawText(20, 10, 300, 50, QtGui.Qt.AlignLeft, "Scatterplot Sorting: ")
+        painter.setFont(QFont("Helvetica", 24))
+        painter.drawText(0, 0, 300, 50, QtGui.Qt.AlignLeft, "Scatterplot Sorting:")
         painter.end()
 
         # create label to contain the texts
@@ -2640,20 +2646,24 @@ class UI_MainWindow(QWidget):
         intensity_button_label.setWordWrap(True)
         intensity_button_label.setTextFormat(QtGui.Qt.AutoText)
         intensity_button_label.setPixmap(intensity_button_pixmap)
+        intensity_button_label.setContentsMargins(0, 0, 0, 0)
         # add to the layout
         if self.demo:
             self.scatterplot_sorting_layout = QtWidgets.QGridLayout()
-            # the title occupies two rows
+            # the title occupies two rows because we have two selections (mean and variance)
             self.scatterplot_sorting_layout.addWidget(intensity_button_label, 0, 0, 2, 1)
         else:
             self.aggregate_plot_control_layout.addWidget(intensity_button_label, 7, 0)
 
         self.mean_intensity_button = QRadioButton("Mean")
-        self.mean_intensity_button.setFixedSize(QtCore.QSize(100, 30))
+        self.mean_intensity_button.setFixedSize(QtCore.QSize(120, 50))
+        self.mean_intensity_button.setContentsMargins(0, 0, 0, 0)
         self.mean_intensity_button.setStyleSheet(
-            "QRadioButton{font: 14pt Helvetica;} QRadioButton::indicator { width: 14px; height: 14px;};"
+            "QRadioButton{font: 22pt Helvetica;} QRadioButton::indicator { width: 22px; height: 22px;};"
         )
-        self.mean_intensity_button.setStyleSheet("color: black")
+        self.mean_intensity_button.setStyleSheet(
+            "color: black; font-family: Helvetica; font-style: normal; font-size: 22px"
+        )
         self.mean_intensity_button.pressed.connect(mean_intensity_button_clicked)
         if self.demo:
             self.scatterplot_sorting_layout.addWidget(self.mean_intensity_button, 0, 1, 1, 1)
@@ -2661,15 +2671,18 @@ class UI_MainWindow(QWidget):
             self.aggregate_plot_control_layout.addWidget(self.mean_intensity_button, 8, 0)
 
         self.variance_intensity_button = QRadioButton("Variance")
-        self.variance_intensity_button.setFixedSize(QtCore.QSize(100, 30))
+        self.variance_intensity_button.setFixedSize(QtCore.QSize(120, 50))
         self.variance_intensity_button.setStyleSheet(
-            "QRadioButton{font: 14pt Helvetica;} QRadioButton::indicator { width: 14px; height: 14px;};"
+            "QRadioButton{font: 22pt Helvetica;} QRadioButton::indicator { width: 22px; height: 22px;};"
         )
-        self.variance_intensity_button.setStyleSheet("color: black")
+        self.variance_intensity_button.setStyleSheet(
+            "color: black; font-family: Helvetica; font-style: normal; font-size: 22px"
+        )
         self.variance_intensity_button.pressed.connect(variance_intensity_button_clicked)
         if self.demo:
             self.scatterplot_sorting_layout.addWidget(self.variance_intensity_button, 1, 1, 1, 1)
-            self.demo_layout.addLayout(self.scatterplot_sorting_layout, 2, 1, 2, 1)
+            self.scatterplot_sorting_layout.setContentsMargins(0, 0, 15, 0)
+            self.demo_layout.addLayout(self.scatterplot_sorting_layout, 1, 1, 2, 1)
         else:
             self.aggregate_plot_control_layout.addWidget(self.variance_intensity_button, 9, 0)
 
@@ -4379,6 +4392,7 @@ class UI_MainWindow(QWidget):
         if not self.image_existed:
             self.image_label = QLabel(self)
             self.image_label.setAlignment(QtCore.Qt.AlignCenter)
+            # self.image_label.setFixedSize(1000, 1000)
             self.image_existed = True
             # no additional content margin to prevent cutoff on images
             self.image_label.setContentsMargins(0, 0, 0, 0)
@@ -4409,8 +4423,12 @@ class UI_MainWindow(QWidget):
 
             if self.mode == "digit_recognition":
                 # plot_size should be bigger than the display_size, so that some margins exist
-                # self.image_label.setFixedSize(self.plot_size, self.plot_size)
-                self.image_label.setFixedSize(self.image_pixmap.size())
+                # self.image_label.setFixedSize(self.display_image_size, self.display_image_size)
+                # self.image_label.setFixedSize(self.image_pixmap.size())
+                self.image_label.setFixedSize(
+                    self.display_image_size + 100, self.display_image_size + 100
+                )
+                self.image_label.setContentsMargins(50, 70, 0, 0)  # left, top, right, bottom
             elif self.mode == "object_detection":
                 # set label to the size of pixmap so that when clicked it is wrt image
                 self.image_label.setFixedSize(self.image_pixmap.size())
@@ -5952,24 +5970,25 @@ class UI_MainWindow(QWidget):
         # drop down menu on selection which quantity to plot
         # title
         # draw text
-        plot_quantity_pixmap = QPixmap(200, 50)
+        plot_quantity_pixmap = QPixmap(300, 50)
         plot_quantity_pixmap.fill(QtCore.Qt.white)
         painter = QtGui.QPainter(plot_quantity_pixmap)
-        painter.setFont(QFont("Helvetica", 18))
-        painter.drawText(0, 5, 200, 50, QtGui.Qt.AlignLeft, "NERO plot of: ")
+        painter.setFont(QFont("Helvetica", 24))
+        painter.drawText(0, 0, 300, 50, QtGui.Qt.AlignLeft, "NERO Metric: ")
         painter.end()
 
         # create label to contain the texts
         self.plot_quantity_label = QLabel(self)
-        self.plot_quantity_label.setFixedSize(QtCore.QSize(200, 50))
+        self.plot_quantity_label.setFixedSize(QtCore.QSize(300, 50))
         self.plot_quantity_label.setPixmap(plot_quantity_pixmap)
+        self.plot_quantity_label.setContentsMargins(0, 0, 0, 0)
 
         # drop down menu on selection which quantity to plot
         quantity_menu = QtWidgets.QComboBox()
-        quantity_menu.setFixedSize(QtCore.QSize(250, 50))
-        quantity_menu.setStyleSheet("font-size: 18px")
-        quantity_menu.setStyleSheet("color: black")
-        # quantity_menu.setStyleSheet("background-color: gray")
+        quantity_menu.setFixedSize(QtCore.QSize(200, 50))
+        quantity_menu.setStyleSheet(
+            "color: black; font-family: Helvetica; font-style: normal; font-size: 24px"
+        )
         quantity_menu.setEditable(True)
         quantity_menu.lineEdit().setReadOnly(True)
         quantity_menu.lineEdit().setAlignment(QtCore.Qt.AlignCenter)
@@ -5986,7 +6005,8 @@ class UI_MainWindow(QWidget):
             self.plot_info_layout = QtWidgets.QHBoxLayout()
             self.plot_info_layout.addWidget(self.plot_quantity_label)
             self.plot_info_layout.addWidget(quantity_menu)
-            self.demo_layout.addLayout(self.plot_info_layout, 1, 2, 1, 1)
+            self.plot_info_layout.setContentsMargins(50, 0, 50, 0)
+            self.demo_layout.addLayout(self.plot_info_layout, 0, 2)
         else:
             self.aggregate_plot_control_layout.addWidget(quantity_menu, 1, 0)
 
