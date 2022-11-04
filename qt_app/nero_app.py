@@ -46,7 +46,7 @@ class UI_MainWindow(QWidget):
         # set window title
         self.setWindowTitle("Non-Equivariance Revealed on Orbits")
         # white background color
-        self.setStyleSheet("background-color: white;")
+        self.setStyleSheet("background-color: rgb(255, 255, 255);")
         # general layout
         self.layout = QtWidgets.QGridLayout(self)
         self.layout.setAlignment(QtCore.Qt.AlignCenter)
@@ -1237,6 +1237,7 @@ class UI_MainWindow(QWidget):
         self.aggregate_image_menu = QtWidgets.QComboBox()
         self.aggregate_image_menu.setFixedSize(QtCore.QSize(300, 50))
         self.aggregate_image_menu.setStyleSheet("font-size: 18px")
+        self.aggregate_image_menu.setStyleSheet("color: black")
         self.aggregate_image_menu.addItem("Input dataset")
 
         # data dir (sorted in a way that smaller dataset first)
@@ -1280,6 +1281,7 @@ class UI_MainWindow(QWidget):
         self.image_menu = QtWidgets.QComboBox()
         self.image_menu.setFixedSize(QtCore.QSize(300, 50))
         self.image_menu.setStyleSheet("font-size: 18px")
+        self.image_menu.setStyleSheet("color: black")
         self.image_menu.addItem("Input image")
 
         if self.mode == "digit_recognition":
@@ -1368,8 +1370,9 @@ class UI_MainWindow(QWidget):
 
         self.model_1_menu = QtWidgets.QComboBox()
         self.model_1_menu.setStyleSheet("font-size: 18px")
+        self.model_1_menu.setStyleSheet("color: black")
         if self.mode == "digit_recognition":
-            self.model_1_menu.setFixedSize(QtCore.QSize(200, 30))
+            self.model_1_menu.setFixedSize(QtCore.QSize(200, 50))
             self.model_1_menu.addItem(model_1_icon, "Original model")
             self.model_1_menu.addItem(model_1_icon, "E2CNN model")
             self.model_1_menu.addItem(model_1_icon, "DA model")
@@ -1421,11 +1424,12 @@ class UI_MainWindow(QWidget):
 
         self.model_2_menu = QtWidgets.QComboBox()
         self.model_2_menu.setStyleSheet("font-size: 18px")
+        self.model_2_menu.setStyleSheet("color: black")
         self.model_2_menu.setEditable(True)
         self.model_2_menu.lineEdit().setReadOnly(True)
         self.model_2_menu.lineEdit().setAlignment(QtCore.Qt.AlignCenter)
         if self.mode == "digit_recognition":
-            self.model_2_menu.setFixedSize(QtCore.QSize(200, 30))
+            self.model_2_menu.setFixedSize(QtCore.QSize(200, 50))
             self.model_2_menu.addItem(model_2_icon, "Original model")
             self.model_2_menu.addItem(model_2_icon, "E2CNN model")
             self.model_2_menu.addItem(model_2_icon, "DA model")
@@ -1630,6 +1634,7 @@ class UI_MainWindow(QWidget):
         self.class_selection_menu = QtWidgets.QComboBox()
         self.class_selection_menu.setFixedSize(QtCore.QSize(300, 50))
         self.class_selection_menu.setStyleSheet("font-size: 18px")
+        self.class_selection_menu.setStyleSheet("color: black")
         if self.mode == "digit_recognition":
             self.class_selection_menu.addItem(f"All digits")
             # add all digits as items
@@ -1685,6 +1690,7 @@ class UI_MainWindow(QWidget):
         self.dr_selection_menu = QtWidgets.QComboBox()
         self.dr_selection_menu.setFixedSize(QtCore.QSize(100, 40))
         self.dr_selection_menu.setStyleSheet("font-size: 18px")
+        self.dr_selection_menu.setStyleSheet("color: black")
         dr_algorithms = ["PCA", "ICA", "ISOMAP", "t-SNE", "UMAP"]
         for algo in dr_algorithms:
             self.dr_selection_menu.addItem(f"{algo}")
@@ -2647,6 +2653,7 @@ class UI_MainWindow(QWidget):
         self.mean_intensity_button.setStyleSheet(
             "QRadioButton{font: 14pt Helvetica;} QRadioButton::indicator { width: 14px; height: 14px;};"
         )
+        self.mean_intensity_button.setStyleSheet("color: black")
         self.mean_intensity_button.pressed.connect(mean_intensity_button_clicked)
         if self.demo:
             self.scatterplot_sorting_layout.addWidget(self.mean_intensity_button, 0, 1, 1, 1)
@@ -2658,6 +2665,7 @@ class UI_MainWindow(QWidget):
         self.variance_intensity_button.setStyleSheet(
             "QRadioButton{font: 14pt Helvetica;} QRadioButton::indicator { width: 14px; height: 14px;};"
         )
+        self.variance_intensity_button.setStyleSheet("color: black")
         self.variance_intensity_button.pressed.connect(variance_intensity_button_clicked)
         if self.demo:
             self.scatterplot_sorting_layout.addWidget(self.variance_intensity_button, 1, 1, 1, 1)
@@ -5960,6 +5968,8 @@ class UI_MainWindow(QWidget):
         quantity_menu = QtWidgets.QComboBox()
         quantity_menu.setFixedSize(QtCore.QSize(250, 50))
         quantity_menu.setStyleSheet("font-size: 18px")
+        quantity_menu.setStyleSheet("color: black")
+        # quantity_menu.setStyleSheet("background-color: gray")
         quantity_menu.setEditable(True)
         quantity_menu.lineEdit().setReadOnly(True)
         quantity_menu.lineEdit().setAlignment(QtCore.Qt.AlignCenter)
@@ -6505,6 +6515,7 @@ class UI_MainWindow(QWidget):
         quantity_menu = QtWidgets.QComboBox()
         quantity_menu.setFixedSize(QtCore.QSize(200, 50))
         quantity_menu.setStyleSheet("font-size: 18px")
+        quantity_menu.setStyleSheet("color: black")
         quantity_menu.setEditable(True)
         quantity_menu.lineEdit().setReadOnly(True)
         quantity_menu.lineEdit().setAlignment(QtCore.Qt.AlignCenter)
@@ -6923,6 +6934,7 @@ class UI_MainWindow(QWidget):
         quantity_menu = QtWidgets.QComboBox()
         quantity_menu.setFixedSize(QtCore.QSize(250, 50))
         quantity_menu.setStyleSheet("font-size: 18px")
+        quantity_menu.setStyleSheet("color: black")
         quantity_menu.setEditable(True)
         quantity_menu.lineEdit().setReadOnly(True)
         quantity_menu.lineEdit().setAlignment(QtCore.Qt.AlignCenter)
@@ -7056,6 +7068,7 @@ class UI_MainWindow(QWidget):
             quantity_menu = QtWidgets.QComboBox()
             quantity_menu.setFixedSize(QtCore.QSize(250, 50))
             quantity_menu.setStyleSheet("font-size: 18px")
+            quantity_menu.setStyleSheet("color: black")
             quantity_menu.setEditable(True)
             quantity_menu.lineEdit().setReadOnly(True)
             quantity_menu.lineEdit().setAlignment(QtCore.Qt.AlignCenter)
