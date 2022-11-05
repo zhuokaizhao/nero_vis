@@ -51,7 +51,7 @@ class UI_MainWindow(QWidget):
         self.layout = QtWidgets.QGridLayout(self)
         self.layout.setAlignment(QtCore.Qt.AlignCenter)
         # left, top, right, and bottom margins
-        self.layout.setContentsMargins(30, 30, 30, 30)
+        self.layout.setContentsMargins(10, 10, 10, 10)
 
         # individual laytout for different widgets
         # mode selections
@@ -185,7 +185,7 @@ class UI_MainWindow(QWidget):
                 # image size that is fed into the model
                 self.image_size = 29
                 # image size that is used for display
-                self.display_image_size = 350
+                self.display_image_size = 380
                 # heatmap and detailed image plot size
                 self.plot_size = 320
                 # image (input data) modification mode
@@ -2103,7 +2103,7 @@ class UI_MainWindow(QWidget):
                     # add colorbar to a specific place if in demo mode
                     dummy_view = pg.GraphicsLayoutWidget()
                     dummy_plot = pg.PlotItem()
-                    dummy_plot.layout.setContentsMargins(0, 0, 10, 0)
+                    dummy_plot.layout.setContentsMargins(0, 50, 10, 0)
                     dummy_plot.setFixedHeight(0)
                     dummy_plot.setFixedWidth(self.plot_size * 1.3)
                     dummy_plot.hideAxis("bottom")
@@ -2111,7 +2111,7 @@ class UI_MainWindow(QWidget):
                     dummy_view.addItem(dummy_plot)
                     dummy_image = pg.ImageItem()
                     self.color_bar.setImageItem(dummy_image, insert_in=dummy_plot)
-                    self.scatterplot_sorting_layout.addWidget(dummy_view, 2, 0, 1, 2)
+                    self.scatterplot_sorting_layout.addWidget(dummy_view, 3, 0, 1, 2)
 
             elif self.mode == "object_detection":
                 scatter_lut = self.color_map.getLookupTable(
@@ -2238,6 +2238,7 @@ class UI_MainWindow(QWidget):
                 self.low_dim_scatter_view_1.setFixedSize(
                     self.plot_size * 1.1, self.plot_size * 1.1
                 )
+                self.low_dim_scatter_view_1.ci.setContentsMargins(0, 40, 0, 0)
                 # add plot
                 self.low_dim_scatter_plot_1 = self.low_dim_scatter_view_1.addPlot()
                 self.low_dim_scatter_plot_1.hideAxis("left")
@@ -2324,8 +2325,8 @@ class UI_MainWindow(QWidget):
 
             if self.mode == "digit_recognition":
                 if self.demo:
-                    self.demo_layout.addWidget(self.low_dim_scatter_view_1, 3, 1, 1, 1)
-                    self.demo_layout.addWidget(self.low_dim_scatter_view_2, 5, 1, 1, 1)
+                    self.demo_layout.addWidget(self.low_dim_scatter_view_1, 2, 1, 2, 1)
+                    self.demo_layout.addWidget(self.low_dim_scatter_view_2, 4, 1, 2, 1)
                 else:
                     self.aggregate_result_layout.addWidget(self.low_dim_scatter_view_1, 1, 3)
                     self.aggregate_result_layout.addWidget(self.low_dim_scatter_view_2, 2, 3)
@@ -2658,12 +2659,12 @@ class UI_MainWindow(QWidget):
         # create label to contain the texts
         intensity_button_label = QLabel(self)
         intensity_button_label.setContentsMargins(0, 0, 0, 0)
-        intensity_button_label.setFixedSize(QtCore.QSize(300, 50))
+        intensity_button_label.setFixedSize(QtCore.QSize(300, 110))
         intensity_button_label.setAlignment(QtCore.Qt.AlignLeft)
         intensity_button_label.setWordWrap(True)
         intensity_button_label.setTextFormat(QtGui.Qt.AutoText)
         intensity_button_label.setPixmap(intensity_button_pixmap)
-        intensity_button_label.setContentsMargins(0, 0, 0, 0)
+        intensity_button_label.setContentsMargins(0, 60, 0, 0)
         # add to the layout
         if self.demo:
             self.scatterplot_sorting_layout = QtWidgets.QGridLayout()
@@ -2683,12 +2684,13 @@ class UI_MainWindow(QWidget):
         )
         self.mean_intensity_button.pressed.connect(mean_intensity_button_clicked)
         if self.demo:
-            self.scatterplot_sorting_layout.addWidget(self.mean_intensity_button, 0, 1, 1, 1)
+            self.scatterplot_sorting_layout.addWidget(self.mean_intensity_button, 1, 1, 1, 1)
         else:
             self.aggregate_plot_control_layout.addWidget(self.mean_intensity_button, 8, 0)
 
         self.variance_intensity_button = QRadioButton("Variance")
         self.variance_intensity_button.setFixedSize(QtCore.QSize(120, 50))
+        self.variance_intensity_button.setContentsMargins(0, 0, 0, 0)
         self.variance_intensity_button.setStyleSheet(
             "QRadioButton{font: 22pt Helvetica;} QRadioButton::indicator { width: 22px; height: 22px;};"
         )
@@ -2697,8 +2699,8 @@ class UI_MainWindow(QWidget):
         )
         self.variance_intensity_button.pressed.connect(variance_intensity_button_clicked)
         if self.demo:
-            self.scatterplot_sorting_layout.addWidget(self.variance_intensity_button, 1, 1, 1, 1)
-            self.scatterplot_sorting_layout.setContentsMargins(0, 0, 15, 0)
+            self.scatterplot_sorting_layout.addWidget(self.variance_intensity_button, 2, 1, 1, 1)
+            # self.scatterplot_sorting_layout.setContentsMargins(0, 0, 30, 0)
             self.demo_layout.addLayout(self.scatterplot_sorting_layout, 1, 1, 2, 1)
         else:
             self.aggregate_plot_control_layout.addWidget(self.variance_intensity_button, 9, 0)
@@ -4443,8 +4445,6 @@ class UI_MainWindow(QWidget):
 
             if self.mode == "digit_recognition":
                 # plot_size should be bigger than the display_size, so that some margins exist
-                # self.image_label.setFixedSize(self.display_image_size, self.display_image_size)
-                # self.image_label.setFixedSize(self.image_pixmap.size())
                 self.image_label.setFixedSize(
                     self.display_image_size + 100, self.display_image_size + 50
                 )
@@ -6069,7 +6069,7 @@ class UI_MainWindow(QWidget):
                 self.single_result_layout.addWidget(self.bar_plot, 1, 2)
             elif self.data_mode == "aggregate":
                 if self.demo:
-                    self.demo_layout.addWidget(self.bar_plot, 3, 3, 3, 1)
+                    self.demo_layout.addWidget(self.bar_plot, 2, 3, 5, 1)
                 else:
                     self.aggregate_result_layout.addWidget(self.bar_plot, 2, 6)
 
@@ -6133,7 +6133,7 @@ class UI_MainWindow(QWidget):
             polar_view = pg.GraphicsLayoutWidget()
             polar_view.setBackground("white")
             polar_view.setFixedSize(self.plot_size * 1.7, self.plot_size * 1.7)
-            polar_view.ci.layout.setContentsMargins(0, 0, 50, 20)
+            polar_view.ci.layout.setContentsMargins(0, 0, 50, 0)
             self.polar_plot = polar_view.addPlot()
             self.polar_plot = self.draw_polar(self.polar_plot)
 
@@ -6257,7 +6257,7 @@ class UI_MainWindow(QWidget):
                 self.single_result_layout.addWidget(polar_view, 1, 3)
             elif self.data_mode == "aggregate":
                 if self.demo:
-                    self.demo_layout.addWidget(polar_view, 3, 2, 3, 1)
+                    self.demo_layout.addWidget(polar_view, 2, 2, 5, 1)
                 else:
                     self.aggregate_result_layout.addWidget(polar_view, 1, 6)
 
