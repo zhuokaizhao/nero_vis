@@ -1359,6 +1359,22 @@ class UI_MainWindow(QWidget):
         self.image_existed = False
 
         # load models choices
+        # draw text
+        model_selection_pixmap = QPixmap(450, 50)
+        model_selection_pixmap.fill(QtCore.Qt.white)
+        painter = QtGui.QPainter(model_selection_pixmap)
+        painter.setFont(QFont("Helvetica", 24))
+        painter.drawText(0, 0, 450, 50, QtGui.Qt.AlignLeft, "Models in Comparisons: ")
+        painter.end()
+        # create label to contain the texts
+        self.model_selection_label = QLabel(self)
+        self.model_selection_label.setFixedSize(QtCore.QSize(450, 50))
+        # self.class_selection_label.setAlignment(QtCore.Qt.AlignLeft)
+        # self.class_selection_label.setWordWrap(True)
+        # self.class_selection_label.setTextFormat(QtGui.Qt.AutoText)
+        self.model_selection_label.setPixmap(model_selection_pixmap)
+        self.model_selection_label.setContentsMargins(50, 0, 0, 0)
+
         # model 1
         # graphic representation
         self.model_1_label = QLabel(self)
@@ -1375,7 +1391,7 @@ class UI_MainWindow(QWidget):
             "color: black; font-size: 24px; font-family: Helvetica; font-style: normal;"
         )
         if self.mode == "digit_recognition":
-            self.model_1_menu.setFixedSize(QtCore.QSize(250, 50))
+            self.model_1_menu.setFixedSize(QtCore.QSize(220, 50))
             self.model_1_menu.addItem(model_1_icon, "Original model")
             self.model_1_menu.addItem(model_1_icon, "E2CNN model")
             self.model_1_menu.addItem(model_1_icon, "DA model")
@@ -1404,7 +1420,7 @@ class UI_MainWindow(QWidget):
         if self.demo:
             if self.mode == "digit_recognition":
                 model_menus_layout = QtWidgets.QHBoxLayout()
-                model_menus_layout.setContentsMargins(0, 0, 0, 0)
+                model_menus_layout.setContentsMargins(40, 0, 0, 0)
                 model_menus_layout.addWidget(self.model_1_menu)
             else:
                 model_1_menu_layout = QtWidgets.QHBoxLayout()
@@ -1433,7 +1449,7 @@ class UI_MainWindow(QWidget):
         self.model_2_menu.lineEdit().setReadOnly(True)
         self.model_2_menu.lineEdit().setAlignment(QtCore.Qt.AlignCenter)
         if self.mode == "digit_recognition":
-            self.model_2_menu.setFixedSize(QtCore.QSize(250, 50))
+            self.model_2_menu.setFixedSize(QtCore.QSize(220, 50))
             self.model_2_menu.addItem(model_2_icon, "Original model")
             self.model_2_menu.addItem(model_2_icon, "E2CNN model")
             self.model_2_menu.addItem(model_2_icon, "DA model")
@@ -1460,9 +1476,10 @@ class UI_MainWindow(QWidget):
         if self.demo:
             if self.mode == "digit_recognition":
                 model_menus_layout.addWidget(self.model_2_menu)
+                self.demo_layout.addWidget(self.model_selection_label, 1, 2)
                 # self.demo_layout.addLayout(model_menus_layout, 4, 0) # when taking aggregate case screenshot
                 self.demo_layout.addLayout(
-                    model_menus_layout, 4, 2
+                    model_menus_layout, 2, 2
                 )  # when taking single case screenshot
             else:
                 model_2_menu_layout = QtWidgets.QHBoxLayout()
@@ -1889,7 +1906,7 @@ class UI_MainWindow(QWidget):
 
                 # add slider 1 layout to the general layout
                 if self.demo:
-                    self.demo_layout.addLayout(self.slider_1_layout, 6, 1, 1, 1)
+                    self.demo_layout.addLayout(self.slider_1_layout, 4, 1, 1, 1)
                 else:
                     self.aggregate_result_layout.addLayout(self.slider_1_layout, 3, 1)
 
@@ -1944,7 +1961,7 @@ class UI_MainWindow(QWidget):
 
                 # add slider 2 layout to the general layout
                 if self.demo:
-                    self.demo_layout.addLayout(self.slider_2_layout, 8, 1, 1, 1)
+                    self.demo_layout.addLayout(self.slider_2_layout, 6, 1, 1, 1)
                 else:
                     self.aggregate_result_layout.addLayout(self.slider_2_layout, 3, 2)
 
@@ -2086,9 +2103,9 @@ class UI_MainWindow(QWidget):
                     # add colorbar to a specific place if in demo mode
                     dummy_view = pg.GraphicsLayoutWidget()
                     dummy_plot = pg.PlotItem()
-                    dummy_plot.layout.setContentsMargins(10, 20, 0, 0)
+                    dummy_plot.layout.setContentsMargins(0, 0, 10, 0)
                     dummy_plot.setFixedHeight(0)
-                    dummy_plot.setFixedWidth(self.plot_size * 1.2)
+                    dummy_plot.setFixedWidth(self.plot_size * 1.3)
                     dummy_plot.hideAxis("bottom")
                     dummy_plot.hideAxis("left")
                     dummy_view.addItem(dummy_plot)
@@ -2307,8 +2324,8 @@ class UI_MainWindow(QWidget):
 
             if self.mode == "digit_recognition":
                 if self.demo:
-                    self.demo_layout.addWidget(self.low_dim_scatter_view_1, 5, 1, 1, 1)
-                    self.demo_layout.addWidget(self.low_dim_scatter_view_2, 7, 1, 1, 1)
+                    self.demo_layout.addWidget(self.low_dim_scatter_view_1, 3, 1, 1, 1)
+                    self.demo_layout.addWidget(self.low_dim_scatter_view_2, 5, 1, 1, 1)
                 else:
                     self.aggregate_result_layout.addWidget(self.low_dim_scatter_view_1, 1, 3)
                     self.aggregate_result_layout.addWidget(self.low_dim_scatter_view_2, 2, 3)
@@ -4395,7 +4412,6 @@ class UI_MainWindow(QWidget):
             # self.image_label.setFixedSize(1000, 1000)
             self.image_existed = True
             # no additional content margin to prevent cutoff on images
-            self.image_label.setContentsMargins(0, 0, 0, 0)
 
             # add the image label to the layout
             if self.data_mode == "single":
@@ -4405,6 +4421,7 @@ class UI_MainWindow(QWidget):
                 if self.mode == "digit_recognition":
                     if self.demo:
                         self.demo_layout.addWidget(self.image_label, 0, 3, 5, 1)
+                        self.image_label.setContentsMargins(0, 0, 200, 0)
                     else:
                         self.aggregate_result_layout.addWidget(self.image_label, 1, 4, 2, 1)
                 elif self.mode == "object_detection" or self.mode == "piv":
@@ -5297,7 +5314,8 @@ class UI_MainWindow(QWidget):
         polar_view.setBackground("white")
         # polar plot larger than others because it occupies two rows
         polar_view.setFixedSize(self.plot_size * 1.7, self.plot_size * 1.7)
-        self.aggregate_polar_plot = polar_view.addPlot()
+        polar_view.ci.layout.setContentsMargins(0, 0, 50, 0)
+        self.aggregate_polar_plot = polar_view.addPlot(row=0, col=0)
         self.aggregate_polar_plot = self.draw_polar(self.aggregate_polar_plot)
 
         # Set pxMode=False to allow spots to transform with the view
@@ -5411,7 +5429,7 @@ class UI_MainWindow(QWidget):
 
         # add the plot view to the layout
         if self.demo:
-            self.demo_layout.addWidget(polar_view, 5, 0, 5, 1)
+            self.demo_layout.addWidget(polar_view, 2, 0, 5, 1)
         else:
             self.aggregate_result_layout.addWidget(polar_view, 1, 1, 2, 2)
 
