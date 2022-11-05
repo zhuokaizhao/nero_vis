@@ -185,7 +185,7 @@ class UI_MainWindow(QWidget):
                 # image size that is fed into the model
                 self.image_size = 29
                 # image size that is used for display
-                self.display_image_size = 450
+                self.display_image_size = 350
                 # heatmap and detailed image plot size
                 self.plot_size = 320
                 # image (input data) modification mode
@@ -1211,7 +1211,7 @@ class UI_MainWindow(QWidget):
         if self.demo:
             self.demo_layout = QtWidgets.QGridLayout()
             self.demo_layout.setHorizontalSpacing(0)
-            self.demo_layout.setVerticalSpacing(30)
+            self.demo_layout.setVerticalSpacing(0)
         else:
             self.load_menu_layout = QtWidgets.QGridLayout()
 
@@ -4408,7 +4408,7 @@ class UI_MainWindow(QWidget):
         # add a new label for loaded image if no image has existed
         if not self.image_existed:
             self.image_label = QLabel(self)
-            self.image_label.setAlignment(QtCore.Qt.AlignCenter)
+            self.image_label.setAlignment(QtCore.Qt.AlignTop)
             # self.image_label.setFixedSize(1000, 1000)
             self.image_existed = True
             # no additional content margin to prevent cutoff on images
@@ -4420,8 +4420,11 @@ class UI_MainWindow(QWidget):
             elif self.data_mode == "aggregate":
                 if self.mode == "digit_recognition":
                     if self.demo:
-                        self.demo_layout.addWidget(self.image_label, 0, 3, 5, 1)
-                        self.image_label.setContentsMargins(0, 0, 200, 0)
+                        # self.image_layout = QtWidgets.QHBoxLayout()
+                        # self.image_layout.addWidget(self.image_label)
+                        # self.image_layout.setContentsMargins(0, 0, 0, 0)
+                        # self.demo_layout.addLayout(self.image_layout, 0, 3, 3, 1)
+                        self.demo_layout.addWidget(self.image_label, 0, 3, 3, 1)
                     else:
                         self.aggregate_result_layout.addWidget(self.image_label, 1, 4, 2, 1)
                 elif self.mode == "object_detection" or self.mode == "piv":
@@ -4443,9 +4446,9 @@ class UI_MainWindow(QWidget):
                 # self.image_label.setFixedSize(self.display_image_size, self.display_image_size)
                 # self.image_label.setFixedSize(self.image_pixmap.size())
                 self.image_label.setFixedSize(
-                    self.display_image_size + 100, self.display_image_size + 100
+                    self.display_image_size + 100, self.display_image_size + 50
                 )
-                self.image_label.setContentsMargins(50, 70, 0, 0)  # left, top, right, bottom
+                self.image_label.setContentsMargins(100, 50, 0, 0)  # left, top, right, bottom
             elif self.mode == "object_detection":
                 # set label to the size of pixmap so that when clicked it is wrt image
                 self.image_label.setFixedSize(self.image_pixmap.size())
@@ -6066,7 +6069,7 @@ class UI_MainWindow(QWidget):
                 self.single_result_layout.addWidget(self.bar_plot, 1, 2)
             elif self.data_mode == "aggregate":
                 if self.demo:
-                    self.demo_layout.addWidget(self.bar_plot, 5, 3, 5, 1)
+                    self.demo_layout.addWidget(self.bar_plot, 3, 3, 3, 1)
                 else:
                     self.aggregate_result_layout.addWidget(self.bar_plot, 2, 6)
 
@@ -6130,6 +6133,7 @@ class UI_MainWindow(QWidget):
             polar_view = pg.GraphicsLayoutWidget()
             polar_view.setBackground("white")
             polar_view.setFixedSize(self.plot_size * 1.7, self.plot_size * 1.7)
+            polar_view.ci.layout.setContentsMargins(0, 0, 50, 20)
             self.polar_plot = polar_view.addPlot()
             self.polar_plot = self.draw_polar(self.polar_plot)
 
@@ -6253,7 +6257,7 @@ class UI_MainWindow(QWidget):
                 self.single_result_layout.addWidget(polar_view, 1, 3)
             elif self.data_mode == "aggregate":
                 if self.demo:
-                    self.demo_layout.addWidget(polar_view, 5, 2, 5, 1)
+                    self.demo_layout.addWidget(polar_view, 3, 2, 3, 1)
                 else:
                     self.aggregate_result_layout.addWidget(polar_view, 1, 6)
 
