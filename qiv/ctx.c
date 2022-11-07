@@ -3,8 +3,11 @@
   Copyright (C)  2022 University of Chicago. All rights reserved.
 */
 
+#include "qiv.h"
+#include "qivPrivate.h"
+
 qivCtx *
-qivCtxNew(const qivField *vfl, ) {
+qivCtxNew(const qivField *vfl) {
     if (!vfl) {
         biffAddf(QIV, "%s: got NULL pointer", __func__);
         return NULL;
@@ -12,7 +15,7 @@ qivCtxNew(const qivField *vfl, ) {
     qivCtx *ctx = MALLOC(1, qivCtx);
     assert(ctx);
     ctx->vfl = vfl;
-    const double *m = vfl->ItoW;
+    const real *m = vfl->ItoW;
     /* clang-format off */
     real aa = m[0]; real bb = m[1]; real rr = m[2];
     real cc = m[3]; real dd = m[4]; real ss = m[5];

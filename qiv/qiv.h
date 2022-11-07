@@ -183,7 +183,7 @@ typedef struct qivSline_t {
     real vecSeed[2];            // vector (reconstructed from vector field) at seed point
 } qivSline;
 
-// aenum.c: airEnums (nothing for you to do)
+// aenum.c: airEnums
 extern const airEnum *const qivIntg_ae;
 extern const airEnum *const qivStop_ae;
 extern const airEnum *const qivKern_ae;
@@ -194,7 +194,6 @@ extern int qivFieldSet(qivField *vfl, uint size0, uint size1, const double *edge
                        const double *edge1, const double *orig, void *data, int ntype);
 extern qivField *qivFieldNix(qivField *vfl);
 
-/*
 // ctx.c: for setting up and using the qivCtx
 extern qivCtx *qivCtxNew(const qivField *vfl);
 extern qivCtx *qivCtxNix(qivCtx *ctx);
@@ -202,6 +201,7 @@ extern qivCtx *qivCtxNix(qivCtx *ctx);
 // convo.c: for convolution
 extern void qivConvoEval(qivCtx *ctx, real xw, real yw);
 
+/*
 // sline.c: for storing and computing streamlines
 extern qivSline *qivSlineNew(void);
 extern int qivSlineAlloc(qivSline *sln, uint halfLen);
