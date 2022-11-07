@@ -2380,7 +2380,7 @@ class UI_MainWindow(QWidget):
             # go through all the transfomations
             for j in range(num_transformations):
                 if self.mode == "digit_recognition":
-                    # all_outputs has shape (num_rotations, num_samples, 10)
+
                     self.all_high_dim_points_1[i, j] = int(
                         self.all_outputs_1[j][index].argmax() == self.loaded_images_labels[index]
                     )
