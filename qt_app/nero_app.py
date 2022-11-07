@@ -2721,8 +2721,6 @@ class UI_MainWindow(QWidget):
         # transformations as intensity
         self.all_intensity_1 = np.mean(self.all_high_dim_points_1, axis=1)
         self.all_intensity_2 = np.mean(self.all_high_dim_points_2, axis=1)
-        print(self.all_high_dim_points_1[0])
-        print(self.all_intensity_1[0])
         self.intensity_min = min(np.min(self.all_intensity_1), np.min(self.all_intensity_2))
         self.intensity_max = max(np.max(self.all_intensity_1), np.max(self.all_intensity_2))
 
