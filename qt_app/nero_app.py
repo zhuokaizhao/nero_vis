@@ -182,8 +182,8 @@ class UI_MainWindow(QWidget):
                 if not self.pre_selected:
                     self.switch_mode_cleanup()
 
-                # image size that is fed into the model
-                self.image_size = 29
+                # input image size
+                self.image_size = 28
                 # image size that is used for display
                 self.display_image_size = 380
                 # heatmap and detailed image plot size
@@ -195,6 +195,8 @@ class UI_MainWindow(QWidget):
                 self.cur_rotation_angle = 0
                 # rotation step for evaluation
                 self.rotation_step = 5
+                # batch size when running in aggregate mode
+                self.batch_size = 100
 
                 # preload model 1
                 self.model_1_name = "Original model"
@@ -257,6 +259,8 @@ class UI_MainWindow(QWidget):
                 # translation step when evaluating
                 self.translation_step_aggregate = 4
                 self.translation_step_single = 4
+                # batch size when running in aggregate mode
+                self.batch_size = 64
 
                 # predefined model paths
                 self.model_1_name = "FasterRCNN (0% jittering)"
@@ -344,6 +348,8 @@ class UI_MainWindow(QWidget):
                 self.display_image_size = 256
                 # heatmap and detailed image plot size
                 self.plot_size = 320
+                # batch size when running in aggregate mode
+                self.batch_size = 16
                 # image (input data) modification mode
                 self.rotation = False
                 self.flip = False
@@ -653,25 +659,25 @@ class UI_MainWindow(QWidget):
                 # load the image and scale the size
                 # get all the image paths from the directory
                 self.all_images_paths = glob.glob(os.path.join(self.dataset_dir, "*.png"))
-                self.loaded_images_pt = []
+                self.loaded_images_pt = torch.zeros(
+                    len(
+                        self.all_images_paths,
+                    ),
+                    self.image_size,
+                    self.image_size,
+                    1,
+                )
                 self.loaded_images_names = []
                 self.loaded_images_labels = torch.zeros(
                     len(self.all_images_paths), dtype=torch.int64
                 )
-                self.cur_images_pt = torch.zeros((len(self.all_images_paths), 29, 29, 1))
 
                 for i, cur_image_path in enumerate(self.all_images_paths):
-                    self.loaded_images_pt.append(
-                        torch.from_numpy(np.asarray(Image.open(cur_image_path)))[:, :, None]
-                    )
+                    self.loaded_images_pt[i] = torch.from_numpy(
+                        np.asarray(Image.open(cur_image_path))
+                    )[:, :, None]
                     self.loaded_images_names.append(cur_image_path.split("/")[-1])
                     self.loaded_images_labels[i] = int(cur_image_path.split("/")[-1].split("_")[1])
-
-                    # keep a copy to represent the current (rotated) version of the original images
-                    # prepare image tensor for model purpose
-                    self.cur_images_pt[i] = nero_transform.prepare_mnist_image(
-                        self.loaded_images_pt[-1].clone()
-                    )
 
             # in object detection, only all the image paths are loaded
             elif self.mode == "object_detection":
@@ -1241,18 +1247,21 @@ class UI_MainWindow(QWidget):
         )
         self.aggregate_image_menu.addItem("Input dataset")
 
-        # data dir (sorted in a way that smaller dataset first)
+        # data dir (sorted in a way that bigger dataset first)
         if self.mode == "digit_recognition":
             self.aggregate_data_dirs = sorted(
-                glob.glob(os.path.join(os.getcwd(), "example_data", self.mode, f"MNIST*"))
+                glob.glob(os.path.join(os.getcwd(), "example_data", self.mode, f"MNIST*")),
+                reverse=True,
             )
         elif self.mode == "object_detection":
             self.aggregate_data_dirs = sorted(
-                glob.glob(os.path.join(os.getcwd(), "example_data", self.mode, f"COCO*"))
+                glob.glob(os.path.join(os.getcwd(), "example_data", self.mode, f"COCO*")),
+                reverse=True,
             )
         elif self.mode == "piv":
             self.aggregate_data_dirs = sorted(
-                glob.glob(os.path.join(os.getcwd(), "example_data", self.mode, f"COCO*"))
+                glob.glob(os.path.join(os.getcwd(), "example_data", self.mode, f"COCO*")),
+                reverse=True,
             )
         # load all images in the folder
         for i in range(len(self.aggregate_data_dirs)):
@@ -2708,9 +2717,12 @@ class UI_MainWindow(QWidget):
         # by default the intensities are computed via mean
         self.mean_intensity_button.setChecked(True)
         self.intensity_method = "mean"
-        # compute each sample's average across all transformations as intensity
+        # compute each sample's metric average (e.g., avg confidence for mnist) across all
+        # transformations as intensity
         self.all_intensity_1 = np.mean(self.all_high_dim_points_1, axis=1)
         self.all_intensity_2 = np.mean(self.all_high_dim_points_2, axis=1)
+        print(self.all_high_dim_points_1[0])
+        print(self.all_intensity_1[0])
         self.intensity_min = min(np.min(self.all_intensity_1), np.min(self.all_intensity_2))
         self.intensity_max = max(np.max(self.all_intensity_1), np.max(self.all_intensity_2))
 
@@ -2727,8 +2739,8 @@ class UI_MainWindow(QWidget):
 
         # demo mode automatically selects an image and trigger individual NERO
         if self.demo:
-            print(f"Preselected image {self.cur_class_indices[0]} from scatter plot")
-            self.image_index = self.cur_class_indices[0]
+            print(f"Preselected image {self.sorted_class_indices_1[0]} from scatter plot")
+            self.image_index = self.sorted_class_indices_1[0]
             low_dim_scatter_clicked()
 
     # run model on the aggregate dataset
@@ -2772,10 +2784,10 @@ class UI_MainWindow(QWidget):
                 self.all_avg_accuracy_per_digit_2 = np.zeros((len(self.all_aggregate_angles), 10))
                 # output of each class's probablity of all samples, has shape (num_rotations, num_samples, 10)
                 self.all_outputs_1 = np.zeros(
-                    (len(self.all_aggregate_angles), len(self.cur_images_pt), 10)
+                    (len(self.all_aggregate_angles), len(self.loaded_images_pt), 10)
                 )
                 self.all_outputs_2 = np.zeros(
-                    (len(self.all_aggregate_angles), len(self.cur_images_pt), 10)
+                    (len(self.all_aggregate_angles), len(self.loaded_images_pt), 10)
                 )
 
                 # for all the loaded images
@@ -2790,7 +2802,7 @@ class UI_MainWindow(QWidget):
                         output_1,
                     ) = nero_run_model.run_mnist_once(
                         self.model_1,
-                        self.cur_images_pt,
+                        self.loaded_images_pt,
                         self.loaded_images_labels,
                         batch_size=self.batch_size,
                         rotate_angle=self.cur_rotation_angle,
@@ -2802,7 +2814,7 @@ class UI_MainWindow(QWidget):
                         output_2,
                     ) = nero_run_model.run_mnist_once(
                         self.model_2,
-                        self.cur_images_pt,
+                        self.loaded_images_pt,
                         self.loaded_images_labels,
                         batch_size=self.batch_size,
                         rotate_angle=self.cur_rotation_angle,
@@ -3299,7 +3311,6 @@ class UI_MainWindow(QWidget):
     # run model on a single test sample
     def run_model_once(self):
         if self.mode == "digit_recognition":
-
             self.output_1 = nero_run_model.run_mnist_once(self.model_1, self.cur_image_pt)
             self.output_2 = nero_run_model.run_mnist_once(self.model_2, self.cur_image_pt)
 
@@ -3519,39 +3530,22 @@ class UI_MainWindow(QWidget):
             # display the image
             self.display_image()
 
-            # get computed result from aggregate test
-            # self.all_angles = [self.cur_rotation_angle for self.cur_rotation_angle in range(0, 360+self.rotation_step, self.rotation_step)]
-            # # output of each class's probablity of all samples, has shape (num_rotations, num_samples, 10)
-            # self.all_quantities_1 = self.all_outputs_1[:, self.image_index, self.loaded_images_labels[self.image_index]]
-            # self.all_quantities_2 = self.all_outputs_2[:, self.image_index, self.loaded_images_labels[self.image_index]]
-
-            self.all_angles = []
             # quantity that is displayed in the individual NERO plot
+            self.all_angles = []
             self.all_quantities_1 = []
             self.all_quantities_2 = []
 
             # run all rotation test with 5 degree increment
-            for self.cur_rotation_angle in range(0, 360 + self.rotation_step, self.rotation_step):
-                # print(f'\nRotated {self.cur_rotation_angle} degrees')
+            for i, self.cur_rotation_angle in enumerate(
+                range(0, 360 + self.rotation_step, self.rotation_step)
+            ):
+                # print(f"\nRotated {self.cur_rotation_angle} degrees")
                 self.all_angles.append(self.cur_rotation_angle)
-                # rotate the image tensor
-                self.cur_image_pt = nero_transform.rotate_mnist_image(
-                    self.loaded_image_pt, self.cur_rotation_angle
-                )
-                # OPTIONAL: animation
-                # convert image tensor to qt image and resize for display
-                # self.cur_display_image = nero_utilities.tensor_to_qt_image(self.cur_image_pt, self.display_image_size)
-                # prepare image tensor for model purpose
-                self.cur_image_pt = nero_transform.prepare_mnist_image(self.cur_image_pt)
-                # update the pixmap and label
-                # image_pixmap = QPixmap(self.cur_display_image)
-                # self.image_label.setPixmap(image_pixmap)
-                # force repaint
-                # self.image_label.repaint()
 
-                # update the model output
-                self.output_1 = nero_run_model.run_mnist_once(self.model_1, self.cur_image_pt)
-                self.output_2 = nero_run_model.run_mnist_once(self.model_2, self.cur_image_pt)
+                # take single result from aggregated result
+                # all_outputs_1 has shape (num_rotations, num_samples, 10)
+                self.output_1 = self.all_outputs_1[i, self.image_index, :]
+                self.output_2 = self.all_outputs_2[i, self.image_index, :]
 
                 # plotting the quantity regarding the correct label
                 quantity_1 = self.output_1[self.loaded_image_label]
@@ -3559,6 +3553,27 @@ class UI_MainWindow(QWidget):
 
                 self.all_quantities_1.append(quantity_1)
                 self.all_quantities_2.append(quantity_2)
+
+                # print(f"Loaded quantity_1: {quantity_1}")
+
+                # # compute single result in real-time (less efficient)
+                # # rotate the image tensor
+                # self.cur_image_pt = nero_transform.rotate_mnist_image(
+                #     self.loaded_image_pt, self.cur_rotation_angle
+                # )
+                # # prepare image tensor for model purpose
+                # self.cur_image_pt = nero_transform.prepare_mnist_image(self.cur_image_pt)
+                # # run model
+                # self.output_1 = nero_run_model.run_mnist_once(self.model_1, self.cur_image_pt)
+                # self.output_2 = nero_run_model.run_mnist_once(self.model_2, self.cur_image_pt)
+
+                # # plotting the quantity regarding the correct label
+                # quantity_1 = self.output_1[self.loaded_image_label]
+                # quantity_2 = self.output_2[self.loaded_image_label]
+                # print(f"New computed quantity_1: {quantity_1}")
+
+                # self.all_quantities_1.append(quantity_1)
+                # self.all_quantities_2.append(quantity_2)
 
             # display result
             # individual NERO plot
@@ -6076,58 +6091,58 @@ class UI_MainWindow(QWidget):
         elif type == "polar":
 
             # helper function for clicking inside demension reduced scatter plot
-            def clicked(item, points):
-                # clear manual mode line
-                if self.cur_line:
-                    self.polar_plot.removeItem(self.cur_line)
+            # def clicked(item, points):
+            #     # clear manual mode line
+            #     if self.cur_line:
+            #         self.polar_plot.removeItem(self.cur_line)
 
-                # clear previously selected point's visual cue
-                if self.last_clicked:
-                    self.last_clicked.resetPen()
-                    self.last_clicked.setBrush(self.old_brush)
+            #     # clear previously selected point's visual cue
+            #     if self.last_clicked:
+            #         self.last_clicked.resetPen()
+            #         self.last_clicked.setBrush(self.old_brush)
 
-                # clicked point's position
-                x_pos = points[0].pos().x()
-                y_pos = points[0].pos().y()
+            #     # clicked point's position
+            #     x_pos = points[0].pos().x()
+            #     y_pos = points[0].pos().y()
 
-                # convert back to polar coordinate
-                radius = np.sqrt(x_pos**2 + y_pos**2)
-                self.cur_rotation_angle = np.arctan2(y_pos, x_pos) / np.pi * 180
+            #     # convert back to polar coordinate
+            #     radius = np.sqrt(x_pos**2 + y_pos**2)
+            #     self.cur_rotation_angle = np.arctan2(y_pos, x_pos) / np.pi * 180
 
-                # update the current image's angle and rotate the display image
-                # rotate the image tensor
-                self.cur_image_pt = nero_transform.rotate_mnist_image(
-                    self.loaded_image_pt, self.cur_rotation_angle
-                )
-                # self.image_pixmap = self.image_pixmap.transformed(QtGui.QTransform().rotate(angle), QtCore.Qt.SmoothTransformation)
-                # convert image tensor to qt image and resize for display
-                self.cur_display_image = nero_utilities.tensor_to_qt_image(
-                    self.cur_image_pt, self.display_image_size
-                )
-                # prepare image tensor for model purpose
-                self.cur_image_pt = nero_transform.prepare_mnist_image(self.cur_image_pt)
-                # update the pixmap and label
-                self.image_pixmap = QPixmap(self.cur_display_image)
-                self.image_label.setPixmap(self.image_pixmap)
+            #     # update the current image's angle and rotate the display image
+            #     # rotate the image tensor
+            #     self.cur_image_pt = nero_transform.rotate_mnist_image(
+            #         self.loaded_image_pt, self.cur_rotation_angle
+            #     )
+            #     # self.image_pixmap = self.image_pixmap.transformed(QtGui.QTransform().rotate(angle), QtCore.Qt.SmoothTransformation)
+            #     # convert image tensor to qt image and resize for display
+            #     self.cur_display_image = nero_utilities.tensor_to_qt_image(
+            #         self.cur_image_pt, self.display_image_size
+            #     )
+            #     # prepare image tensor for model purpose
+            #     self.cur_image_pt = nero_transform.prepare_mnist_image(self.cur_image_pt)
+            #     # update the pixmap and label
+            #     self.image_pixmap = QPixmap(self.cur_display_image)
+            #     self.image_label.setPixmap(self.image_pixmap)
 
-                # update the model output
-                if self.single_result_existed:
-                    self.run_model_once()
+            #     # update the model output
+            #     if self.single_result_existed:
+            #         self.run_model_once()
 
-                # only allow clicking one point at a time
-                # save the old brush
-                if points[0].brush() == pg.mkBrush(QtGui.QColor("blue")):
-                    self.old_brush = pg.mkBrush(QtGui.QColor("blue"))
+            #     # only allow clicking one point at a time
+            #     # save the old brush
+            #     if points[0].brush() == pg.mkBrush(QtGui.QColor("blue")):
+            #         self.old_brush = pg.mkBrush(QtGui.QColor("blue"))
 
-                elif points[0].brush() == pg.mkBrush(QtGui.QColor("magenta")):
-                    self.old_brush = pg.mkBrush(QtGui.QColor("magenta"))
+            #     elif points[0].brush() == pg.mkBrush(QtGui.QColor("magenta")):
+            #         self.old_brush = pg.mkBrush(QtGui.QColor("magenta"))
 
-                # create new brush
-                new_brush = pg.mkBrush(255, 0, 0, 255)
-                points[0].setBrush(new_brush)
-                points[0].setPen(5)
+            #     # create new brush
+            #     new_brush = pg.mkBrush(255, 0, 0, 255)
+            #     points[0].setBrush(new_brush)
+            #     points[0].setPen(5)
 
-                self.last_clicked = points[0]
+            #     self.last_clicked = points[0]
 
             # initialize view and plot
             polar_view = pg.GraphicsLayoutWidget()
@@ -6212,16 +6227,15 @@ class UI_MainWindow(QWidget):
                     self.cur_image_pt = nero_transform.rotate_mnist_image(
                         self.loaded_image_pt, self.cur_rotation_angle
                     )
-                    # self.image_pixmap = self.image_pixmap.transformed(QtGui.QTransform().rotate(angle), QtCore.Qt.SmoothTransformation)
                     # convert image tensor to qt image and resize for display
                     self.cur_display_image = nero_utilities.tensor_to_qt_image(
                         self.cur_image_pt, self.display_image_size
                     )
-                    # prepare image tensor for model purpose
-                    self.cur_image_pt = nero_transform.prepare_mnist_image(self.cur_image_pt)
                     # update the pixmap and label
                     self.image_pixmap = QPixmap(self.cur_display_image)
                     self.image_label.setPixmap(self.image_pixmap)
+                    # prepare image tensor for model purpose
+                    self.cur_image_pt = nero_transform.prepare_mnist_image(self.cur_image_pt)
 
                     # update the model output
                     if self.single_result_existed:

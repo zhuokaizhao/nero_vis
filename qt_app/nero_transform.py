@@ -12,21 +12,30 @@ def rotate_mnist_image(image, angle):
     img_size = len(image)
     # rearrange image format from (28, 28, 1) to (1, 28, 28)
     image = torch.permute(image, (2, 0, 1))
-    # transform includes upsample, rotate, downsample and padding (right and bottom) to image_size
-    image = torchvision.transforms.Resize(img_size*3)(image)
-    image = torchvision.transforms.RandomRotation(degrees=(angle, angle), interpolation=torchvision.transforms.InterpolationMode.BILINEAR, expand=False)(image)
+    # enlarge the image before rotation
+    image = torchvision.transforms.Resize(img_size * 3)(image)
+    # rotate image
+    image = torchvision.transforms.RandomRotation(
+        degrees=(angle, angle),
+        interpolation=torchvision.transforms.InterpolationMode.BILINEAR,
+        expand=False,
+    )(image)
+    # resize back to original size
     image = torchvision.transforms.Resize(img_size)(image)
     # permute back
     image = torch.permute(image, (1, 2, 0))
 
     return image
 
+
 # prepare mnist image tensor
 def prepare_mnist_image(image):
     # rearrange image format from (28, 28, 1) to (1, 28, 28)
     image = torch.permute(image, (2, 0, 1)).float()
+    # add standard normalization
     image = torchvision.transforms.Normalize((0.1307,), (0.3081,))(image)
-    image = torchvision.transforms.Pad((0, 0, 1, 1), fill=0, padding_mode='constant')(image)
+    # padding for MNIST model
+    image = torchvision.transforms.Pad((0, 0, 1, 1), fill=0, padding_mode="constant")(image)
     # permute back
     image = torch.permute(image, (1, 2, 0))
 
@@ -68,10 +77,10 @@ class FixedJittering(object):
         original_bb_height = cur_bounding_box[3] - cur_bounding_box[1]
 
         # compute the range of the bounding box, do the clamping if go out of extracted image
-        bb_min_x = max(0, object_center_x - original_bb_width/2)
-        bb_max_x = min(image_size-1, object_center_x + original_bb_width/2)
-        bb_min_y = max(0, object_center_y - original_bb_height/2)
-        bb_max_y = min(image_size-1, object_center_y + original_bb_height/2)
+        bb_min_x = max(0, object_center_x - original_bb_width / 2)
+        bb_max_x = min(image_size - 1, object_center_x + original_bb_width / 2)
+        bb_min_y = max(0, object_center_y - original_bb_height / 2)
+        bb_max_y = min(image_size - 1, object_center_y + original_bb_height / 2)
 
         return bb_min_x, bb_min_y, bb_max_x, bb_max_y
 
@@ -85,75 +94,114 @@ class FixedJittering(object):
         extracted_img = np.zeros((extracted_img_size, extracted_img_size, 3), dtype=np.uint8)
 
         # completed within
-        if x_min >= 0 and y_min >= 0 and x_max < width-1 and y_max < height-1:
+        if x_min >= 0 and y_min >= 0 and x_max < width - 1 and y_max < height - 1:
             extracted_img = original_img[y_min:y_max, x_min:x_max, :]
 
         # if top left part went out
-        elif x_min < 0 and y_min < 0 and x_max < width-1 and y_max < height-1:
+        elif x_min < 0 and y_min < 0 and x_max < width - 1 and y_max < height - 1:
             # print('top left went out')
-            extracted_img[abs(y_min):, abs(x_min):, :] = original_img[0:y_max, 0:x_max, :]
+            extracted_img[abs(y_min) :, abs(x_min) :, :] = original_img[0:y_max, 0:x_max, :]
             # mirror padding
-            extracted_img[:abs(y_min), :abs(x_min), :] = original_img[0:abs(y_min), 0:abs(x_min), :]
-            extracted_img[abs(y_min):, :abs(x_min), :] = original_img[0:y_max, 0:abs(x_min), :]
-            extracted_img[:abs(y_min), abs(x_min):, :] = original_img[0:abs(y_min), 0:x_max, :]
+            extracted_img[: abs(y_min), : abs(x_min), :] = original_img[
+                0 : abs(y_min), 0 : abs(x_min), :
+            ]
+            extracted_img[abs(y_min) :, : abs(x_min), :] = original_img[0:y_max, 0 : abs(x_min), :]
+            extracted_img[: abs(y_min), abs(x_min) :, :] = original_img[0 : abs(y_min), 0:x_max, :]
 
         # if left part went out
-        elif x_min < 0 and y_min >= 0 and x_max < width-1 and y_max < height-1:
+        elif x_min < 0 and y_min >= 0 and x_max < width - 1 and y_max < height - 1:
             # print('left went out')
-            extracted_img[:, abs(x_min):, :] = original_img[y_min:y_max, 0:x_max, :]
+            extracted_img[:, abs(x_min) :, :] = original_img[y_min:y_max, 0:x_max, :]
             # mirror padding
-            extracted_img[:, :abs(x_min), :] = original_img[y_min:y_max, 0:abs(x_min), :]
+            extracted_img[:, : abs(x_min), :] = original_img[y_min:y_max, 0 : abs(x_min), :]
 
         # if bottom left part went out
-        elif x_min < 0 and y_min >= 0 and x_max < width-1 and y_max > height-1:
+        elif x_min < 0 and y_min >= 0 and x_max < width - 1 and y_max > height - 1:
             # print('bottom left went out')
-            extracted_img[0:extracted_img_size-(y_max-height), abs(x_min):, :] = original_img[y_min:, 0:x_max, :]
+            extracted_img[
+                0 : extracted_img_size - (y_max - height), abs(x_min) :, :
+            ] = original_img[y_min:, 0:x_max, :]
             # mirror padding
-            extracted_img[extracted_img_size-(y_max-height):, 0:abs(x_min), :] = original_img[2*height-y_max:, 0:abs(x_min), :]
-            extracted_img[0:extracted_img_size-(y_max-height), 0:abs(x_min), :] = original_img[y_min:, 0:abs(x_min), :]
-            extracted_img[extracted_img_size-(y_max-height):, abs(x_min):, :] = original_img[2*height-y_max:, 0:extracted_img_size-abs(x_min), :]
+            extracted_img[
+                extracted_img_size - (y_max - height) :, 0 : abs(x_min), :
+            ] = original_img[2 * height - y_max :, 0 : abs(x_min), :]
+            extracted_img[
+                0 : extracted_img_size - (y_max - height), 0 : abs(x_min), :
+            ] = original_img[y_min:, 0 : abs(x_min), :]
+            extracted_img[extracted_img_size - (y_max - height) :, abs(x_min) :, :] = original_img[
+                2 * height - y_max :, 0 : extracted_img_size - abs(x_min), :
+            ]
 
         # if bottom part went out
-        elif x_min >= 0 and y_min >= 0 and x_max < width-1 and y_max > height-1:
+        elif x_min >= 0 and y_min >= 0 and x_max < width - 1 and y_max > height - 1:
             # print('bottom went out')
-            extracted_img[0:extracted_img_size-(y_max-height), :, :] = original_img[y_min:, x_min:x_max, :]
+            extracted_img[0 : extracted_img_size - (y_max - height), :, :] = original_img[
+                y_min:, x_min:x_max, :
+            ]
             # mirror padding
-            extracted_img[extracted_img_size-(y_max-height):, :, :] = original_img[2*height-y_max:, x_min:x_max, :]
+            extracted_img[extracted_img_size - (y_max - height) :, :, :] = original_img[
+                2 * height - y_max :, x_min:x_max, :
+            ]
 
         # if bottom right part went out
-        elif x_min >= 0 and y_min >= 0 and x_max > width-1 and y_max > height-1:
+        elif x_min >= 0 and y_min >= 0 and x_max > width - 1 and y_max > height - 1:
             # print('bottom right went out')
-            extracted_img[0:extracted_img_size-(y_max-height), 0:extracted_img_size-(x_max-width), :] = original_img[y_min:, x_min:, :]
+            extracted_img[
+                0 : extracted_img_size - (y_max - height),
+                0 : extracted_img_size - (x_max - width),
+                :,
+            ] = original_img[y_min:, x_min:, :]
             # mirror padding
-            extracted_img[extracted_img_size-(y_max-height):, extracted_img_size-(x_max-width):, :] = original_img[height-y_max:, 2*width-x_max:, :]
-            extracted_img[extracted_img_size-(y_max-height):, 0:extracted_img_size-(x_max-width), :] = original_img[height-y_max:, x_min:, :]
-            extracted_img[0:extracted_img_size-(y_max-height), extracted_img_size-(x_max-width):, :] = original_img[y_min:, 2*width-x_max:, :]
+            extracted_img[
+                extracted_img_size - (y_max - height) :, extracted_img_size - (x_max - width) :, :
+            ] = original_img[height - y_max :, 2 * width - x_max :, :]
+            extracted_img[
+                extracted_img_size - (y_max - height) :,
+                0 : extracted_img_size - (x_max - width),
+                :,
+            ] = original_img[height - y_max :, x_min:, :]
+            extracted_img[
+                0 : extracted_img_size - (y_max - height),
+                extracted_img_size - (x_max - width) :,
+                :,
+            ] = original_img[y_min:, 2 * width - x_max :, :]
 
         # if right part went out
-        elif x_min >= 0 and y_min >= 0 and x_max > width-1 and y_max < height-1:
+        elif x_min >= 0 and y_min >= 0 and x_max > width - 1 and y_max < height - 1:
             # print('\nright went out')
-            extracted_img[:, 0:extracted_img_size-(x_max-width), :] = original_img[y_min:y_max, x_min:, :]
+            extracted_img[:, 0 : extracted_img_size - (x_max - width), :] = original_img[
+                y_min:y_max, x_min:, :
+            ]
             # mirror padding
-            extracted_img[:, extracted_img_size-(x_max-width):, :] = original_img[y_min:y_max, 2*width-x_max:, :]
+            extracted_img[:, extracted_img_size - (x_max - width) :, :] = original_img[
+                y_min:y_max, 2 * width - x_max :, :
+            ]
 
         # if top right part went out
-        elif x_min >= 0 and y_min < 0 and x_max >= width-1 and y_max < height-1:
+        elif x_min >= 0 and y_min < 0 and x_max >= width - 1 and y_max < height - 1:
             # print('top right went out')
-            extracted_img[abs(y_min):, 0:extracted_img_size-(x_max-width), :] = original_img[0:y_max, x_min:, :]
+            extracted_img[
+                abs(y_min) :, 0 : extracted_img_size - (x_max - width), :
+            ] = original_img[0:y_max, x_min:, :]
             # mirror padding
-            extracted_img[0:abs(y_min), extracted_img_size-(x_max-width):, :] = original_img[0:abs(y_min), 2*width-x_max:, :]
-            extracted_img[0:abs(y_min), 0:extracted_img_size-(x_max-width), :] = original_img[0:abs(y_min), x_min:, :]
-            extracted_img[abs(y_min):, extracted_img_size-(x_max-width):, :] = original_img[0:y_max, 2*width-x_max:, :]
+            extracted_img[
+                0 : abs(y_min), extracted_img_size - (x_max - width) :, :
+            ] = original_img[0 : abs(y_min), 2 * width - x_max :, :]
+            extracted_img[
+                0 : abs(y_min), 0 : extracted_img_size - (x_max - width), :
+            ] = original_img[0 : abs(y_min), x_min:, :]
+            extracted_img[abs(y_min) :, extracted_img_size - (x_max - width) :, :] = original_img[
+                0:y_max, 2 * width - x_max :, :
+            ]
 
         # if top part went out
-        elif x_min >= 0 and y_min < 0 and x_max < width-1 and y_max < height-1:
+        elif x_min >= 0 and y_min < 0 and x_max < width - 1 and y_max < height - 1:
             # print('top went out')
-            extracted_img[abs(y_min):, :, :] = original_img[0:y_max, x_min:x_max, :]
+            extracted_img[abs(y_min) :, :, :] = original_img[0:y_max, x_min:x_max, :]
             # mirror padding
-            extracted_img[0:abs(y_min), :, :] = original_img[0:abs(y_min), x_min:x_max, :]
+            extracted_img[0 : abs(y_min), :, :] = original_img[0 : abs(y_min), x_min:x_max, :]
 
         return extracted_img
-
 
     def __call__(self, data):
         label_path, img, labels = data
@@ -165,7 +213,6 @@ class FixedJittering(object):
         # # get the target bb
         # key_id = int(all_ids[key_label_index])
         # key_bb = all_bbs[key_label_index]
-
 
         # all_bbs only contains 1 bounding box
         key_id = labels[0, -1].astype(int)
@@ -184,21 +231,18 @@ class FixedJittering(object):
 
         # the cut-out image positions in the original image
         # the move of actual object and the window are opposite, thus minus
-        x_min = key_center_x - self.img_size//2 - self.x_tran
-        y_min = key_center_y - self.img_size//2 - self.y_tran
-        x_max = key_center_x + self.img_size//2 - self.x_tran
-        y_max = key_center_y + self.img_size//2 - self.y_tran
+        x_min = key_center_x - self.img_size // 2 - self.x_tran
+        y_min = key_center_y - self.img_size // 2 - self.y_tran
+        x_max = key_center_x + self.img_size // 2 - self.x_tran
+        y_max = key_center_y + self.img_size // 2 - self.y_tran
 
         # compute the bounding box wrt extrated image
-        key_bb_min_x, key_bb_min_y, key_bb_max_x, key_bb_max_y \
-            = self.compute_label(key_bb, x_min, y_min, self.img_size)
+        key_bb_min_x, key_bb_min_y, key_bb_max_x, key_bb_max_y = self.compute_label(
+            key_bb, x_min, y_min, self.img_size
+        )
 
         # put label in the format of (x_1, y_1, x_2, y_2, class)
-        processed_labels.append([key_bb_min_x,
-                                key_bb_min_y,
-                                key_bb_max_x,
-                                key_bb_max_y,
-                                key_id])
+        processed_labels.append([key_bb_min_x, key_bb_min_y, key_bb_max_x, key_bb_max_y, key_id])
 
         # extract the image, pad if needed
         extracted_img = self.extract_img_with_pad(img, self.img_size, x_min, y_min, x_max, y_max)
@@ -231,7 +275,9 @@ class ConvertLabel(object):
 
 # convert both images and bounding boxes to PyTorch tensors (used in aggregate case)
 class ToTensor(object):
-    def __init__(self, ):
+    def __init__(
+        self,
+    ):
         pass
 
     def __call__(self, data):
@@ -250,8 +296,8 @@ class ToTensor(object):
 def rotate_piv_data(image_1, image_2, label, degree):
 
     # rotate the image (only support 90, 180, 270, etc) (counterclock wise)
-    image_1_rotated = torch.rot90(image_1, int(degree//90))
-    image_2_rotated = torch.rot90(image_2, int(degree//90))
+    image_1_rotated = torch.rot90(image_1, int(degree // 90))
+    image_2_rotated = torch.rot90(image_2, int(degree // 90))
 
     # about labels
     # can take images only
@@ -259,12 +305,15 @@ def rotate_piv_data(image_1, image_2, label, degree):
         label_rotated = np.zeros(1)
     else:
         # rotate the label (counterclock wise)
-        label_rotated_temp = torch.rot90(label, int(degree//90), dims=(0, 1))
+        label_rotated_temp = torch.rot90(label, int(degree // 90), dims=(0, 1))
         # rotate each velocity vector too (counterclock wise)
         label_rotated = torch.zeros(label.shape)
-        label_rotated[:, :, 0] = label_rotated_temp[:, :, 0] * np.cos(math.radians(degree)) + label_rotated_temp[:, :, 1] * np.sin(math.radians(degree))
-        label_rotated[:, :, 1] = -label_rotated_temp[:, :, 0] * np.sin(math.radians(degree)) + label_rotated_temp[:, :, 1] * np.cos(math.radians(degree))
-
+        label_rotated[:, :, 0] = label_rotated_temp[:, :, 0] * np.cos(
+            math.radians(degree)
+        ) + label_rotated_temp[:, :, 1] * np.sin(math.radians(degree))
+        label_rotated[:, :, 1] = -label_rotated_temp[:, :, 0] * np.sin(
+            math.radians(degree)
+        ) + label_rotated_temp[:, :, 1] * np.cos(math.radians(degree))
 
     return image_1_rotated, image_2_rotated, label_rotated
 
@@ -276,7 +325,7 @@ def flip_piv_data(image_1, image_2, label, flip_type):
         label_flipped = np.zeros(1)
 
     # flip the images and label
-    if flip_type == 'horizontal':
+    if flip_type == "horizontal":
         image_1_flipped = torch.flip(image_1, dims=[1])
         image_2_flipped = torch.flip(image_2, dims=[1])
         # flip the ground truth horizontally (by y axis)
@@ -287,7 +336,7 @@ def flip_piv_data(image_1, image_2, label, flip_type):
             label_flipped[:, :, 0] = -label_flipped_temp[:, :, 0]
             label_flipped[:, :, 1] = label_flipped_temp[:, :, 1]
 
-    elif flip_type == 'vertical':
+    elif flip_type == "vertical":
         image_1_flipped = torch.flip(image_1, dims=[0])
         image_2_flipped = torch.flip(image_2, dims=[0])
         # flip the ground truth vertically (by x axis)
@@ -299,14 +348,22 @@ def flip_piv_data(image_1, image_2, label, flip_type):
             label_flipped[:, :, 1] = -label_flipped_temp[:, :, 1]
 
     # / diagonal = rotate 90 ccw + vertical flip
-    elif flip_type == 'left-diagonal':
-        image_1_rotated, image_2_rotated, label_rotated = rotate_piv_data(image_1, image_2, label, 90)
-        image_1_flipped, image_2_flipped, label_flipped = flip_piv_data(image_1_rotated, image_2_rotated, label_rotated, flip_type='vertical')
+    elif flip_type == "left-diagonal":
+        image_1_rotated, image_2_rotated, label_rotated = rotate_piv_data(
+            image_1, image_2, label, 90
+        )
+        image_1_flipped, image_2_flipped, label_flipped = flip_piv_data(
+            image_1_rotated, image_2_rotated, label_rotated, flip_type="vertical"
+        )
 
     # \ diagonal = rotate 90 ccw + horizontal flip
-    elif flip_type == 'right-diagonal':
-        image_1_rotated, image_2_rotated, label_rotated = rotate_piv_data(image_1, image_2, label, 90)
-        image_1_flipped, image_2_flipped, label_flipped = flip_piv_data(image_1_rotated, image_2_rotated, label_rotated, flip_type='horizontal')
+    elif flip_type == "right-diagonal":
+        image_1_rotated, image_2_rotated, label_rotated = rotate_piv_data(
+            image_1, image_2, label, 90
+        )
+        image_1_flipped, image_2_flipped, label_flipped = flip_piv_data(
+            image_1_rotated, image_2_rotated, label_rotated, flip_type="horizontal"
+        )
 
     return image_1_flipped, image_2_flipped, label_flipped
 

@@ -100,12 +100,13 @@ def load_model(mode, network_model, model_dir):
 # run model on either on a single MNIST image or a batch of MNIST images
 def run_mnist_once(model, test_image, test_label=None, batch_size=None, rotate_angle=None):
 
-    # print('Running inference on the single image')
+    # Running inference on a single image
     if len(test_image.shape) == 3:
-        # reformat input image from (height, width, channel) to (batch size, channel, height, width)
+        # reformat from (height, width, channel) to (batch size, channel, height, width)
         test_image = test_image.permute((2, 0, 1))[None, :, :, :].float()
+    # Running inference on a batch of images
     elif len(test_image.shape) == 4:
-        # reformat input image from (batch_size, height, width, channel) to (batch_size, batch size, channel, height, width)
+        # reformatfrom (batch_size, height, width, channel) to (batch_size, channel, height, width)
         test_image = test_image.permute((0, 3, 1, 2)).float()
     else:
         raise Exception("Wrong input image shape")
@@ -152,11 +153,12 @@ def run_mnist_once(model, test_image, test_label=None, batch_size=None, rotate_a
 
             # generate dataset and data loader
             if rotate_angle:
-                img_size = 29
+                img_size = test_image.shape[2]
 
                 # transform includes upsample, rotate, downsample and padding (right and bottom) to image_size
                 transform = torchvision.transforms.Compose(
                     [
+                        # rotation
                         torchvision.transforms.Resize(img_size * 3),
                         torchvision.transforms.RandomRotation(
                             degrees=(rotate_angle, rotate_angle),
@@ -164,10 +166,21 @@ def run_mnist_once(model, test_image, test_label=None, batch_size=None, rotate_a
                             expand=False,
                         ),
                         torchvision.transforms.Resize(img_size),
+                        # normalize for MNIST dataset
+                        torchvision.transforms.Normalize((0.1307,), (0.3081,)),
+                        # padding to 29, 29
+                        torchvision.transforms.Pad((0, 0, 1, 1), fill=0, padding_mode="constant"),
                     ]
                 )
             else:
-                transform = None
+                transform = torchvision.transforms.Compose(
+                    [
+                        # normalize for MNIST dataset
+                        torchvision.transforms.Normalize((0.1307,), (0.3081,)),
+                        # padding to 29, 29
+                        torchvision.transforms.Pad((0, 0, 1, 1), fill=0, padding_mode="constant"),
+                    ]
+                )
 
             # create angle
             dataset = datasets.MnistDataset(test_image, test_label, transform=transform)
