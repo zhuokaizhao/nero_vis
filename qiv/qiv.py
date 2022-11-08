@@ -2,6 +2,10 @@
 # libqiv: Quick Inspection of Vector fields
 # Copyright (C)  2022 University of Chicago. All rights reserved.
 #
+# pylint can't see inside CFFI-generated extension modules,
+# and is also confused about contents of teem
+# pylint: disable=c-extension-no-member,no-member
+
 """
 This is a wrapper around "_qiv" the CFFI-generated extension
 module for accessing the C shared library libqiv.{so,dylib}
@@ -16,18 +20,10 @@ For more about CFFI see https://cffi.readthedocs.io/en/latest/
 (NOTE: GLK welcomes suggestions on how to make this more useful or pythonic)
 """
 
-# pylint can't see inside CFFI-generated modules
-# pylint: disable=c-extension-no-member
-
-# (lots of underscore prefixing to prevent "export"ing them from this module)
-import re as _re  # for extracting biff key name from function name
-import os as _os
-import pathlib as _pathlib
-import sys as _sys
 
 try:
     import teem as _teem
-except ModuleNotFoundError as exc:
+except ModuleNotFoundError as _exc:
     print(
         """
 ***
@@ -36,15 +32,15 @@ except ModuleNotFoundError as exc:
 ***
     """
     )
-    raise exc
+    raise _exc
 
 # halt if python2; thanks to https://preview.tinyurl.com/44f2beza
 _x, *_y = 1, 2  # NOTE: A SyntaxError means you need python3, not python2
 del _x, _y
 
 
-def check_risd():
-    """Check that underlying libqiv and extension module _qiv agree on meaning of real"""
+def _check_risd():
+    """Check that extension module _qiv and underlying libqiv agree on meaning of 'real'"""
     want_size = 8 if _qiv.lib.qivRealIsDouble else 4
     got_size = _qiv.ffi.sizeof('real')
     if got_size != want_size:
@@ -72,8 +68,8 @@ def _biffer(func, func_name, errv, bkey):
     def wrapper(*args):
         # pass all args to underlying C function; get return value rv
         retv = func(*args)
-        # nrrdLoad returns 1 or 2 for different errors
-        if retv == errv or ('nrrdLoad' == func_name and 2 == retv):
+        # we have a biff error if return value retv is error value errv
+        if retv == errv:
             err = _teem.biffGetDone(bkey)
             estr = _teem.ffi.string(err).decode('ascii').rstrip()
             _teem.lib.free(err)
@@ -97,21 +93,21 @@ def _export_qiv() -> None:
             fff = bfunc[1:]
             eee = ffi.NULL
         else:
-            # else returning 1 indicates error (except for nrrdLoad, handled specially)
+            # else returning 1 indicates error
             fff = bfunc
             eee = 1
         err_val[fff] = eee
     for sym_name in dir(_qiv.lib):
         name_in = sym_name.startswith('qiv') or sym_name.startswith('QIV')
         if not name_in:
-            # in the scivis per-project libraries that this is based on, there are some
+            # in the SciVis per-project libraries that this is based on, there are some
             # things like nrrdLoad that do not start with the library name, but which are
             # wanted as an export.  Not so here; user can "import teem" directly if needed
             continue
         sym = getattr(_qiv.lib, sym_name)
         # Initialize python object to export from this module for sym.
         exprt = None
-        if not sym_name in _BIFF_LIST:
+        if not sym_name in err_val:
             # ... either not a function, or a function not known to use biff
             if str(sym).startswith("<cdata 'airEnum *' "):
                 # sym_name is name of an airEnum, wrap it as such
@@ -148,7 +144,7 @@ if __name__ != '__main__':  # here because of an "import"
             '* Did you first run "python3 build_qiv.py"?\n*\n'
         )
         raise
-    check_risd()
+    _check_risd()
     # The value of this ffi, as opposed to "from cffi import FFI; ffi = FFI()" is that it knows
     # about the various typedefs that were learned to build the CFFI wrapper, which may in turn
     # be useful for setting up calls into libqiv
