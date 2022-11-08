@@ -19,14 +19,35 @@ extern "C" {
 #if QIV_REAL_IS_DOUBLE
 #  define airTypeReal  airTypeDouble
 #  define nrrdTypeReal nrrdTypeDouble
+#  define ell_3m_print ell_3m_print_d
 #else
 #  define airTypeReal  airTypeFloat
 #  define nrrdTypeReal nrrdTypeFloat
+#  define ell_3m_print ell_3m_print_f
 #endif
 
 #include <assert.h> // for assert()
 #include <math.h>
+#include <tgmath.h> // type-generic math macros
+/* <tgmath.h> #includes <complex.h>, which in turn defines a macro "I", which removes "I"
+   from your possible variable names (using it creates cryptic compiler error messages).
+   We're allowed to undefine "I", so we do. */
+#undef I
+
+// things from Teem used in implementation, but not part of qiv API
+#include <teem/biff.h>
+#include <teem/hest.h>
+#include <teem/nrrd.h>
+#include <teem/ell.h>
+
 #include "qivMath.h"
+
+// misc.c
+#ifndef NDEBUG
+extern int Verbose;
+#else
+#  define Verbose 0
+#endif
 
 #ifdef __cplusplus
 }
