@@ -60,7 +60,7 @@ $(testTEEM)
 ##     make clean; make CFLAGS=-DQIV_REAL_IS_DOUBLE=1
 
 CC ?= clang
-DASHO ?= -O2
+DASHO ?= -O3
 DASHG ?= -g
 # this way, "make CFLAGS=FOO" will put FOO *after* -Wall -Wextra, etc
 # e.g. "make CC=clang CFLAGS=-fsanitize=undefined" to detect undefined behavior
@@ -74,7 +74,7 @@ ARRR ?= ar crs
 
 ## These are the header and source files involved.
 HDR := qiv.h qivPrivate.h qivMath.h
-SRCS := misc.c aenum.c field.c ctx.c convo.c
+SRCS := misc.c aenum.c field.c ctx.c convo.c sline.c
 OBJS := $(SRCS:.c=.o)
 
 all: $(LLIBSH)

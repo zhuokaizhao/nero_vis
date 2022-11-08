@@ -138,6 +138,7 @@ typedef struct qivCtx_t {
   by qivSlineTrace.  Implemented in sline.c.
 */
 typedef struct qivSline_t {
+    real seed[2];               /* where this was seeded */
     uint halfLen;               /* pos is allocated for 2*(1 + 2*halfLen) reals, i.e.
                                    for (1 + 2*halfLen) 2-vectors of coordinates.
                                    pos+2*halfLen is a 2-vector giving the position of
@@ -193,16 +194,17 @@ extern qivCtx *qivCtxNew(const qivField *vfl, qivKern kern);
 extern qivCtx *qivCtxNix(qivCtx *ctx);
 
 // convo.c: for convolution
-extern void qivConvoEval(qivCtx *ctx, real xw, real yw);
+extern void qivConvoEval(qivCtx *ctx, real xw, real yw, int sgn, int norm);
 
-/*
 // sline.c: for storing and computing streamlines
 extern qivSline *qivSlineNew(void);
 extern int qivSlineAlloc(qivSline *sln, uint halfLen);
 extern qivSline *qivSlineNix(qivSline *sln);
 extern int qivSlineTrace(qivSline *const sln, real seedX, real seedY, uint halfLen,
                          real hh, int normalize, int intg, qivCtx *ctx);
+extern void qivSlinePrint(qivSline *const sln);
 
+/*
 // lic.c: for Line Integral Convolution: TODO finish qivLICEval
 extern int qivLICEval(real *const result, qivSline *const sln, real wx, real wy,
                       uint halfLen, real hh, int normalize, int intg,

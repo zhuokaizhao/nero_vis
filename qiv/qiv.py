@@ -59,6 +59,8 @@ def _check_risd():
 _BIFF_LIST = [
     'qivFieldSet',
     '*qivCtxNew',
+    'qivSlineAlloc',
+    'qivSlineTrace',
 ]
 
 
