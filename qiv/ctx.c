@@ -30,7 +30,7 @@ qivCtxNew(const qivField *vfl, qivKern kern) {
            cc/det, -aa/det, (-cc*rr + aa*ss)/det,
            0, 0, 1);
     /* clang-format on */
-    if (Verbose > 2) {
+    if (_qivVerbose > 2) {
         real test[9];
         M3_MUL(test, ctx->WtoI, vfl->ItoW);
         printf("WtoI * ItoW = \n");

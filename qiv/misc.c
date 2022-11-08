@@ -9,13 +9,13 @@
 #ifndef NDEBUG
 // still a global, but no longer part of API, because CFFI didn't seem to correctly
 // handle "qivVerbose = 4", at least not after "from qiv import *"
-int Verbose = 0;
+int _qivVerbose = 0;
 #endif
 
 void
 qivVerboseSet(int verb) {
 #ifndef NDEBUG
-    Verbose = verb;
+    _qivVerbose = verb;
 #else
     (void)(verb);
     fprintf(stderr, "!!!\n!!! %s: not available because compiled with -NDEBUG\n!!!\n",
@@ -24,7 +24,7 @@ qivVerboseSet(int verb) {
 }
 int
 qivVerboseGet() {
-    return Verbose;
+    return _qivVerbose;
 }
 
 #if QIV_REAL_IS_DOUBLE

@@ -94,3 +94,6 @@ $(LLIBSH): $(OBJS)
 
 clean:
 	rm -f $(OBJS) $(LLIBSH)
+
+# check that library contains what it should and no more:
+# nm libqiv.* | grep -v " U " | grep -v " s " | grep -v " d " | grep -v " t "

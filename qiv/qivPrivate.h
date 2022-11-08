@@ -44,7 +44,7 @@ extern "C" {
 
 // misc.c
 #ifndef NDEBUG
-extern int Verbose;
+extern int _qivVerbose;
 #else
 #  define Verbose 0
 #endif

@@ -34,7 +34,7 @@ qivConvoEval(qivCtx *ctx, real xw, real yw) {
         xi = m[0] * xw + m[1] * yw + m[2];
         yi = m[3] * xw + m[4] * yw + m[5];
     }
-    if (Verbose > 2) {
+    if (_qivVerbose > 2) {
         printf("%s: world (%g,%g) --> index (%g,%g)\n", __func__, xw, yw, xi, yi);
     }
     int _ii, ii, _jj, jj, sz0 = (int)ctx->vfl->size0, sz1 = (int)ctx->vfl->size1;
@@ -74,7 +74,7 @@ qivConvoEval(qivCtx *ctx, real xw, real yw) {
         _jj = (int)floor(yi);
         bb = yi - _jj;
         jj = AIR_CLAMP(1, _jj, sz1 - 3);
-        if (Verbose > 3) {
+        if (_qivVerbose > 3) {
             printf("%s: (%g,%g) -> _(%d,%d) ; (%d,%d) + (%g,%g)\n", __func__, xi, yi,
                    _ii, _jj, ii, jj, aa, bb);
         }
@@ -84,10 +84,6 @@ qivConvoEval(qivCtx *ctx, real xw, real yw) {
         } else {
             Bspln3Apply(uu, aa);
             Bspln3Apply(vv, bb);
-        }
-        if (Verbose > 3) {
-            printf("%s: uu = %g %g %g %g\n", __func__, uu[0], uu[1], uu[2], uu[3]);
-            printf("%s: vv = %g %g %g %g\n", __func__, vv[0], vv[1], vv[2], vv[3]);
         }
         v0 = vd + 2 * (ii - 1 + sz0 * (jj - 1)); // have to decrement along both axes
         v1 = v0 + 2 * sz0;
