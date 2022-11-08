@@ -92,12 +92,10 @@ def check_opts(teem_install: str, teem_python: str) -> None:
 def build(teem_install: str, teem_python: str, risd: bool, use_int: bool) -> None:
     """
     Sets up and makes calls into cffi.FFI() to compile Python _qiv extension module
-    that links into libvcr shared library
+    that links into libqiv shared library
     """
     # given reliance on files in specific places; change to dir containing this file
     os.chdir(pathlib.Path(os.path.realpath(__file__)).parent)
-    # remember here = current directory, as location of librvcr shared library for rpath,
-    # to enable later import of _rvcr extension library from somewhere besides here
     here = os.getcwd()
     # bail if libqiv shared library not here
     if not os.path.isfile(f'libqiv.{SHEXT}'):
@@ -131,7 +129,7 @@ def build(teem_install: str, teem_python: str, risd: bool, use_int: bool) -> Non
     if sys.platform == 'darwin':  # make extra sure that rpath is set on Mac
         source_args['extra_link_args'] = [f'-Wl,-rpath,{P}' for P in [here, shlib_path]]
     ffibld = cffi.FFI()
-    # declare this so that vcr.py can call free() on biff messages
+    # declare this so that qiv.py can call free() on biff messages
     ffibld.cdef('extern void free(void *);')
     # We really want to be able to use "ffibld.include(teem.ffi)" after "import teem"
     # https://cffi.readthedocs.io/en/latest/cdef.html?highlight=ffi.include#ffi-ffibuilder-include-combining-multiple-cffi-interfaces
@@ -181,7 +179,7 @@ def parse_args():
     # https://docs.python.org/3/library/argparse.html
     parser = argparse.ArgumentParser(
         description='Utility for compiling CFFI-based '
-        'python3 extension around libvcr shared library'
+        'python3 extension around libqiv shared library'
     )
     parser.add_argument(
         '-v',
