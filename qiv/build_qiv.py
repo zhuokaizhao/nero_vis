@@ -48,7 +48,12 @@ def header(hdr_fname: str, risd: bool):
         lines = [line.rstrip() for line in file.readlines()]
     # lose the directives
     drop_at('#ifndef QIV_HAS_BEEN_INCLUDED', 2, lines)
-    drop_at('#ifndef _GNU_SOURCE', 14, lines)
+    idx = drop_at('// begin includes', 10, lines)
+    if '// end includes' != lines[idx]:
+        raise RuntimeError(
+            f'# of lines between "// begin includes" and "// end includes" not expected'
+        )
+    drop_at('// end includes', 1, lines)
     drop_at('#ifdef __cplusplus', 3, lines)   # first, at top of file
     drop_at('#ifdef __cplusplus', 3, lines)   # second, at bottom of file
     drop_at('#endif // QIV_HAS_BEEN_INCLUDED', 1, lines)
