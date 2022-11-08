@@ -61,6 +61,7 @@ _BIFF_LIST = [
     '*qivCtxNew',
     'qivSlineAlloc',
     'qivSlineTrace',
+    #'qivLICEval',
 ]
 
 

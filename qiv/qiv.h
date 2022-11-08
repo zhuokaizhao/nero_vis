@@ -204,15 +204,15 @@ extern int qivSlineTrace(qivSline *const sln, real seedX, real seedY, uint halfL
                          real hh, int normalize, int intg, qivCtx *ctx);
 extern void qivSlinePrint(qivSline *const sln);
 
-/*
 // lic.c: for Line Integral Convolution: TODO finish qivLICEval
+/*
 extern int qivLICEval(real *const result, qivSline *const sln, real wx, real wy,
                       uint halfLen, real hh, int normalize, int intg,
                       const qivField *rnd, const real *rWtoI, int rndLinterp,
                       qivCtx *ctx);
 extern int qivLIC(qivField *const lmg, qivField *const pmg, int prop, uint halfLen,
-                  real hh, int normalize, int intg, const qivField *rnd, int rndLinterp,
-                  qivCtx *ctx);
+                  real hh, int normalize, int intg, const qivField *rnd, int
+                  rndLinterp, qivCtx *ctx);
 */
 
 #ifdef __cplusplus
