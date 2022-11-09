@@ -6,20 +6,17 @@
 #ifndef QIV_HAS_BEEN_INCLUDED
 #define QIV_HAS_BEEN_INCLUDED
 
-#ifndef _GNU_SOURCE
-#  define _GNU_SOURCE // https://man7.org/linux/man-pages/man3/asprintf.3.html
-#endif
+// begin includes
 #include <stdio.h>  // for printf
 #include <stdint.h> // for uint8_t
 #include <stdlib.h> // for malloc, qsort
 #include <assert.h> // for assert()
 // define QIV_COMPILE when compiling libqiv or a non-Python thing depending on libqiv
 #ifdef QIV_COMPILE
+// things from Teem used in qiv API
 #  include <teem/air.h>
-#  include <teem/biff.h>
-#  include <teem/hest.h>
-#  include <teem/nrrd.h>
 #endif
+// end includes
 
 #ifdef __cplusplus
 extern "C" {
@@ -46,12 +43,9 @@ typedef float real;
    there is often no need for any specific size; just an "unsigned int" */
 typedef unsigned int uint;
 
-/* misc.c
-   qivVerbose is a global flag you should use to control whether or not the code prints
-   debugging messages, and how verbose they are.
-*/
-extern int qivVerbose;
-
+// misc.c
+extern void qivVerboseSet(int verb);
+extern int qivVerboseGet(void);
 extern const int qivRealIsDouble;
 extern const char *qivBiffKey;
 #define QIV qivBiffKey // identifies this library in biff error messages
@@ -76,7 +70,7 @@ typedef enum {
     qivKernBox,         // 1: box == nearest neighbor
     qivKernTent,        // 2: tent == bilinear
     qivKernCtmr,        // 3: Catmull-Rom
-    qivKernBspln3,      // 4: uniform cubic B-spline
+    qivKernBspln,       // 4: uniform cubic B-spline
 } qivKern;
 
 /*
@@ -123,11 +117,11 @@ typedef struct qivField_t {
 */
 typedef struct qivCtx_t {
     const qivField *vfl; /* vector field to process. */
+    qivKern kern;        /* how do we interpolate */
     real WtoI[9];        /* inverse of vfl->ItoW, for homog coord mapping
                             from world to index space */
     int insideOnly;      /* do not actually care about the full convolution
                             result, only the value of "inside" */
-    qivKern kern;
 
     /* output to be set in qivConvoEval:
        inside: the following convolution results could be computed
@@ -144,6 +138,7 @@ typedef struct qivCtx_t {
   by qivSlineTrace.  Implemented in sline.c.
 */
 typedef struct qivSline_t {
+    real seed[2];               /* where this was seeded */
     uint halfLen;               /* pos is allocated for 2*(1 + 2*halfLen) reals, i.e.
                                    for (1 + 2*halfLen) 2-vectors of coordinates.
                                    pos+2*halfLen is a 2-vector giving the position of
@@ -195,28 +190,29 @@ extern int qivFieldSet(qivField *vfl, uint size0, uint size1, const double *edge
 extern qivField *qivFieldNix(qivField *vfl);
 
 // ctx.c: for setting up and using the qivCtx
-extern qivCtx *qivCtxNew(const qivField *vfl);
+extern qivCtx *qivCtxNew(const qivField *vfl, qivKern kern);
 extern qivCtx *qivCtxNix(qivCtx *ctx);
 
 // convo.c: for convolution
-extern void qivConvoEval(qivCtx *ctx, real xw, real yw);
+extern void qivConvoEval(qivCtx *ctx, real xw, real yw, int sgn, int norm);
 
-/*
 // sline.c: for storing and computing streamlines
 extern qivSline *qivSlineNew(void);
 extern int qivSlineAlloc(qivSline *sln, uint halfLen);
 extern qivSline *qivSlineNix(qivSline *sln);
 extern int qivSlineTrace(qivSline *const sln, real seedX, real seedY, uint halfLen,
                          real hh, int normalize, int intg, qivCtx *ctx);
+extern void qivSlinePrint(qivSline *const sln);
 
 // lic.c: for Line Integral Convolution: TODO finish qivLICEval
+/*
 extern int qivLICEval(real *const result, qivSline *const sln, real wx, real wy,
                       uint halfLen, real hh, int normalize, int intg,
                       const qivField *rnd, const real *rWtoI, int rndLinterp,
                       qivCtx *ctx);
 extern int qivLIC(qivField *const lmg, qivField *const pmg, int prop, uint halfLen,
-                  real hh, int normalize, int intg, const qivField *rnd, int rndLinterp,
-                  qivCtx *ctx);
+                  real hh, int normalize, int intg, const qivField *rnd, int
+                  rndLinterp, qivCtx *ctx);
 */
 
 #ifdef __cplusplus

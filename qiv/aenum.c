@@ -42,8 +42,8 @@ const airEnum *const qivStop_ae = &_qivStop_ae;
 static const airEnum _qivKern_ae
   = {"the different reconstruction kernels we know about",
      4,
-     (const char *[]){"(unknown_kern)", "box", "tent", "ctmr", "bspln3"},
-     (int[]){qivKernUnknown, qivKernBox, qivKernTent, qivKernCtmr, qivKernBspln3},
+     (const char *[]){"(unknown_kern)", "box", "tent", "ctmr", "bspln"},
+     (int[]){qivKernUnknown, qivKernBox, qivKernTent, qivKernCtmr, qivKernBspln},
      (const char *[]){
        "unknown kernel",
        "box == nearest neighbor",
