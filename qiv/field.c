@@ -37,6 +37,15 @@ _qivFieldAlloc(qivField *vfl, uint size0, uint size1) {
     return 0;
 }
 
+// set up container for the data
+// edge0: first column of IToW matrix (2-vector)
+// edge1: second column of IToW matrix (2-vector)
+// offsets in world space between successive samples alone faster (edge0) and slower
+// (edge1) axis
+// orig: third column of IToW, position of the first sample in memory
+// data: 2 * size0 * size1 (from fast to slow) array of vector component values
+// ntype: either teem.nrrdTypeFloat or teem.nrrdTypeDouble, if the "data" pointer poings
+// to floats or doubles, respectively
 int
 qivFieldSet(qivField *vfl, uint size0, uint size1, const double *edge0,
             const double *edge1, const double *orig, void *data, int ntype) {
