@@ -8,6 +8,10 @@
 *.flo
 *.json
 
+# for the c library
+*.o
+*.so
+
 # unused logging
 detection/yolov3/logs/*
 *.npy
