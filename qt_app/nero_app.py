@@ -25,16 +25,16 @@ import nero_run_model
 
 import warnings
 
-warnings.filterwarnings("ignore")
+warnings.filterwarnings('ignore')
 
 # globa configurations
-pg.setConfigOptions(antialias=True, background="w")
+pg.setConfigOptions(antialias=True, background='w')
 # use pyside gpu acceleration if gpu detected
 if torch.cuda.is_available():
     # pg.setConfigOption('useCupy', True)
-    os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+    os.environ['CUDA_VISIBLE_DEVICES'] = '0'
 else:
-    pg.setConfigOption("useCupy", False)
+    pg.setConfigOption('useCupy', False)
 
 
 class UI_MainWindow(QWidget):
@@ -44,9 +44,9 @@ class UI_MainWindow(QWidget):
         self.resize(1920, 1080)
         # self.resize(2260, 1080)
         # set window title
-        self.setWindowTitle("Non-Equivariance Revealed on Orbits")
+        self.setWindowTitle('Non-Equivariance Revealed on Orbits')
         # white background color
-        self.setStyleSheet("background-color: rgb(255, 255, 255);")
+        self.setStyleSheet('background-color: rgb(255, 255, 255);')
         # general layout
         self.layout = QtWidgets.QGridLayout(self)
         self.layout.setAlignment(QtCore.Qt.AlignCenter)
@@ -82,13 +82,13 @@ class UI_MainWindow(QWidget):
 
         if cache_path != None:
             self.cache_path = cache_path
-            self.cache_dir = self.cache_path.removesuffix(self.cache_path.split("/")[-1])
+            self.cache_dir = self.cache_path.removesuffix(self.cache_path.split('/')[-1])
         else:
-            self.cache_dir = os.path.join(os.getcwd(), "cache")
+            self.cache_dir = os.path.join(os.getcwd(), 'cache')
             if not os.path.isdir(self.cache_dir):
                 os.mkdir(self.cache_dir)
 
-            self.cache_path = os.path.join(self.cache_dir, f"{self.mode}", "nero_cache.npz")
+            self.cache_path = os.path.join(self.cache_dir, f'{self.mode}', 'nero_cache.npz')
             # if not exist, creat one
             if not os.path.isfile(self.cache_path):
                 np.savez(self.cache_path)
@@ -104,7 +104,7 @@ class UI_MainWindow(QWidget):
         # start initializing control layout
         self.init_mode_control_layout()
 
-        print(f"\nFinished rendering main layout")
+        print(f'\nFinished rendering main layout')
 
     # helper functions on managing the database
     def load_from_cache(self, name):
@@ -113,7 +113,7 @@ class UI_MainWindow(QWidget):
             self.load_successfully = True
             return self.cache[name]
         else:
-            print(f"No precomputed result named {name}")
+            print(f'No precomputed result named {name}')
             self.load_successfully = False
             return np.zeros(0)
 
@@ -140,7 +140,7 @@ class UI_MainWindow(QWidget):
     # helper function on cleaning up things when switching modes
     def switch_mode_cleanup(self):
         if self.previous_mode:
-            print(f"Cleaned {self.previous_mode} control layout")
+            print(f'Cleaned {self.previous_mode} control layout')
             self.clear_layout(self.load_menu_layout)
 
         # for cases where only image is loaded but no other things
@@ -153,19 +153,19 @@ class UI_MainWindow(QWidget):
             self.aggregate_result_existed = False
 
         if self.run_button_existed:
-            print(f"Cleaned previous run button")
+            print(f'Cleaned previous run button')
             self.clear_layout(self.run_button_layout)
             self.run_button_existed = False
 
         if self.aggregate_result_existed:
-            print(f"Cleaned {self.previous_mode} aggregate_result_layout")
+            print(f'Cleaned {self.previous_mode} aggregate_result_layout')
             self.clear_layout(self.aggregate_result_layout)
             self.data_existed = False
             self.aggregate_result_existed = False
             self.single_result_existed = False
 
         if self.single_result_existed:
-            print(f"Cleaned {self.previous_mode} single_result_layout")
+            print(f'Cleaned {self.previous_mode} single_result_layout')
             self.clear_layout(self.single_result_layout)
             self.image_existed = False
             self.single_result_existed = False
@@ -174,8 +174,8 @@ class UI_MainWindow(QWidget):
         # three radio buttons that define the mode
         @QtCore.Slot()
         def digit_recognition_button_clicked():
-            print("Digit recognition button clicked")
-            self.mode = "digit_recognition"
+            print('Digit recognition button clicked')
+            self.mode = 'digit_recognition'
 
             if self.previous_mode != self.mode or not self.previous_mode or self.pre_selected:
                 # clear previous mode's layout
@@ -199,20 +199,20 @@ class UI_MainWindow(QWidget):
                 self.batch_size = 100
 
                 # preload model 1
-                self.model_1_name = "Original model"
-                self.model_1_cache_name = self.model_1_name.split(" ")[0]
+                self.model_1_name = 'Original model'
+                self.model_1_cache_name = self.model_1_name.split(' ')[0]
                 self.model_1_path = glob.glob(
-                    os.path.join(os.getcwd(), "example_models", self.mode, "non_eqv", "*.pt")
+                    os.path.join(os.getcwd(), 'example_models', self.mode, 'non_eqv', '*.pt')
                 )[0]
-                self.model_1 = nero_run_model.load_model(self.mode, "non_eqv", self.model_1_path)
+                self.model_1 = nero_run_model.load_model(self.mode, 'non_eqv', self.model_1_path)
 
                 # preload model 2
-                self.model_2_name = "DA model"
-                self.model_2_cache_name = self.model_2_name.split(" ")[0]
+                self.model_2_name = 'DA model'
+                self.model_2_cache_name = self.model_2_name.split(' ')[0]
                 self.model_2_path = glob.glob(
-                    os.path.join(os.getcwd(), "example_models", self.mode, "aug_rot_eqv", "*.pt")
+                    os.path.join(os.getcwd(), 'example_models', self.mode, 'aug_rot_eqv', '*.pt')
                 )[0]
-                self.model_2 = nero_run_model.load_model(self.mode, "aug_eqv", self.model_2_path)
+                self.model_2 = nero_run_model.load_model(self.mode, 'aug_eqv', self.model_2_path)
                 # self.model_2_name = 'E2CNN model'
                 # self.model_2_cache_name = self.model_2_name.split(' ')[0]
                 # self.model_2_path = glob.glob(os.path.join(os.getcwd(), 'example_models', self.mode, 'rot_eqv', '*.pt'))[0]
@@ -237,8 +237,8 @@ class UI_MainWindow(QWidget):
 
         @QtCore.Slot()
         def object_detection_button_clicked():
-            print("Object detection button clicked")
-            self.mode = "object_detection"
+            print('Object detection button clicked')
+            self.mode = 'object_detection'
 
             # below layouts depend on mode selection
             if self.previous_mode != self.mode or not self.previous_mode or self.pre_selected:
@@ -263,43 +263,43 @@ class UI_MainWindow(QWidget):
                 self.batch_size = 64
 
                 # predefined model paths
-                self.model_1_name = "FasterRCNN (0% jittering)"
+                self.model_1_name = 'FasterRCNN (0% jittering)'
                 self.model_1_cache_name = (
-                    self.model_1_name.split("(")[1].split(")")[0].split(" ")[0]
+                    self.model_1_name.split('(')[1].split(')')[0].split(' ')[0]
                 )
                 self.model_1_path = glob.glob(
                     os.path.join(
                         os.getcwd(),
-                        "example_models",
+                        'example_models',
                         self.mode,
-                        "custom_trained",
-                        f"object_0-jittered",
-                        "*.pth",
+                        'custom_trained',
+                        f'object_0-jittered',
+                        '*.pth',
                     )
                 )[0]
                 # pre-trained model does not need model path
-                self.model_2_name = "FasterRCNN (Pre-trained)"
+                self.model_2_name = 'FasterRCNN (Pre-trained)'
                 self.model_2_cache_name = (
-                    self.model_2_name.split("(")[1].split(")")[0].split(" ")[0]
+                    self.model_2_name.split('(')[1].split(')')[0].split(' ')[0]
                 )
                 self.model_2_path = None
                 # preload model
                 self.model_1 = nero_run_model.load_model(
-                    self.mode, "custom_trained", self.model_1_path
+                    self.mode, 'custom_trained', self.model_1_path
                 )
                 self.model_2 = nero_run_model.load_model(
-                    self.mode, "pre_trained", self.model_2_path
+                    self.mode, 'pre_trained', self.model_2_path
                 )
 
                 # different class names (original COCO classes, custom 5-class and the one that pretrained PyTorch model uses)
                 self.original_coco_names_path = os.path.join(
-                    os.getcwd(), "example_data", self.mode, "coco.names"
+                    os.getcwd(), 'example_data', self.mode, 'coco.names'
                 )
                 self.custom_coco_names_path = os.path.join(
-                    os.getcwd(), "example_data", self.mode, "custom.names"
+                    os.getcwd(), 'example_data', self.mode, 'custom.names'
                 )
                 self.pytorch_coco_names_path = os.path.join(
-                    os.getcwd(), "example_data", self.mode, "pytorch_coco.names"
+                    os.getcwd(), 'example_data', self.mode, 'pytorch_coco.names'
                 )
 
                 # load these name files
@@ -313,7 +313,7 @@ class UI_MainWindow(QWidget):
                     self.pytorch_coco_names_path
                 )
 
-                print(f"Custom 5 classes: {self.custom_coco_names}")
+                print(f'Custom 5 classes: {self.custom_coco_names}')
 
                 # unique quantity of the result of current data
                 self.all_quantities_1 = []
@@ -333,8 +333,8 @@ class UI_MainWindow(QWidget):
 
         @QtCore.Slot()
         def piv_button_clicked():
-            print("PIV button clicked")
-            self.mode = "piv"
+            print('PIV button clicked')
+            self.mode = 'piv'
 
             # below layouts depend on mode selection
             if self.previous_mode != self.mode or not self.previous_mode or self.pre_selected:
@@ -356,20 +356,20 @@ class UI_MainWindow(QWidget):
                 self.time_reverse = False
 
                 # predefined model paths
-                self.model_1_name = "PIV-LiteFlowNet-en"
+                self.model_1_name = 'PIV-LiteFlowNet-en'
                 # LiteFlowNet
-                self.model_1_cache_name = self.model_1_name.split("-")[1]
+                self.model_1_cache_name = self.model_1_name.split('-')[1]
                 self.model_1_path = glob.glob(
                     os.path.join(
                         os.getcwd(),
-                        "example_models",
+                        'example_models',
                         self.mode,
-                        "PIV-LiteFlowNet-en",
-                        f"*.paramOnly",
+                        'PIV-LiteFlowNet-en',
+                        f'*.paramOnly',
                     )
                 )[0]
                 # Horn-Schunck does not need model path
-                self.model_2_name = "Horn-Schunck"
+                self.model_2_name = 'Horn-Schunck'
                 self.model_2_cache_name = self.model_2_name
                 self.model_2_path = None
                 # preload model
@@ -413,28 +413,28 @@ class UI_MainWindow(QWidget):
 
                 self.piv_nero_layout_names = [
                     [
-                        "Time-reversed Rot90 (ccw)",
-                        "Rot90 (ccw)",
-                        "Diagonal (/) flip",
-                        "Time-reversed diagonal flip",
+                        'Time-reversed Rot90 (ccw)',
+                        'Rot90 (ccw)',
+                        'Diagonal (/) flip',
+                        'Time-reversed diagonal flip',
                     ],
                     [
-                        "Time-reversed horizontal flip",
-                        "Horizontal flip",
-                        "Original",
-                        "Time-reversed original",
+                        'Time-reversed horizontal flip',
+                        'Horizontal flip',
+                        'Original',
+                        'Time-reversed original',
                     ],
                     [
-                        "Time-reversed Rot180 (ccw)",
-                        "Rot180 (ccw)",
-                        "Vertical flip",
-                        "Time-reversed vertical flip",
+                        'Time-reversed Rot180 (ccw)',
+                        'Rot180 (ccw)',
+                        'Vertical flip',
+                        'Time-reversed vertical flip',
                     ],
                     [
-                        "Time-reversed anti-diagonal (\) flip",
-                        "Anti-diagonal (\) flip",
-                        "Rot270 (ccw)",
-                        "Time-reversed Rot270 (ccw)",
+                        'Time-reversed anti-diagonal (\) flip',
+                        'Anti-diagonal (\) flip',
+                        'Rot270 (ccw)',
+                        'Time-reversed Rot270 (ccw)',
                     ],
                 ]
 
@@ -463,8 +463,8 @@ class UI_MainWindow(QWidget):
             mode_pixmap.fill(QtCore.Qt.white)
             # draw text
             painter = QtGui.QPainter(mode_pixmap)
-            painter.setFont(QFont("Helvetica", 18))
-            painter.drawText(0, 0, 150, 30, QtGui.Qt.AlignLeft, "Model type: ")
+            painter.setFont(QFont('Helvetica', 18))
+            painter.drawText(0, 0, 150, 30, QtGui.Qt.AlignLeft, 'Model type: ')
             painter.end()
 
             # create label to contain the texts
@@ -479,26 +479,26 @@ class UI_MainWindow(QWidget):
             self.mode_control_layout.addWidget(self.mode_label, 0, 0)
 
             # radio_buttons_layout = QtWidgets.QGridLayout(self)
-            self.radio_button_1 = QRadioButton("Digit recognition")
+            self.radio_button_1 = QRadioButton('Digit recognition')
             self.radio_button_1.setFixedSize(QtCore.QSize(400, 50))
             self.radio_button_1.setStyleSheet(
-                "QRadioButton{font: 18pt Helvetica;} QRadioButton::indicator { width: 18px; height: 18px;};"
+                'QRadioButton{font: 18pt Helvetica;} QRadioButton::indicator { width: 18px; height: 18px;};'
             )
             self.radio_button_1.pressed.connect(digit_recognition_button_clicked)
             self.mode_control_layout.addWidget(self.radio_button_1, 0, 1)
 
-            self.radio_button_2 = QRadioButton("Object detection")
+            self.radio_button_2 = QRadioButton('Object detection')
             self.radio_button_2.setFixedSize(QtCore.QSize(400, 50))
             self.radio_button_2.setStyleSheet(
-                "QRadioButton{font: 18pt Helvetica;} QRadioButton::indicator { width: 18px; height: 18px;};"
+                'QRadioButton{font: 18pt Helvetica;} QRadioButton::indicator { width: 18px; height: 18px;};'
             )
             self.radio_button_2.pressed.connect(object_detection_button_clicked)
             self.mode_control_layout.addWidget(self.radio_button_2, 1, 1)
 
-            self.radio_button_3 = QRadioButton("Particle Image Velocimetry (PIV)")
+            self.radio_button_3 = QRadioButton('Particle Image Velocimetry (PIV)')
             self.radio_button_3.setFixedSize(QtCore.QSize(400, 50))
             self.radio_button_3.setStyleSheet(
-                "QRadioButton{font: 18pt Helvetica;} QRadioButton::indicator { width: 18px; height: 18px;};"
+                'QRadioButton{font: 18pt Helvetica;} QRadioButton::indicator { width: 18px; height: 18px;};'
             )
             self.radio_button_3.pressed.connect(piv_button_clicked)
             self.mode_control_layout.addWidget(self.radio_button_3, 2, 1)
@@ -507,31 +507,31 @@ class UI_MainWindow(QWidget):
 
         else:
             # used for default state, if applicable
-            if self.mode == "digit_recognition":
+            if self.mode == 'digit_recognition':
                 digit_recognition_button_clicked()
-            elif self.mode == "object_detection":
+            elif self.mode == 'object_detection':
                 object_detection_button_clicked()
-            elif self.mode == "piv":
+            elif self.mode == 'piv':
                 piv_button_clicked()
 
     # load single mnist image from self.image_path
     def load_single_image(self):
 
-        if self.mode == "digit_recognition":
-            self.loaded_image_label = int(self.image_path.split("/")[-1].split("_")[1])
+        if self.mode == 'digit_recognition':
+            self.loaded_image_label = int(self.image_path.split('/')[-1].split('_')[1])
             # load the image
             self.loaded_image_pt = torch.from_numpy(np.asarray(Image.open(self.image_path)))[
                 :, :, None
             ]
-            self.loaded_image_name = self.image_path.split("/")[-1]
+            self.loaded_image_name = self.image_path.split('/')[-1]
             # keep a copy to represent the current (rotated) version of the original images
             self.cur_image_pt = self.loaded_image_pt.clone()
 
-        elif self.mode == "object_detection":
+        elif self.mode == 'object_detection':
             self.label_path = (
-                self.image_path.replace("images", "labels")
-                .replace("jpg", "npy")
-                .replace("jpg", "npy")
+                self.image_path.replace('images', 'labels')
+                .replace('jpg', 'npy')
+                .replace('jpg', 'npy')
             )
             self.loaded_image_label = np.load(self.label_path)
             # loaded image label is in original coco classes defined by original_coco_names
@@ -552,9 +552,9 @@ class UI_MainWindow(QWidget):
 
             # load the image
             self.loaded_image_pt = torch.from_numpy(
-                np.asarray(Image.open(self.image_path).convert("RGB"), dtype=np.uint8)
+                np.asarray(Image.open(self.image_path).convert('RGB'), dtype=np.uint8)
             )
-            self.loaded_image_name = self.image_path.split("/")[-1]
+            self.loaded_image_name = self.image_path.split('/')[-1]
 
             # take the cropped part of the entire input image to put in display image
             self.cur_image_pt = self.loaded_image_pt[
@@ -563,22 +563,22 @@ class UI_MainWindow(QWidget):
                 :,
             ]
 
-        elif self.mode == "piv":
+        elif self.mode == 'piv':
             # keep the PIL image version of the loaded images in this mode because they are saved as gif using PIL
             # pre-trained PIV-LiteFlowNet-en takes 3 channel images
-            self.loaded_image_1_pil = Image.open(self.image_1_path).convert("RGB")
-            self.loaded_image_2_pil = Image.open(self.image_2_path).convert("RGB")
+            self.loaded_image_1_pil = Image.open(self.image_1_path).convert('RGB')
+            self.loaded_image_2_pil = Image.open(self.image_2_path).convert('RGB')
 
             # create a blank PIL image for gif purpose
             self.blank_image_pil = Image.fromarray(
-                np.zeros((self.image_size, self.image_size, 3)), "RGB"
+                np.zeros((self.image_size, self.image_size, 3)), 'RGB'
             )
 
             # convert to torch tensor
             self.loaded_image_1_pt = torch.from_numpy(np.asarray(self.loaded_image_1_pil))
             self.loaded_image_2_pt = torch.from_numpy(np.asarray(self.loaded_image_2_pil))
-            self.loaded_image_1_name = self.image_1_path.split("/")[-1]
-            self.loaded_image_2_name = self.image_2_path.split("/")[-1]
+            self.loaded_image_1_name = self.image_1_path.split('/')[-1]
+            self.loaded_image_2_name = self.image_2_path.split('/')[-1]
             # a separate copy to represent the transformed version of the original images
             self.cur_image_1_pt = self.loaded_image_1_pt.clone()
             self.cur_image_2_pt = self.loaded_image_2_pt.clone()
@@ -592,11 +592,11 @@ class UI_MainWindow(QWidget):
                 self.blank_image_pil,
             ]
             self.gif_path = os.path.join(
-                self.cache_dir, self.loaded_image_1_name.split(".")[0] + ".gif"
+                self.cache_dir, self.loaded_image_1_name.split('.')[0] + '.gif'
             )
             self.loaded_image_1_pil.save(
                 fp=self.gif_path,
-                format="GIF",
+                format='GIF',
                 append_images=other_images_pil,
                 save_all=True,
                 duration=300,
@@ -604,7 +604,7 @@ class UI_MainWindow(QWidget):
             )
 
             # load the ground truth flow field
-            self.label_path = self.image_1_path.replace("img1", "flow").replace("tif", "flo")
+            self.label_path = self.image_1_path.replace('img1', 'flow').replace('tif', 'flo')
             self.loaded_image_label_pt = torch.from_numpy(fz.read_flow(self.label_path))
 
     def init_load_layout(self):
@@ -613,7 +613,7 @@ class UI_MainWindow(QWidget):
         @QtCore.Slot()
         def aggregate_dataset_selection_changed(text):
             # filter out 0 selection signal
-            if text == "Input dataset":
+            if text == 'Input dataset':
                 return
 
             # flag on if control has been set up
@@ -630,7 +630,7 @@ class UI_MainWindow(QWidget):
                     self.aggregate_result_existed = False
                     self.data_existed = False
                     self.run_button_existed = False
-                    print("Previous aggregate result layout deleted")
+                    print('Previous aggregate result layout deleted')
 
                 # since single case starts with image loading
                 if self.image_existed:
@@ -642,23 +642,23 @@ class UI_MainWindow(QWidget):
                     self.single_result_existed = False
                     self.image_existed = False
                     self.run_button_existed = False
-                    print("Previous single result layout deleted")
+                    print('Previous single result layout deleted')
 
                 # initialize layout
                 self.init_aggregate_result_layout()
 
             self.dataset_name = text
-            print("Loaded dataset:", self.dataset_name)
-            self.data_mode = "aggregate"
+            print('Loaded dataset:', self.dataset_name)
+            self.data_mode = 'aggregate'
             # index 0 is the prompt
             self.dataset_index = self.aggregate_image_menu.currentIndex() - 1
             self.dataset_dir = self.aggregate_data_dirs[self.dataset_index]
-            print(f"Loaded data from {self.dataset_dir}")
+            print(f'Loaded data from {self.dataset_dir}')
             # in digit recognition, all the images are loaded
-            if self.mode == "digit_recognition":
+            if self.mode == 'digit_recognition':
                 # load the image and scale the size
                 # get all the image paths from the directory
-                self.all_images_paths = glob.glob(os.path.join(self.dataset_dir, "*.png"))
+                self.all_images_paths = glob.glob(os.path.join(self.dataset_dir, '*.png'))
                 self.loaded_images_pt = torch.zeros(
                     len(
                         self.all_images_paths,
@@ -676,42 +676,42 @@ class UI_MainWindow(QWidget):
                     self.loaded_images_pt[i] = torch.from_numpy(
                         np.asarray(Image.open(cur_image_path))
                     )[:, :, None]
-                    self.loaded_images_names.append(cur_image_path.split("/")[-1])
-                    self.loaded_images_labels[i] = int(cur_image_path.split("/")[-1].split("_")[1])
+                    self.loaded_images_names.append(cur_image_path.split('/')[-1])
+                    self.loaded_images_labels[i] = int(cur_image_path.split('/')[-1].split('_')[1])
 
             # in object detection, only all the image paths are loaded
-            elif self.mode == "object_detection":
+            elif self.mode == 'object_detection':
                 # all the images and labels paths
                 self.all_images_paths = glob.glob(
-                    os.path.join(self.dataset_dir, "images", "*.jpg")
+                    os.path.join(self.dataset_dir, 'images', '*.jpg')
                 )
                 self.all_labels_paths = []
                 for cur_image_path in self.all_images_paths:
-                    cur_label_path = cur_image_path.replace("images", "labels").replace(
-                        "jpg", "npy"
+                    cur_label_path = cur_image_path.replace('images', 'labels').replace(
+                        'jpg', 'npy'
                     )
                     self.all_labels_paths.append(cur_label_path)
 
                 # name of the classes of each label
                 self.loaded_images_labels = []
                 for i, cur_label_path in enumerate(self.all_labels_paths):
-                    cur_label = cur_label_path.split("/")[-1].split("_")[0]
+                    cur_label = cur_label_path.split('/')[-1].split('_')[0]
                     self.loaded_images_labels.append(cur_label)
 
             # in piv, only the paths are loaded
-            elif self.mode == "piv":
+            elif self.mode == 'piv':
                 # all the image pairs and labels paths
-                self.all_images_1_paths = glob.glob(os.path.join(self.dataset_dir, "*img1.tif"))
+                self.all_images_1_paths = glob.glob(os.path.join(self.dataset_dir, '*img1.tif'))
                 self.all_images_2_paths = [
-                    cur_path.replace("img1", "img2") for cur_path in self.all_images_1_paths
+                    cur_path.replace('img1', 'img2') for cur_path in self.all_images_1_paths
                 ]
                 self.all_labels_paths = [
-                    cur_path.replace("img1", "flow").replace("tif", "flo")
+                    cur_path.replace('img1', 'flow').replace('tif', 'flo')
                     for cur_path in self.all_images_1_paths
                 ]
                 # flow type of each image pair
                 self.loaded_images_labels = [
-                    cur_path.split("/")[-1].split("_")[0] for cur_path in self.all_images_1_paths
+                    cur_path.split('/')[-1].split('_')[0] for cur_path in self.all_images_1_paths
                 ]
 
             # check the data to be ready
@@ -727,15 +727,15 @@ class UI_MainWindow(QWidget):
                     # no displayed test image as in the single case so layout row number-1
                     self.layout.addLayout(self.run_button_layout, 2, 0, 1, 2)
 
-                self.run_button = QtWidgets.QPushButton("Analyze model")
-                self.run_button.setStyleSheet("font-size: 18px")
+                self.run_button = QtWidgets.QPushButton('Analyze model')
+                self.run_button.setStyleSheet('font-size: 18px')
                 self.run_button.setFixedSize(QtCore.QSize(250, 50))
                 self.run_button_layout.addWidget(self.run_button)
                 self.run_button.clicked.connect(self.run_button_clicked)
 
                 # instead of running, we can also load results from cache
-                self.use_cache_checkbox = QtWidgets.QCheckBox("Use previously computed result")
-                self.use_cache_checkbox.setStyleSheet("font-size: 18px")
+                self.use_cache_checkbox = QtWidgets.QCheckBox('Use previously computed result')
+                self.use_cache_checkbox.setStyleSheet('font-size: 18px')
                 self.use_cache_checkbox.setFixedSize(QtCore.QSize(300, 50))
                 self.use_cache_checkbox.stateChanged.connect(run_cache_checkbox_clicked)
                 self.run_button_layout.addWidget(self.use_cache_checkbox)
@@ -743,7 +743,7 @@ class UI_MainWindow(QWidget):
                 self.run_button_existed = True
 
             elif not self.demo and self.run_button_existed:
-                self.run_button.setText("Analyze model")
+                self.run_button.setText('Analyze model')
 
             elif self.demo:
                 # the models have default, just run
@@ -753,7 +753,7 @@ class UI_MainWindow(QWidget):
         @QtCore.Slot()
         def single_image_selection_changed(text):
             # filter out 0 selection signal
-            if text == "Input image":
+            if text == 'Input image':
                 return
 
             # clear the aggregate dataset selection
@@ -782,14 +782,14 @@ class UI_MainWindow(QWidget):
                 self.single_result_existed = False
                 self.image_existed = False
 
-            self.data_mode = "single"
+            self.data_mode = 'single'
 
             self.init_single_result_layout()
 
-            print("Loaded image:", text)
-            if self.mode == "digit_recognition":
+            print('Loaded image:', text)
+            if self.mode == 'digit_recognition':
                 # prepare image path
-                self.image_index = int(text.split(" ")[-1])
+                self.image_index = int(text.split(' ')[-1])
                 self.image_path = self.single_images_paths[self.image_index]
                 self.load_single_image()
 
@@ -800,9 +800,9 @@ class UI_MainWindow(QWidget):
                 # additional preparation required for MNIST
                 self.cur_image_pt = nero_transform.prepare_mnist_image(self.cur_image_pt)
 
-            elif self.mode == "object_detection":
+            elif self.mode == 'object_detection':
                 # prepare image path
-                self.image_index = self.coco_classes.index(text.split(" ")[0])
+                self.image_index = self.coco_classes.index(text.split(' ')[0])
                 self.image_path = self.single_images_paths[self.image_index]
                 self.load_single_image()
 
@@ -811,9 +811,9 @@ class UI_MainWindow(QWidget):
                     self.cur_image_pt, self.display_image_size
                 )
 
-            elif self.mode == "piv":
+            elif self.mode == 'piv':
                 # prepare image paths
-                self.image_index = int(text.split(" ")[2])
+                self.image_index = int(text.split(' ')[2])
                 self.image_1_path = self.single_images_1_paths[self.image_index]
                 self.image_2_path = self.single_images_2_paths[self.image_index]
                 self.label_path = self.single_labels_paths[self.image_index]
@@ -830,16 +830,16 @@ class UI_MainWindow(QWidget):
                 self.run_button_layout = QtWidgets.QVBoxLayout()
                 self.layout.addLayout(self.run_button_layout, 3, 0, 1, 2)
 
-                self.run_button_text = "Analyze model"
+                self.run_button_text = 'Analyze model'
                 self.run_button = QtWidgets.QPushButton(self.run_button_text)
-                self.run_button.setStyleSheet("font-size: 18px")
+                self.run_button.setStyleSheet('font-size: 18px')
                 self.run_button.setFixedSize(QtCore.QSize(250, 50))
                 self.run_button.clicked.connect(self.run_button_clicked)
                 self.run_button_layout.addWidget(self.run_button)
 
                 # instead of running, we can also load results from cache
-                self.use_cache_checkbox = QtWidgets.QCheckBox("Use previously computed result")
-                self.use_cache_checkbox.setStyleSheet("font-size: 18px")
+                self.use_cache_checkbox = QtWidgets.QCheckBox('Use previously computed result')
+                self.use_cache_checkbox.setStyleSheet('font-size: 18px')
                 self.use_cache_checkbox.setFixedSize(QtCore.QSize(300, 50))
                 self.use_cache_checkbox.stateChanged.connect(run_cache_checkbox_clicked)
                 self.run_button_layout.addWidget(self.use_cache_checkbox)
@@ -858,169 +858,169 @@ class UI_MainWindow(QWidget):
         # two drop down menus that let user choose models
         @QtCore.Slot()
         def model_1_selection_changed(text):
-            print("Model 1:", text)
+            print('Model 1:', text)
             self.model_1_name = text
-            if self.mode == "digit_recognition":
+            if self.mode == 'digit_recognition':
                 # Original, E2CNN or DA
-                self.model_1_cache_name = self.model_1_name.split(" ")[0]
+                self.model_1_cache_name = self.model_1_name.split(' ')[0]
                 # load the mode
-                if text == "Original model":
+                if text == 'Original model':
                     self.model_1_path = glob.glob(
-                        os.path.join(os.getcwd(), "example_models", self.mode, "non_eqv", "*.pt")
+                        os.path.join(os.getcwd(), 'example_models', self.mode, 'non_eqv', '*.pt')
                     )[0]
                     # reload model
                     self.model_1 = nero_run_model.load_model(
-                        self.mode, "non-eqv", self.model_1_path
+                        self.mode, 'non-eqv', self.model_1_path
                     )
-                elif text == "E2CNN model":
+                elif text == 'E2CNN model':
                     self.model_1_path = glob.glob(
-                        os.path.join(os.getcwd(), "example_models", self.mode, "rot_eqv", "*.pt")
+                        os.path.join(os.getcwd(), 'example_models', self.mode, 'rot_eqv', '*.pt')
                     )[0]
                     # reload model
                     self.model_1 = nero_run_model.load_model(
-                        self.mode, "rot-eqv", self.model_1_path
+                        self.mode, 'rot-eqv', self.model_1_path
                     )
-                elif text == "DA model":
+                elif text == 'DA model':
                     self.model_1_path = glob.glob(
                         os.path.join(
-                            os.getcwd(), "example_models", self.mode, "aug_rot_eqv", "*.pt"
+                            os.getcwd(), 'example_models', self.mode, 'aug_rot_eqv', '*.pt'
                         )
                     )[0]
                     # reload model
                     self.model_1 = nero_run_model.load_model(
-                        self.mode, "aug-eqv", self.model_1_path
+                        self.mode, 'aug-eqv', self.model_1_path
                     )
 
-                print("Model 1 path:", self.model_1_path)
+                print('Model 1 path:', self.model_1_path)
 
-            elif self.mode == "object_detection":
+            elif self.mode == 'object_detection':
                 self.model_1_cache_name = (
-                    self.model_1_name.split("(")[1].split(")")[0].split(" ")[0]
+                    self.model_1_name.split('(')[1].split(')')[0].split(' ')[0]
                 )
-                if text == "FasterRCNN (0% jittering)":
+                if text == 'FasterRCNN (0% jittering)':
                     self.model_1_path = glob.glob(
                         os.path.join(
                             os.getcwd(),
-                            "example_models",
+                            'example_models',
                             self.mode,
-                            "custom_trained",
-                            f"object_0-jittered",
-                            "*.pth",
+                            'custom_trained',
+                            f'object_0-jittered',
+                            '*.pth',
                         )
                     )[0]
                     # reload model
                     self.model_1 = nero_run_model.load_model(
-                        self.mode, "custom_trained", self.model_1_path
+                        self.mode, 'custom_trained', self.model_1_path
                     )
-                    print("Model 1 path:", self.model_1_path)
-                elif text == "FasterRCNN (20% jittering)":
+                    print('Model 1 path:', self.model_1_path)
+                elif text == 'FasterRCNN (20% jittering)':
                     self.model_1_path = glob.glob(
                         os.path.join(
                             os.getcwd(),
-                            "example_models",
+                            'example_models',
                             self.mode,
-                            "custom_trained",
-                            f"object_20-jittered",
-                            "*.pth",
+                            'custom_trained',
+                            f'object_20-jittered',
+                            '*.pth',
                         )
                     )[0]
                     # reload model
                     self.model_1 = nero_run_model.load_model(
-                        self.mode, "custom_trained", self.model_1_path
+                        self.mode, 'custom_trained', self.model_1_path
                     )
-                    print("Model 1 path:", self.model_1_path)
-                elif text == "FasterRCNN (40% jittering)":
+                    print('Model 1 path:', self.model_1_path)
+                elif text == 'FasterRCNN (40% jittering)':
                     self.model_1_path = glob.glob(
                         os.path.join(
                             os.getcwd(),
-                            "example_models",
+                            'example_models',
                             self.mode,
-                            "custom_trained",
-                            f"object_40-jittered",
-                            "*.pth",
+                            'custom_trained',
+                            f'object_40-jittered',
+                            '*.pth',
                         )
                     )[0]
                     # reload model
                     self.model_1 = nero_run_model.load_model(
-                        self.mode, "custom_trained", self.model_1_path
+                        self.mode, 'custom_trained', self.model_1_path
                     )
-                    print("Model 1 path:", self.model_1_path)
-                elif text == "FasterRCNN (60% jittering)":
+                    print('Model 1 path:', self.model_1_path)
+                elif text == 'FasterRCNN (60% jittering)':
                     self.model_1_path = glob.glob(
                         os.path.join(
                             os.getcwd(),
-                            "example_models",
+                            'example_models',
                             self.mode,
-                            "custom_trained",
-                            f"object_60-jittered",
-                            "*.pth",
+                            'custom_trained',
+                            f'object_60-jittered',
+                            '*.pth',
                         )
                     )[0]
                     # reload model
                     self.model_1 = nero_run_model.load_model(
-                        self.mode, "custom_trained", self.model_1_path
+                        self.mode, 'custom_trained', self.model_1_path
                     )
-                    print("Model 1 path:", self.model_1_path)
-                elif text == "FasterRCNN (80% jittering)":
+                    print('Model 1 path:', self.model_1_path)
+                elif text == 'FasterRCNN (80% jittering)':
                     self.model_1_path = glob.glob(
                         os.path.join(
                             os.getcwd(),
-                            "example_models",
+                            'example_models',
                             self.mode,
-                            "custom_trained",
-                            f"object_80-jittered",
-                            "*.pth",
+                            'custom_trained',
+                            f'object_80-jittered',
+                            '*.pth',
                         )
                     )[0]
                     # reload model
                     self.model_1 = nero_run_model.load_model(
-                        self.mode, "custom_trained", self.model_1_path
+                        self.mode, 'custom_trained', self.model_1_path
                     )
-                    print("Model 1 path:", self.model_1_path)
-                elif text == "FasterRCNN (100% jittering)":
+                    print('Model 1 path:', self.model_1_path)
+                elif text == 'FasterRCNN (100% jittering)':
                     self.model_1_path = glob.glob(
                         os.path.join(
                             os.getcwd(),
-                            "example_models",
+                            'example_models',
                             self.mode,
-                            "custom_trained",
-                            f"object_100-jittered",
-                            "*.pth",
+                            'custom_trained',
+                            f'object_100-jittered',
+                            '*.pth',
                         )
                     )[0]
                     # reload model
                     self.model_1 = nero_run_model.load_model(
-                        self.mode, "custom_trained", self.model_1_path
+                        self.mode, 'custom_trained', self.model_1_path
                     )
-                    print("Model 1 path:", self.model_1_path)
-                elif text == "FasterRCNN (Pre-trained)":
+                    print('Model 1 path:', self.model_1_path)
+                elif text == 'FasterRCNN (Pre-trained)':
                     self.model_1_path = None
                     self.model_1 = nero_run_model.load_model(
-                        self.mode, "pre_trained", self.model_1_path
+                        self.mode, 'pre_trained', self.model_1_path
                     )
-                    print("Model 1 path: Downloaded from PyTorch")
+                    print('Model 1 path: Downloaded from PyTorch')
 
-            elif self.mode == "piv":
-                self.model_1_cache_name = self.model_1_name.split("-")[1]
-                if text == "PIV-LiteFlowNet-en":
+            elif self.mode == 'piv':
+                self.model_1_cache_name = self.model_1_name.split('-')[1]
+                if text == 'PIV-LiteFlowNet-en':
                     self.model_1_path = glob.glob(
                         os.path.join(
-                            os.getcwd(), "example_models", self.mode, "PIV-LiteFlowNet-en", f"*.pt"
+                            os.getcwd(), 'example_models', self.mode, 'PIV-LiteFlowNet-en', f'*.pt'
                         )
                     )[0]
                     self.model_1 = nero_run_model.load_model(
                         self.mode, self.model_1_name, self.model_1_path
                     )
-                    print("Model 1 path:", self.model_1_path)
+                    print('Model 1 path:', self.model_1_path)
 
-                elif text == "Horn-Schunck":
+                elif text == 'Horn-Schunck':
                     # Horn-Schunck does not need model path
                     self.model_2_path = None
                     self.model_2 = None
 
             # when loaded data is available, just show the result without clicking the button
             if self.use_cache:
-                if self.data_mode == "aggregate":
+                if self.data_mode == 'aggregate':
                     self.run_model_aggregated()
                     self.aggregate_result_existed = True
 
@@ -1028,169 +1028,169 @@ class UI_MainWindow(QWidget):
                     if self.dr_result_existed:
                         self.run_dimension_reduction()
 
-                elif self.data_mode == "single":
+                elif self.data_mode == 'single':
                     self.run_model_single()
                     self.single_result_existed = True
 
         @QtCore.Slot()
         def model_2_selection_changed(text):
-            print("Model 2:", text)
+            print('Model 2:', text)
             self.model_2_name = text
-            if self.mode == "digit_recognition":
+            if self.mode == 'digit_recognition':
                 # Original, E2CNN or DA
-                self.model_2_cache_name = self.model_1_name.split(" ")[0]
+                self.model_2_cache_name = self.model_1_name.split(' ')[0]
                 # load the mode
-                if text == "Original model":
+                if text == 'Original model':
                     self.model_2_path = glob.glob(
-                        os.path.join(os.getcwd(), "example_models", self.mode, "non_eqv", "*.pt")
+                        os.path.join(os.getcwd(), 'example_models', self.mode, 'non_eqv', '*.pt')
                     )[0]
                     # reload model
-                    self.model_2 = nero_run_model.load_model("non_eqv", self.model_2_path)
-                elif text == "E2CNN model":
+                    self.model_2 = nero_run_model.load_model('non_eqv', self.model_2_path)
+                elif text == 'E2CNN model':
                     self.model_2_path = glob.glob(
-                        os.path.join(os.getcwd(), "example_models", self.mode, "rot_eqv", "*.pt")
+                        os.path.join(os.getcwd(), 'example_models', self.mode, 'rot_eqv', '*.pt')
                     )[0]
                     # reload model
-                    self.model_2 = nero_run_model.load_model("rot_eqv", self.model_2_path)
-                elif text == "DA model":
+                    self.model_2 = nero_run_model.load_model('rot_eqv', self.model_2_path)
+                elif text == 'DA model':
                     self.model_2_path = glob.glob(
                         os.path.join(
-                            os.getcwd(), "example_models", self.mode, "aug_rot_eqv", "*.pt"
+                            os.getcwd(), 'example_models', self.mode, 'aug_rot_eqv', '*.pt'
                         )
                     )[0]
                     # reload model
-                    self.model_2 = nero_run_model.load_model("aug_eqv", self.model_2_path)
+                    self.model_2 = nero_run_model.load_model('aug_eqv', self.model_2_path)
 
-                print("Model 2 path:", self.model_2_path)
+                print('Model 2 path:', self.model_2_path)
 
-            elif self.mode == "object_detection":
+            elif self.mode == 'object_detection':
                 self.model_2_cache_name = (
-                    self.model_2_name.split("(")[1].split(")")[0].split(" ")[0]
+                    self.model_2_name.split('(')[1].split(')')[0].split(' ')[0]
                 )
-                if text == "FasterRCNN (0% jittering)":
+                if text == 'FasterRCNN (0% jittering)':
                     self.model_2_path = glob.glob(
                         os.path.join(
                             os.getcwd(),
-                            "example_models",
+                            'example_models',
                             self.mode,
-                            "custom_trained",
-                            f"object_0-jittered",
-                            "*.pth",
+                            'custom_trained',
+                            f'object_0-jittered',
+                            '*.pth',
                         )
                     )[0]
                     # reload model
                     self.model_2 = nero_run_model.load_model(
-                        self.mode, "custom_trained", self.model_2_path
+                        self.mode, 'custom_trained', self.model_2_path
                     )
-                    print("Model 2 path:", self.model_2_path)
-                elif text == "FasterRCNN (20% jittering)":
+                    print('Model 2 path:', self.model_2_path)
+                elif text == 'FasterRCNN (20% jittering)':
                     self.model_2_path = glob.glob(
                         os.path.join(
                             os.getcwd(),
-                            "example_models",
+                            'example_models',
                             self.mode,
-                            "custom_trained",
-                            f"object_20-jittered",
-                            "*.pth",
+                            'custom_trained',
+                            f'object_20-jittered',
+                            '*.pth',
                         )
                     )[0]
                     # reload model
                     self.model_2 = nero_run_model.load_model(
-                        self.mode, "custom_trained", self.model_2_path
+                        self.mode, 'custom_trained', self.model_2_path
                     )
-                    print("Model 2 path:", self.model_2_path)
-                elif text == "FasterRCNN (40% jittering)":
+                    print('Model 2 path:', self.model_2_path)
+                elif text == 'FasterRCNN (40% jittering)':
                     self.model_2_path = glob.glob(
                         os.path.join(
                             os.getcwd(),
-                            "example_models",
+                            'example_models',
                             self.mode,
-                            "custom_trained",
-                            f"object_40-jittered",
-                            "*.pth",
+                            'custom_trained',
+                            f'object_40-jittered',
+                            '*.pth',
                         )
                     )[0]
                     # reload model
                     self.model_2 = nero_run_model.load_model(
-                        self.mode, "custom_trained", self.model_2_path
+                        self.mode, 'custom_trained', self.model_2_path
                     )
-                    print("Model 2 path:", self.model_2_path)
-                elif text == "FasterRCNN (60% jittering)":
+                    print('Model 2 path:', self.model_2_path)
+                elif text == 'FasterRCNN (60% jittering)':
                     self.model_2_path = glob.glob(
                         os.path.join(
                             os.getcwd(),
-                            "example_models",
+                            'example_models',
                             self.mode,
-                            "custom_trained",
-                            f"object_60-jittered",
-                            "*.pth",
+                            'custom_trained',
+                            f'object_60-jittered',
+                            '*.pth',
                         )
                     )[0]
                     # reload model
                     self.model_2 = nero_run_model.load_model(
-                        self.mode, "custom_trained", self.model_2_path
+                        self.mode, 'custom_trained', self.model_2_path
                     )
-                    print("Model 2 path:", self.model_2_path)
-                elif text == "FasterRCNN (80% jittering)":
+                    print('Model 2 path:', self.model_2_path)
+                elif text == 'FasterRCNN (80% jittering)':
                     self.model_2_path = glob.glob(
                         os.path.join(
                             os.getcwd(),
-                            "example_models",
+                            'example_models',
                             self.mode,
-                            "custom_trained",
-                            f"object_80-jittered",
-                            "*.pth",
+                            'custom_trained',
+                            f'object_80-jittered',
+                            '*.pth',
                         )
                     )[0]
                     # reload model
                     self.model_2 = nero_run_model.load_model(
-                        self.mode, "custom_trained", self.model_2_path
+                        self.mode, 'custom_trained', self.model_2_path
                     )
-                    print("Model 2 path:", self.model_2_path)
-                elif text == "FasterRCNN (100% jittering)":
+                    print('Model 2 path:', self.model_2_path)
+                elif text == 'FasterRCNN (100% jittering)':
                     self.model_2_path = glob.glob(
                         os.path.join(
                             os.getcwd(),
-                            "example_models",
+                            'example_models',
                             self.mode,
-                            "custom_trained",
-                            f"object_100-jittered",
-                            "*.pth",
+                            'custom_trained',
+                            f'object_100-jittered',
+                            '*.pth',
                         )
                     )[0]
                     # reload model
                     self.model_2 = nero_run_model.load_model(
-                        self.mode, "custom_trained", self.model_2_path
+                        self.mode, 'custom_trained', self.model_2_path
                     )
-                    print("Model 2 path:", self.model_2_path)
-                elif text == "FasterRCNN (Pre-trained)":
+                    print('Model 2 path:', self.model_2_path)
+                elif text == 'FasterRCNN (Pre-trained)':
                     self.model_2_path = None
                     self.model_2 = nero_run_model.load_model(
-                        self.mode, "pre_trained", self.model_2_path
+                        self.mode, 'pre_trained', self.model_2_path
                     )
-                    print("Model 2 path: Downloaded from PyTorch")
+                    print('Model 2 path: Downloaded from PyTorch')
 
-            elif self.mode == "piv":
-                self.model_1_cache_name = self.model_1_name.split("-")[1]
-                if text == "PIV-LiteFlowNet-en":
+            elif self.mode == 'piv':
+                self.model_1_cache_name = self.model_1_name.split('-')[1]
+                if text == 'PIV-LiteFlowNet-en':
                     self.model_1_path = glob.glob(
                         os.path.join(
-                            os.getcwd(), "example_models", self.mode, "PIV-LiteFlowNet-en", f"*.pt"
+                            os.getcwd(), 'example_models', self.mode, 'PIV-LiteFlowNet-en', f'*.pt'
                         )
                     )[0]
                     self.model_1 = nero_run_model.load_model(
                         self.mode, self.model_1_name, self.model_1_path
                     )
-                    print("Model 1 path:", self.model_1_path)
+                    print('Model 1 path:', self.model_1_path)
 
-                elif text == "Horn-Schunck":
+                elif text == 'Horn-Schunck':
                     # Horn-Schunck does not need model path
                     self.model_2_path = None
                     self.model_2 = None
 
             # when loaded data is available, just show the result without clicking the button
             if self.use_cache:
-                if self.data_mode == "aggregate":
+                if self.data_mode == 'aggregate':
                     self.run_model_aggregated()
                     self.aggregate_result_existed = True
 
@@ -1198,7 +1198,7 @@ class UI_MainWindow(QWidget):
                     if self.dr_result_existed:
                         self.run_dimension_reduction()
 
-                elif self.data_mode == "single":
+                elif self.data_mode == 'single':
                     self.run_model_single()
                     self.single_result_existed = True
 
@@ -1225,8 +1225,8 @@ class UI_MainWindow(QWidget):
         model_pixmap = QPixmap(350, 50)
         model_pixmap.fill(QtCore.Qt.white)
         painter = QtGui.QPainter(model_pixmap)
-        painter.setFont(QFont("Helvetica", 24))
-        painter.drawText(0, 0, 350, 50, QtGui.Qt.AlignLeft, "Input Data Set: ")
+        painter.setFont(QFont('Helvetica', 24))
+        painter.drawText(0, 0, 350, 50, QtGui.Qt.AlignLeft, 'Input Data Set: ')
         painter.end()
 
         # create label to contain the texts
@@ -1243,29 +1243,29 @@ class UI_MainWindow(QWidget):
         self.aggregate_image_menu = QtWidgets.QComboBox()
         self.aggregate_image_menu.setFixedSize(QtCore.QSize(200, 50))
         self.aggregate_image_menu.setStyleSheet(
-            "color: black; font-size: 24px; font-family: Helvetica; font-style: normal;"
+            'color: black; font-size: 24px; font-family: Helvetica; font-style: normal;'
         )
-        self.aggregate_image_menu.addItem("Input dataset")
+        self.aggregate_image_menu.addItem('Input dataset')
 
         # data dir (sorted in a way that bigger dataset first)
-        if self.mode == "digit_recognition":
+        if self.mode == 'digit_recognition':
             self.aggregate_data_dirs = sorted(
-                glob.glob(os.path.join(os.getcwd(), "example_data", self.mode, f"MNIST*")),
+                glob.glob(os.path.join(os.getcwd(), 'example_data', self.mode, f'MNIST*')),
                 reverse=True,
             )
-        elif self.mode == "object_detection":
+        elif self.mode == 'object_detection':
             self.aggregate_data_dirs = sorted(
-                glob.glob(os.path.join(os.getcwd(), "example_data", self.mode, f"COCO*")),
+                glob.glob(os.path.join(os.getcwd(), 'example_data', self.mode, f'COCO*')),
                 reverse=True,
             )
-        elif self.mode == "piv":
+        elif self.mode == 'piv':
             self.aggregate_data_dirs = sorted(
-                glob.glob(os.path.join(os.getcwd(), "example_data", self.mode, f"COCO*")),
+                glob.glob(os.path.join(os.getcwd(), 'example_data', self.mode, f'COCO*')),
                 reverse=True,
             )
         # load all images in the folder
         for i in range(len(self.aggregate_data_dirs)):
-            self.aggregate_image_menu.addItem(self.aggregate_data_dirs[i].split("/")[-1])
+            self.aggregate_image_menu.addItem(self.aggregate_data_dirs[i].split('/')[-1])
 
         # set default to the first test dataset
         if self.demo:
@@ -1291,48 +1291,48 @@ class UI_MainWindow(QWidget):
         self.image_menu = QtWidgets.QComboBox()
         self.image_menu.setFixedSize(QtCore.QSize(300, 50))
         self.image_menu.setStyleSheet(
-            "color: black; font-size: 24px; font-family: Helvetica; font-style: normal;"
+            'color: black; font-size: 24px; font-family: Helvetica; font-style: normal;'
         )
-        self.image_menu.addItem("Input image")
+        self.image_menu.addItem('Input image')
 
-        if self.mode == "digit_recognition":
+        if self.mode == 'digit_recognition':
             self.single_images_paths = []
             # add a image of each class
             for i in range(10):
                 cur_image_path = glob.glob(
                     os.path.join(
-                        os.getcwd(), "example_data", self.mode, "single", f"label_{i}*.png"
+                        os.getcwd(), 'example_data', self.mode, 'single', f'label_{i}*.png'
                     )
                 )[0]
                 self.single_images_paths.append(cur_image_path)
-                self.image_menu.addItem(QtGui.QIcon(cur_image_path), f"Image {i}")
+                self.image_menu.addItem(QtGui.QIcon(cur_image_path), f'Image {i}')
 
             self.image_menu.setCurrentIndex(0)
 
-        elif self.mode == "object_detection":
+        elif self.mode == 'object_detection':
             self.single_images_paths = []
             self.data_config_paths = []
-            self.coco_classes = ["car", "bottle", "cup", "chair", "book"]
+            self.coco_classes = ['car', 'bottle', 'cup', 'chair', 'book']
             # add a image of each class
             for i, cur_class in enumerate(self.coco_classes):
                 cur_image_path = glob.glob(
                     os.path.join(
                         os.getcwd(),
-                        "example_data",
+                        'example_data',
                         self.mode,
-                        "single",
-                        "images",
-                        f"{cur_class}*.jpg",
+                        'single',
+                        'images',
+                        f'{cur_class}*.jpg',
                     )
                 )[0]
                 self.single_images_paths.append(cur_image_path)
-                self.image_menu.addItem(QtGui.QIcon(cur_image_path), f"{cur_class} image")
+                self.image_menu.addItem(QtGui.QIcon(cur_image_path), f'{cur_class} image')
 
             self.image_menu.setCurrentIndex(0)
 
-        elif self.mode == "piv":
+        elif self.mode == 'piv':
             # different flow types
-            self.flow_types = ["uniform", "backstep", "cylinder", "SQG", "DNS", "JHTDB"]
+            self.flow_types = ['uniform', 'backstep', 'cylinder', 'SQG', 'DNS', 'JHTDB']
             self.single_images_1_paths = []
             self.single_images_2_paths = []
             self.single_labels_paths = []
@@ -1340,17 +1340,17 @@ class UI_MainWindow(QWidget):
             for i, flow_type in enumerate(self.flow_types):
                 cur_image_1_path = glob.glob(
                     os.path.join(
-                        os.getcwd(), "example_data", self.mode, "single", f"{flow_type}*img1.tif"
+                        os.getcwd(), 'example_data', self.mode, 'single', f'{flow_type}*img1.tif'
                     )
                 )[0]
                 self.single_images_1_paths.append(cur_image_1_path)
-                self.single_images_2_paths.append(cur_image_1_path.replace("img1", "img2"))
+                self.single_images_2_paths.append(cur_image_1_path.replace('img1', 'img2'))
                 self.single_labels_paths.append(
-                    cur_image_1_path.replace("img1", "flow").replace("tif", "flo")
+                    cur_image_1_path.replace('img1', 'flow').replace('tif', 'flo')
                 )
 
                 # add flow to the menu
-                self.image_menu.addItem(f"Image pair {i} - {flow_type}")
+                self.image_menu.addItem(f'Image pair {i} - {flow_type}')
 
             self.image_menu.setCurrentIndex(0)
 
@@ -1372,8 +1372,8 @@ class UI_MainWindow(QWidget):
         model_selection_pixmap = QPixmap(450, 50)
         model_selection_pixmap.fill(QtCore.Qt.white)
         painter = QtGui.QPainter(model_selection_pixmap)
-        painter.setFont(QFont("Helvetica", 24))
-        painter.drawText(0, 0, 450, 50, QtGui.Qt.AlignLeft, "Models in Comparisons: ")
+        painter.setFont(QFont('Helvetica', 24))
+        painter.drawText(0, 0, 450, 50, QtGui.Qt.AlignLeft, 'Models in Comparisons: ')
         painter.end()
         # create label to contain the texts
         self.model_selection_label = QLabel(self)
@@ -1393,33 +1393,33 @@ class UI_MainWindow(QWidget):
         model_1_icon.fill(QtCore.Qt.white)
         # draw model representation
         painter = QtGui.QPainter(model_1_icon)
-        draw_circle(painter, 12, 12, 10, "blue")
+        draw_circle(painter, 12, 12, 10, 'blue')
 
         self.model_1_menu = QtWidgets.QComboBox()
         self.model_1_menu.setStyleSheet(
-            "color: black; font-size: 24px; font-family: Helvetica; font-style: normal;"
+            'color: black; font-size: 24px; font-family: Helvetica; font-style: normal;'
         )
-        if self.mode == "digit_recognition":
+        if self.mode == 'digit_recognition':
             self.model_1_menu.setFixedSize(QtCore.QSize(220, 50))
-            self.model_1_menu.addItem(model_1_icon, "Original model")
-            self.model_1_menu.addItem(model_1_icon, "E2CNN model")
-            self.model_1_menu.addItem(model_1_icon, "DA model")
-            self.model_1_menu.setCurrentText("Original model")
-        elif self.mode == "object_detection":
+            self.model_1_menu.addItem(model_1_icon, 'Original model')
+            self.model_1_menu.addItem(model_1_icon, 'E2CNN model')
+            self.model_1_menu.addItem(model_1_icon, 'DA model')
+            self.model_1_menu.setCurrentText('Original model')
+        elif self.mode == 'object_detection':
             self.model_1_menu.setFixedSize(QtCore.QSize(300, 30))
-            self.model_1_menu.addItem(model_1_icon, "FasterRCNN (0% jittering)")
-            self.model_1_menu.addItem(model_1_icon, "FasterRCNN (20% jittering)")
-            self.model_1_menu.addItem(model_1_icon, "FasterRCNN (40% jittering)")
-            self.model_1_menu.addItem(model_1_icon, "FasterRCNN (60% jittering)")
-            self.model_1_menu.addItem(model_1_icon, "FasterRCNN (80% jittering)")
-            self.model_1_menu.addItem(model_1_icon, "FasterRCNN (100% jittering)")
-            self.model_1_menu.addItem(model_1_icon, "FasterRCNN (Pre-trained)")
-            self.model_1_menu.setCurrentText("Custom-trained FasterRCNN")
-        elif self.mode == "piv":
+            self.model_1_menu.addItem(model_1_icon, 'FasterRCNN (0% jittering)')
+            self.model_1_menu.addItem(model_1_icon, 'FasterRCNN (20% jittering)')
+            self.model_1_menu.addItem(model_1_icon, 'FasterRCNN (40% jittering)')
+            self.model_1_menu.addItem(model_1_icon, 'FasterRCNN (60% jittering)')
+            self.model_1_menu.addItem(model_1_icon, 'FasterRCNN (80% jittering)')
+            self.model_1_menu.addItem(model_1_icon, 'FasterRCNN (100% jittering)')
+            self.model_1_menu.addItem(model_1_icon, 'FasterRCNN (Pre-trained)')
+            self.model_1_menu.setCurrentText('Custom-trained FasterRCNN')
+        elif self.mode == 'piv':
             self.model_1_menu.setFixedSize(QtCore.QSize(300, 30))
-            self.model_1_menu.addItem(model_1_icon, "PIV-LiteFlowNet-en")
-            self.model_1_menu.addItem(model_1_icon, "Horn-Schunck")
-            self.model_1_menu.setCurrentText("PIV-LiteFlowNet-en")
+            self.model_1_menu.addItem(model_1_icon, 'PIV-LiteFlowNet-en')
+            self.model_1_menu.addItem(model_1_icon, 'Horn-Schunck')
+            self.model_1_menu.setCurrentText('PIV-LiteFlowNet-en')
 
         # connect the drop down menu with actions
         self.model_1_menu.currentTextChanged.connect(model_1_selection_changed)
@@ -1427,7 +1427,7 @@ class UI_MainWindow(QWidget):
         self.model_1_menu.lineEdit().setReadOnly(True)
         self.model_1_menu.lineEdit().setAlignment(QtCore.Qt.AlignCenter)
         if self.demo:
-            if self.mode == "digit_recognition":
+            if self.mode == 'digit_recognition':
                 model_menus_layout = QtWidgets.QHBoxLayout()
                 model_menus_layout.setContentsMargins(40, 0, 0, 0)
                 model_menus_layout.addWidget(self.model_1_menu)
@@ -1448,42 +1448,42 @@ class UI_MainWindow(QWidget):
         model_2_icon.fill(QtCore.Qt.white)
         # draw model representation
         painter = QtGui.QPainter(model_2_icon)
-        draw_circle(painter, 12, 12, 10, "magenta")
+        draw_circle(painter, 12, 12, 10, 'magenta')
 
         self.model_2_menu = QtWidgets.QComboBox()
         self.model_2_menu.setStyleSheet(
-            "color: black; font-size: 24px; font-family: Helvetica; font-style: normal;"
+            'color: black; font-size: 24px; font-family: Helvetica; font-style: normal;'
         )
         self.model_2_menu.setEditable(True)
         self.model_2_menu.lineEdit().setReadOnly(True)
         self.model_2_menu.lineEdit().setAlignment(QtCore.Qt.AlignCenter)
-        if self.mode == "digit_recognition":
+        if self.mode == 'digit_recognition':
             self.model_2_menu.setFixedSize(QtCore.QSize(220, 50))
-            self.model_2_menu.addItem(model_2_icon, "Original model")
-            self.model_2_menu.addItem(model_2_icon, "E2CNN model")
-            self.model_2_menu.addItem(model_2_icon, "DA model")
+            self.model_2_menu.addItem(model_2_icon, 'Original model')
+            self.model_2_menu.addItem(model_2_icon, 'E2CNN model')
+            self.model_2_menu.addItem(model_2_icon, 'DA model')
             # model_2_menu.setCurrentText('E2CNN model')
-            self.model_2_menu.setCurrentText("DA model")
-        elif self.mode == "object_detection":
+            self.model_2_menu.setCurrentText('DA model')
+        elif self.mode == 'object_detection':
             self.model_2_menu.setFixedSize(QtCore.QSize(300, 30))
-            self.model_2_menu.addItem(model_2_icon, "FasterRCNN (0% jittering)")
-            self.model_2_menu.addItem(model_2_icon, "FasterRCNN (20% jittering)")
-            self.model_2_menu.addItem(model_2_icon, "FasterRCNN (40% jittering)")
-            self.model_2_menu.addItem(model_2_icon, "FasterRCNN (60% jittering)")
-            self.model_2_menu.addItem(model_2_icon, "FasterRCNN (80% jittering)")
-            self.model_2_menu.addItem(model_2_icon, "FasterRCNN (100% jittering)")
-            self.model_2_menu.addItem(model_2_icon, "FasterRCNN (Pre-trained)")
-            self.model_2_menu.setCurrentText("FasterRCNN (Pre-trained)")
-        elif self.mode == "piv":
+            self.model_2_menu.addItem(model_2_icon, 'FasterRCNN (0% jittering)')
+            self.model_2_menu.addItem(model_2_icon, 'FasterRCNN (20% jittering)')
+            self.model_2_menu.addItem(model_2_icon, 'FasterRCNN (40% jittering)')
+            self.model_2_menu.addItem(model_2_icon, 'FasterRCNN (60% jittering)')
+            self.model_2_menu.addItem(model_2_icon, 'FasterRCNN (80% jittering)')
+            self.model_2_menu.addItem(model_2_icon, 'FasterRCNN (100% jittering)')
+            self.model_2_menu.addItem(model_2_icon, 'FasterRCNN (Pre-trained)')
+            self.model_2_menu.setCurrentText('FasterRCNN (Pre-trained)')
+        elif self.mode == 'piv':
             self.model_2_menu.setFixedSize(QtCore.QSize(300, 30))
-            self.model_2_menu.addItem(model_2_icon, "PIV-LiteFlowNet-en")
-            self.model_2_menu.addItem(model_2_icon, "Horn-Schunck")
-            self.model_2_menu.setCurrentText("Horn-Schunck")
+            self.model_2_menu.addItem(model_2_icon, 'PIV-LiteFlowNet-en')
+            self.model_2_menu.addItem(model_2_icon, 'Horn-Schunck')
+            self.model_2_menu.setCurrentText('Horn-Schunck')
 
         # connect the drop down menu with actions
         self.model_2_menu.currentTextChanged.connect(model_2_selection_changed)
         if self.demo:
-            if self.mode == "digit_recognition":
+            if self.mode == 'digit_recognition':
                 model_menus_layout.addWidget(self.model_2_menu)
                 self.demo_layout.addWidget(self.model_selection_label, 1, 2)
                 # self.demo_layout.addLayout(model_menus_layout, 4, 0) # when taking aggregate case screenshot
@@ -1521,15 +1521,15 @@ class UI_MainWindow(QWidget):
         self.aggregate_result_existed = False
 
         # batch size when running in aggregate mode
-        if self.mode == "digit_recognition":
+        if self.mode == 'digit_recognition':
             self.batch_size = 100
             # add to general layout
             self.layout.addLayout(self.aggregate_result_layout, 1, 0, 3, 3)
-        elif self.mode == "object_detection":
+        elif self.mode == 'object_detection':
             self.batch_size = 64
             # add to general layout
             self.layout.addLayout(self.aggregate_result_layout, 1, 0, 3, 3)
-        elif self.mode == "piv":
+        elif self.mode == 'piv':
             self.batch_size = 16
             self.layout.addLayout(self.aggregate_result_layout, 1, 0, 3, 3)
 
@@ -1539,10 +1539,10 @@ class UI_MainWindow(QWidget):
         self.single_result_layout.setContentsMargins(30, 50, 30, 50)
 
         # add to general layout
-        if self.data_mode == "single":
+        if self.data_mode == 'single':
             # take up two columns in UI layout
             self.layout.addLayout(self.single_result_layout, 1, 0, 1, 2)
-        elif self.data_mode == "aggregate":
+        elif self.data_mode == 'aggregate':
             self.layout.addLayout(self.single_result_layout, 1, 1)
 
         # if model result ever existed
@@ -1553,12 +1553,12 @@ class UI_MainWindow(QWidget):
     def run_button_clicked(self):
 
         # aggregate (dataset selected) case
-        if self.data_mode == "aggregate":
+        if self.data_mode == 'aggregate':
             self.run_model_aggregated()
             self.aggregate_result_existed = True
 
         # single (single image selected) case
-        elif self.data_mode == "single":
+        elif self.data_mode == 'single':
             self.run_model_single()
             self.single_result_existed = True
 
@@ -1576,19 +1576,19 @@ class UI_MainWindow(QWidget):
             self.dr_result_existed = False
             # update the current digit selection
             # for digit recognition (MNIST)
-            if self.mode == "digit_recognition":
-                if text.split(" ")[0] == "All":
-                    self.class_selection = "all"
-                elif text.split(" ")[0] == "Digit":
-                    self.class_selection = int(text.split(" ")[-1])
+            if self.mode == 'digit_recognition':
+                if text.split(' ')[0] == 'All':
+                    self.class_selection = 'all'
+                elif text.split(' ')[0] == 'Digit':
+                    self.class_selection = int(text.split(' ')[-1])
 
                 # display the plot
                 self.display_mnist_aggregate_result()
 
             # for object detection (COCO)
-            elif self.mode == "object_detection":
-                if text.split(" ")[0] == "All":
-                    self.class_selection = "all"
+            elif self.mode == 'object_detection':
+                if text.split(' ')[0] == 'All':
+                    self.class_selection = 'all'
                 else:
                     self.class_selection = text
 
@@ -1596,10 +1596,10 @@ class UI_MainWindow(QWidget):
                 self.display_coco_aggregate_result()
 
             # for piv
-            elif self.mode == "piv":
+            elif self.mode == 'piv':
                 # select different flows
-                if text.split(" ")[0] == "All":
-                    self.class_selection = "all"
+                if text.split(' ')[0] == 'All':
+                    self.class_selection = 'all'
                 else:
                     self.class_selection = text
 
@@ -1617,13 +1617,13 @@ class UI_MainWindow(QWidget):
             else:
                 self.show_average = True
 
-            self.draw_piv_nero("aggregate")
+            self.draw_piv_nero('aggregate')
 
             if self.single_result_existed:
                 # show the previously selected detail area when in detail mode
                 if self.show_average == False:
                     self.piv_heatmap_click_enable = True
-                self.draw_piv_nero("single")
+                self.draw_piv_nero('single')
 
         # change different dimension reduction algorithms
         def dr_selection_changed(text):
@@ -1644,8 +1644,8 @@ class UI_MainWindow(QWidget):
         class_selection_pixmap = QPixmap(350, 50)
         class_selection_pixmap.fill(QtCore.Qt.white)
         painter = QtGui.QPainter(class_selection_pixmap)
-        painter.setFont(QFont("Helvetica", 24))
-        painter.drawText(0, 0, 350, 50, QtGui.Qt.AlignLeft, "Data Subset: ")
+        painter.setFont(QFont('Helvetica', 24))
+        painter.drawText(0, 0, 350, 50, QtGui.Qt.AlignLeft, 'Data Subset: ')
         painter.end()
         # create label to contain the texts
         self.class_selection_label = QLabel(self)
@@ -1664,26 +1664,26 @@ class UI_MainWindow(QWidget):
         self.class_selection_menu = QtWidgets.QComboBox()
         self.class_selection_menu.setFixedSize(QtCore.QSize(200, 50))
         self.class_selection_menu.setStyleSheet(
-            "color: black; font-size: 24px; font-family: Helvetica; font-style: normal;"
+            'color: black; font-size: 24px; font-family: Helvetica; font-style: normal;'
         )
-        if self.mode == "digit_recognition":
-            self.class_selection_menu.addItem(f"All digits")
+        if self.mode == 'digit_recognition':
+            self.class_selection_menu.addItem(f'All digits')
             # add all digits as items
             for i in range(10):
-                self.class_selection_menu.addItem(f"Digit {i}")
-        elif self.mode == "object_detection":
-            self.class_selection_menu.addItem(f"Averaged over all classes")
+                self.class_selection_menu.addItem(f'Digit {i}')
+        elif self.mode == 'object_detection':
+            self.class_selection_menu.addItem(f'Averaged over all classes')
             # add all classes as items
             for cur_class in self.coco_classes:
-                self.class_selection_menu.addItem(f"{cur_class}")
-        elif self.mode == "piv":
-            self.class_selection_menu.addItem(f"Averaged over all types")
+                self.class_selection_menu.addItem(f'{cur_class}')
+        elif self.mode == 'piv':
+            self.class_selection_menu.addItem(f'Averaged over all types')
             # add all classes as items
             for cur_type in self.flow_types:
-                self.class_selection_menu.addItem(f"{cur_type}")
+                self.class_selection_menu.addItem(f'{cur_type}')
 
         # set default to 'all', which means the average one
-        self.class_selection = "all"
+        self.class_selection = 'all'
         self.class_selection_menu.setCurrentIndex(0)
         # connect the drop down menu with actions
         self.class_selection_menu.currentTextChanged.connect(aggregate_class_selection_changed)
@@ -1704,8 +1704,8 @@ class UI_MainWindow(QWidget):
         dr_selection_pixmap = QPixmap(300, 50)
         dr_selection_pixmap.fill(QtCore.Qt.white)
         painter = QtGui.QPainter(dr_selection_pixmap)
-        painter.setFont(QFont("Helvetica", 24))
-        painter.drawText(0, 0, 300, 50, QtGui.Qt.AlignLeft, "Scatterplot Layout: ")
+        painter.setFont(QFont('Helvetica', 24))
+        painter.drawText(0, 0, 300, 50, QtGui.Qt.AlignLeft, 'Scatterplot Layout: ')
         painter.end()
         # create label to contain the texts
         self.dr_selection_label = QLabel(self)
@@ -1721,11 +1721,11 @@ class UI_MainWindow(QWidget):
         self.dr_selection_menu = QtWidgets.QComboBox()
         self.dr_selection_menu.setFixedSize(QtCore.QSize(130, 50))
         self.dr_selection_menu.setStyleSheet(
-            "color: black; font-family: Helvetica; font-style: normal; font-size: 24px"
+            'color: black; font-family: Helvetica; font-style: normal; font-size: 24px'
         )
-        dr_algorithms = ["PCA", "ICA", "ISOMAP", "t-SNE", "UMAP"]
+        dr_algorithms = ['PCA', 'ICA', 'ISOMAP', 't-SNE', 'UMAP']
         for algo in dr_algorithms:
-            self.dr_selection_menu.addItem(f"{algo}")
+            self.dr_selection_menu.addItem(f'{algo}')
         # set default to digit 0, which means PCA
         self.dr_selection = dr_algorithms[0]
         self.dr_selection_menu.setCurrentIndex(0)
@@ -1742,17 +1742,17 @@ class UI_MainWindow(QWidget):
             self.aggregate_plot_control_layout.addWidget(self.dr_selection_menu, 2, 0)
 
         # push button on running PCA
-        self.run_dr_button = QtWidgets.QPushButton("Run Dimension Reduction")
-        self.run_dr_button.setStyleSheet("font-size: 18px")
+        self.run_dr_button = QtWidgets.QPushButton('Run Dimension Reduction')
+        self.run_dr_button.setStyleSheet('font-size: 18px')
         self.run_dr_button.setFixedSize(QtCore.QSize(250, 50))
         self.run_dr_button.clicked.connect(self.run_dimension_reduction)
         if not self.demo:
             self.aggregate_plot_control_layout.addWidget(self.run_dr_button, 3, 0)
 
         # for PIV only, toggle between average or detail plot
-        if self.mode == "piv":
-            self.detail_nero_checkbox = QtWidgets.QCheckBox("Detail NERO")
-            self.detail_nero_checkbox.setStyleSheet("font-size: 18px")
+        if self.mode == 'piv':
+            self.detail_nero_checkbox = QtWidgets.QCheckBox('Detail NERO')
+            self.detail_nero_checkbox.setStyleSheet('font-size: 18px')
             self.detail_nero_checkbox.setFixedSize(QtCore.QSize(300, 50))
             self.detail_nero_checkbox.stateChanged.connect(detail_nero_checkbox_clicked)
             self.detail_nero_checkbox.setChecked(False)
@@ -1775,14 +1775,14 @@ class UI_MainWindow(QWidget):
             slider_1_text_pixmap = QPixmap(150, 50)
             slider_1_text_pixmap.fill(QtCore.Qt.white)
             painter = QtGui.QPainter(slider_1_text_pixmap)
-            painter.setFont(QFont("Helvetica", 12))
+            painter.setFont(QFont('Helvetica', 12))
             painter.drawText(
                 0,
                 0,
                 150,
                 50,
                 QtGui.Qt.AlignCenter,
-                f"{self.dr_result_selection_slider_1.value()+1}/{len(self.cur_class_indices)}",
+                f'{self.dr_result_selection_slider_1.value()+1}/{len(self.cur_class_indices)}',
             )
             painter.end()
             self.slider_1_text_label.setPixmap(slider_1_text_pixmap)
@@ -1792,14 +1792,14 @@ class UI_MainWindow(QWidget):
             slider_2_text_pixmap = QPixmap(150, 50)
             slider_2_text_pixmap.fill(QtCore.Qt.white)
             painter = QtGui.QPainter(slider_2_text_pixmap)
-            painter.setFont(QFont("Helvetica", 12))
+            painter.setFont(QFont('Helvetica', 12))
             painter.drawText(
                 0,
                 0,
                 150,
                 50,
                 QtGui.Qt.AlignCenter,
-                f"{self.dr_result_selection_slider_2.value()+1}/{len(self.cur_class_indices)}",
+                f'{self.dr_result_selection_slider_2.value()+1}/{len(self.cur_class_indices)}',
             )
             painter.end()
             self.slider_2_text_label.setPixmap(slider_2_text_pixmap)
@@ -1807,19 +1807,19 @@ class UI_MainWindow(QWidget):
         # helper function on computing dimension reductions
         def dimension_reduce(high_dim, target_dim):
 
-            if self.dr_selection == "PCA":
-                pca = PCA(n_components=target_dim, svd_solver="full")
+            if self.dr_selection == 'PCA':
+                pca = PCA(n_components=target_dim, svd_solver='full')
                 low_dim = pca.fit_transform(high_dim)
-            elif self.dr_selection == "ICA":
+            elif self.dr_selection == 'ICA':
                 ica = FastICA(n_components=target_dim, random_state=12)
                 low_dim = ica.fit_transform(high_dim)
-            elif self.dr_selection == "ISOMAP":
+            elif self.dr_selection == 'ISOMAP':
                 low_dim = manifold.Isomap(
                     n_neighbors=5, n_components=target_dim, n_jobs=-1
                 ).fit_transform(high_dim)
-            elif self.dr_selection == "t-SNE":
+            elif self.dr_selection == 't-SNE':
                 low_dim = TSNE(n_components=target_dim, n_iter=250).fit_transform(high_dim)
-            elif self.dr_selection == "UMAP":
+            elif self.dr_selection == 'UMAP':
                 low_dim = umap.UMAP(
                     n_neighbors=5, min_dist=0.3, n_components=target_dim
                 ).fit_transform(high_dim)
@@ -1889,14 +1889,14 @@ class UI_MainWindow(QWidget):
                 slider_1_text_pixmap = QPixmap(150, 30)
                 slider_1_text_pixmap.fill(QtCore.Qt.white)
                 painter = QtGui.QPainter(slider_1_text_pixmap)
-                painter.setFont(QFont("Helvetica", 12))
+                painter.setFont(QFont('Helvetica', 12))
                 painter.drawText(
                     0,
                     0,
                     150,
                     30,
                     QtGui.Qt.AlignCenter,
-                    f"{self.dr_result_selection_slider_1.value()+1}/{len(self.cur_class_indices)}",
+                    f'{self.dr_result_selection_slider_1.value()+1}/{len(self.cur_class_indices)}',
                 )
                 painter.end()
                 # create label to contain the texts
@@ -1944,14 +1944,14 @@ class UI_MainWindow(QWidget):
                 slider_2_text_pixmap = QPixmap(150, 30)
                 slider_2_text_pixmap.fill(QtCore.Qt.white)
                 painter = QtGui.QPainter(slider_2_text_pixmap)
-                painter.setFont(QFont("Helvetica", 12))
+                painter.setFont(QFont('Helvetica', 12))
                 painter.drawText(
                     0,
                     0,
                     150,
                     30,
                     QtGui.Qt.AlignCenter,
-                    f"{self.dr_result_selection_slider_2.value()+1}/{len(self.cur_class_indices)}",
+                    f'{self.dr_result_selection_slider_2.value()+1}/{len(self.cur_class_indices)}',
                 )
                 painter.end()
                 # create label to contain the texts
@@ -1979,14 +1979,14 @@ class UI_MainWindow(QWidget):
             # get the clicked scatter item's information
             # when item is not none, it is from real click
             if item != None:
-                self.image_index = int(item.opts["name"])
-                print(f"clicked image index {self.image_index}")
+                self.image_index = int(item.opts['name'])
+                print(f'clicked image index {self.image_index}')
             # when the input is empty, it is called automatically
             else:
                 # image index should be defined
                 if self.image_index == None:
                     raise Exception(
-                        "image_index should be defined prior to calling run_dimension_reduction"
+                        'image_index should be defined prior to calling run_dimension_reduction'
                     )
 
             # get the ranking in each colorbar and change its value while locking both sliders
@@ -2009,15 +2009,15 @@ class UI_MainWindow(QWidget):
             self.slider_2_locked = False
 
             # get the corresponding image path
-            if self.mode == "digit_recognition" or self.mode == "object_detection":
+            if self.mode == 'digit_recognition' or self.mode == 'object_detection':
                 self.image_path = self.all_images_paths[self.image_index]
-                print(f"Selected image at {self.image_path}")
-            elif self.mode == "piv":
+                print(f'Selected image at {self.image_path}')
+            elif self.mode == 'piv':
                 # single case images paths
                 self.image_1_path = self.all_images_1_paths[self.image_index]
                 self.image_2_path = self.all_images_2_paths[self.image_index]
-                print(f"Selected image 1 at {self.image_1_path}")
-                print(f"Selected image 2 at {self.image_2_path}")
+                print(f'Selected image 1 at {self.image_1_path}')
+                print(f'Selected image 2 at {self.image_2_path}')
 
                 # single case model outputs
                 self.all_quantities_1 = self.aggregate_outputs_1[:, self.image_index]
@@ -2028,7 +2028,7 @@ class UI_MainWindow(QWidget):
             self.load_single_image()
 
             # display individual view
-            if self.mode == "digit_recognition":
+            if self.mode == 'digit_recognition':
                 # convert to QImage for display purpose
                 self.cur_display_image = nero_utilities.tensor_to_qt_image(
                     self.cur_image_pt, self.display_image_size
@@ -2036,16 +2036,16 @@ class UI_MainWindow(QWidget):
                 # prepare image tensor for model purpose
                 self.cur_image_pt = nero_transform.prepare_mnist_image(self.cur_image_pt)
 
-            elif self.mode == "object_detection":
+            elif self.mode == 'object_detection':
                 # convert to QImage for display purpose
                 self.cur_display_image = nero_utilities.tensor_to_qt_image(
                     self.cur_image_pt, self.display_image_size
                 )
 
-            elif self.mode == "piv":
+            elif self.mode == 'piv':
                 # create new GIF
-                display_image_1_pil = Image.fromarray(self.cur_image_1_pt.numpy(), "RGB")
-                display_image_2_pil = Image.fromarray(self.cur_image_2_pt.numpy(), "RGB")
+                display_image_1_pil = Image.fromarray(self.cur_image_1_pt.numpy(), 'RGB')
+                display_image_2_pil = Image.fromarray(self.cur_image_2_pt.numpy(), 'RGB')
                 other_images_pil = [
                     display_image_1_pil,
                     display_image_2_pil,
@@ -2053,11 +2053,11 @@ class UI_MainWindow(QWidget):
                     self.blank_image_pil,
                 ]
                 self.gif_path = os.path.join(
-                    self.cache_dir, self.loaded_image_1_name.split(".")[0] + ".gif"
+                    self.cache_dir, self.loaded_image_1_name.split('.')[0] + '.gif'
                 )
                 display_image_1_pil.save(
                     fp=self.gif_path,
-                    format="GIF",
+                    format='GIF',
                     append_images=other_images_pil,
                     save_all=True,
                     duration=300,
@@ -2069,7 +2069,7 @@ class UI_MainWindow(QWidget):
 
         # when hovered on the scatter plot item
         def low_dim_scatter_hovered(item, points):
-            item.setToolTip(item.opts["hover_text"])
+            item.setToolTip(item.opts['hover_text'])
 
         # helper function on normalizing low dimension points within [-1, 1] sqaure
         def normalize_low_dim_result(low_dim):
@@ -2093,9 +2093,9 @@ class UI_MainWindow(QWidget):
             slider_selected_index,
         ):
             # same colorbar as used in aggregate NERO plot, to be used in color encode scatter points
-            if self.mode == "digit_recognition":
+            if self.mode == 'digit_recognition':
                 # digit recognition does not have color defined elsewhere like others since it never uses heatmaps
-                self.color_map = pg.colormap.get("viridis")
+                self.color_map = pg.colormap.get('viridis')
                 self.cm_range = [0, 1]
                 scatter_lut = self.color_map.getLookupTable(
                     start=self.cm_range[0], stop=self.cm_range[1], nPts=500, alpha=False
@@ -2106,8 +2106,8 @@ class UI_MainWindow(QWidget):
                         values=self.cm_range,
                         colorMap=self.color_map,
                         interactive=False,
-                        orientation="horizontal",
-                        width=30,
+                        orientation='horizontal',
+                        width=20,
                     )
                     # add colorbar to a specific place if in demo mode
                     dummy_view = pg.GraphicsLayoutWidget()
@@ -2115,18 +2115,18 @@ class UI_MainWindow(QWidget):
                     dummy_plot.layout.setContentsMargins(0, 50, 10, 0)
                     dummy_plot.setFixedHeight(0)
                     dummy_plot.setFixedWidth(self.plot_size * 1.3)
-                    dummy_plot.hideAxis("bottom")
-                    dummy_plot.hideAxis("left")
+                    dummy_plot.hideAxis('bottom')
+                    dummy_plot.hideAxis('left')
                     dummy_view.addItem(dummy_plot)
                     dummy_image = pg.ImageItem()
                     self.color_bar.setImageItem(dummy_image, insert_in=dummy_plot)
                     self.scatterplot_sorting_layout.addWidget(dummy_view, 3, 0, 1, 2)
 
-            elif self.mode == "object_detection":
+            elif self.mode == 'object_detection':
                 scatter_lut = self.color_map.getLookupTable(
                     start=self.cm_range[0], stop=self.cm_range[1], nPts=500, alpha=False
                 )
-            elif self.mode == "piv":
+            elif self.mode == 'piv':
                 scatter_lut = self.color_map.getLookupTable(
                     start=self.cm_range[1], stop=self.cm_range[0], nPts=500, alpha=False
                 )
@@ -2157,17 +2157,17 @@ class UI_MainWindow(QWidget):
                 # Set pxMode=True to have scatter items stay at the same screen size
                 low_dim_scatter_item = pg.ScatterPlotItem(pxMode=True, hoverable=True)
                 low_dim_scatter_item.opts[
-                    "hover_text"
-                ] = f"{self.intensity_method}: {round(sorted_intensity[i], 3)}"
-                low_dim_scatter_item.setSymbol("o")
+                    'hover_text'
+                ] = f'{self.intensity_method}: {round(sorted_intensity[i], 3)}'
+                low_dim_scatter_item.setSymbol('o')
                 low_dim_point = [
                     {
-                        "pos": (low_dim[i, 0], low_dim[i, 1]),
-                        "size": self.scatter_item_size,
-                        "pen": QtGui.QColor(
+                        'pos': (low_dim[i, 0], low_dim[i, 1]),
+                        'size': self.scatter_item_size,
+                        'pen': QtGui.QColor(
                             color_indices[i][0], color_indices[i][1], color_indices[i][2]
                         ),
-                        "brush": QtGui.QColor(
+                        'brush': QtGui.QColor(
                             color_indices[i][0], color_indices[i][1], color_indices[i][2]
                         ),
                     }
@@ -2184,21 +2184,21 @@ class UI_MainWindow(QWidget):
             # add the current selected one
             low_dim_scatter_item = pg.ScatterPlotItem(pxMode=True, hoverable=True)
             low_dim_scatter_item.opts[
-                "hover_text"
-            ] = f"{self.intensity_method}: {round(sorted_intensity[sorted_selected_index], 3)}"
-            low_dim_scatter_item.setSymbol("o")
+                'hover_text'
+            ] = f'{self.intensity_method}: {round(sorted_intensity[sorted_selected_index], 3)}'
+            low_dim_scatter_item.setSymbol('o')
             # set red pen indicator if slider selects
             if slider_selected_index != None:
                 # smaller circles in accounting for the red ring
                 low_dim_point = [
                     {
-                        "pos": (
+                        'pos': (
                             low_dim[sorted_selected_index, 0],
                             low_dim[sorted_selected_index, 1],
                         ),
-                        "size": self.scatter_item_size - 2,
-                        "pen": {"color": "red", "width": 2},
-                        "brush": QtGui.QColor(
+                        'size': self.scatter_item_size - 2.0001,
+                        'pen': {'color': 'red', 'width': 2},
+                        'brush': QtGui.QColor(
                             color_indices[sorted_selected_index][0],
                             color_indices[sorted_selected_index][1],
                             color_indices[sorted_selected_index][2],
@@ -2208,17 +2208,17 @@ class UI_MainWindow(QWidget):
             else:
                 low_dim_point = [
                     {
-                        "pos": (
+                        'pos': (
                             low_dim[sorted_selected_index, 0],
                             low_dim[sorted_selected_index, 1],
                         ),
-                        "size": self.scatter_item_size,
-                        "pen": QtGui.QColor(
+                        'size': self.scatter_item_size,
+                        'pen': QtGui.QColor(
                             color_indices[sorted_selected_index][0],
                             color_indices[sorted_selected_index][1],
                             color_indices[sorted_selected_index][2],
                         ),
-                        "brush": QtGui.QColor(
+                        'brush': QtGui.QColor(
                             color_indices[sorted_selected_index][0],
                             color_indices[sorted_selected_index][1],
                             color_indices[sorted_selected_index][2],
@@ -2243,15 +2243,15 @@ class UI_MainWindow(QWidget):
             if not self.dr_result_existed:
                 # scatter plot on low-dim points
                 self.low_dim_scatter_view_1 = pg.GraphicsLayoutWidget()
-                self.low_dim_scatter_view_1.setBackground("white")
+                self.low_dim_scatter_view_1.setBackground('white')
                 self.low_dim_scatter_view_1.setFixedSize(
                     self.plot_size * 1.1, self.plot_size * 1.1
                 )
-                self.low_dim_scatter_view_1.ci.setContentsMargins(0, 40, 0, 0)
+                self.low_dim_scatter_view_1.ci.setContentsMargins(20, 100, 0, 0)
                 # add plot
                 self.low_dim_scatter_plot_1 = self.low_dim_scatter_view_1.addPlot()
-                self.low_dim_scatter_plot_1.hideAxis("left")
-                self.low_dim_scatter_plot_1.hideAxis("bottom")
+                self.low_dim_scatter_plot_1.hideAxis('left')
+                self.low_dim_scatter_plot_1.hideAxis('bottom')
 
                 # set axis range
                 self.low_dim_scatter_plot_1.setXRange(-1.2, 1.2, padding=0)
@@ -2262,14 +2262,15 @@ class UI_MainWindow(QWidget):
                 self.low_dim_scatter_plot_1.vb.disableAutoRange(axis=pg.ViewBox.XYAxes)
 
                 self.low_dim_scatter_view_2 = pg.GraphicsLayoutWidget()
-                self.low_dim_scatter_view_2.setBackground("white")
+                self.low_dim_scatter_view_2.setBackground('white')
                 self.low_dim_scatter_view_2.setFixedSize(
                     self.plot_size * 1.1, self.plot_size * 1.1
                 )
+                self.low_dim_scatter_view_2.ci.setContentsMargins(20, 0, 0, 0)
                 # add plot
                 self.low_dim_scatter_plot_2 = self.low_dim_scatter_view_2.addPlot()
-                self.low_dim_scatter_plot_2.hideAxis("left")
-                self.low_dim_scatter_plot_2.hideAxis("bottom")
+                self.low_dim_scatter_plot_2.hideAxis('left')
+                self.low_dim_scatter_plot_2.hideAxis('bottom')
 
                 # set axis range
                 self.low_dim_scatter_plot_2.setXRange(-1.2, 1.2, padding=0)
@@ -2284,14 +2285,14 @@ class UI_MainWindow(QWidget):
             # run dimension reduction algorithm
             if compute_dr:
                 # try to load from cache
-                low_dim_1_name = f"{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_1_name}_{self.class_selection}_{self.quantity_name}_{self.dr_selection}"
+                low_dim_1_name = f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_1_name}_{self.class_selection}_{self.quantity_name}_{self.dr_selection}'
                 self.low_dim_1 = self.load_from_cache(low_dim_1_name)
                 if not self.load_successfully:
                     self.low_dim_1 = dimension_reduce(self.all_high_dim_points_1, target_dim=2)
                     self.low_dim_1 = normalize_low_dim_result(self.low_dim_1)
                     self.save_to_cache(low_dim_1_name, self.low_dim_1)
 
-                low_dim_2_name = f"{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_2_name}_{self.class_selection}_{self.quantity_name}_{self.dr_selection}"
+                low_dim_2_name = f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_2_name}_{self.class_selection}_{self.quantity_name}_{self.dr_selection}'
                 self.low_dim_2 = self.load_from_cache(low_dim_2_name)
                 if not self.load_successfully:
                     self.low_dim_2 = dimension_reduce(self.all_high_dim_points_2, target_dim=2)
@@ -2332,14 +2333,14 @@ class UI_MainWindow(QWidget):
                 self.slider_2_selected_index,
             )
 
-            if self.mode == "digit_recognition":
+            if self.mode == 'digit_recognition':
                 if self.demo:
                     self.demo_layout.addWidget(self.low_dim_scatter_view_1, 2, 1, 2, 1)
                     self.demo_layout.addWidget(self.low_dim_scatter_view_2, 4, 1, 2, 1)
                 else:
                     self.aggregate_result_layout.addWidget(self.low_dim_scatter_view_1, 1, 3)
                     self.aggregate_result_layout.addWidget(self.low_dim_scatter_view_2, 2, 3)
-            elif self.mode == "object_detection":
+            elif self.mode == 'object_detection':
                 if self.demo:
                     self.demo_layout.addWidget(self.low_dim_scatter_view_1, 5, 1, 1, 1)
                     self.demo_layout.addWidget(self.low_dim_scatter_view_2, 7, 1, 1, 1)
@@ -2347,7 +2348,7 @@ class UI_MainWindow(QWidget):
                     self.aggregate_result_layout.addWidget(self.low_dim_scatter_view_1, 2, 1)
                     self.aggregate_result_layout.addWidget(self.low_dim_scatter_view_2, 2, 2)
             # arguebly the layout for PIV is the same as object detection, but separated them for future expandibility
-            elif self.mode == "piv":
+            elif self.mode == 'piv':
                 if self.demo:
                     self.demo_layout.addWidget(self.low_dim_scatter_view_1, 5, 1, 1, 1)
                     self.demo_layout.addWidget(self.low_dim_scatter_view_2, 7, 1, 1, 1)
@@ -2358,7 +2359,7 @@ class UI_MainWindow(QWidget):
         # run dimension reduction of all images on the selected digit
         # each image has tensor with length being the number of translations
         self.cur_class_indices = []
-        if self.class_selection == "all":
+        if self.class_selection == 'all':
             # all the indices
             self.cur_class_indices = list(range(len(self.loaded_images_labels)))
         else:
@@ -2366,11 +2367,11 @@ class UI_MainWindow(QWidget):
                 if self.class_selection == self.loaded_images_labels[i]:
                     self.cur_class_indices.append(i)
 
-        if self.mode == "digit_recognition":
+        if self.mode == 'digit_recognition':
             num_transformations = len(self.all_aggregate_angles)
-        elif self.mode == "object_detection":
+        elif self.mode == 'object_detection':
             num_transformations = len(self.x_translation) * len(self.y_translation)
-        elif self.mode == "piv":
+        elif self.mode == 'piv':
             num_transformations = 16
 
         self.all_high_dim_points_1 = np.zeros((len(self.cur_class_indices), num_transformations))
@@ -2379,7 +2380,7 @@ class UI_MainWindow(QWidget):
         for i, index in enumerate(self.cur_class_indices):
             # go through all the transfomations
             for j in range(num_transformations):
-                if self.mode == "digit_recognition":
+                if self.mode == 'digit_recognition':
 
                     self.all_high_dim_points_1[i, j] = int(
                         self.all_outputs_1[j][index].argmax() == self.loaded_images_labels[index]
@@ -2388,7 +2389,7 @@ class UI_MainWindow(QWidget):
                         self.all_outputs_2[j][index].argmax() == self.loaded_images_labels[index]
                     )
 
-                elif self.mode == "object_detection":
+                elif self.mode == 'object_detection':
 
                     y = int(j // len(self.x_translation))
                     x = int(j % len(self.x_translation))
@@ -2403,52 +2404,52 @@ class UI_MainWindow(QWidget):
                     cur_correctness_2 = self.aggregate_outputs_2[y, x][index][0, 7]
 
                     # always have the correctness involved
-                    if self.quantity_name == "Confidence*IOU":
+                    if self.quantity_name == 'Confidence*IOU':
                         cur_value_1 = cur_conf_1 * cur_iou_1 * cur_correctness_1
                         cur_value_2 = cur_conf_2 * cur_iou_2 * cur_correctness_2
-                    elif self.quantity_name == "Confidence":
+                    elif self.quantity_name == 'Confidence':
                         cur_value_1 = cur_conf_1
                         cur_value_2 = cur_conf_2
-                    elif self.quantity_name == "IOU":
+                    elif self.quantity_name == 'IOU':
                         cur_value_1 = cur_iou_1
                         cur_value_2 = cur_iou_2
-                    elif self.quantity_name == "Consensus":
+                    elif self.quantity_name == 'Consensus':
                         cur_value_1 = self.aggregate_consensus_1[y, x, index]
                         cur_value_2 = self.aggregate_consensus_2[y, x, index]
 
                     # below values exist in non-demo mode
-                    elif self.quantity_name == "Precision":
+                    elif self.quantity_name == 'Precision':
                         cur_value_1 = self.aggregate_precision_1[y, x][index]
                         cur_value_2 = self.aggregate_precision_2[y, x][index]
-                    elif self.quantity_name == "Recall":
+                    elif self.quantity_name == 'Recall':
                         cur_value_1 = self.aggregate_recall_1[y, x][index]
                         cur_value_2 = self.aggregate_recall_2[y, x][index]
-                    elif self.quantity_name == "F1 Score":
+                    elif self.quantity_name == 'F1 Score':
                         cur_value_1 = self.aggregate_F_measure_1[y, x][index]
                         cur_value_2 = self.aggregate_F_measure_2[y, x][index]
-                    elif self.quantity_name == "mAP":
+                    elif self.quantity_name == 'mAP':
                         cur_value_1 = 0
                         cur_value_2 = 0
 
                     self.all_high_dim_points_1[i, j] = cur_value_1
                     self.all_high_dim_points_2[i, j] = cur_value_2
 
-                elif self.mode == "piv":
+                elif self.mode == 'piv':
                     self.all_high_dim_points_1[i, j] = self.loss_module(
                         self.aggregate_outputs_1[j, i],
                         self.aggregate_ground_truths[j, i],
-                        reduction="mean",
+                        reduction='mean',
                     )
                     self.all_high_dim_points_2[i, j] = self.loss_module(
                         self.aggregate_outputs_2[j, i],
                         self.aggregate_ground_truths[j, i],
-                        reduction="mean",
+                        reduction='mean',
                     )
 
         # radio buttons on choosing quantity used to compute intensity
         @QtCore.Slot()
         def mean_intensity_button_clicked():
-            self.intensity_method = "mean"
+            self.intensity_method = 'mean'
             self.all_intensity_1 = np.mean(self.all_high_dim_points_1, axis=1)
             self.all_intensity_2 = np.mean(self.all_high_dim_points_2, axis=1)
 
@@ -2457,7 +2458,7 @@ class UI_MainWindow(QWidget):
 
         @QtCore.Slot()
         def variance_intensity_button_clicked():
-            self.intensity_method = "variance"
+            self.intensity_method = 'variance'
             self.all_intensity_1 = np.var(self.all_high_dim_points_1, axis=1)
             self.all_intensity_2 = np.var(self.all_high_dim_points_2, axis=1)
 
@@ -2494,7 +2495,7 @@ class UI_MainWindow(QWidget):
                 # get the clicked scatter item's information
                 self.image_index = self.sorted_class_indices_1[self.slider_1_selected_index]
                 print(
-                    f"slider 1 image index {self.image_index}, ranked position {self.slider_1_selected_index}"
+                    f'slider 1 image index {self.image_index}, ranked position {self.slider_1_selected_index}'
                 )
                 # update the text
                 update_slider_1_text()
@@ -2511,15 +2512,15 @@ class UI_MainWindow(QWidget):
                 display_dimension_reduction(compute_dr=False)
 
                 # get the corresponding image path
-                if self.mode == "digit_recognition" or self.mode == "object_detection":
+                if self.mode == 'digit_recognition' or self.mode == 'object_detection':
                     self.image_path = self.all_images_paths[self.image_index]
-                    print(f"Selected image at {self.image_path}")
-                elif self.mode == "piv":
+                    print(f'Selected image at {self.image_path}')
+                elif self.mode == 'piv':
                     # single case images paths
                     self.image_1_path = self.all_images_1_paths[self.image_index]
                     self.image_2_path = self.all_images_2_paths[self.image_index]
-                    print(f"Selected image 1 at {self.image_1_path}")
-                    print(f"Selected image 2 at {self.image_2_path}")
+                    print(f'Selected image 1 at {self.image_1_path}')
+                    print(f'Selected image 2 at {self.image_2_path}')
 
                     # single case model outputs
                     self.all_quantities_1 = self.aggregate_outputs_1[:, self.image_index]
@@ -2530,7 +2531,7 @@ class UI_MainWindow(QWidget):
                 self.load_single_image()
 
                 # display individual view
-                if self.mode == "digit_recognition":
+                if self.mode == 'digit_recognition':
                     # convert to QImage for display purpose
                     self.cur_display_image = nero_utilities.tensor_to_qt_image(
                         self.cur_image_pt, self.display_image_size
@@ -2538,16 +2539,16 @@ class UI_MainWindow(QWidget):
                     # prepare image tensor for model purpose
                     self.cur_image_pt = nero_transform.prepare_mnist_image(self.cur_image_pt)
 
-                elif self.mode == "object_detection":
+                elif self.mode == 'object_detection':
                     # convert to QImage for display purpose
                     self.cur_display_image = nero_utilities.tensor_to_qt_image(
                         self.cur_image_pt, self.display_image_size
                     )
 
-                elif self.mode == "piv":
+                elif self.mode == 'piv':
                     # create new GIF
-                    display_image_1_pil = Image.fromarray(self.cur_image_1_pt.numpy(), "RGB")
-                    display_image_2_pil = Image.fromarray(self.cur_image_2_pt.numpy(), "RGB")
+                    display_image_1_pil = Image.fromarray(self.cur_image_1_pt.numpy(), 'RGB')
+                    display_image_2_pil = Image.fromarray(self.cur_image_2_pt.numpy(), 'RGB')
                     other_images_pil = [
                         display_image_1_pil,
                         display_image_2_pil,
@@ -2555,11 +2556,11 @@ class UI_MainWindow(QWidget):
                         self.blank_image_pil,
                     ]
                     self.gif_path = os.path.join(
-                        self.cache_dir, self.loaded_image_1_name.split(".")[0] + ".gif"
+                        self.cache_dir, self.loaded_image_1_name.split('.')[0] + '.gif'
                     )
                     display_image_1_pil.save(
                         fp=self.gif_path,
-                        format="GIF",
+                        format='GIF',
                         append_images=other_images_pil,
                         save_all=True,
                         duration=300,
@@ -2581,7 +2582,7 @@ class UI_MainWindow(QWidget):
                 # get the clicked scatter item's information
                 self.image_index = self.sorted_class_indices_2[self.slider_2_selected_index]
                 print(
-                    f"slider 2 image index {self.image_index}, ranked position {self.slider_2_selected_index}"
+                    f'slider 2 image index {self.image_index}, ranked position {self.slider_2_selected_index}'
                 )
                 # update the text
                 update_slider_2_text()
@@ -2598,15 +2599,15 @@ class UI_MainWindow(QWidget):
                 display_dimension_reduction(compute_dr=False)
 
                 # get the corresponding image path
-                if self.mode == "digit_recognition" or self.mode == "object_detection":
+                if self.mode == 'digit_recognition' or self.mode == 'object_detection':
                     self.image_path = self.all_images_paths[self.image_index]
-                    print(f"Selected image at {self.image_path}")
-                elif self.mode == "piv":
+                    print(f'Selected image at {self.image_path}')
+                elif self.mode == 'piv':
                     # single case images paths
                     self.image_1_path = self.all_images_1_paths[self.image_index]
                     self.image_2_path = self.all_images_2_paths[self.image_index]
-                    print(f"Selected image 1 at {self.image_1_path}")
-                    print(f"Selected image 2 at {self.image_2_path}")
+                    print(f'Selected image 1 at {self.image_1_path}')
+                    print(f'Selected image 2 at {self.image_2_path}')
 
                     # single case model outputs
                     self.all_quantities_1 = self.aggregate_outputs_1[:, self.image_index]
@@ -2617,7 +2618,7 @@ class UI_MainWindow(QWidget):
                 self.load_single_image()
 
                 # display individual view
-                if self.mode == "digit_recognition":
+                if self.mode == 'digit_recognition':
                     # convert to QImage for display purpose
                     self.cur_display_image = nero_utilities.tensor_to_qt_image(
                         self.cur_image_pt, self.display_image_size
@@ -2625,16 +2626,16 @@ class UI_MainWindow(QWidget):
                     # prepare image tensor for model purpose
                     self.cur_image_pt = nero_transform.prepare_mnist_image(self.cur_image_pt)
 
-                elif self.mode == "object_detection":
+                elif self.mode == 'object_detection':
                     # convert to QImage for display purpose
                     self.cur_display_image = nero_utilities.tensor_to_qt_image(
                         self.cur_image_pt, self.display_image_size
                     )
 
-                elif self.mode == "piv":
+                elif self.mode == 'piv':
                     # create new GIF
-                    display_image_1_pil = Image.fromarray(self.cur_image_1_pt.numpy(), "RGB")
-                    display_image_2_pil = Image.fromarray(self.cur_image_2_pt.numpy(), "RGB")
+                    display_image_1_pil = Image.fromarray(self.cur_image_1_pt.numpy(), 'RGB')
+                    display_image_2_pil = Image.fromarray(self.cur_image_2_pt.numpy(), 'RGB')
                     other_images_pil = [
                         display_image_1_pil,
                         display_image_2_pil,
@@ -2642,11 +2643,11 @@ class UI_MainWindow(QWidget):
                         self.blank_image_pil,
                     ]
                     self.gif_path = os.path.join(
-                        self.cache_dir, self.loaded_image_1_name.split(".")[0] + ".gif"
+                        self.cache_dir, self.loaded_image_1_name.split('.')[0] + '.gif'
                     )
                     display_image_1_pil.save(
                         fp=self.gif_path,
-                        format="GIF",
+                        format='GIF',
                         append_images=other_images_pil,
                         save_all=True,
                         duration=300,
@@ -2661,8 +2662,8 @@ class UI_MainWindow(QWidget):
         intensity_button_pixmap = QPixmap(300, 50)
         intensity_button_pixmap.fill(QtCore.Qt.white)
         painter = QtGui.QPainter(intensity_button_pixmap)
-        painter.setFont(QFont("Helvetica", 24))
-        painter.drawText(0, 0, 300, 50, QtGui.Qt.AlignLeft, "Scatterplot Sorting:")
+        painter.setFont(QFont('Helvetica', 24))
+        painter.drawText(0, 0, 300, 50, QtGui.Qt.AlignLeft, 'Scatterplot Sorting:')
         painter.end()
 
         # create label to contain the texts
@@ -2682,14 +2683,14 @@ class UI_MainWindow(QWidget):
         else:
             self.aggregate_plot_control_layout.addWidget(intensity_button_label, 7, 0)
 
-        self.mean_intensity_button = QRadioButton("Mean")
+        self.mean_intensity_button = QRadioButton('Mean')
         self.mean_intensity_button.setFixedSize(QtCore.QSize(120, 50))
         self.mean_intensity_button.setContentsMargins(0, 0, 0, 0)
         self.mean_intensity_button.setStyleSheet(
-            "QRadioButton{font: 22pt Helvetica;} QRadioButton::indicator { width: 22px; height: 22px;};"
+            'QRadioButton{font: 22pt Helvetica;} QRadioButton::indicator { width: 22px; height: 22px;};'
         )
         self.mean_intensity_button.setStyleSheet(
-            "color: black; font-family: Helvetica; font-style: normal; font-size: 22px"
+            'color: black; font-family: Helvetica; font-style: normal; font-size: 22px'
         )
         self.mean_intensity_button.pressed.connect(mean_intensity_button_clicked)
         if self.demo:
@@ -2697,14 +2698,14 @@ class UI_MainWindow(QWidget):
         else:
             self.aggregate_plot_control_layout.addWidget(self.mean_intensity_button, 8, 0)
 
-        self.variance_intensity_button = QRadioButton("Variance")
+        self.variance_intensity_button = QRadioButton('Variance')
         self.variance_intensity_button.setFixedSize(QtCore.QSize(120, 50))
         self.variance_intensity_button.setContentsMargins(0, 0, 0, 0)
         self.variance_intensity_button.setStyleSheet(
-            "QRadioButton{font: 22pt Helvetica;} QRadioButton::indicator { width: 22px; height: 22px;};"
+            'QRadioButton{font: 22pt Helvetica;} QRadioButton::indicator { width: 22px; height: 22px;};'
         )
         self.variance_intensity_button.setStyleSheet(
-            "color: black; font-family: Helvetica; font-style: normal; font-size: 22px"
+            'color: black; font-family: Helvetica; font-style: normal; font-size: 22px'
         )
         self.variance_intensity_button.pressed.connect(variance_intensity_button_clicked)
         if self.demo:
@@ -2716,7 +2717,7 @@ class UI_MainWindow(QWidget):
 
         # by default the intensities are computed via mean
         self.mean_intensity_button.setChecked(True)
-        self.intensity_method = "mean"
+        self.intensity_method = 'mean'
         # compute each sample's metric average (e.g., avg confidence for mnist) across all
         # transformations as intensity
         self.all_intensity_1 = np.mean(self.all_high_dim_points_1, axis=1)
@@ -2737,8 +2738,15 @@ class UI_MainWindow(QWidget):
 
         # demo mode automatically selects an image and trigger individual NERO
         if self.demo:
-            print(f"Preselected image {self.sorted_class_indices_1[0]} from scatter plot")
-            self.image_index = self.sorted_class_indices_1[0]
+            # preselected the digit we want to use in paper
+            # Note: this will create error when changing subset
+            selected_image = '/home/zhuokai/Desktop/UChicago/Research/nero_vis/qt_app/example_data/digit_recognition/MNIST_500/label_4_sample_6924.png'
+            selected_image_index = self.all_images_paths.index(selected_image)
+            self.image_index = self.cur_class_indices[selected_image_index]
+
+            # take the worst-performing one by default
+            # self.image_index = self.sorted_class_indices_1[0]
+            print(f'Preselected image {self.image_index} from scatter plot')
             low_dim_scatter_clicked()
 
     # run model on the aggregate dataset
@@ -2748,29 +2756,29 @@ class UI_MainWindow(QWidget):
             # initialize digit selection control
             self.init_aggregate_plot_control()
 
-        if self.mode == "digit_recognition":
+        if self.mode == 'digit_recognition':
             # all the rotation angles applied to the aggregated dataset
             self.all_aggregate_angles = list(range(0, 365, 5))
 
             # load from cache if available
             self.all_avg_accuracy_1 = self.load_from_cache(
-                f"{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_1_cache_name}_avg_accuracy"
+                f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_1_cache_name}_avg_accuracy'
             )
             self.all_avg_accuracy_per_digit_1 = self.load_from_cache(
-                f"{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_1_cache_name}_avg_accuracy_per_digit"
+                f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_1_cache_name}_avg_accuracy_per_digit'
             )
             self.all_outputs_1 = self.load_from_cache(
-                f"{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_1_cache_name}_outputs"
+                f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_1_cache_name}_outputs'
             )
 
             self.all_avg_accuracy_2 = self.load_from_cache(
-                f"{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_2_cache_name}_avg_accuracy"
+                f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_2_cache_name}_avg_accuracy'
             )
             self.all_avg_accuracy_per_digit_2 = self.load_from_cache(
-                f"{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_2_cache_name}_avg_accuracy_per_digit"
+                f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_2_cache_name}_avg_accuracy_per_digit'
             )
             self.all_outputs_2 = self.load_from_cache(
-                f"{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_2_cache_name}_outputs"
+                f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_2_cache_name}_outputs'
             )
 
             if not self.load_successfully:
@@ -2791,7 +2799,7 @@ class UI_MainWindow(QWidget):
                 # for all the loaded images
                 # for i, self.cur_rotation_angle in enumerate(range(0, 365, 5)):
                 for i, self.cur_rotation_angle in enumerate(self.all_aggregate_angles):
-                    print(f"\nAggregate mode: Rotated {self.cur_rotation_angle} degrees")
+                    print(f'\nAggregate mode: Rotated {self.cur_rotation_angle} degrees')
                     # self.all_angles.append(self.cur_rotation_angle)
 
                     (
@@ -2828,35 +2836,35 @@ class UI_MainWindow(QWidget):
 
                 # save to cache
                 self.save_to_cache(
-                    f"{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_1_cache_name}_avg_accuracy",
+                    f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_1_cache_name}_avg_accuracy',
                     self.all_avg_accuracy_1,
                 )
                 self.save_to_cache(
-                    f"{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_1_cache_name}_avg_accuracy_per_digit",
+                    f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_1_cache_name}_avg_accuracy_per_digit',
                     self.all_avg_accuracy_per_digit_1,
                 )
                 self.save_to_cache(
-                    f"{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_1_cache_name}_outputs",
+                    f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_1_cache_name}_outputs',
                     self.all_outputs_1,
                 )
 
                 self.save_to_cache(
-                    f"{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_2_cache_name}_avg_accuracy",
+                    f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_2_cache_name}_avg_accuracy',
                     self.all_avg_accuracy_2,
                 )
                 self.save_to_cache(
-                    f"{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_2_cache_name}_avg_accuracy_per_digit",
+                    f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_2_cache_name}_avg_accuracy_per_digit',
                     self.all_avg_accuracy_per_digit_2,
                 )
                 self.save_to_cache(
-                    f"{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_2_cache_name}_outputs",
+                    f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_2_cache_name}_outputs',
                     self.all_outputs_2,
                 )
 
             # display the result
             self.display_mnist_aggregate_result()
 
-        elif self.mode == "object_detection":
+        elif self.mode == 'object_detection':
             # all the translations in x and y applied to the aggregated dataset
             self.x_translation = list(
                 range(-self.image_size // 2, self.image_size // 2, self.translation_step_aggregate)
@@ -2867,35 +2875,35 @@ class UI_MainWindow(QWidget):
 
             # always try loading from cache
             self.aggregate_outputs_1 = self.load_from_cache(
-                f"{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_1_cache_name}_outputs"
+                f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_1_cache_name}_outputs'
             )
             self.aggregate_precision_1 = self.load_from_cache(
-                f"{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_1_cache_name}_precision"
+                f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_1_cache_name}_precision'
             )
             self.aggregate_recall_1 = self.load_from_cache(
-                f"{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_1_cache_name}_recall"
+                f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_1_cache_name}_recall'
             )
             self.aggregate_mAP_1 = self.load_from_cache(
-                f"{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_1_cache_name}_mAP"
+                f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_1_cache_name}_mAP'
             )
             self.aggregate_F_measure_1 = self.load_from_cache(
-                f"{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_1_cache_name}_F_measure"
+                f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_1_cache_name}_F_measure'
             )
 
             self.aggregate_outputs_2 = self.load_from_cache(
-                f"{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_2_cache_name}_outputs"
+                f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_2_cache_name}_outputs'
             )
             self.aggregate_precision_2 = self.load_from_cache(
-                f"{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_2_cache_name}_precision"
+                f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_2_cache_name}_precision'
             )
             self.aggregate_recall_2 = self.load_from_cache(
-                f"{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_2_cache_name}_recall"
+                f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_2_cache_name}_recall'
             )
             self.aggregate_mAP_2 = self.load_from_cache(
-                f"{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_2_cache_name}_mAP"
+                f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_2_cache_name}_mAP'
             )
             self.aggregate_F_measure_2 = self.load_from_cache(
-                f"{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_2_cache_name}_F_measure"
+                f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_2_cache_name}_F_measure'
             )
 
             if not self.load_successfully:
@@ -2935,7 +2943,7 @@ class UI_MainWindow(QWidget):
                 # for all the loaded images
                 for y, y_tran in enumerate(self.y_translation):
                     for x, x_tran in enumerate(self.x_translation):
-                        print(f"y_tran = {y_tran}, x_tran = {x_tran}")
+                        print(f'y_tran = {y_tran}, x_tran = {x_tran}')
                         # model 1 output
                         (
                             cur_qualified_output_1,
@@ -2943,7 +2951,7 @@ class UI_MainWindow(QWidget):
                             cur_recall_1,
                             cur_F_measure_1,
                         ) = nero_run_model.run_coco_once(
-                            "aggregate",
+                            'aggregate',
                             self.model_1_name,
                             self.model_1,
                             self.all_images_paths,
@@ -2971,7 +2979,7 @@ class UI_MainWindow(QWidget):
                             cur_recall_2,
                             cur_F_measure_2,
                         ) = nero_run_model.run_coco_once(
-                            "aggregate",
+                            'aggregate',
                             self.model_2_name,
                             self.model_2,
                             self.all_images_paths,
@@ -2993,51 +3001,51 @@ class UI_MainWindow(QWidget):
                         )
 
                 self.save_to_cache(
-                    name=f"{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_1_cache_name}_outputs",
+                    name=f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_1_cache_name}_outputs',
                     content=self.aggregate_outputs_1,
                 )
                 self.save_to_cache(
-                    name=f"{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_1_cache_name}_precision",
+                    name=f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_1_cache_name}_precision',
                     content=self.aggregate_precision_1,
                 )
                 self.save_to_cache(
-                    name=f"{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_1_cache_name}_recall",
+                    name=f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_1_cache_name}_recall',
                     content=self.aggregate_recall_1,
                 )
                 self.save_to_cache(
-                    name=f"{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_1_cache_name}_mAP",
+                    name=f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_1_cache_name}_mAP',
                     content=self.aggregate_mAP_1,
                 )
                 self.save_to_cache(
-                    name=f"{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_1_cache_name}_F_measure",
+                    name=f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_1_cache_name}_F_measure',
                     content=self.aggregate_F_measure_1,
                 )
 
                 self.save_to_cache(
-                    name=f"{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_2_cache_name}_outputs",
+                    name=f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_2_cache_name}_outputs',
                     content=self.aggregate_outputs_2,
                 )
                 self.save_to_cache(
-                    name=f"{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_2_cache_name}_precision",
+                    name=f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_2_cache_name}_precision',
                     content=self.aggregate_precision_2,
                 )
                 self.save_to_cache(
-                    name=f"{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_2_cache_name}_recall",
+                    name=f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_2_cache_name}_recall',
                     content=self.aggregate_recall_2,
                 )
                 self.save_to_cache(
-                    name=f"{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_2_cache_name}_mAP",
+                    name=f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_2_cache_name}_mAP',
                     content=self.aggregate_mAP_2,
                 )
                 self.save_to_cache(
-                    name=f"{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_2_cache_name}_F_measure",
+                    name=f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_2_cache_name}_F_measure',
                     content=self.aggregate_F_measure_2,
                 )
 
             # display the result
             self.display_coco_aggregate_result()
 
-        elif self.mode == "piv":
+        elif self.mode == 'piv':
             # Dihedral group4 transformations
             time_reverses = [0, 1]
             self.num_transformations = 16
@@ -3075,17 +3083,17 @@ class UI_MainWindow(QWidget):
             # always try loading from cache
             self.aggregate_outputs_1 = torch.from_numpy(
                 self.load_from_cache(
-                    f"{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_1_cache_name}_outputs"
+                    f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_1_cache_name}_outputs'
                 )
             )
             self.aggregate_outputs_2 = torch.from_numpy(
                 self.load_from_cache(
-                    f"{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_2_cache_name}_outputs"
+                    f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_2_cache_name}_outputs'
                 )
             )
             self.aggregate_ground_truths = torch.from_numpy(
                 self.load_from_cache(
-                    f"{self.mode}_{self.data_mode}_{self.dataset_name}_ground_truths"
+                    f'{self.mode}_{self.data_mode}_{self.dataset_name}_ground_truths'
                 )
             )
 
@@ -3107,7 +3115,7 @@ class UI_MainWindow(QWidget):
                 # go through each transformation type
                 for is_time_reversed in time_reverses:
                     for transformation_index in range(8):
-                        print(f"Transformation {is_time_reversed*8+transformation_index}")
+                        print(f'Transformation {is_time_reversed*8+transformation_index}')
                         # modify all current batch samples to one kind of transformation and run model with it
                         for index_range in batch_indices:
                             cur_images_1_paths = self.all_images_1_paths[
@@ -3133,8 +3141,8 @@ class UI_MainWindow(QWidget):
                             # load and modify data of the current batch
                             for i in range(len(cur_images_1_paths)):
                                 # load the data
-                                cur_image_1_pil = Image.open(cur_images_1_paths[i]).convert("RGB")
-                                cur_image_2_pil = Image.open(cur_images_2_paths[i]).convert("RGB")
+                                cur_image_1_pil = Image.open(cur_images_1_paths[i]).convert('RGB')
+                                cur_image_2_pil = Image.open(cur_images_2_paths[i]).convert('RGB')
                                 # convert to torch tensor
                                 cur_d4_image_1_pt = torch.from_numpy(np.asarray(cur_image_1_pil))
                                 cur_d4_image_2_pt = torch.from_numpy(np.asarray(cur_image_2_pil))
@@ -3169,7 +3177,7 @@ class UI_MainWindow(QWidget):
                                         cur_d4_image_1_pt,
                                         cur_d4_image_2_pt,
                                         cur_ground_truth,
-                                        flip_type="right-diagonal",
+                                        flip_type='right-diagonal',
                                     )
                                 # 2: counter-clockwise 90 rotation
                                 elif transformation_index == 2:
@@ -3190,7 +3198,7 @@ class UI_MainWindow(QWidget):
                                         cur_d4_image_1_pt,
                                         cur_d4_image_2_pt,
                                         cur_ground_truth,
-                                        flip_type="horizontal",
+                                        flip_type='horizontal',
                                     )
                                 # 4: counter-clockwise 180 rotation
                                 elif transformation_index == 4:
@@ -3211,7 +3219,7 @@ class UI_MainWindow(QWidget):
                                         cur_d4_image_1_pt,
                                         cur_d4_image_2_pt,
                                         cur_ground_truth,
-                                        flip_type="left-diagonal",
+                                        flip_type='left-diagonal',
                                     )
                                 # 6: counter-clockwise 270 rotation
                                 elif transformation_index == 6:
@@ -3232,12 +3240,12 @@ class UI_MainWindow(QWidget):
                                         cur_d4_image_1_pt,
                                         cur_d4_image_2_pt,
                                         cur_ground_truth,
-                                        flip_type="vertical",
+                                        flip_type='vertical',
                                     )
 
                             # run models on the current batch
                             cur_outputs_1 = nero_run_model.run_piv_once(
-                                "aggregate",
+                                'aggregate',
                                 self.model_1_name,
                                 self.model_1,
                                 batch_d4_images_1_pt,
@@ -3245,7 +3253,7 @@ class UI_MainWindow(QWidget):
                             )
 
                             cur_outputs_2 = nero_run_model.run_piv_once(
-                                "aggregate",
+                                'aggregate',
                                 self.model_2_name,
                                 self.model_2,
                                 batch_d4_images_1_pt,
@@ -3254,7 +3262,7 @@ class UI_MainWindow(QWidget):
 
                             # add to all outputs
                             # HS does not need further pixel normalization
-                            if self.model_1_name == "Horn-Schunck":
+                            if self.model_1_name == 'Horn-Schunck':
                                 self.aggregate_outputs_1[
                                     is_time_reversed * 8 + transformation_index,
                                     index_range[0] : index_range[1],
@@ -3267,7 +3275,7 @@ class UI_MainWindow(QWidget):
                                     cur_outputs_1 / self.image_size
                                 )
 
-                            if self.model_2_name == "Horn-Schunck":
+                            if self.model_2_name == 'Horn-Schunck':
                                 self.aggregate_outputs_2[
                                     is_time_reversed * 8 + transformation_index,
                                     index_range[0] : index_range[1],
@@ -3287,15 +3295,15 @@ class UI_MainWindow(QWidget):
 
                 # save to cache
                 self.save_to_cache(
-                    name=f"{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_1_cache_name}_outputs",
+                    name=f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_1_cache_name}_outputs',
                     content=self.aggregate_outputs_1,
                 )
                 self.save_to_cache(
-                    name=f"{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_2_cache_name}_outputs",
+                    name=f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_2_cache_name}_outputs',
                     content=self.aggregate_outputs_2,
                 )
                 self.save_to_cache(
-                    name=f"{self.mode}_{self.data_mode}_{self.dataset_name}_ground_truths",
+                    name=f'{self.mode}_{self.data_mode}_{self.dataset_name}_ground_truths',
                     content=self.aggregate_ground_truths,
                 )
 
@@ -3308,17 +3316,17 @@ class UI_MainWindow(QWidget):
 
     # run model on a single test sample
     def run_model_once(self):
-        if self.mode == "digit_recognition":
+        if self.mode == 'digit_recognition':
             self.output_1 = nero_run_model.run_mnist_once(self.model_1, self.cur_image_pt)
             self.output_2 = nero_run_model.run_mnist_once(self.model_2, self.cur_image_pt)
 
             # display result
-            self.display_mnist_single_result(type="bar")
+            self.display_mnist_single_result(type='bar')
 
-        elif self.mode == "object_detection":
+        elif self.mode == 'object_detection':
 
             self.output_1 = nero_run_model.run_coco_once(
-                "single",
+                'single',
                 self.model_1_name,
                 self.model_1,
                 self.cropped_image_pt,
@@ -3328,7 +3336,7 @@ class UI_MainWindow(QWidget):
             )
 
             self.output_2 = nero_run_model.run_coco_once(
-                "single",
+                'single',
                 self.model_2_name,
                 self.model_2,
                 self.cropped_image_pt,
@@ -3417,8 +3425,8 @@ class UI_MainWindow(QWidget):
             gt_display_center_y,
             gt_display_rect_width,
             gt_display_rect_height,
-            color="yellow",
-            label="Ground Truth",
+            color='yellow',
+            label='Ground Truth',
         )
         painter.end()
 
@@ -3490,8 +3498,8 @@ class UI_MainWindow(QWidget):
             self.cur_image_2_pt, self.cur_image_1_pt = self.cur_image_1_pt, self.cur_image_2_pt
 
         # create new GIF
-        display_image_1_pil = Image.fromarray(self.cur_image_1_pt.numpy(), "RGB")
-        display_image_2_pil = Image.fromarray(self.cur_image_2_pt.numpy(), "RGB")
+        display_image_1_pil = Image.fromarray(self.cur_image_1_pt.numpy(), 'RGB')
+        display_image_2_pil = Image.fromarray(self.cur_image_2_pt.numpy(), 'RGB')
         other_images_pil = [
             display_image_1_pil,
             display_image_2_pil,
@@ -3499,11 +3507,11 @@ class UI_MainWindow(QWidget):
             self.blank_image_pil,
         ]
         self.gif_path = os.path.join(
-            self.cache_dir, self.loaded_image_1_name.split(".")[0] + ".gif"
+            self.cache_dir, self.loaded_image_1_name.split('.')[0] + '.gif'
         )
         display_image_1_pil.save(
             fp=self.gif_path,
-            format="GIF",
+            format='GIF',
             append_images=other_images_pil,
             save_all=True,
             duration=300,
@@ -3524,7 +3532,7 @@ class UI_MainWindow(QWidget):
     # run model on all the available transformations on a single sample
     def run_model_single(self):
 
-        if self.mode == "digit_recognition":
+        if self.mode == 'digit_recognition':
             # display the image
             self.display_image()
 
@@ -3575,13 +3583,13 @@ class UI_MainWindow(QWidget):
 
             # display result
             # individual NERO plot
-            self.display_mnist_single_result(type="polar")
+            self.display_mnist_single_result(type='polar')
             # detailed bar plot
-            self.display_mnist_single_result(type="bar")
+            self.display_mnist_single_result(type='bar')
 
-        elif self.mode == "object_detection":
+        elif self.mode == 'object_detection':
             # when this is called in the single case
-            if self.data_mode == "single":
+            if self.data_mode == 'single':
                 # all the x and y translations
                 # x translates on columns, y translates on rows
                 self.x_translation = list(
@@ -3600,10 +3608,10 @@ class UI_MainWindow(QWidget):
 
                 # always try loading from cache
                 self.all_quantities_1 = self.load_from_cache(
-                    name=f"{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_1_cache_name}_{self.image_index}"
+                    name=f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_1_cache_name}_{self.image_index}'
                 )
                 self.all_quantities_2 = self.load_from_cache(
-                    name=f"{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_2_cache_name}_{self.image_index}"
+                    name=f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_2_cache_name}_{self.image_index}'
                 )
 
                 if not self.load_successfully:
@@ -3634,7 +3642,7 @@ class UI_MainWindow(QWidget):
                             # run the model
                             # update the model output
                             self.output_1 = nero_run_model.run_coco_once(
-                                "single",
+                                'single',
                                 self.model_1_name,
                                 self.model_1,
                                 self.cropped_image_pt,
@@ -3644,7 +3652,7 @@ class UI_MainWindow(QWidget):
                             )
 
                             self.output_2 = nero_run_model.run_coco_once(
-                                "single",
+                                'single',
                                 self.model_2_name,
                                 self.model_2,
                                 self.cropped_image_pt,
@@ -3661,11 +3669,11 @@ class UI_MainWindow(QWidget):
 
                     # save to cache
                     self.save_to_cache(
-                        name=f"{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_1_cache_name}_{self.image_index}",
+                        name=f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_1_cache_name}_{self.image_index}',
                         content=self.all_quantities_1,
                     )
                     self.save_to_cache(
-                        name=f"{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_2_cache_name}_{self.image_index}",
+                        name=f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_2_cache_name}_{self.image_index}',
                         content=self.all_quantities_2,
                     )
 
@@ -3673,7 +3681,7 @@ class UI_MainWindow(QWidget):
                 self.display_coco_image()
 
             # when this is in aggregate mode, all the computations have been done
-            elif self.data_mode == "aggregate":
+            elif self.data_mode == 'aggregate':
                 # all the label paths
                 cur_label_path = self.all_labels_paths[self.image_index]
                 # load the label of the current selected image
@@ -3758,8 +3766,8 @@ class UI_MainWindow(QWidget):
                     gt_display_center_y,
                     gt_display_rect_width,
                     gt_display_rect_height,
-                    color="yellow",
-                    label="Ground Truth",
+                    color='yellow',
+                    label='Ground Truth',
                 )
                 painter.end()
 
@@ -3772,7 +3780,7 @@ class UI_MainWindow(QWidget):
             # display the individual NERO plot
             self.display_coco_single_result()
 
-        elif self.mode == "piv":
+        elif self.mode == 'piv':
 
             if self.detail_nero_checkbox.checkState() == QtCore.Qt.Checked:
                 self.show_average = False
@@ -3792,9 +3800,9 @@ class UI_MainWindow(QWidget):
                 self.gif_control_layout = QtWidgets.QVBoxLayout()
                 self.gif_control_layout.setAlignment(QtGui.Qt.AlignTop)
                 self.gif_control_layout.setContentsMargins(0, 70, 0, 0)
-                if self.data_mode == "single":
+                if self.data_mode == 'single':
                     self.single_result_layout.addLayout(self.gif_control_layout, 2, 0)
-                elif self.data_mode == "aggregate":
+                elif self.data_mode == 'aggregate':
                     if self.demo:
                         self.demo_layout.addLayout(self.gif_control_layout, 0, 5, 4, 1)
                     else:
@@ -3803,7 +3811,7 @@ class UI_MainWindow(QWidget):
                 # rotate 90 degrees counter-closewise
                 self.rotate_90_ccw_button = QtWidgets.QPushButton(self)
                 self.rotate_90_ccw_button.setFixedSize(QtCore.QSize(50, 50))
-                self.rotate_90_ccw_button.setIcon(QtGui.QIcon("symbols/rotate_90_ccw.png"))
+                self.rotate_90_ccw_button.setIcon(QtGui.QIcon('symbols/rotate_90_ccw.png'))
                 self.rotate_90_ccw_button.setIconSize(QtCore.QSize(40, 40))
                 self.rotate_90_ccw_button.clicked.connect(rotate_90_ccw)
                 self.gif_control_layout.addWidget(self.rotate_90_ccw_button)
@@ -3811,7 +3819,7 @@ class UI_MainWindow(QWidget):
                 # rotate 90 degrees closewise
                 self.rotate_90_cw_button = QtWidgets.QPushButton(self)
                 self.rotate_90_cw_button.setFixedSize(QtCore.QSize(50, 50))
-                self.rotate_90_cw_button.setIcon(QtGui.QIcon("symbols/rotate_90_cw.png"))
+                self.rotate_90_cw_button.setIcon(QtGui.QIcon('symbols/rotate_90_cw.png'))
                 self.rotate_90_cw_button.setIconSize(QtCore.QSize(40, 40))
                 self.rotate_90_cw_button.clicked.connect(rotate_90_cw)
                 self.gif_control_layout.addWidget(self.rotate_90_cw_button)
@@ -3819,7 +3827,7 @@ class UI_MainWindow(QWidget):
                 # flip the iamge vertically (by x axis)
                 self.vertical_flip_button = QtWidgets.QPushButton(self)
                 self.vertical_flip_button.setFixedSize(QtCore.QSize(50, 50))
-                self.vertical_flip_button.setIcon(QtGui.QIcon("symbols/vertical_flip.png"))
+                self.vertical_flip_button.setIcon(QtGui.QIcon('symbols/vertical_flip.png'))
                 self.vertical_flip_button.setIconSize(QtCore.QSize(40, 40))
                 self.vertical_flip_button.clicked.connect(vertical_flip)
                 self.gif_control_layout.addWidget(self.vertical_flip_button)
@@ -3827,7 +3835,7 @@ class UI_MainWindow(QWidget):
                 # flip the iamge horizontally (by y axis)
                 self.horizontal_flip_button = QtWidgets.QPushButton(self)
                 self.horizontal_flip_button.setFixedSize(QtCore.QSize(50, 50))
-                self.horizontal_flip_button.setIcon(QtGui.QIcon("symbols/horizontal_flip.png"))
+                self.horizontal_flip_button.setIcon(QtGui.QIcon('symbols/horizontal_flip.png'))
                 self.horizontal_flip_button.setIconSize(QtCore.QSize(40, 40))
                 self.horizontal_flip_button.clicked.connect(horizontal_flip)
                 self.gif_control_layout.addWidget(self.horizontal_flip_button)
@@ -3835,7 +3843,7 @@ class UI_MainWindow(QWidget):
                 # time reverse
                 self.time_reverse_button = QtWidgets.QPushButton(self)
                 self.time_reverse_button.setFixedSize(QtCore.QSize(50, 50))
-                self.time_reverse_button.setIcon(QtGui.QIcon("symbols/time_reverse.png"))
+                self.time_reverse_button.setIcon(QtGui.QIcon('symbols/time_reverse.png'))
                 self.time_reverse_button.setIconSize(QtCore.QSize(40, 40))
                 self.time_reverse_button.clicked.connect(time_reverse)
                 self.gif_control_layout.addWidget(self.time_reverse_button)
@@ -3844,7 +3852,7 @@ class UI_MainWindow(QWidget):
             def rotate_90_ccw():
                 self.rotate_ccw = True
                 self.transform_index = 2
-                print(f"Rotate 90 degrees counter clockwise")
+                print(f'Rotate 90 degrees counter clockwise')
 
                 # modify the image, display and current triangle index
                 self.modify_display_gif()
@@ -3853,7 +3861,7 @@ class UI_MainWindow(QWidget):
                 self.display_image()
 
                 # redraw the nero plot with new triangle display
-                self.draw_piv_nero("single")
+                self.draw_piv_nero('single')
                 # update detailed plot of PIV
                 self.draw_piv_details()
 
@@ -3861,7 +3869,7 @@ class UI_MainWindow(QWidget):
             def rotate_90_cw():
                 self.rotate_cw = True
                 self.transform_index = 6
-                print(f"Rotate 90 degrees clockwise")
+                print(f'Rotate 90 degrees clockwise')
 
                 # modify the image, display and current triangle index
                 self.modify_display_gif()
@@ -3870,7 +3878,7 @@ class UI_MainWindow(QWidget):
                 self.display_image()
 
                 # redraw the nero plot with new triangle display
-                self.draw_piv_nero("single")
+                self.draw_piv_nero('single')
                 # update detailed plot of PIV
                 self.draw_piv_details()
 
@@ -3878,7 +3886,7 @@ class UI_MainWindow(QWidget):
             def vertical_flip():
                 self.transform_index = 7
                 self.vertical_flip = True
-                print(f"Flip vertically")
+                print(f'Flip vertically')
                 # modify the image, display and current triangle index
                 self.modify_display_gif()
 
@@ -3886,7 +3894,7 @@ class UI_MainWindow(QWidget):
                 self.display_image()
 
                 # redraw the nero plot with new triangle display
-                self.draw_piv_nero("single")
+                self.draw_piv_nero('single')
                 # update detailed plot of PIV
                 self.draw_piv_details()
 
@@ -3894,7 +3902,7 @@ class UI_MainWindow(QWidget):
             def horizontal_flip():
                 self.horizontal_flip = True
                 self.transform_index = 3
-                print(f"Flip horizontally")
+                print(f'Flip horizontally')
                 # modify the image, display and current triangle index
                 self.modify_display_gif()
 
@@ -3902,14 +3910,14 @@ class UI_MainWindow(QWidget):
                 self.display_image()
 
                 # redraw the nero plot with new triangle display
-                self.draw_piv_nero("single")
+                self.draw_piv_nero('single')
                 # update detailed plot of PIV
                 self.draw_piv_details()
 
             @QtCore.Slot()
             def time_reverse():
                 self.time_reverse = True
-                print(f"Time reverse")
+                print(f'Time reverse')
                 # modify the image, display and current triangle index
                 self.modify_display_gif()
 
@@ -3917,7 +3925,7 @@ class UI_MainWindow(QWidget):
                 self.display_image()
 
                 # redraw the nero plot with new triangle display
-                self.draw_piv_nero("single")
+                self.draw_piv_nero('single')
                 # update detailed plot of PIV
                 self.draw_piv_details()
 
@@ -3964,7 +3972,7 @@ class UI_MainWindow(QWidget):
                     cur_d4_image_1_pt,
                     cur_d4_image_2_pt,
                     cur_ground_truth,
-                    flip_type="right-diagonal",
+                    flip_type='right-diagonal',
                 )
                 # 2: counter-clockwise 90 rotation
                 (
@@ -3980,7 +3988,7 @@ class UI_MainWindow(QWidget):
                     self.all_d4_images_2_pt[is_time_reversed * 8 + 3],
                     self.all_ground_truths[is_time_reversed * 8 + 3],
                 ) = nero_transform.flip_piv_data(
-                    cur_d4_image_1_pt, cur_d4_image_2_pt, cur_ground_truth, flip_type="horizontal"
+                    cur_d4_image_1_pt, cur_d4_image_2_pt, cur_ground_truth, flip_type='horizontal'
                 )
                 # 4: counter-clockwise 180 rotation
                 (
@@ -3999,7 +4007,7 @@ class UI_MainWindow(QWidget):
                     cur_d4_image_1_pt,
                     cur_d4_image_2_pt,
                     cur_ground_truth,
-                    flip_type="left-diagonal",
+                    flip_type='left-diagonal',
                 )
                 # 6: counter-clockwise 270 rotation
                 (
@@ -4015,11 +4023,11 @@ class UI_MainWindow(QWidget):
                     self.all_d4_images_2_pt[is_time_reversed * 8 + 7],
                     self.all_ground_truths[is_time_reversed * 8 + 7],
                 ) = nero_transform.flip_piv_data(
-                    cur_d4_image_1_pt, cur_d4_image_2_pt, cur_ground_truth, flip_type="vertical"
+                    cur_d4_image_1_pt, cur_d4_image_2_pt, cur_ground_truth, flip_type='vertical'
                 )
 
             # when in single mode
-            if self.data_mode == "single":
+            if self.data_mode == 'single':
                 # initialize input image control
                 init_input_control()
 
@@ -4027,12 +4035,12 @@ class UI_MainWindow(QWidget):
                 # always try loading from cache
                 self.all_quantities_1 = torch.from_numpy(
                     self.load_from_cache(
-                        name=f"{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_1_cache_name}_{self.image_index}"
+                        name=f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_1_cache_name}_{self.image_index}'
                     )
                 )
                 self.all_quantities_2 = torch.from_numpy(
                     self.load_from_cache(
-                        name=f"{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_2_cache_name}_{self.image_index}"
+                        name=f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_2_cache_name}_{self.image_index}'
                     )
                 )
 
@@ -4050,24 +4058,24 @@ class UI_MainWindow(QWidget):
                         image_1_pt = self.all_d4_images_1_pt[i]
                         image_2_pt = self.all_d4_images_2_pt[i]
 
-                        print(f"Compute model outputs for D4 transformation {i}")
+                        print(f'Compute model outputs for D4 transformation {i}')
 
                         # run the model
                         quantity_1 = nero_run_model.run_piv_once(
-                            "single", self.model_1_name, self.model_1, image_1_pt, image_2_pt
+                            'single', self.model_1_name, self.model_1, image_1_pt, image_2_pt
                         )
 
                         quantity_2 = nero_run_model.run_piv_once(
-                            "single", self.model_2_name, self.model_2, image_1_pt, image_2_pt
+                            'single', self.model_2_name, self.model_2, image_1_pt, image_2_pt
                         )
 
                         # HS does not need further pixel normalization
-                        if self.model_1_name == "Horn-Schunck":
+                        if self.model_1_name == 'Horn-Schunck':
                             self.all_quantities_1[i] = quantity_1
                         else:
                             self.all_quantities_1[i] = quantity_1 / self.image_size
 
-                        if self.model_2_name == "Horn-Schunck":
+                        if self.model_2_name == 'Horn-Schunck':
                             self.all_quantities_2[i] = quantity_2
                         else:
                             self.all_quantities_2[i] = quantity_2 / self.image_size
@@ -4077,11 +4085,11 @@ class UI_MainWindow(QWidget):
 
                     # save to cache
                     self.save_to_cache(
-                        name=f"{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_1_cache_name}_{self.image_index}",
+                        name=f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_1_cache_name}_{self.image_index}',
                         content=self.all_quantities_1.numpy(),
                     )
                     self.save_to_cache(
-                        name=f"{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_2_cache_name}_{self.image_index}",
+                        name=f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_2_cache_name}_{self.image_index}',
                         content=self.all_quantities_2.numpy(),
                     )
 
@@ -4097,7 +4105,7 @@ class UI_MainWindow(QWidget):
                 self.display_piv_single_result()
 
             # when in aggregate mode but a certain sample has been selected
-            elif self.data_mode == "aggregate":
+            elif self.data_mode == 'aggregate':
                 # display the GIF
                 self.display_image()
 
@@ -4159,7 +4167,7 @@ class UI_MainWindow(QWidget):
             painter.fillRect(text_rect, brush)
             # black text
             pen = QtGui.QPen()
-            pen.setColor(QtGui.QColor("black"))
+            pen.setColor(QtGui.QColor('black'))
             painter.setPen(pen)
             painter.drawText(text_rect, QtGui.Qt.AlignCenter, label)
 
@@ -4169,15 +4177,15 @@ class UI_MainWindow(QWidget):
         plot.setYRange(-1, 1)
         plot.setAspectLocked()
 
-        plot.hideAxis("bottom")
-        plot.hideAxis("left")
+        plot.hideAxis('bottom')
+        plot.hideAxis('left')
 
         # Add polar grid lines
-        plot.addLine(x=0, pen=pg.mkPen("black", width=2))
-        plot.addLine(y=0, pen=pg.mkPen("black", width=2))
+        plot.addLine(x=0, pen=pg.mkPen('black', width=2))
+        plot.addLine(y=0, pen=pg.mkPen('black', width=2))
         for r in np.arange(0, 1.2, 0.2):
             circle = pg.QtWidgets.QGraphicsEllipseItem(-r, -r, 2 * r, 2 * r)
-            circle.setPen(pg.mkPen("black", width=2))
+            circle.setPen(pg.mkPen('black', width=2))
             plot.addItem(circle)
 
         return plot
@@ -4196,7 +4204,7 @@ class UI_MainWindow(QWidget):
         self.circle_1 = pg.QtWidgets.QGraphicsEllipseItem(
             cur_quantity_1_x - r / 2, cur_quantity_1_y - r / 2, r, r
         )
-        self.circle_1.setPen(pg.mkPen("blue", width=7))
+        self.circle_1.setPen(pg.mkPen('blue', width=7))
         self.polar_plot.addItem(self.circle_1)
 
         # transform to x and y coordinate
@@ -4210,7 +4218,7 @@ class UI_MainWindow(QWidget):
         self.circle_2 = pg.QtWidgets.QGraphicsEllipseItem(
             cur_quantity_2_x - r / 2, cur_quantity_2_y - r / 2, r, r
         )
-        self.circle_2.setPen(pg.mkPen("magenta", width=7))
+        self.circle_2.setPen(pg.mkPen('magenta', width=7))
         self.polar_plot.addItem(self.circle_2)
 
     # draw detailed look of COCO models output on cropped regions
@@ -4249,9 +4257,9 @@ class UI_MainWindow(QWidget):
                 gt_display_center_y,
                 gt_display_rect_width,
                 gt_display_rect_height,
-                color="yellow",
+                color='yellow',
                 alpha=166,
-                label="Ground Truth",
+                label='Ground Truth',
             )
 
             # box from model 1
@@ -4292,7 +4300,7 @@ class UI_MainWindow(QWidget):
                     color,
                     alpha=cur_alpha,
                     boundary_width=cur_boundary_width,
-                    label=f"Prediction {i+1}",
+                    label=f'Prediction {i+1}',
                 )
 
             painter.end()
@@ -4319,11 +4327,11 @@ class UI_MainWindow(QWidget):
 
                         if isinstance(value, float):
                             # Render float to 3 dp
-                            return "%.3f" % value
+                            return '%.3f' % value
 
                         if isinstance(value, str):
                             # Render strings without quotes
-                            return "%s" % value
+                            return '%s' % value
 
                         # Default (anything not captured above: e.g. int)
                         return value
@@ -4346,7 +4354,7 @@ class UI_MainWindow(QWidget):
             detailed_image_table.setFrameStyle(QtWidgets.QFrame.NoFrame)
             detailed_image_table.setColumnWidth(0, 20)
 
-            data = [["Prediction #", "Class", "Conf", "IOU"]]
+            data = [['Prediction #', 'Class', 'Conf', 'IOU']]
             for i in range(num_boxes_1):
                 data.append(
                     [
@@ -4389,24 +4397,24 @@ class UI_MainWindow(QWidget):
 
         # display for model 1
         self.detailed_image_label_1, self.detailed_text_label_1 = draw_detailed_plot(
-            self.detailed_display_image, self.output_1, "blue"
+            self.detailed_display_image, self.output_1, 'blue'
         )
         # display for model 2
         self.detailed_image_label_2, self.detailed_text_label_2 = draw_detailed_plot(
-            self.detailed_display_image, self.output_2, "magenta"
+            self.detailed_display_image, self.output_2, 'magenta'
         )
         # spacer item between image and text
         image_text_spacer = QtWidgets.QSpacerItem(
             self.plot_size, 10, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding
         )
 
-        if self.data_mode == "single":
+        if self.data_mode == 'single':
             self.single_result_layout.addWidget(self.detailed_image_label_1, 3, 1)
             self.single_result_layout.addItem(image_text_spacer, 4, 2)
             self.single_result_layout.addWidget(self.detailed_text_label_1, 4, 1)
             self.single_result_layout.addWidget(self.detailed_image_label_2, 3, 2)
             self.single_result_layout.addWidget(self.detailed_text_label_2, 4, 2)
-        elif self.data_mode == "aggregate":
+        elif self.data_mode == 'aggregate':
             if self.demo:
                 self.demo_layout.addWidget(self.detailed_image_label_1, 5, 3, 1, 1)
                 self.demo_layout.addWidget(self.detailed_text_label_1, 5, 4, 1, 1)
@@ -4429,11 +4437,11 @@ class UI_MainWindow(QWidget):
             # no additional content margin to prevent cutoff on images
 
             # add the image label to the layout
-            if self.data_mode == "single":
+            if self.data_mode == 'single':
                 self.single_result_layout.addWidget(self.image_label, 1, 0)
 
-            elif self.data_mode == "aggregate":
-                if self.mode == "digit_recognition":
+            elif self.data_mode == 'aggregate':
+                if self.mode == 'digit_recognition':
                     if self.demo:
                         # self.image_layout = QtWidgets.QHBoxLayout()
                         # self.image_layout.addWidget(self.image_label)
@@ -4442,13 +4450,13 @@ class UI_MainWindow(QWidget):
                         self.demo_layout.addWidget(self.image_label, 0, 3, 3, 1)
                     else:
                         self.aggregate_result_layout.addWidget(self.image_label, 1, 4, 2, 1)
-                elif self.mode == "object_detection" or self.mode == "piv":
+                elif self.mode == 'object_detection' or self.mode == 'piv':
                     if self.demo:
                         self.demo_layout.addWidget(self.image_label, 0, 4, 5, 1)
                     else:
                         self.aggregate_result_layout.addWidget(self.image_label, 1, 3, 3, 1)
 
-        if self.mode == "digit_recognition" or self.mode == "object_detection":
+        if self.mode == 'digit_recognition' or self.mode == 'object_detection':
 
             # prepare a pixmap for the image
             self.image_pixmap = QPixmap(self.cur_display_image)
@@ -4456,13 +4464,13 @@ class UI_MainWindow(QWidget):
             # single pixmap in the label
             self.image_label.setPixmap(self.image_pixmap)
 
-            if self.mode == "digit_recognition":
+            if self.mode == 'digit_recognition':
                 # plot_size should be bigger than the display_size, so that some margins exist
                 self.image_label.setFixedSize(
                     self.display_image_size + 100, self.display_image_size + 50
                 )
                 self.image_label.setContentsMargins(100, 50, 0, 0)  # left, top, right, bottom
-            elif self.mode == "object_detection":
+            elif self.mode == 'object_detection':
                 # set label to the size of pixmap so that when clicked it is wrt image
                 self.image_label.setFixedSize(self.image_pixmap.size())
 
@@ -4557,8 +4565,8 @@ class UI_MainWindow(QWidget):
                                 gt_display_center_y,
                                 gt_display_rect_width,
                                 gt_display_rect_height,
-                                color="yellow",
-                                label="Ground Truth",
+                                color='yellow',
+                                label='Ground Truth',
                             )
                             painter.end()
 
@@ -4576,7 +4584,7 @@ class UI_MainWindow(QWidget):
                             self.cur_y_tran = (
                                 self.image_size - 1 - (y_dist - self.y_translation[0] + 1)
                             )
-                            self.draw_coco_nero(mode="single")
+                            self.draw_coco_nero(mode='single')
 
                             # run inference only when in the realtime mode
                             if self.realtime_inference:
@@ -4594,7 +4602,7 @@ class UI_MainWindow(QWidget):
                 self.image_label.mouseMoveEvent = update_model_pov
                 self.image_label.mouseReleaseEvent = end_moving
 
-        elif self.mode == "piv":
+        elif self.mode == 'piv':
 
             # plot_size should be bigger than the display_size, so that some margins exist
             self.image_label.setFixedSize(self.plot_size, self.plot_size)
@@ -4681,12 +4689,12 @@ class UI_MainWindow(QWidget):
     def draw_individual_heatmap(self, mode, data, heatmap=None, scatter_item=None, title=None):
 
         # color map
-        self.color_map = pg.colormap.get("viridis")
+        self.color_map = pg.colormap.get('viridis')
         self.color_bar = pg.ColorBarItem(
             values=self.cm_range,
             colorMap=self.color_map,
             interactive=False,
-            orientation="horizontal",
+            orientation='horizontal',
             width=30,
         )
         # add colorbar to a specific place if in demo mode
@@ -4695,22 +4703,22 @@ class UI_MainWindow(QWidget):
             dummy_plot = pg.PlotItem()
             dummy_plot.setFixedHeight(0)
             dummy_plot.setFixedWidth(self.plot_size * 1.3)
-            dummy_plot.hideAxis("bottom")
-            dummy_plot.hideAxis("left")
+            dummy_plot.hideAxis('bottom')
+            dummy_plot.hideAxis('left')
             dummy_view.addItem(dummy_plot)
             dummy_image = pg.ImageItem()
             self.color_bar.setImageItem(dummy_image, insert_in=dummy_plot)
             self.demo_layout.addWidget(dummy_view, 1, 2, 1, 2)
 
-        if self.mode == "object_detection":
+        if self.mode == 'object_detection':
             # viewbox that contains the heatmap
             view_box = pg.ViewBox(invertY=True)
             view_box.setAspectLocked(lock=True)
 
             # single mode needs to have input view_box, heatmap and scatter_item for interactively handling
-            if mode == "single":
+            if mode == 'single':
                 heatmap_plot = pg.PlotItem(viewBox=view_box, title=title)
-                heatmap.setOpts(axisOrder="row-major")
+                heatmap.setOpts(axisOrder='row-major')
                 heatmap.setImage(data)
                 # add image to the viewbox
                 view_box.addItem(heatmap)
@@ -4720,13 +4728,13 @@ class UI_MainWindow(QWidget):
                 # small indicator on where the translation is at
                 scatter_point = [
                     {
-                        "pos": (
+                        'pos': (
                             self.cur_x_tran + self.translation_step_single // 2,
                             self.cur_y_tran + self.translation_step_single // 2,
                         ),
-                        "size": self.translation_step_single,
-                        "pen": {"color": "red", "width": 3},
-                        "brush": (0, 0, 0, 0),
+                        'size': self.translation_step_single,
+                        'pen': {'color': 'red', 'width': 3},
+                        'brush': (0, 0, 0, 0),
                     }
                 ]
 
@@ -4734,21 +4742,21 @@ class UI_MainWindow(QWidget):
                 scatter_item.setData(scatter_point)
                 heatmap_plot.addItem(scatter_item)
 
-            elif mode == "aggregate":
+            elif mode == 'aggregate':
                 # heatmap = pg.ImageItem()
                 heatmap.setImage(data)
                 view_box.addItem(heatmap)
                 heatmap_plot = pg.PlotItem(viewBox=view_box, title=title)
 
-            heatmap_plot.getAxis("bottom").setLabel("Translation in x")
-            heatmap_plot.getAxis("bottom").setStyle(tickLength=0, showValues=False)
-            heatmap_plot.getAxis("left").setLabel("Translation in y")
-            heatmap_plot.getAxis("left").setStyle(tickLength=0, showValues=False)
+            heatmap_plot.getAxis('bottom').setLabel('Translation in x')
+            heatmap_plot.getAxis('bottom').setStyle(tickLength=0, showValues=False)
+            heatmap_plot.getAxis('left').setLabel('Translation in y')
+            heatmap_plot.getAxis('left').setStyle(tickLength=0, showValues=False)
 
             # disable being able to move plot around
             heatmap_plot.setMouseEnabled(x=False, y=False)
 
-        elif self.mode == "piv":
+        elif self.mode == 'piv':
 
             # when we are not showing the detail NERO
             if self.show_average:
@@ -4758,11 +4766,11 @@ class UI_MainWindow(QWidget):
                         data[y * 256 : (y + 1) * 256, x * 256 : (x + 1) * 256] = data_mean
 
             # single mode needs to have input view_box, heatmap and scatter_item for interactively handling
-            if mode == "single":
+            if mode == 'single':
                 view_box = pg.ViewBox(invertY=True)
                 view_box.setAspectLocked(lock=True)
                 heatmap_plot = pg.PlotItem(viewBox=view_box, title=title)
-                heatmap.setOpts(axisOrder="row-major")
+                heatmap.setOpts(axisOrder='row-major')
                 heatmap.setImage(data)
                 # add image to the viewbox
                 view_box.addItem(heatmap)
@@ -4806,17 +4814,17 @@ class UI_MainWindow(QWidget):
                 # when clicked, display the orbit position selection rectangle
                 self.scatter_point = [
                     {
-                        "pos": (rect_x, rect_y),
-                        "size": self.image_size,
-                        "pen": {"color": "red", "width": 4},
-                        "brush": (0, 0, 0, 0),
+                        'pos': (rect_x, rect_y),
+                        'size': self.image_size,
+                        'pen': {'color': 'red', 'width': 4},
+                        'brush': (0, 0, 0, 0),
                     }
                 ]
                 # add points to the item
                 scatter_item.setData(self.scatter_point)
                 heatmap_plot.addItem(scatter_item)
 
-            elif mode == "aggregate":
+            elif mode == 'aggregate':
                 view_box = pg.ViewBox(invertY=True)
                 view_box.setAspectLocked(lock=True)
                 heatmap = pg.ImageItem()
@@ -4847,8 +4855,8 @@ class UI_MainWindow(QWidget):
                         pen=QtGui.QPen(line_color, 4),
                     )
 
-            heatmap_plot.getAxis("bottom").setStyle(tickLength=0, showValues=False)
-            heatmap_plot.getAxis("left").setStyle(tickLength=0, showValues=False)
+            heatmap_plot.getAxis('bottom').setStyle(tickLength=0, showValues=False)
+            heatmap_plot.getAxis('left').setStyle(tickLength=0, showValues=False)
 
             # in show_average mode, also show the orbit indicator
             if self.show_average:
@@ -4858,7 +4866,7 @@ class UI_MainWindow(QWidget):
                 for is_time_reversed in time_reverses:
                     # original
                     if not is_time_reversed:
-                        original_F_pil = Image.open("symbols/F.png").convert("RGBA")
+                        original_F_pil = Image.open('symbols/F.png').convert('RGBA')
                         # convert to torch tensor
                         original_F_np = np.array(original_F_pil)
                         original_F_np = np.transpose(original_F_np, axes=(1, 0, 2))
@@ -4949,7 +4957,7 @@ class UI_MainWindow(QWidget):
                         heatmap_plot.addItem(cur_F_image)
 
                     else:
-                        original_F_pil = Image.open("symbols/F_reversed.png").convert("RGBA")
+                        original_F_pil = Image.open('symbols/F_reversed.png').convert('RGBA')
                         # convert to torch tensor
                         original_F_np = np.array(original_F_pil)
                         original_F_np = np.transpose(original_F_np, axes=(1, 0, 2))
@@ -5055,7 +5063,7 @@ class UI_MainWindow(QWidget):
         view_box = pg.ViewBox(invertY=True)
         view_box.setAspectLocked(lock=True)
         detail_heatmap_plot = pg.PlotItem(viewBox=view_box)
-        heatmap.setOpts(axisOrder="row-major")
+        heatmap.setOpts(axisOrder='row-major')
         heatmap.setImage(data)
         # use the same colorbar as the individual NERO plot
         self.color_bar.setImageItem(heatmap)
@@ -5066,21 +5074,21 @@ class UI_MainWindow(QWidget):
 
         # small indicator on where the quiver plot displays
         detail_scatter_item = pg.ScatterPlotItem(pxMode=False)
-        detail_scatter_item.setSymbol("s")
+        detail_scatter_item.setSymbol('s')
         detail_scatter_point = [
             {
-                "pos": (self.detail_rect_x, self.detail_rect_y),
-                "size": 8,
-                "pen": {"color": "red", "width": 4},
-                "brush": (0, 0, 0, 0),
+                'pos': (self.detail_rect_x, self.detail_rect_y),
+                'size': 8,
+                'pen': {'color': 'red', 'width': 4},
+                'brush': (0, 0, 0, 0),
             }
         ]
         # add points to the item
         detail_scatter_item.setData(detail_scatter_point)
         detail_heatmap_plot.addItem(detail_scatter_item)
 
-        detail_heatmap_plot.getAxis("bottom").setStyle(tickLength=0, showValues=False)
-        detail_heatmap_plot.getAxis("left").setStyle(tickLength=0, showValues=False)
+        detail_heatmap_plot.getAxis('bottom').setStyle(tickLength=0, showValues=False)
+        detail_heatmap_plot.getAxis('left').setStyle(tickLength=0, showValues=False)
 
         return detail_heatmap_plot
 
@@ -5097,8 +5105,8 @@ class UI_MainWindow(QWidget):
                 self.index = index
 
             def mouseClickEvent(self, event):
-                if self.plot_type == "single":
-                    print(f"Clicked on heatmap at ({event.pos().x()}, {event.pos().y()})")
+                if self.plot_type == 'single':
+                    print(f'Clicked on heatmap at ({event.pos().x()}, {event.pos().y()})')
                     # the position of un-repeated aggregate result
                     outer_self.block_x = int(
                         np.floor(event.pos().x() // outer_self.translation_step_single)
@@ -5129,7 +5137,7 @@ class UI_MainWindow(QWidget):
                     outer_self.display_coco_image()
 
                     # redisplay model output (result taken from the aggregate results)
-                    if outer_self.data_mode == "aggregate":
+                    if outer_self.data_mode == 'aggregate':
                         outer_self.draw_model_output(take_from_aggregate_output=True)
                     else:
                         outer_self.draw_model_output()
@@ -5141,13 +5149,13 @@ class UI_MainWindow(QWidget):
                     # new scatter points
                     scatter_point = [
                         {
-                            "pos": (
+                            'pos': (
                                 outer_self.cur_x_tran + outer_self.translation_step_single // 2,
                                 outer_self.cur_y_tran + outer_self.translation_step_single // 2,
                             ),
-                            "size": outer_self.translation_step_single,
-                            "pen": {"color": "red", "width": 3},
-                            "brush": (0, 0, 0, 0),
+                            'size': outer_self.translation_step_single,
+                            'pen': {'color': 'red', 'width': 3},
+                            'brush': (0, 0, 0, 0),
                         }
                     ]
 
@@ -5158,19 +5166,19 @@ class UI_MainWindow(QWidget):
                     outer_self.heatmap_plot_2.addItem(outer_self.scatter_item_2)
 
             def mouseDragEvent(self, event):
-                if self.plot_type == "single":
+                if self.plot_type == 'single':
                     # if event.button() != QtCore.Qt.LeftButton:
                     #     event.ignore()
                     #     return
                     # print(event.pos())
                     if event.isStart():
-                        print("Dragging starts", event.pos())
+                        print('Dragging starts', event.pos())
 
                     elif event.isFinish():
-                        print("Dragging stops", event.pos())
+                        print('Dragging stops', event.pos())
 
                     else:
-                        print("Drag", event.pos())
+                        print('Drag', event.pos())
 
             def hoverEvent(self, event):
                 if not event.isExit():
@@ -5188,7 +5196,7 @@ class UI_MainWindow(QWidget):
                     self.setToolTip(hover_text)
 
         # add to general layout
-        if mode == "single":
+        if mode == 'single':
             # check if the data is in shape (self.image_size, self.image_size)
             if self.cur_single_plot_quantity_1.shape != (self.image_size, self.image_size):
                 # repeat in row
@@ -5226,29 +5234,29 @@ class UI_MainWindow(QWidget):
             self.heatmap_view_2.ci.layout.setContentsMargins(0, 20, 0, 0)  # left top right bottom
             self.heatmap_view_2.setFixedSize(self.plot_size * 1.3, self.plot_size * 1.3)
 
-            self.single_nero_1 = COCO_heatmap(plot_type="single", index=1)
-            self.single_nero_2 = COCO_heatmap(plot_type="single", index=2)
+            self.single_nero_1 = COCO_heatmap(plot_type='single', index=1)
+            self.single_nero_2 = COCO_heatmap(plot_type='single', index=2)
             self.scatter_item_1 = pg.ScatterPlotItem(pxMode=False)
-            self.scatter_item_1.setSymbol("s")
+            self.scatter_item_1.setSymbol('s')
             self.scatter_item_2 = pg.ScatterPlotItem(pxMode=False)
-            self.scatter_item_2.setSymbol("s")
+            self.scatter_item_2.setSymbol('s')
             # all quantities plotted will have range from 0 to 1
             self.cm_range = (0, 1)
             self.heatmap_plot_1 = self.draw_individual_heatmap(
-                "single", data_1, self.single_nero_1, self.scatter_item_1
+                'single', data_1, self.single_nero_1, self.scatter_item_1
             )
             self.heatmap_plot_2 = self.draw_individual_heatmap(
-                "single", data_2, self.single_nero_2, self.scatter_item_2
+                'single', data_2, self.single_nero_2, self.scatter_item_2
             )
 
             # add to view
             self.heatmap_view_1.addItem(self.heatmap_plot_1)
             self.heatmap_view_2.addItem(self.heatmap_plot_2)
 
-            if self.data_mode == "single":
+            if self.data_mode == 'single':
                 self.single_result_layout.addWidget(self.heatmap_view_1, 1, 1)
                 self.single_result_layout.addWidget(self.heatmap_view_2, 1, 2)
-            elif self.data_mode == "aggregate":
+            elif self.data_mode == 'aggregate':
                 if self.demo:
                     self.demo_layout.addWidget(self.heatmap_view_1, 5, 2, 1, 1)
                     self.demo_layout.addWidget(self.heatmap_view_2, 7, 2, 1, 1)
@@ -5256,7 +5264,7 @@ class UI_MainWindow(QWidget):
                     self.aggregate_result_layout.addWidget(self.heatmap_view_1, 1, 4)
                     self.aggregate_result_layout.addWidget(self.heatmap_view_2, 1, 5)
 
-        elif mode == "aggregate":
+        elif mode == 'aggregate':
             # check if the data is in shape (self.image_size, self.image_size)
             if self.cur_aggregate_plot_quantity_1.shape != (self.image_size, self.image_size):
                 # repeat in row
@@ -5299,18 +5307,18 @@ class UI_MainWindow(QWidget):
             )  # left top right bottom
             self.aggregate_heatmap_view_2.setFixedSize(self.plot_size * 1.3, self.plot_size * 1.3)
 
-            self.aggregate_nero_1 = COCO_heatmap(plot_type="aggregate", index=1)
-            self.aggregate_nero_2 = COCO_heatmap(plot_type="aggregate", index=2)
+            self.aggregate_nero_1 = COCO_heatmap(plot_type='aggregate', index=1)
+            self.aggregate_nero_2 = COCO_heatmap(plot_type='aggregate', index=2)
 
             self.cm_range = (0, 1)
 
-            self.aggregate_nero_1 = COCO_heatmap(plot_type="aggregate", index=1)
-            self.aggregate_nero_2 = COCO_heatmap(plot_type="aggregate", index=2)
+            self.aggregate_nero_1 = COCO_heatmap(plot_type='aggregate', index=1)
+            self.aggregate_nero_2 = COCO_heatmap(plot_type='aggregate', index=2)
             self.aggregate_heatmap_plot_1 = self.draw_individual_heatmap(
-                "aggregate", data_1, self.aggregate_nero_1
+                'aggregate', data_1, self.aggregate_nero_1
             )
             self.aggregate_heatmap_plot_2 = self.draw_individual_heatmap(
-                "aggregate", data_2, self.aggregate_nero_2
+                'aggregate', data_2, self.aggregate_nero_2
             )
 
             # add to view
@@ -5327,7 +5335,7 @@ class UI_MainWindow(QWidget):
     def draw_aggregate_polar(self):
         # initialize view and plot
         polar_view = pg.GraphicsLayoutWidget()
-        polar_view.setBackground("white")
+        polar_view.setBackground('white')
         # polar plot larger than others because it occupies two rows
         polar_view.setFixedSize(self.plot_size * 1.7, self.plot_size * 1.7)
         polar_view.ci.layout.setContentsMargins(0, 0, 50, 0)
@@ -5347,14 +5355,14 @@ class UI_MainWindow(QWidget):
         for i in range(len(self.all_aggregate_angles)):
             radian = self.all_aggregate_angles[i] / 180 * np.pi
             # plot selected digit's average accuracy/confidence across all rotations
-            if self.quantity_name == "Accuracy":
-                if self.class_selection == "all":
+            if self.quantity_name == 'Accuracy':
+                if self.class_selection == 'all':
                     cur_quantity_1 = self.all_avg_accuracy_1[i]
                 else:
                     cur_quantity_1 = self.all_avg_accuracy_per_digit_1[i][self.class_selection]
-            elif self.quantity_name == "Confidence":
+            elif self.quantity_name == 'Confidence':
                 all_confidences = []
-                if self.class_selection == "all":
+                if self.class_selection == 'all':
                     # output of each class's probablity of all samples, has shape (num_rotations, num_samples, 10)
                     for j in range(len(self.all_outputs_1[0])):
                         all_confidences.append(
@@ -5380,22 +5388,22 @@ class UI_MainWindow(QWidget):
             all_y_1.append(y_1)
             all_points_1.append(
                 {
-                    "pos": (x_1, y_1),
-                    "size": 0.05,
-                    "pen": {"color": "w", "width": 0.1},
-                    "brush": QtGui.QColor("blue"),
+                    'pos': (x_1, y_1),
+                    'size': 0.05,
+                    'pen': {'color': 'w', 'width': 0.1},
+                    'brush': QtGui.QColor('blue'),
                 }
             )
 
             # Aggregated NERO plot for model 2
-            if self.quantity_name == "Accuracy":
-                if self.class_selection == "all":
+            if self.quantity_name == 'Accuracy':
+                if self.class_selection == 'all':
                     cur_quantity_2 = self.all_avg_accuracy_2[i]
                 else:
                     cur_quantity_2 = self.all_avg_accuracy_per_digit_2[i][self.class_selection]
-            elif self.quantity_name == "Confidence":
+            elif self.quantity_name == 'Confidence':
                 all_confidences = []
-                if self.class_selection == "all":
+                if self.class_selection == 'all':
                     # output of each class's probablity of all samples, has shape (num_rotations, num_samples, 10)
                     for j in range(len(self.all_outputs_2[0])):
                         all_confidences.append(
@@ -5421,10 +5429,10 @@ class UI_MainWindow(QWidget):
             all_y_2.append(y_2)
             all_points_2.append(
                 {
-                    "pos": (x_2, y_2),
-                    "size": 0.05,
-                    "pen": {"color": "w", "width": 0.1},
-                    "brush": QtGui.QColor("magenta"),
+                    'pos': (x_2, y_2),
+                    'size': 0.05,
+                    'pen': {'color': 'w', 'width': 0.1},
+                    'brush': QtGui.QColor('magenta'),
                 }
             )
 
@@ -5490,7 +5498,7 @@ class UI_MainWindow(QWidget):
             def mouseClickEvent(self, event):
                 # if outer_self.piv_heatmap_click_enable:
                 print(
-                    f"Clicked on individual PIV NERO plot at ({event.pos().x()}, {event.pos().y()})"
+                    f'Clicked on individual PIV NERO plot at ({event.pos().x()}, {event.pos().y()})'
                 )
                 # in PIV mode, a pop up window shows the nearby area's quiver plot
                 rect_x = int(event.pos().x() // outer_self.image_size)
@@ -5525,7 +5533,7 @@ class UI_MainWindow(QWidget):
                 if transformation_index == 1:
 
                     temp_image_1_pt, temp_image_2_pt, _ = nero_transform.flip_piv_data(
-                        start_image_1_pt, start_image_2_pt, np.zeros(1), flip_type="right-diagonal"
+                        start_image_1_pt, start_image_2_pt, np.zeros(1), flip_type='right-diagonal'
                     )
 
                 # 2: counter-clockwise 90 rotation
@@ -5536,7 +5544,7 @@ class UI_MainWindow(QWidget):
                 # 3: horizontal flip (by y axis)
                 elif transformation_index == 3:
                     temp_image_1_pt, temp_image_2_pt, _ = nero_transform.flip_piv_data(
-                        start_image_1_pt, start_image_2_pt, np.zeros(1), flip_type="horizontal"
+                        start_image_1_pt, start_image_2_pt, np.zeros(1), flip_type='horizontal'
                     )
                 # 4: counter-clockwise 180 rotation
                 elif transformation_index == 4:
@@ -5546,7 +5554,7 @@ class UI_MainWindow(QWidget):
                 # 5: \ diagnal flip
                 elif transformation_index == 5:
                     temp_image_1_pt, temp_image_2_pt, _ = nero_transform.flip_piv_data(
-                        start_image_1_pt, start_image_2_pt, np.zeros(1), flip_type="left-diagonal"
+                        start_image_1_pt, start_image_2_pt, np.zeros(1), flip_type='left-diagonal'
                     )
                 # 6: counter-clockwise 270 rotation
                 elif transformation_index == 6:
@@ -5556,22 +5564,22 @@ class UI_MainWindow(QWidget):
                 # 7: vertical flip (by x axis)
                 elif transformation_index == 7:
                     temp_image_1_pt, temp_image_2_pt, _ = nero_transform.flip_piv_data(
-                        start_image_1_pt, start_image_2_pt, np.zeros(1), flip_type="vertical"
+                        start_image_1_pt, start_image_2_pt, np.zeros(1), flip_type='vertical'
                     )
 
                 # create new GIF
-                display_image_1_pil = Image.fromarray(temp_image_1_pt.numpy(), "RGB")
-                display_image_2_pil = Image.fromarray(temp_image_2_pt.numpy(), "RGB")
+                display_image_1_pil = Image.fromarray(temp_image_1_pt.numpy(), 'RGB')
+                display_image_2_pil = Image.fromarray(temp_image_2_pt.numpy(), 'RGB')
                 other_images_pil = [
                     display_image_1_pil,
                     display_image_2_pil,
                     display_image_2_pil,
                     outer_self.blank_image_pil,
                 ]
-                outer_self.gif_path = os.path.join(outer_self.cache_dir, "_clicked.gif")
+                outer_self.gif_path = os.path.join(outer_self.cache_dir, '_clicked.gif')
                 display_image_1_pil.save(
                     fp=outer_self.gif_path,
-                    format="GIF",
+                    format='GIF',
                     append_images=other_images_pil,
                     save_all=True,
                     duration=300,
@@ -5582,7 +5590,7 @@ class UI_MainWindow(QWidget):
                 outer_self.display_image()
 
                 # redraw the nero plot with new rectangle display
-                outer_self.draw_piv_nero("single")
+                outer_self.draw_piv_nero('single')
 
                 # the detailed plot of PIV
                 outer_self.detail_rect_x = outer_self.image_size // 2
@@ -5601,29 +5609,29 @@ class UI_MainWindow(QWidget):
         # subclass of ImageItem that reimplements the control methods
         class PIV_detail_heatmap(pg.ImageItem):
             def mouseClickEvent(self, event):
-                print(f"Clicked on detail heatmap at ({event.pos().x()}, {event.pos().y()})")
+                print(f'Clicked on detail heatmap at ({event.pos().x()}, {event.pos().y()})')
                 outer_self.detail_rect_x = event.pos().x()
                 outer_self.detail_rect_y = event.pos().y()
 
                 # udpate the detail plot
-                outer_self.draw_piv_nero(mode="single")
+                outer_self.draw_piv_nero(mode='single')
                 # draw the quiver plot
                 outer_self.draw_piv_details()
 
             def mouseDragEvent(self, event):
-                if self.plot_type == "single":
+                if self.plot_type == 'single':
                     # if event.button() != QtCore.Qt.LeftButton:
                     #     event.ignore()
                     #     return
                     # print(event.pos())
                     if event.isStart():
-                        print("Dragging starts", event.pos())
+                        print('Dragging starts', event.pos())
 
                     elif event.isFinish():
-                        print("Dragging stops", event.pos())
+                        print('Dragging stops', event.pos())
 
                     else:
-                        print("Drag", event.pos())
+                        print('Drag', event.pos())
 
         # helper function on reshaping data
         def prepare_plot_data(input_data):
@@ -5700,7 +5708,7 @@ class UI_MainWindow(QWidget):
             return output_data
 
         # add to general layout
-        if mode == "single":
+        if mode == 'single':
             self.single_result_existed = True
             # prepare data for piv individual nero plot (heatmap)
             self.data_1 = prepare_plot_data(self.cur_single_plot_quantity_1)
@@ -5718,17 +5726,17 @@ class UI_MainWindow(QWidget):
             self.single_nero_1 = PIV_heatmap()
             self.single_nero_2 = PIV_heatmap()
             self.scatter_item_1 = pg.ScatterPlotItem(pxMode=False)
-            self.scatter_item_1.setSymbol("s")
+            self.scatter_item_1.setSymbol('s')
             self.scatter_item_2 = pg.ScatterPlotItem(pxMode=False)
-            self.scatter_item_2.setSymbol("s")
+            self.scatter_item_2.setSymbol('s')
             # color map is flipped so that low error is bright
             self.cm_range = (self.loss_high_bound, self.loss_low_bound)
             self.heatmap_plot_1 = self.draw_individual_heatmap(
-                "single", self.data_1, self.single_nero_1, self.scatter_item_1
+                'single', self.data_1, self.single_nero_1, self.scatter_item_1
             )
 
             self.heatmap_plot_2 = self.draw_individual_heatmap(
-                "single", self.data_2, self.single_nero_2, self.scatter_item_2
+                'single', self.data_2, self.single_nero_2, self.scatter_item_2
             )
 
             # add to view
@@ -5736,10 +5744,10 @@ class UI_MainWindow(QWidget):
             self.heatmap_view_2.addItem(self.heatmap_plot_2)
 
             # add to layout
-            if self.data_mode == "single":
+            if self.data_mode == 'single':
                 self.single_result_layout.addWidget(self.heatmap_view_1, 1, 1)
                 self.single_result_layout.addWidget(self.heatmap_view_2, 1, 2)
-            elif self.data_mode == "aggregate":
+            elif self.data_mode == 'aggregate':
                 if self.demo:
                     self.demo_layout.addWidget(self.heatmap_view_1, 5, 2, 1, 1)
                     self.demo_layout.addWidget(self.heatmap_view_2, 7, 2, 1, 1)
@@ -5785,10 +5793,10 @@ class UI_MainWindow(QWidget):
             self.detail_heatmap_view_2.addItem(self.detail_plot_2)
 
             # add to layout
-            if self.data_mode == "single":
+            if self.data_mode == 'single':
                 self.single_result_layout.addWidget(self.detail_heatmap_view_1, 1, 1)
                 self.single_result_layout.addWidget(self.detail_heatmap_view_2, 1, 2)
-            elif self.data_mode == "aggregate":
+            elif self.data_mode == 'aggregate':
                 if self.demo:
                     self.demo_layout.addWidget(self.detail_heatmap_view_1, 5, 3, 1, 1)
                     self.demo_layout.addWidget(self.detail_heatmap_view_2, 7, 3, 1, 1)
@@ -5796,7 +5804,7 @@ class UI_MainWindow(QWidget):
                     self.aggregate_result_layout.addWidget(self.detail_heatmap_view_1, 1, 4)
                     self.aggregate_result_layout.addWidget(self.detail_heatmap_view_2, 1, 5)
 
-        elif mode == "aggregate":
+        elif mode == 'aggregate':
             # prepare data for piv individual nero plot (heatmap)
             self.data_1 = prepare_plot_data(self.cur_aggregate_plot_quantity_1)
             self.data_2 = prepare_plot_data(self.cur_aggregate_plot_quantity_2)
@@ -5811,8 +5819,8 @@ class UI_MainWindow(QWidget):
             self.aggregate_heatmap_view_2.setFixedSize(self.plot_size * 1.3, self.plot_size * 1.3)
             # color map is flipped so that low error is bright
             self.cm_range = (self.loss_high_bound, self.loss_low_bound)
-            self.aggregate_heatmap_plot_1 = self.draw_individual_heatmap("aggregate", self.data_1)
-            self.aggregate_heatmap_plot_2 = self.draw_individual_heatmap("aggregate", self.data_2)
+            self.aggregate_heatmap_plot_1 = self.draw_individual_heatmap('aggregate', self.data_1)
+            self.aggregate_heatmap_plot_2 = self.draw_individual_heatmap('aggregate', self.data_2)
 
             # add to view
             self.aggregate_heatmap_view_1.addItem(self.aggregate_heatmap_plot_1)
@@ -5904,8 +5912,8 @@ class UI_MainWindow(QWidget):
                 cur_arrow_pred.setPos(x, len(ground_truth_vectors) - 1 - y)
                 quiver_plot.addItem(cur_arrow_pred)
 
-        quiver_plot.getAxis("bottom").setStyle(tickLength=0, showValues=False)
-        quiver_plot.getAxis("left").setStyle(tickLength=0, showValues=False)
+        quiver_plot.getAxis('bottom').setStyle(tickLength=0, showValues=False)
+        quiver_plot.getAxis('left').setStyle(tickLength=0, showValues=False)
 
         return quiver_plot
 
@@ -5944,11 +5952,11 @@ class UI_MainWindow(QWidget):
         self.piv_detail_view_2.setFixedSize(self.plot_size * 1.3, self.plot_size * 1.3)
 
         # plot both quiver plots
-        gt_color = QtGui.QColor("black")
+        gt_color = QtGui.QColor('black')
         gt_color.setAlpha(128)
-        model_1_color = QtGui.QColor("blue")
+        model_1_color = QtGui.QColor('blue')
         model_1_color.setAlpha(128)
-        model_2_color = QtGui.QColor("magenta")
+        model_2_color = QtGui.QColor('magenta')
         model_2_color.setAlpha(128)
         self.piv_detail_plot_1 = self.draw_quiver_plot(
             detail_ground_truth, detail_vectors_1, gt_color, model_1_color
@@ -5963,10 +5971,10 @@ class UI_MainWindow(QWidget):
         self.piv_detail_view_2.addItem(self.piv_detail_plot_2)
 
         # add view to general layout
-        if self.data_mode == "single":
+        if self.data_mode == 'single':
             self.single_result_layout.addWidget(self.piv_detail_view_1, 2, 1)
             self.single_result_layout.addWidget(self.piv_detail_view_2, 2, 2)
-        elif self.data_mode == "aggregate":
+        elif self.data_mode == 'aggregate':
             if self.demo:
                 self.demo_layout.addWidget(self.piv_detail_view_1, 5, 4, 1, 1)
                 self.demo_layout.addWidget(self.piv_detail_view_2, 7, 4, 1, 1)
@@ -5978,7 +5986,7 @@ class UI_MainWindow(QWidget):
     def display_mnist_aggregate_result(self):
         @QtCore.Slot()
         def polar_quantity_changed(text):
-            print("Plotting:", text, "on polar NERO")
+            print('Plotting:', text, 'on polar NERO')
             self.quantity_name = text
             self.draw_aggregate_polar()
 
@@ -6007,8 +6015,8 @@ class UI_MainWindow(QWidget):
         plot_quantity_pixmap = QPixmap(300, 50)
         plot_quantity_pixmap.fill(QtCore.Qt.white)
         painter = QtGui.QPainter(plot_quantity_pixmap)
-        painter.setFont(QFont("Helvetica", 24))
-        painter.drawText(0, 0, 300, 50, QtGui.Qt.AlignLeft, "NERO Metric: ")
+        painter.setFont(QFont('Helvetica', 24))
+        painter.drawText(0, 0, 300, 50, QtGui.Qt.AlignLeft, 'NERO Metric: ')
         painter.end()
 
         # create label to contain the texts
@@ -6021,16 +6029,16 @@ class UI_MainWindow(QWidget):
         quantity_menu = QtWidgets.QComboBox()
         quantity_menu.setFixedSize(QtCore.QSize(200, 50))
         quantity_menu.setStyleSheet(
-            "color: black; font-family: Helvetica; font-style: normal; font-size: 24px"
+            'color: black; font-family: Helvetica; font-style: normal; font-size: 24px'
         )
         quantity_menu.setEditable(True)
         quantity_menu.lineEdit().setReadOnly(True)
         quantity_menu.lineEdit().setAlignment(QtCore.Qt.AlignCenter)
 
-        quantity_menu.addItem("Accuracy")  # for aggregate case only
-        quantity_menu.addItem("Confidence")
+        quantity_menu.addItem('Accuracy')  # for aggregate case only
+        quantity_menu.addItem('Confidence')
         # quantity_menu.setCurrentText('Accuracy')
-        quantity_menu.setCurrentText("Confidence")
+        quantity_menu.setCurrentText('Confidence')
         self.quantity_name = quantity_menu.currentText()
 
         # connect the drop down menu with actions
@@ -6053,40 +6061,46 @@ class UI_MainWindow(QWidget):
         self.single_result_existed = True
 
         # draw result using bar plot
-        if type == "bar":
+        if type == 'bar':
             self.bar_plot = pg.plot()
             # constrain plot showing limit by setting view box
             self.bar_plot.plotItem.vb.setLimits(xMin=-0.5, xMax=9.5, yMin=0, yMax=1.2)
-            self.bar_plot.setBackground("w")
+            self.bar_plot.setBackground('w')
             self.bar_plot.setFixedSize(self.plot_size * 1.7, self.plot_size * 1.7)
-            self.bar_plot.getAxis("bottom").setLabel("Digit")
-            self.bar_plot.getAxis("left").setLabel("Confidence")
+            self.bar_plot.setContentsMargins(0, 0, 0, 0)
+            x_label_style = {'color': 'black', 'font-size': '14pt', 'text': 'Digit'}
+            y_label_style = {'color': 'black', 'font-size': '14pt', 'text': 'Confidence'}
+            self.bar_plot.getAxis('bottom').setLabel(**x_label_style)
+            self.bar_plot.getAxis('left').setLabel(**y_label_style)
+            tick_font = QFont('Helvetica', 14)
+            self.bar_plot.getAxis('bottom').setTickFont(tick_font)
+            self.bar_plot.getAxis('left').setTickFont(tick_font)
 
             graph_1 = pg.BarGraphItem(
                 x=np.arange(len(self.output_1)) - 0.2,
                 height=list(self.output_1),
                 width=0.4,
-                brush="blue",
+                brush='blue',
             )
             graph_2 = pg.BarGraphItem(
                 x=np.arange(len(self.output_1)) + 0.2,
                 height=list(self.output_2),
                 width=0.4,
-                brush="magenta",
+                brush='magenta',
             )
             self.bar_plot.addItem(graph_1)
             self.bar_plot.addItem(graph_2)
             # disable moving around
             self.bar_plot.setMouseEnabled(x=False, y=False)
-            if self.data_mode == "single":
+            if self.data_mode == 'single':
                 self.single_result_layout.addWidget(self.bar_plot, 1, 2)
-            elif self.data_mode == "aggregate":
+            elif self.data_mode == 'aggregate':
                 if self.demo:
                     self.demo_layout.addWidget(self.bar_plot, 2, 3, 5, 1)
                 else:
                     self.aggregate_result_layout.addWidget(self.bar_plot, 2, 6)
 
-        elif type == "polar":
+        elif type == 'polar':
 
             # helper function for clicking inside demension reduced scatter plot
             # def clicked(item, points):
@@ -6144,7 +6158,7 @@ class UI_MainWindow(QWidget):
 
             # initialize view and plot
             polar_view = pg.GraphicsLayoutWidget()
-            polar_view.setBackground("white")
+            polar_view.setBackground('white')
             polar_view.setFixedSize(self.plot_size * 1.7, self.plot_size * 1.7)
             polar_view.ci.layout.setContentsMargins(0, 0, 50, 0)
             self.polar_plot = polar_view.addPlot()
@@ -6170,10 +6184,10 @@ class UI_MainWindow(QWidget):
                 all_y_1.append(y_1)
                 all_points_1.append(
                     {
-                        "pos": (x_1, y_1),
-                        "size": 0.05,
-                        "pen": {"color": "w", "width": 0.1},
-                        "brush": QtGui.QColor("blue"),
+                        'pos': (x_1, y_1),
+                        'size': 0.05,
+                        'pen': {'color': 'w', 'width': 0.1},
+                        'brush': QtGui.QColor('blue'),
                     }
                 )
 
@@ -6186,16 +6200,16 @@ class UI_MainWindow(QWidget):
                 all_y_2.append(y_2)
                 all_points_2.append(
                     {
-                        "pos": (x_2, y_2),
-                        "size": 0.05,
-                        "pen": {"color": "w", "width": 0.1},
-                        "brush": QtGui.QColor("magenta"),
+                        'pos': (x_2, y_2),
+                        'size': 0.05,
+                        'pen': {'color': 'w', 'width': 0.1},
+                        'brush': QtGui.QColor('magenta'),
                     }
                 )
 
             # draw lines to better show shape
             self.polar_plot.plot(all_x_1, all_y_1, pen=QtGui.QPen(QtGui.Qt.blue, 0.03))
-            self.polar_plot.plot(all_x_2, all_y_2, pen=QtGui.QPen(QtGui.QColor("magenta"), 0.03))
+            self.polar_plot.plot(all_x_2, all_y_2, pen=QtGui.QPen(QtGui.QColor('magenta'), 0.03))
 
             # add points to the item
             self.scatter_items.addPoints(all_points_1)
@@ -6265,21 +6279,21 @@ class UI_MainWindow(QWidget):
             self.polar_plot.setMouseEnabled(x=False, y=False)
 
             # add the plot view to the layout
-            if self.data_mode == "single":
+            if self.data_mode == 'single':
                 self.single_result_layout.addWidget(polar_view, 1, 3)
-            elif self.data_mode == "aggregate":
+            elif self.data_mode == 'aggregate':
                 if self.demo:
                     self.demo_layout.addWidget(polar_view, 2, 2, 5, 1)
                 else:
                     self.aggregate_result_layout.addWidget(polar_view, 1, 6)
 
         else:
-            raise Exception("Unsupported display mode")
+            raise Exception('Unsupported display mode')
 
     # function that computes consensus among different experiments
     def compute_consensus(self, mode):
-        if self.mode == "object_detection":
-            if mode == "single":
+        if self.mode == 'object_detection':
+            if mode == 'single':
                 for y in range(self.aggregate_outputs_1.shape[0]):
                     for x in range(self.aggregate_outputs_1.shape[1]):
                         # correct translation amount
@@ -6287,7 +6301,7 @@ class UI_MainWindow(QWidget):
                         y_tran = self.y_translation[y] + 1e-5
 
                         # current bounding box center from model 1 and 2
-                        if self.data_mode == "single":
+                        if self.data_mode == 'single':
                             cur_center_x_1 = (
                                 self.all_quantities_1[y, x, 0] + self.all_quantities_1[y, x, 2]
                             ) / 2
@@ -6301,7 +6315,7 @@ class UI_MainWindow(QWidget):
                                 self.all_quantities_2[y, x, 1] + self.all_quantities_2[y, x, 3]
                             ) / 2
                         # when in the three level mode (access single from aggregate result)
-                        elif self.data_mode == "aggregate":
+                        elif self.data_mode == 'aggregate':
                             cur_center_x_1 = (
                                 self.aggregate_outputs_1[y, x][self.image_index][0, 0]
                                 + self.aggregate_outputs_1[y, x][self.image_index][0, 2]
@@ -6333,7 +6347,7 @@ class UI_MainWindow(QWidget):
                             (x_tran_model_2 - x_tran) ** 2 + (y_tran_model_2 - y_tran) ** 2
                         ) / np.sqrt(x_tran**2 + y_tran**2)
 
-            elif mode == "aggregate":
+            elif mode == 'aggregate':
                 self.aggregate_consensus_1 = np.zeros(
                     (
                         self.aggregate_outputs_1.shape[0],
@@ -6396,7 +6410,7 @@ class UI_MainWindow(QWidget):
                             self.aggregate_consensus_2[y, x]
                         )
 
-        elif self.mode == "piv":
+        elif self.mode == 'piv':
             raise NotImplementedError
 
     # display COCO aggregate results
@@ -6418,43 +6432,43 @@ class UI_MainWindow(QWidget):
 
         @QtCore.Slot()
         def coco_nero_quantity_changed(text):
-            print("Plotting:", text, "on aggregate NERO plot")
+            print('Plotting:', text, 'on aggregate NERO plot')
             self.quantity_name = text
             # if text == 'Confidence*IOU':
             #     self.cur_aggregate_plot_quantity_1 = self.aggregate_avg_conf_1 * self.aggregate_avg_iou_1
             #     self.cur_aggregate_plot_quantity_2 = self.aggregate_avg_conf_2 * self.aggregate_avg_iou_2
-            if text == "Confidence*IOU":
+            if text == 'Confidence*IOU':
                 self.cur_aggregate_plot_quantity_1 = (
                     self.aggregate_avg_conf_correctness_1 * self.aggregate_avg_iou_correctness_1
                 )
                 self.cur_aggregate_plot_quantity_2 = (
                     self.aggregate_avg_conf_correctness_2 * self.aggregate_avg_iou_correctness_2
                 )
-            elif text == "Confidence":
+            elif text == 'Confidence':
                 self.cur_aggregate_plot_quantity_1 = self.aggregate_avg_conf_1
                 self.cur_aggregate_plot_quantity_2 = self.aggregate_avg_conf_2
-            elif text == "IOU":
+            elif text == 'IOU':
                 self.cur_aggregate_plot_quantity_1 = self.aggregate_avg_iou_1
                 self.cur_aggregate_plot_quantity_2 = self.aggregate_avg_iou_2
-            elif text == "Consensus":
-                self.compute_consensus("aggregate")
+            elif text == 'Consensus':
+                self.compute_consensus('aggregate')
 
             # below quantities won't show in the demo mode
-            elif text == "Precision":
+            elif text == 'Precision':
                 self.cur_aggregate_plot_quantity_1 = self.aggregate_avg_precision_1
                 self.cur_aggregate_plot_quantity_2 = self.aggregate_avg_precision_2
-            elif text == "Recall":
+            elif text == 'Recall':
                 self.cur_aggregate_plot_quantity_1 = self.aggregate_avg_recall_1
                 self.cur_aggregate_plot_quantity_2 = self.aggregate_avg_recall_2
-            elif text == "F1 score":
+            elif text == 'F1 score':
                 self.cur_aggregate_plot_quantity_1 = self.aggregate_avg_F_measure_1
                 self.cur_aggregate_plot_quantity_2 = self.aggregate_avg_F_measure_2
-            elif text == "AP":
+            elif text == 'AP':
                 self.cur_aggregate_plot_quantity_1 = self.aggregate_mAP_1
                 self.cur_aggregate_plot_quantity_2 = self.aggregate_mAP_2
 
             # re-display the heatmap
-            self.draw_coco_nero(mode="aggregate")
+            self.draw_coco_nero(mode='aggregate')
 
             # re-run dimension reduction and show result
             if self.dr_result_existed:
@@ -6462,18 +6476,18 @@ class UI_MainWindow(QWidget):
 
             # if available, update single NERO plot as well
             if self.single_result_existed:
-                print("Plotting:", text, "on single NERO plot")
+                print('Plotting:', text, 'on single NERO plot')
                 self.quantity_name = text
 
-                if text == "Confidence*IOU":
-                    if self.data_mode == "single":
+                if text == 'Confidence*IOU':
+                    if self.data_mode == 'single':
                         self.cur_single_plot_quantity_1 = (
                             self.all_quantities_1[:, :, 4] * self.all_quantities_1[:, :, 6]
                         )
                         self.cur_single_plot_quantity_2 = (
                             self.all_quantities_2[:, :, 4] * self.all_quantities_2[:, :, 6]
                         )
-                    elif self.data_mode == "aggregate":
+                    elif self.data_mode == 'aggregate':
                         # current selected individual images' result on all transformations
                         for y in range(len(self.y_translation)):
                             for x in range(len(self.x_translation)):
@@ -6486,8 +6500,8 @@ class UI_MainWindow(QWidget):
                                     * self.aggregate_outputs_2[y, x][self.image_index][0, 6]
                                 )
 
-                if text == "Confidence*IOU*Correctness":
-                    if self.data_mode == "single":
+                if text == 'Confidence*IOU*Correctness':
+                    if self.data_mode == 'single':
                         self.cur_single_plot_quantity_1 = (
                             self.all_quantities_1[:, :, 4]
                             * self.all_quantities_1[:, :, 6]
@@ -6498,7 +6512,7 @@ class UI_MainWindow(QWidget):
                             * self.all_quantities_2[:, :, 6]
                             * self.all_quantities_2[:, :, 7]
                         )
-                    elif self.data_mode == "aggregate":
+                    elif self.data_mode == 'aggregate':
                         # current selected individual images' result on all transformations
                         for y in range(len(self.y_translation)):
                             for x in range(len(self.x_translation)):
@@ -6513,11 +6527,11 @@ class UI_MainWindow(QWidget):
                                     * self.aggregate_outputs_2[y, x][self.image_index][0, 7]
                                 )
 
-                elif text == "Confidence":
-                    if self.data_mode == "single":
+                elif text == 'Confidence':
+                    if self.data_mode == 'single':
                         self.cur_single_plot_quantity_1 = self.all_quantities_1[:, :, 4]
                         self.cur_single_plot_quantity_2 = self.all_quantities_2[:, :, 4]
-                    elif self.data_mode == "aggregate":
+                    elif self.data_mode == 'aggregate':
                         # current selected individual images' result on all transformations
                         for y in range(len(self.y_translation)):
                             for x in range(len(self.x_translation)):
@@ -6528,11 +6542,11 @@ class UI_MainWindow(QWidget):
                                     y, x
                                 ][self.image_index][0, 4]
 
-                elif text == "IOU":
-                    if self.data_mode == "single":
+                elif text == 'IOU':
+                    if self.data_mode == 'single':
                         self.cur_single_plot_quantity_1 = self.all_quantities_1[:, :, 6]
                         self.cur_single_plot_quantity_2 = self.all_quantities_2[:, :, 6]
-                    elif self.data_mode == "aggregate":
+                    elif self.data_mode == 'aggregate':
                         # current selected individual images' result on all transformations
                         for y in range(len(self.y_translation)):
                             for x in range(len(self.x_translation)):
@@ -6544,11 +6558,11 @@ class UI_MainWindow(QWidget):
                                 ][self.image_index][0, 6]
 
                 # Consensus computing
-                elif text == "Consensus":
-                    self.compute_consensus("single")
+                elif text == 'Consensus':
+                    self.compute_consensus('single')
 
                 # re-display the heatmap
-                self.draw_coco_nero(mode="single")
+                self.draw_coco_nero(mode='single')
 
         # drop down menu on selection which quantity to plot
         # title
@@ -6556,8 +6570,8 @@ class UI_MainWindow(QWidget):
         plot_quantity_pixmap = QPixmap(200, 50)
         plot_quantity_pixmap.fill(QtCore.Qt.white)
         painter = QtGui.QPainter(plot_quantity_pixmap)
-        painter.setFont(QFont("Helvetica", 18))
-        painter.drawText(0, 5, 200, 50, QtGui.Qt.AlignLeft, "NERO plot of: ")
+        painter.setFont(QFont('Helvetica', 18))
+        painter.drawText(0, 5, 200, 50, QtGui.Qt.AlignLeft, 'NERO plot of: ')
         painter.end()
 
         # create label to contain the texts
@@ -6568,25 +6582,25 @@ class UI_MainWindow(QWidget):
         # menu
         quantity_menu = QtWidgets.QComboBox()
         quantity_menu.setFixedSize(QtCore.QSize(200, 50))
-        quantity_menu.setStyleSheet("font-size: 18px")
-        quantity_menu.setStyleSheet("color: black")
+        quantity_menu.setStyleSheet('font-size: 18px')
+        quantity_menu.setStyleSheet('color: black')
         quantity_menu.setEditable(True)
         quantity_menu.lineEdit().setReadOnly(True)
         quantity_menu.lineEdit().setAlignment(QtCore.Qt.AlignCenter)
 
-        quantity_menu.addItem("Confidence*IOU")
-        quantity_menu.addItem("Confidence")
-        quantity_menu.addItem("IOU")
-        quantity_menu.addItem("Consensus")
+        quantity_menu.addItem('Confidence*IOU')
+        quantity_menu.addItem('Confidence')
+        quantity_menu.addItem('IOU')
+        quantity_menu.addItem('Consensus')
         # some extra qualities to plot (not available in individual NERO plot)
         if not self.demo:
-            quantity_menu.addItem("Precision")
-            quantity_menu.addItem("Recall")
-            quantity_menu.addItem("AP")
-            quantity_menu.addItem("F1 Score")
+            quantity_menu.addItem('Precision')
+            quantity_menu.addItem('Recall')
+            quantity_menu.addItem('AP')
+            quantity_menu.addItem('F1 Score')
 
         # self.quantity_menu.setCurrentIndex(0)
-        quantity_menu.setCurrentText("Confidence*IOU")
+        quantity_menu.setCurrentText('Confidence*IOU')
 
         # connect the drop down menu with actions
         quantity_menu.currentTextChanged.connect(coco_nero_quantity_changed)
@@ -6599,7 +6613,7 @@ class UI_MainWindow(QWidget):
             self.aggregate_plot_control_layout.addWidget(quantity_menu, 1, 0)
 
         # define default plotting quantity (IOU*Confidence)
-        self.quantity_name = "Confidence*IOU"
+        self.quantity_name = 'Confidence*IOU'
         # averaged (depends on selected class) confidence and iou of the top results (ranked by IOU)
         self.aggregate_avg_conf_1 = np.zeros((len(self.y_translation), len(self.x_translation)))
         self.aggregate_avg_conf_correctness_1 = np.zeros(
@@ -6652,7 +6666,7 @@ class UI_MainWindow(QWidget):
                 for i in range(len(self.aggregate_outputs_1[y, x])):
                     # either all the classes or one specific class
                     if (
-                        self.class_selection == "all"
+                        self.class_selection == 'all'
                         or self.class_selection == self.loaded_images_labels[i]
                     ):
                         all_samples_conf_sum_1.append(self.aggregate_outputs_1[y, x][i][0, 4])
@@ -6712,13 +6726,13 @@ class UI_MainWindow(QWidget):
         self.cur_aggregate_plot_quantity_2 = self.aggregate_avg_conf_2 * self.aggregate_avg_iou_2
 
         # draw the heatmap
-        self.draw_coco_nero(mode="aggregate")
+        self.draw_coco_nero(mode='aggregate')
 
     # display COCO single results
     def display_coco_single_result(self):
 
         # if single mode, change control menus' locations
-        if self.data_mode == "single":
+        if self.data_mode == 'single':
             # move the model menu on top of the each individual NERO plot when in single mode
             if not self.demo:
                 self.single_result_layout.addWidget(
@@ -6746,8 +6760,8 @@ class UI_MainWindow(QWidget):
                 self.realtime_inference = False
 
         # checkbox on if doing real-time inference
-        self.realtime_inference_checkbox = QtWidgets.QCheckBox("Realtime inference when dragging")
-        self.realtime_inference_checkbox.setStyleSheet("font-size: 18px")
+        self.realtime_inference_checkbox = QtWidgets.QCheckBox('Realtime inference when dragging')
+        self.realtime_inference_checkbox.setStyleSheet('font-size: 18px')
         self.realtime_inference_checkbox.setFixedSize(QtCore.QSize(300, 50))
         self.realtime_inference_checkbox.stateChanged.connect(realtime_inference_checkbox_clicked)
         if self.realtime_inference:
@@ -6763,7 +6777,7 @@ class UI_MainWindow(QWidget):
             self.single_plot_control_layout.addWidget(self.realtime_inference_checkbox)
 
         # define default plotting quantity
-        if self.data_mode == "single":
+        if self.data_mode == 'single':
             # add plot control layout to general layout
             self.single_result_layout.addLayout(self.single_plot_control_layout, 0, 0)
             self.cur_single_plot_quantity_1 = (
@@ -6772,7 +6786,7 @@ class UI_MainWindow(QWidget):
             self.cur_single_plot_quantity_2 = (
                 self.all_quantities_2[:, :, 4] * self.all_quantities_2[:, :, 6]
             )
-        elif self.data_mode == "aggregate":
+        elif self.data_mode == 'aggregate':
             # add plot control layout to general layout
             if not self.demo:
                 self.aggregate_result_layout.addLayout(self.single_plot_control_layout, 2, 3)
@@ -6795,7 +6809,7 @@ class UI_MainWindow(QWidget):
                     )
 
         # draw the heatmap
-        self.draw_coco_nero(mode="single")
+        self.draw_coco_nero(mode='single')
 
     # display COCO aggregate result
     def display_piv_aggregate_result(self):
@@ -6816,23 +6830,23 @@ class UI_MainWindow(QWidget):
 
         # helper function on compute, normalize the loss and display quantity
         def compute_nero_plot_quantity():
-            print("Compute PIV nero plot quantity")
+            print('Compute PIV nero plot quantity')
             # compute loss using torch loss module
-            if self.quantity_name == "RMSE":
+            if self.quantity_name == 'RMSE':
                 self.loss_module = nero_utilities.RMSELoss()
-            elif self.quantity_name == "MSE":
+            elif self.quantity_name == 'MSE':
                 self.loss_module = torch.nn.MSELoss()
-            elif self.quantity_name == "MAE":
+            elif self.quantity_name == 'MAE':
                 self.loss_module = torch.nn.L1Loss()
-            elif self.quantity_name == "AEE":
+            elif self.quantity_name == 'AEE':
                 self.loss_module = nero_utilities.AEELoss()
 
             # try loading from cache
             cur_losses_1 = self.load_from_cache(
-                f"{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_1_cache_name}_{self.class_selection}_{self.quantity_name}_aggregate_1"
+                f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_1_cache_name}_{self.class_selection}_{self.quantity_name}_aggregate_1'
             )
             cur_losses_2 = self.load_from_cache(
-                f"{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_1_cache_name}_{self.class_selection}_{self.quantity_name}_aggregate_2"
+                f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_1_cache_name}_{self.class_selection}_{self.quantity_name}_aggregate_2'
             )
             if not self.load_successfully:
                 # keep the same dimension
@@ -6858,7 +6872,7 @@ class UI_MainWindow(QWidget):
                             self.loss_module(
                                 self.aggregate_ground_truths[i, j],
                                 self.aggregate_outputs_1[i, j],
-                                reduction="none",
+                                reduction='none',
                             )
                             .numpy()
                             .mean(axis=2)
@@ -6867,7 +6881,7 @@ class UI_MainWindow(QWidget):
                             self.loss_module(
                                 self.aggregate_ground_truths[i, j],
                                 self.aggregate_outputs_2[i, j],
-                                reduction="none",
+                                reduction='none',
                             )
                             .numpy()
                             .mean(axis=2)
@@ -6875,11 +6889,11 @@ class UI_MainWindow(QWidget):
 
                 # save to cache
                 self.save_to_cache(
-                    f"{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_1_cache_name}_{self.class_selection}_{self.quantity_name}_aggregate_1",
+                    f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_1_cache_name}_{self.class_selection}_{self.quantity_name}_aggregate_1',
                     cur_losses_1,
                 )
                 self.save_to_cache(
-                    f"{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_1_cache_name}_{self.class_selection}_{self.quantity_name}_aggregate_2",
+                    f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_1_cache_name}_{self.class_selection}_{self.quantity_name}_aggregate_2',
                     cur_losses_2,
                 )
 
@@ -6887,7 +6901,7 @@ class UI_MainWindow(QWidget):
             all_losses = np.concatenate([cur_losses_1.flatten(), cur_losses_2.flatten()])
             self.loss_low_bound = np.percentile(all_losses, 0)
             self.loss_high_bound = np.percentile(all_losses, 80)
-            print("Aggregate loss 0 and 80 percentile", self.loss_low_bound, self.loss_high_bound)
+            print('Aggregate loss 0 and 80 percentile', self.loss_low_bound, self.loss_high_bound)
 
             # plot quantity is the average among all samples
             self.cur_aggregate_plot_quantity_1 = cur_losses_1.mean(axis=1)
@@ -6897,10 +6911,10 @@ class UI_MainWindow(QWidget):
             if self.single_result_existed:
                 # try loading from cache
                 cur_losses_1 = self.load_from_cache(
-                    f"{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_1_cache_name}_{self.class_selection}_{self.quantity_name}_single_1"
+                    f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_1_cache_name}_{self.class_selection}_{self.quantity_name}_single_1'
                 )
                 cur_losses_2 = self.load_from_cache(
-                    f"{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_1_cache_name}_{self.class_selection}_{self.quantity_name}_single_2"
+                    f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_1_cache_name}_{self.class_selection}_{self.quantity_name}_single_2'
                 )
                 if not self.load_successfully:
                     # keep the same dimension
@@ -6915,7 +6929,7 @@ class UI_MainWindow(QWidget):
                             self.loss_module(
                                 self.all_ground_truths[i],
                                 self.all_quantities_1[i],
-                                reduction="none",
+                                reduction='none',
                             )
                             .numpy()
                             .mean(axis=2)
@@ -6924,7 +6938,7 @@ class UI_MainWindow(QWidget):
                             self.loss_module(
                                 self.all_ground_truths[i],
                                 self.all_quantities_2[i],
-                                reduction="none",
+                                reduction='none',
                             )
                             .numpy()
                             .mean(axis=2)
@@ -6932,11 +6946,11 @@ class UI_MainWindow(QWidget):
 
                     # save to cache
                     self.save_to_cache(
-                        f"{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_1_cache_name}_{self.class_selection}_{self.quantity_name}_single_1",
+                        f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_1_cache_name}_{self.class_selection}_{self.quantity_name}_single_1',
                         cur_losses_1,
                     )
                     self.save_to_cache(
-                        f"{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_1_cache_name}_{self.class_selection}_{self.quantity_name}_single_2",
+                        f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_1_cache_name}_{self.class_selection}_{self.quantity_name}_single_2',
                         cur_losses_2,
                     )
 
@@ -6946,23 +6960,23 @@ class UI_MainWindow(QWidget):
 
         @QtCore.Slot()
         def piv_nero_quantity_changed(text):
-            print("Plotting:", text, "on heatmap")
+            print('Plotting:', text, 'on heatmap')
             self.quantity_name = text
 
-            if text == "RMSE":
+            if text == 'RMSE':
                 self.quantity_name = text
-            elif text == "MSE":
+            elif text == 'MSE':
                 self.quantity_name = text
-            elif text == "MAE":
+            elif text == 'MAE':
                 self.quantity_name = text
-            elif text == "AEE":
+            elif text == 'AEE':
                 self.quantity_name = text
 
             # compute the quantity to plot
             compute_nero_plot_quantity()
 
             # re-display the heatmap
-            self.draw_piv_nero(mode="aggregate")
+            self.draw_piv_nero(mode='aggregate')
 
             # re-run dimension reduction and show result
             if self.dr_result_existed:
@@ -6970,15 +6984,15 @@ class UI_MainWindow(QWidget):
 
             # re-draw single result if needed
             if self.single_result_existed:
-                self.draw_piv_nero(mode="single")
+                self.draw_piv_nero(mode='single')
 
         # title
         # draw text
         plot_quantity_pixmap = QPixmap(200, 50)
         plot_quantity_pixmap.fill(QtCore.Qt.white)
         painter = QtGui.QPainter(plot_quantity_pixmap)
-        painter.setFont(QFont("Helvetica", 18))
-        painter.drawText(0, 5, 200, 50, QtGui.Qt.AlignLeft, "NERO plot of: ")
+        painter.setFont(QFont('Helvetica', 18))
+        painter.drawText(0, 5, 200, 50, QtGui.Qt.AlignLeft, 'NERO plot of: ')
         painter.end()
         # create label to contain the texts
         self.plot_quantity_label = QLabel(self)
@@ -6987,17 +7001,17 @@ class UI_MainWindow(QWidget):
         # drop down menu on selection which quantity to plot
         quantity_menu = QtWidgets.QComboBox()
         quantity_menu.setFixedSize(QtCore.QSize(250, 50))
-        quantity_menu.setStyleSheet("font-size: 18px")
-        quantity_menu.setStyleSheet("color: black")
+        quantity_menu.setStyleSheet('font-size: 18px')
+        quantity_menu.setStyleSheet('color: black')
         quantity_menu.setEditable(True)
         quantity_menu.lineEdit().setReadOnly(True)
         quantity_menu.lineEdit().setAlignment(QtCore.Qt.AlignCenter)
 
-        quantity_menu.addItem("RMSE")
-        quantity_menu.addItem("MSE")
-        quantity_menu.addItem("MAE")
-        quantity_menu.addItem("AEE")
-        quantity_menu.setCurrentText("RMSE")
+        quantity_menu.addItem('RMSE')
+        quantity_menu.addItem('MSE')
+        quantity_menu.addItem('MAE')
+        quantity_menu.addItem('AEE')
+        quantity_menu.setCurrentText('RMSE')
 
         # connect the drop down menu with actions
         quantity_menu.currentTextChanged.connect(piv_nero_quantity_changed)
@@ -7010,19 +7024,19 @@ class UI_MainWindow(QWidget):
             self.aggregate_plot_control_layout.addWidget(quantity_menu, 1, 0)
 
         # define default plotting quantity (RMSE)
-        self.quantity_name = "RMSE"
+        self.quantity_name = 'RMSE'
         self.aggregate_loss_module = nero_utilities.RMSELoss()
 
         # compute aggregate plot quantity
         compute_nero_plot_quantity()
 
         # draw the aggregate NERO plot
-        self.draw_piv_nero(mode="aggregate")
+        self.draw_piv_nero(mode='aggregate')
 
     # display PIV single results
     def display_piv_single_result(self):
         # if single mode, change control menus' locations
-        if self.data_mode == "single":
+        if self.data_mode == 'single':
             # move the model menu on top of the each individual NERO plot when in single mode
             self.single_result_layout.addWidget(
                 self.model_1_menu, 0, 1, 1, 1, QtCore.Qt.AlignCenter
@@ -7038,21 +7052,21 @@ class UI_MainWindow(QWidget):
         # helper function on compute, normalize the loss and display quantity
         def compute_single_nero_plot_quantity():
             # compute loss using torch loss module
-            if self.quantity_name == "RMSE":
+            if self.quantity_name == 'RMSE':
                 self.loss_module = nero_utilities.RMSELoss()
-            elif self.quantity_name == "MSE":
+            elif self.quantity_name == 'MSE':
                 self.loss_module = torch.nn.MSELoss()
-            elif self.quantity_name == "MAE":
+            elif self.quantity_name == 'MAE':
                 self.loss_module = torch.nn.L1Loss()
-            elif self.quantity_name == "AEE":
+            elif self.quantity_name == 'AEE':
                 self.loss_module = nero_utilities.AEELoss()
 
             # try loading from cache
             cur_losses_1 = self.load_from_cache(
-                f"{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_1_cache_name}_{self.class_selection}_{self.quantity_name}_single_1"
+                f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_1_cache_name}_{self.class_selection}_{self.quantity_name}_single_1'
             )
             cur_losses_2 = self.load_from_cache(
-                f"{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_1_cache_name}_{self.class_selection}_{self.quantity_name}_single_2"
+                f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_1_cache_name}_{self.class_selection}_{self.quantity_name}_single_2'
             )
             if not self.load_successfully:
                 # keep the same dimension
@@ -7065,14 +7079,14 @@ class UI_MainWindow(QWidget):
                 for i in range(self.num_transformations):
                     cur_losses_1[i] = (
                         self.loss_module(
-                            self.all_ground_truths[i], self.all_quantities_1[i], reduction="none"
+                            self.all_ground_truths[i], self.all_quantities_1[i], reduction='none'
                         )
                         .numpy()
                         .mean(axis=2)
                     )
                     cur_losses_2[i] = (
                         self.loss_module(
-                            self.all_ground_truths[i], self.all_quantities_2[i], reduction="none"
+                            self.all_ground_truths[i], self.all_quantities_2[i], reduction='none'
                         )
                         .numpy()
                         .mean(axis=2)
@@ -7080,17 +7094,17 @@ class UI_MainWindow(QWidget):
 
                 # save to cache
                 self.save_to_cache(
-                    f"{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_1_cache_name}_{self.class_selection}_{self.quantity_name}_single_1",
+                    f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_1_cache_name}_{self.class_selection}_{self.quantity_name}_single_1',
                     cur_losses_1,
                 )
                 self.save_to_cache(
-                    f"{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_1_cache_name}_{self.class_selection}_{self.quantity_name}_single_2",
+                    f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_1_cache_name}_{self.class_selection}_{self.quantity_name}_single_2',
                     cur_losses_2,
                 )
 
             # get the 0 and 80 percentile as the threshold for colormap
             # when in aggregate mode, continue using aggregate range
-            if self.data_mode == "single":
+            if self.data_mode == 'single':
                 all_losses = np.concatenate([cur_losses_1.flatten(), cur_losses_2.flatten()])
                 self.loss_low_bound = np.percentile(all_losses, 0)
                 self.loss_high_bound = np.percentile(all_losses, 80)
@@ -7102,39 +7116,39 @@ class UI_MainWindow(QWidget):
 
         @QtCore.Slot()
         def piv_nero_quantity_changed(text):
-            print("Plotting:", text, "on detailed PIV plots")
+            print('Plotting:', text, 'on detailed PIV plots')
             self.quantity_name = text
 
             # compute the quantity needed to plot individual NERO plot
             compute_single_nero_plot_quantity()
 
             # plot/update the individual NERO plot
-            self.draw_piv_nero(mode="single")
+            self.draw_piv_nero(mode='single')
 
             # update detailed plot of PIV
             self.draw_piv_details()
 
         # single mode only visualization
-        if self.data_mode == "single":
+        if self.data_mode == 'single':
             # drop down menu on selection which quantity to plot
             # layout that controls the plotting items
             self.single_plot_control_layout = QtWidgets.QVBoxLayout()
             quantity_menu = QtWidgets.QComboBox()
             quantity_menu.setFixedSize(QtCore.QSize(250, 50))
-            quantity_menu.setStyleSheet("font-size: 18px")
-            quantity_menu.setStyleSheet("color: black")
+            quantity_menu.setStyleSheet('font-size: 18px')
+            quantity_menu.setStyleSheet('color: black')
             quantity_menu.setEditable(True)
             quantity_menu.lineEdit().setReadOnly(True)
             quantity_menu.lineEdit().setAlignment(QtCore.Qt.AlignCenter)
 
             # all the different plot quantities (losses)
-            self.all_plot_quantities = ["RMSE", "MSE", "MAE", "AEE"]
+            self.all_plot_quantities = ['RMSE', 'MSE', 'MAE', 'AEE']
             for cur_quantity in self.all_plot_quantities:
                 quantity_menu.addItem(cur_quantity)
 
             quantity_menu.setCurrentText(self.all_plot_quantities[0])
             # by default the loss is RMSE
-            self.quantity_name = "RMSE"
+            self.quantity_name = 'RMSE'
             self.loss_module = nero_utilities.RMSELoss()
 
             # connect the drop down menu with actions
@@ -7153,7 +7167,7 @@ class UI_MainWindow(QWidget):
             compute_single_nero_plot_quantity()
 
         # when in three level view
-        elif self.data_mode == "aggregate":
+        elif self.data_mode == 'aggregate':
             # plot quantity in individual nero plot
             self.cur_single_plot_quantity_1 = np.zeros(
                 (self.num_transformations, self.image_size, self.image_size)
@@ -7164,7 +7178,7 @@ class UI_MainWindow(QWidget):
             compute_single_nero_plot_quantity()
 
         # visualize the individual NERO plot of the current input
-        self.draw_piv_nero(mode="single")
+        self.draw_piv_nero(mode='single')
 
         # the detailed plot of PIV
         self.draw_piv_details()
@@ -7172,7 +7186,7 @@ class UI_MainWindow(QWidget):
     # mouse move event only applies in the MNIST case
     def mouseMoveEvent(self, event):
 
-        if self.mode == "digit_recognition" and self.image_existed:
+        if self.mode == 'digit_recognition' and self.image_existed:
             cur_mouse_pos = [
                 event.position().x() - self.image_center_x,
                 event.position().y() - self.image_center_y,
@@ -7235,7 +7249,7 @@ class UI_MainWindow(QWidget):
             self.prev_mouse_pos = cur_mouse_pos
 
     def mousePressEvent(self, event):
-        if self.mode == "digit_recognition" and self.image_existed:
+        if self.mode == 'digit_recognition' and self.image_existed:
             self.image_center_x = self.image_label.x() + self.image_label.width() / 2
             self.image_center_y = self.image_label.y() + self.image_label.height() / 2
             self.prev_mouse_pos = [
@@ -7248,22 +7262,22 @@ class UI_MainWindow(QWidget):
         key_pressed = event.text()
 
         # different key pressed
-        if "h" == key_pressed or "?" == key_pressed:
+        if 'h' == key_pressed or '?' == key_pressed:
             self.print_help()
 
     # print help message
     def print_help(self):
-        print("Ah Oh, help not available")
+        print('Ah Oh, help not available')
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
 
     # input arguments
     parser = argparse.ArgumentParser()
     # mode (digit_recognition, object_detection or piv)
-    parser.add_argument("--mode", action="store", nargs=1, dest="mode")
-    parser.add_argument("--cache_path", action="store", nargs=1, dest="cache_path")
-    parser.add_argument("--demo", action="store_true", dest="demo", default=False)
+    parser.add_argument('--mode', action='store', nargs=1, dest='mode')
+    parser.add_argument('--cache_path', action='store', nargs=1, dest='cache_path')
+    parser.add_argument('--demo', action='store_true', dest='demo', default=False)
     args = parser.parse_args()
     if args.mode:
         mode = args.mode[0]
@@ -7283,7 +7297,7 @@ if __name__ == "__main__":
     app.exec()
 
     # remove all .GIF from cache
-    all_gif_paths = glob.glob(os.path.join(os.getcwd(), "cache", "*.gif"))
+    all_gif_paths = glob.glob(os.path.join(os.getcwd(), 'cache', '*.gif'))
     for gif_path in all_gif_paths:
         os.remove(gif_path)
 
