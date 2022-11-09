@@ -37,9 +37,10 @@ qivConvoEval(qivCtx *ctx, real xw, real yw, int sgn, int norm) {
     if (_qivVerbose > 2) {
         printf("%s: world (%g,%g) --> index (%g,%g)\n", __func__, xw, yw, xi, yi);
     }
-    int _ii, ii, _jj, jj, sz0 = (int)ctx->vfl->size0, sz1 = (int)ctx->vfl->size1;
+    int _ii, ii, _jj, jj, sz0 = (int)ctx->qar->size0, sz1 = (int)ctx->qar->size1;
     real aa, bb, uu[4], vv[4], tt[4];
-    const real *vd = ctx->vfl->data, *v0, *v1, *v2, *v3;
+    // safe because only real-type arrays can go into a ctx
+    const real *vd = ctx->qar->data.rl, *v0, *v1, *v2, *v3;
     real *ovec = ctx->vec;
     switch (ctx->kern) {
     case qivKernBox:

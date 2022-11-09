@@ -7,9 +7,20 @@
 #include "qivPrivate.h"
 
 qivCtx *
-qivCtxNew(const qivField *vfl, qivKern kern) {
-    if (!vfl) {
+qivCtxNew(const qivArray *qar, qivKern kern) {
+    if (!qar) {
         biffAddf(QIV, "%s: got NULL pointer", __func__);
+        return NULL;
+    }
+    // here is where we enforce the vector-field-ness of the qar
+    if (qivTypeReal != qar->dtype) {
+        biffAddf(QIV, "%s: sorry, need array dtype %s (not %s)", __func__,
+                 airEnumStr(qivType_ae, qivTypeReal),
+                 airEnumStr(qivType_ae, qar->dtype));
+        return NULL;
+    }
+    if (2 != qar->channel) {
+        biffAddf(QIV, "%s: need #channel == 2 (not %d)", __func__, qar->channel);
         return NULL;
     }
     if (airEnumValCheck(qivKern_ae, kern)) {
@@ -18,9 +29,9 @@ qivCtxNew(const qivField *vfl, qivKern kern) {
     }
     qivCtx *ctx = MALLOC(1, qivCtx);
     assert(ctx);
-    ctx->vfl = vfl;
+    ctx->qar = qar;
     ctx->kern = kern;
-    const real *m = vfl->ItoW;
+    const real *m = qar->ItoW;
     /* clang-format off */
     real aa = m[0]; real bb = m[1]; real rr = m[2];
     real cc = m[3]; real dd = m[4]; real ss = m[5];
@@ -32,7 +43,7 @@ qivCtxNew(const qivField *vfl, qivKern kern) {
     /* clang-format on */
     if (_qivVerbose > 2) {
         real test[9];
-        M3_MUL(test, ctx->WtoI, vfl->ItoW);
+        M3_MUL(test, ctx->WtoI, qar->ItoW);
         printf("WtoI * ItoW = \n");
         ell_3m_print(stdout, test);
     }
@@ -43,7 +54,7 @@ qivCtxNew(const qivField *vfl, qivKern kern) {
 qivCtx *
 qivCtxNix(qivCtx *ctx) {
     assert(ctx);
-    /* we do not own ctx->vfl */
+    /* we do not own ctx->qar */
     /* nothing else dynamically allocated */
     free(ctx);
     return NULL;

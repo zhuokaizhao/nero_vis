@@ -42,6 +42,8 @@ typedef float real;
 /* "uint" is easier to type than any of C99's uint8_t, uint16_t, etc., and
    there is often no need for any specific size; just an "unsigned int" */
 typedef unsigned int uint;
+// also convenient to have
+typedef unsigned char uchar;
 
 // misc.c
 extern void qivVerboseSet(int verb);
@@ -50,6 +52,15 @@ extern const int qivRealIsDouble;
 extern const char *qivBiffKey;
 #define QIV qivBiffKey // identifies this library in biff error messages
 extern real qivNan(unsigned short payload);
+
+/*
+  qivType: the pixel value types supported in qivImage
+*/
+typedef enum {
+    qivTypeUnknown = 0, // (0) no type known
+    qivTypeUChar,       // (1) unsigned char
+    qivTypeReal,        // (2) real
+} qivType;
 
 /*
   The different kinds of integration we support; the enum values here are
@@ -94,18 +105,29 @@ typedef enum {
 } qivStop;
 
 /*
-  struct qivField: contains a vector field
+  struct qivArray: for all things on a 2D grid, both vector field and image data
 */
-typedef struct qivField_t {
-    uint size0, size1; /* # samples on faster (size[0]), slower (size[1]) spatial
-                          axis; these are the second and third axes in the
-                          linearization; the fastest axis is one holding the *two*
-                          vector components */
-    real ItoW[9];      /* homogeneous coordinate mapping from index-space (faster
-                          coordinate first) to the world-space in which the vector
-                          components have been measured */
-    real *data;        /* the vector data itself */
-} qivField;
+typedef struct qivArray_t {
+    uint channel,   /* # samples on fastest (per-pixel) axis;
+                       1 for scalar, 2 for vector, 3 for color */
+      size0, size1; /* # samples on faster (size[0]), slower (size[1]) spatial
+                       axis; these are the second and third axes in the
+                       linearization; the fastest axis is one holding the *two*
+                       vector components */
+    real ItoW[9];   /* homogeneous coordinate mapping from index-space (faster
+                       coordinate first) to the world-space in which the vector
+                       components have been measured */
+    qivType dtype;  /* type of the data; determines which of the union members
+                       below to use */
+    union {         /* union for the pointer to the image data; the pointer
+                       values are all the same; this is just to avoid casting.
+                       The right union member to use (data.uc vs data.rl)
+                       determined at run-time by value of dtype */
+        void *vd;
+        uchar *uc;
+        real *rl;
+    } data;
+} qivArray;
 
 /*
   struct qivCtx: all the state associated with computing convolution, and
@@ -116,7 +138,7 @@ typedef struct qivField_t {
   sense convolution in this project is more like that in p2mapr than p3rendr.
 */
 typedef struct qivCtx_t {
-    const qivField *vfl; /* vector field to process. */
+    const qivArray *qar; /* vector field to process. */
     qivKern kern;        /* how do we interpolate */
     real WtoI[9];        /* inverse of vfl->ItoW, for homog coord mapping
                             from world to index space */
@@ -179,18 +201,22 @@ typedef struct qivSline_t {
 } qivSline;
 
 // aenum.c: airEnums
+extern const airEnum *const qivType_ae;
 extern const airEnum *const qivIntg_ae;
 extern const airEnum *const qivStop_ae;
 extern const airEnum *const qivKern_ae;
 
-// field.c: for representing vector data
-extern qivField *qivFieldNew(void);
-extern int qivFieldSet(qivField *vfl, uint size0, uint size1, const double *edge0,
-                       const double *edge1, const double *orig, void *data, int ntype);
-extern qivField *qivFieldNix(qivField *vfl);
+// array.c
+extern qivArray *qivArrayNew(void);
+extern int qivArrayAlloc(qivArray *qar, uint channel, uint size0, uint size1,
+                         qivType dtype);
+extern int qivArraySet(qivArray *qar, uint channel, uint size0, uint size1,
+                       qivType dstType, const void *srcData, int srcNType,
+                       const double *edge0, const double *edge1, const double *orig);
+extern qivArray *qivArrayNix(qivArray *qar);
 
 // ctx.c: for setting up and using the qivCtx
-extern qivCtx *qivCtxNew(const qivField *vfl, qivKern kern);
+extern qivCtx *qivCtxNew(const qivArray *qar, qivKern kern);
 extern qivCtx *qivCtxNix(qivCtx *ctx);
 
 // convo.c: for convolution

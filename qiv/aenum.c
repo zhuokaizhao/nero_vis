@@ -6,6 +6,24 @@
 #include "qiv.h"
 #include "qivPrivate.h"
 
+static const airEnum _qivType_ae = {"pixel value type",
+                                    2,
+                                    (const char *[]){"(unknown_type)", "uchar", "real"},
+                                    (int[]){qivTypeUnknown, qivTypeUChar, qivTypeReal},
+                                    (const char *[]){
+                                      "unknown type",
+                                      "unsigned char",
+#if QIV_REAL_IS_DOUBLE
+                                      "real (double)",
+#else
+                                      "real (float)",
+#endif
+                                    },
+                                    NULL,
+                                    NULL,
+                                    AIR_FALSE};
+const airEnum *const qivType_ae = &_qivType_ae;
+
 static const airEnum _qivIntg_ae
   = {"integration method",
      3,
