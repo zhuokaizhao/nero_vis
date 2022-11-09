@@ -138,6 +138,10 @@ def _export_qiv() -> None:
                 __all__.append(sym_name)
 
 
+def temp():
+    print('hello')
+
+
 if __name__ != '__main__':  # here because of an "import"
     # now import the shared library
     try:
@@ -168,3 +172,4 @@ if __name__ != '__main__':  # here because of an "import"
         nrrdTypeReal = _teem.nrrdTypeFloat
     # __all__.append('airTypeReal')
     # __all__.append('nrrdTypeReal')
+    __all__.append('temp')
