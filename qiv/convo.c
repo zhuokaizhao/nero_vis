@@ -22,27 +22,29 @@ static void Bspln3Apply(real *ww, real xa) {
 }
 /* clang-format on */
 
-void
-qivConvoEval(qivCtx *ctx, real xw, real yw, int sgn, int norm) {
-    if (!ctx) {
-        fprintf(stderr, "%s: got NULL pointer!", __func__);
-        return;
-    }
+/* does vector-field convolution in vfd (with kernel kern) at (xw, yw), multiplying the
+   output (stored in vec) by sgn, and then normalizing output if norm.
+   Returns "(xw,yw) was inside".  Does NO error checking.
+*/
+_Bool
+_qivConvoEval(real ovec[2],                      // returns "inside"
+              int sgn, _Bool norm,               //
+              const qivArray *vfd, qivKern kern, //
+              real xw, real yw) {
     real xi, yi;
     {
-        const real *m = ctx->WtoI;
+        const real *m = vfd->WtoI;
         xi = m[0] * xw + m[1] * yw + m[2];
         yi = m[3] * xw + m[4] * yw + m[5];
     }
     if (_qivVerbose > 2) {
         printf("%s: world (%g,%g) --> index (%g,%g)\n", __func__, xw, yw, xi, yi);
     }
-    int _ii, ii, _jj, jj, sz0 = (int)ctx->qar->size0, sz1 = (int)ctx->qar->size1;
+    int _ii, ii, _jj, jj, sz0 = (int)vfd->size0, sz1 = (int)vfd->size1;
     real aa, bb, uu[4], vv[4], tt[4];
-    // safe because only real-type arrays can go into a ctx
-    const real *vd = ctx->qar->data.rl, *v0, *v1, *v2, *v3;
-    real *ovec = ctx->vec;
-    switch (ctx->kern) {
+    // qivConvoEval ensures that vfd->data is real-type
+    const real *vd = vfd->data.rl, *v0, *v1, *v2, *v3;
+    switch (kern) {
     case qivKernBox:
         _ii = (int)round(xi);
         ii = AIR_CLAMP(0, _ii, sz0 - 1);
@@ -80,7 +82,7 @@ qivConvoEval(qivCtx *ctx, real xw, real yw, int sgn, int norm) {
             printf("%s: (%g,%g) -> _(%d,%d) ; (%d,%d) + (%g,%g)\n", __func__, xi, yi,
                    _ii, _jj, ii, jj, aa, bb);
         }
-        if (qivKernCtmr == ctx->kern) {
+        if (qivKernCtmr == kern) {
             CtmrApply(uu, aa);
             CtmrApply(vv, bb);
         } else {
@@ -105,14 +107,14 @@ qivConvoEval(qivCtx *ctx, real xw, real yw, int sgn, int norm) {
         break;
     default:
         printf("%s: sorry kernel %s (%d) not implemented\n", __func__,
-               airEnumStr(qivKern_ae, ctx->kern), ctx->kern);
-        _ii = 0; // bogus values so that ctx->inside is set to 0
+               airEnumStr(qivKern_ae, kern), kern);
+        _ii = 0; // bogus values so that inside is set to 0
         ii = 1;
         _jj = 0;
         jj = 1;
         break;
     }
-    ctx->inside = (ii == _ii && jj == _jj);
+    int inside = (ii == _ii && jj == _jj);
     if (sgn) {
         ovec[0] *= sgn;
         ovec[1] *= sgn;
@@ -124,5 +126,37 @@ qivConvoEval(qivCtx *ctx, real xw, real yw, int sgn, int norm) {
             V2_SCALE(ovec, 1 / len, ovec);
         }
     }
-    return;
+    return inside;
+}
+
+/* does vector-field convolution in vfd (with kernel kern) at (xw, yw), multiplying the
+   output (stored in vec) by sgn, and then normalizing output if norm.
+   This does error-checking and if error, returns 1 and uses biff
+   _qivConvoEval is the non-error-checking function
+*/
+int
+qivConvoEval(_Bool *inside, real ovec[const 2], // returns non-zero if error
+             int sgn, _Bool norm,               //
+             const qivArray *vfd, qivKern kern, //
+             real xw, real yw) {                //
+    if (!(inside && ovec && vfd)) {
+        fprintf(stderr, "%s: got NULL pointer (%p,%p,%p)", __func__, CVOIDP(inside),
+                CVOIDP(ovec), CVOIDP(vfd));
+        return 1;
+    }
+    if (qivTypeReal != vfd->type) {
+        biffAddf(QIV, "%s: sorry, need array type %s (not %s)", __func__,
+                 airEnumStr(qivType_ae, qivTypeReal), airEnumStr(qivType_ae, vfd->type));
+        return 1;
+    }
+    if (2 != vfd->channel) {
+        biffAddf(QIV, "%s: need #channel == 2 (not %d)", __func__, vfd->channel);
+        return 1;
+    }
+    if (airEnumValCheck(qivKern_ae, kern)) {
+        biffAddf(QIV, "%s: got invalid kern %d", __func__, kern);
+        return 1;
+    }
+    *inside = _qivConvoEval(ovec, sgn, norm, vfd, kern, xw, yw);
+    return 0;
 }

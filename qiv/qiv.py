@@ -57,10 +57,13 @@ def _check_risd():
 # The functions that use biff. If function name starts with "*", a NULL return
 # indicates an error, otherwise a non-zero integer return indicates an error
 _BIFF_LIST = [
-    'qivArraySet',
     'qivArrayAlloc',
+    'qivArraySet',
+    'qivArrayOrientationSet',
+    'qivArraySyntheticFlowSet',
     'qivArraySave',
-    '*qivCtxNew',
+    'qivArrayBBox',
+    'qivConvoEval',
     'qivSlineAlloc',
     'qivSlineTrace',
     #'qivLICEval',

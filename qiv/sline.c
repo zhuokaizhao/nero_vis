@@ -7,13 +7,14 @@
 #include "qivPrivate.h"
 // vvvvvv
 static int
-waddle(real *sv, const real *pos, real hh, int sgn, int norm, int intg, qivCtx *ctx) {
-    real k1[2], p1[2], k2[2], p2[2], k3[2], p3[2], k4[2];
+scooch(real *sv, const real pos[const 2], qivIntg intg, real hh, int sgn,
+       _Bool normalize, qivArray *vfd, qivKern kern) {
+    real cvec[2], k1[2], p1[2], k2[2], p2[2], k3[2], p3[2], k4[2];
 
 #define STEP(D, POS)                                                                    \
-  qivConvoEval(ctx, (POS)[0], (POS)[1], sgn, norm);                                     \
-  if (!(ctx->inside)) return qivStopOutside;                                            \
-  V2_SCALE(D, hh, ctx->vec)
+  if (!_qivConvoEval(cvec, sgn, normalize, vfd, kern, (POS)[0], (POS)[1]))              \
+    return qivStopOutside;                                                              \
+  V2_SCALE(D, hh, cvec)
 
     if (qivIntgEuler == intg) {
         STEP(sv, pos);
@@ -110,11 +111,13 @@ qivSlineNix(qivSline *sln) {
 }
 
 int
-qivSlineTrace(qivSline *const sln, real seedX, real seedY, uint halfLen, real hh,
-              int normalize, int intg, qivCtx *ctx) {
-    if (!(sln && ctx)) {
-        biffAddf(QIV, "%s: got NULL pointer (%p,%p)", __func__, (void *)sln,
-                 (void *)ctx);
+qivSlineTrace(qivSline *const sln,                                  //
+              qivIntg intg, uint halfLen, real hh, _Bool normalize, //
+              qivArray *vfd, qivKern kern,                          //
+              real seedX, real seedY) {
+    if (!(sln && vfd)) {
+        biffAddf(QIV, "%s: got NULL pointer (%p,%p)", __func__, CVOIDP(sln),
+                 CVOIDP(vfd));
         return 1;
     }
     real seed[2];
@@ -143,15 +146,21 @@ qivSlineTrace(qivSline *const sln, real seedX, real seedY, uint halfLen, real hh
     // initialize output
     V2_COPY(sln->pos + 2 * halfLen, seed);
     // try reconstructing at seed point
-    qivConvoEval(ctx, seed[0], seed[1], 1 /* sgn */, 0 /* norm */);
+    _Bool inside;
+    real ovec[2];
+    if (qivConvoEval(&inside, ovec, 1 /* sgn */, false /* normalize */, vfd, kern,
+                     seed[0], seed[1])) {
+        biffAddf(QIV, "%s: trial convolution failed", __func__);
+        return 1;
+    }
     real nan = qivNan(0);
     int bail = 0;
-    if (!(ctx->inside)) {
+    if (!inside) {
         // seed point outside field, nowhere to go
         sln->seedStop = qivStopOutside;
         V2_SET(sln->vecSeed, nan, nan);
         bail = 1;
-    } else if (normalize && !V2_LEN(ctx->vec)) {
+    } else if (normalize && !V2_LEN(ovec)) {
         // got a zero vector but want to normalize
         sln->seedStop = qivStopNonfinite;
         V2_SET(sln->vecSeed, nan, nan);
@@ -166,7 +175,7 @@ qivSlineTrace(qivSline *const sln, real seedX, real seedY, uint halfLen, real hh
     }
     // else
     sln->seedStop = qivStopNot;
-    V2_COPY(sln->vecSeed, ctx->vec);
+    V2_COPY(sln->vecSeed, ovec);
     // vvvvvv
     int dirIdx, _stop[3], *stop;
     uint stepIdx, posIdx, _snum[3], *snum;
@@ -178,7 +187,7 @@ qivSlineTrace(qivSline *const sln, real seedX, real seedY, uint halfLen, real hh
         snum[dirIdx] = 0;
         V2_COPY(pp, sln->pos + 2 * posIdx);
         for (stepIdx = 0; stepIdx < halfLen; stepIdx++) {
-            int retstep = waddle(dpos, pp, hh, dirIdx, normalize, intg, ctx);
+            int retstep = scooch(dpos, pp, intg, hh, dirIdx, normalize, vfd, kern);
             if (qivStopNot != retstep) {
                 stop[dirIdx] = retstep;
                 break;
