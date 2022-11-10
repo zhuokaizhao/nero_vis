@@ -20,6 +20,7 @@ For more about CFFI see https://cffi.readthedocs.io/en/latest/
 (NOTE: GLK welcomes suggestions on how to make this more useful or pythonic)
 """
 
+import numpy as np
 
 try:
     import teem as _teem
@@ -33,6 +34,15 @@ except ModuleNotFoundError as _exc:
     """
     )
     raise _exc
+
+try:
+    import _qiv
+except ModuleNotFoundError:
+    print(
+        f'*\n* {__name__}.py: failed to load libqiv extension module _qiv.\n'
+        '* Did you first run "python3 build_qiv.py"?\n*\n'
+    )
+    raise
 
 # halt if python2; thanks to https://preview.tinyurl.com/44f2beza
 _x, *_y = 1, 2  # NOTE: A SyntaxError means you need python3, not python2
@@ -142,20 +152,51 @@ def _export_qiv() -> None:
                 __all__.append(sym_name)
 
 
-def temp():
-    print('hello')
+# input_array is a numpy array
+def set_array(input_array):
+
+    # make sure the input array is contiguous in memory (c order)
+    input_array = np.ascontiguousarray(input_array)
+    if input_array.dtype == 'float32':
+        nrrd_type = _teem.nrrdTypeFloat
+    elif input_array.dtype == 'float64':
+        nrrd_type = _teem.nrrdTypeDouble
+    else:
+        raise Exception(f'Unsupported data type {input_array.dtype}')
+
+    # pointer to numpy array
+    data = input_array.__array_interface__['data']
+
+    # ItoW relationship
+    edge0 = _qiv.ffi.new('double[2]')
+    edge0[0] = 1.0
+    edge0[1] = 0.0
+    edge1 = _qiv.ffi.new('double[2]')
+    edge1[0] = 0.0
+    edge1[1] = 1.0
+    orig = _qiv.ffi.new('double[2]')
+    orig[0] = 0.0
+    orig[1] = 0.0
+
+    # initialize array
+    qv = _qiv.qivArrayNew()
+    _qiv.qivArraySet(
+        qar=qv,
+        channel=2,
+        size0=input_array.shape[0],
+        size1=input_array.shape[1],
+        srcData=data,
+        srcNType=nrrd_type,
+        edge0=edge0,
+        edge1=edge1,
+        orig=orig,
+    )
+
+    return qv
 
 
 if __name__ != '__main__':  # here because of an "import"
-    # now import the shared library
-    try:
-        import _qiv
-    except ModuleNotFoundError:
-        print(
-            f'*\n* {__name__}.py: failed to load libqiv extension module _qiv.\n'
-            '* Did you first run "python3 build_qiv.py"?\n*\n'
-        )
-        raise
+
     _check_risd()
     # The value of this ffi, as opposed to "from cffi import FFI; ffi = FFI()" is that it knows
     # about the various typedefs that were learned to build the CFFI wrapper, which may in turn
@@ -176,4 +217,4 @@ if __name__ != '__main__':  # here because of an "import"
         nrrdTypeReal = _teem.nrrdTypeFloat
     # __all__.append('airTypeReal')
     # __all__.append('nrrdTypeReal')
-    __all__.append('temp')
+    __all__.append('set_array')

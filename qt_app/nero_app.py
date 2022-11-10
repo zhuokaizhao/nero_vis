@@ -207,7 +207,7 @@ class UI_MainWindow(QWidget):
                 self.model_1 = nero_run_model.load_model(self.mode, 'non_eqv', self.model_1_path)
 
                 # preload model 2
-                self.model_2_name = 'DA model'
+                self.model_2_name = 'Data Aug'
                 self.model_2_cache_name = self.model_2_name.split(' ')[0]
                 self.model_2_path = glob.glob(
                     os.path.join(os.getcwd(), 'example_models', self.mode, 'aug_rot_eqv', '*.pt')
@@ -795,7 +795,7 @@ class UI_MainWindow(QWidget):
 
                 # convert to QImage for display purpose
                 self.cur_display_image = nero_utilities.tensor_to_qt_image(
-                    self.cur_image_pt, self.display_image_size
+                    self.cur_image_pt, self.display_image_size, revert_color=True
                 )
                 # additional preparation required for MNIST
                 self.cur_image_pt = nero_transform.prepare_mnist_image(self.cur_image_pt)
@@ -880,7 +880,7 @@ class UI_MainWindow(QWidget):
                     self.model_1 = nero_run_model.load_model(
                         self.mode, 'rot-eqv', self.model_1_path
                     )
-                elif text == 'DA model':
+                elif text == 'Data Aug':
                     self.model_1_path = glob.glob(
                         os.path.join(
                             os.getcwd(), 'example_models', self.mode, 'aug_rot_eqv', '*.pt'
@@ -1052,7 +1052,7 @@ class UI_MainWindow(QWidget):
                     )[0]
                     # reload model
                     self.model_2 = nero_run_model.load_model('rot_eqv', self.model_2_path)
-                elif text == 'DA model':
+                elif text == 'Data Aug':
                     self.model_2_path = glob.glob(
                         os.path.join(
                             os.getcwd(), 'example_models', self.mode, 'aug_rot_eqv', '*.pt'
@@ -1225,13 +1225,13 @@ class UI_MainWindow(QWidget):
         model_pixmap = QPixmap(350, 50)
         model_pixmap.fill(QtCore.Qt.white)
         painter = QtGui.QPainter(model_pixmap)
-        painter.setFont(QFont('Helvetica', 24))
-        painter.drawText(0, 0, 350, 50, QtGui.Qt.AlignLeft, 'Input Data Set: ')
+        painter.setFont(QFont('Helvetica', 30))
+        painter.drawText(0, 0, 350, 50, QtGui.Qt.AlignLeft, 'Data Set:')
         painter.end()
 
         # create label to contain the texts
         self.model_label = QLabel(self)
-        self.model_label.setFixedSize(QtCore.QSize(350, 50))
+        self.model_label.setFixedSize(QtCore.QSize(300, 50))
         self.model_label.setPixmap(model_pixmap)
         # add to the layout
         if self.demo:
@@ -1241,9 +1241,9 @@ class UI_MainWindow(QWidget):
 
         # aggregate images loading drop down menu
         self.aggregate_image_menu = QtWidgets.QComboBox()
-        self.aggregate_image_menu.setFixedSize(QtCore.QSize(200, 50))
+        self.aggregate_image_menu.setFixedSize(QtCore.QSize(220, 50))
         self.aggregate_image_menu.setStyleSheet(
-            'color: black; font-size: 24px; font-family: Helvetica; font-style: normal;'
+            'color: black; font-size: 34px; font-family: Helvetica; font-style: normal;'
         )
         self.aggregate_image_menu.addItem('Input dataset')
 
@@ -1289,9 +1289,9 @@ class UI_MainWindow(QWidget):
 
         # single image loading drop down menu
         self.image_menu = QtWidgets.QComboBox()
-        self.image_menu.setFixedSize(QtCore.QSize(300, 50))
+        self.image_menu.setFixedSize(QtCore.QSize(400, 50))
         self.image_menu.setStyleSheet(
-            'color: black; font-size: 24px; font-family: Helvetica; font-style: normal;'
+            'color: black; font-size: 34px; font-family: Helvetica; font-style: normal;'
         )
         self.image_menu.addItem('Input image')
 
@@ -1372,17 +1372,17 @@ class UI_MainWindow(QWidget):
         model_selection_pixmap = QPixmap(450, 50)
         model_selection_pixmap.fill(QtCore.Qt.white)
         painter = QtGui.QPainter(model_selection_pixmap)
-        painter.setFont(QFont('Helvetica', 24))
+        painter.setFont(QFont('Helvetica', 30))
         painter.drawText(0, 0, 450, 50, QtGui.Qt.AlignLeft, 'Models in Comparisons: ')
         painter.end()
         # create label to contain the texts
         self.model_selection_label = QLabel(self)
-        self.model_selection_label.setFixedSize(QtCore.QSize(450, 50))
+        self.model_selection_label.setFixedSize(QtCore.QSize(500, 50))
         # self.class_selection_label.setAlignment(QtCore.Qt.AlignLeft)
         # self.class_selection_label.setWordWrap(True)
         # self.class_selection_label.setTextFormat(QtGui.Qt.AutoText)
         self.model_selection_label.setPixmap(model_selection_pixmap)
-        self.model_selection_label.setContentsMargins(50, 0, 0, 0)
+        self.model_selection_label.setContentsMargins(20, 0, 0, 0)
 
         # model 1
         # graphic representation
@@ -1397,13 +1397,13 @@ class UI_MainWindow(QWidget):
 
         self.model_1_menu = QtWidgets.QComboBox()
         self.model_1_menu.setStyleSheet(
-            'color: black; font-size: 24px; font-family: Helvetica; font-style: normal;'
+            'color: black; font-size: 34px; font-family: Helvetica; font-style: normal;'
         )
         if self.mode == 'digit_recognition':
-            self.model_1_menu.setFixedSize(QtCore.QSize(220, 50))
-            self.model_1_menu.addItem(model_1_icon, 'Original model')
-            self.model_1_menu.addItem(model_1_icon, 'E2CNN model')
-            self.model_1_menu.addItem(model_1_icon, 'DA model')
+            self.model_1_menu.setFixedSize(QtCore.QSize(200, 50))
+            self.model_1_menu.addItem(model_1_icon, 'Original')
+            self.model_1_menu.addItem(model_1_icon, 'E2CNN')
+            self.model_1_menu.addItem(model_1_icon, 'Data Aug')
             self.model_1_menu.setCurrentText('Original model')
         elif self.mode == 'object_detection':
             self.model_1_menu.setFixedSize(QtCore.QSize(300, 30))
@@ -1429,7 +1429,7 @@ class UI_MainWindow(QWidget):
         if self.demo:
             if self.mode == 'digit_recognition':
                 model_menus_layout = QtWidgets.QHBoxLayout()
-                model_menus_layout.setContentsMargins(40, 0, 0, 0)
+                model_menus_layout.setContentsMargins(0, 0, 0, 0)
                 model_menus_layout.addWidget(self.model_1_menu)
             else:
                 model_1_menu_layout = QtWidgets.QHBoxLayout()
@@ -1452,18 +1452,18 @@ class UI_MainWindow(QWidget):
 
         self.model_2_menu = QtWidgets.QComboBox()
         self.model_2_menu.setStyleSheet(
-            'color: black; font-size: 24px; font-family: Helvetica; font-style: normal;'
+            'color: black; font-size: 34px; font-family: Helvetica; font-style: normal;'
         )
         self.model_2_menu.setEditable(True)
         self.model_2_menu.lineEdit().setReadOnly(True)
         self.model_2_menu.lineEdit().setAlignment(QtCore.Qt.AlignCenter)
         if self.mode == 'digit_recognition':
-            self.model_2_menu.setFixedSize(QtCore.QSize(220, 50))
-            self.model_2_menu.addItem(model_2_icon, 'Original model')
-            self.model_2_menu.addItem(model_2_icon, 'E2CNN model')
-            self.model_2_menu.addItem(model_2_icon, 'DA model')
+            self.model_2_menu.setFixedSize(QtCore.QSize(200, 50))
+            self.model_2_menu.addItem(model_2_icon, 'Original')
+            self.model_2_menu.addItem(model_2_icon, 'E2CNN')
+            self.model_2_menu.addItem(model_2_icon, 'Data Aug')
             # model_2_menu.setCurrentText('E2CNN model')
-            self.model_2_menu.setCurrentText('DA model')
+            self.model_2_menu.setCurrentText('Data Aug')
         elif self.mode == 'object_detection':
             self.model_2_menu.setFixedSize(QtCore.QSize(300, 30))
             self.model_2_menu.addItem(model_2_icon, 'FasterRCNN (0% jittering)')
@@ -1641,16 +1641,16 @@ class UI_MainWindow(QWidget):
 
         # drop down menu on choosing the display class
         # draw text
-        class_selection_pixmap = QPixmap(350, 50)
+        class_selection_pixmap = QPixmap(300, 50)
         class_selection_pixmap.fill(QtCore.Qt.white)
         painter = QtGui.QPainter(class_selection_pixmap)
-        painter.setFont(QFont('Helvetica', 24))
-        painter.drawText(0, 0, 350, 50, QtGui.Qt.AlignLeft, 'Data Subset: ')
+        painter.setFont(QFont('Helvetica', 30))
+        painter.drawText(0, 0, 350, 50, QtGui.Qt.AlignLeft, 'Subset: ')
         painter.end()
         # create label to contain the texts
         self.class_selection_label = QLabel(self)
         # self.class_selection_label.setContentsMargins(0, 50, 0, 0)
-        self.class_selection_label.setFixedSize(QtCore.QSize(350, 50))
+        self.class_selection_label.setFixedSize(QtCore.QSize(400, 50))
         # self.class_selection_label.setAlignment(QtCore.Qt.AlignLeft)
         # self.class_selection_label.setWordWrap(True)
         # self.class_selection_label.setTextFormat(QtGui.Qt.AutoText)
@@ -1662,9 +1662,9 @@ class UI_MainWindow(QWidget):
             self.aggregate_plot_control_layout.addWidget(self.class_selection_label, 0, 0)
 
         self.class_selection_menu = QtWidgets.QComboBox()
-        self.class_selection_menu.setFixedSize(QtCore.QSize(200, 50))
+        self.class_selection_menu.setFixedSize(QtCore.QSize(220, 50))
         self.class_selection_menu.setStyleSheet(
-            'color: black; font-size: 24px; font-family: Helvetica; font-style: normal;'
+            'color: black; font-size: 34px; font-family: Helvetica; font-style: normal;'
         )
         if self.mode == 'digit_recognition':
             self.class_selection_menu.addItem(f'All digits')
@@ -1701,15 +1701,15 @@ class UI_MainWindow(QWidget):
 
         # drop down menu on choosing the dimension reduction method
         # draw text
-        dr_selection_pixmap = QPixmap(300, 50)
+        dr_selection_pixmap = QPixmap(330, 60)
         dr_selection_pixmap.fill(QtCore.Qt.white)
         painter = QtGui.QPainter(dr_selection_pixmap)
-        painter.setFont(QFont('Helvetica', 24))
-        painter.drawText(0, 0, 300, 50, QtGui.Qt.AlignLeft, 'Scatterplot Layout: ')
+        painter.setFont(QFont('Helvetica', 30))
+        painter.drawText(0, 0, 330, 60, QtGui.Qt.AlignLeft, 'DR Plot Layout: ')
         painter.end()
         # create label to contain the texts
         self.dr_selection_label = QLabel(self)
-        self.dr_selection_label.setFixedSize(QtCore.QSize(300, 50))
+        self.dr_selection_label.setFixedSize(QtCore.QSize(330, 60))
         self.dr_selection_label.setPixmap(dr_selection_pixmap)
         # add to the layout
         if self.demo:
@@ -1719,9 +1719,10 @@ class UI_MainWindow(QWidget):
             self.load_menu_layout.addWidget(self.dr_selection_label, 1, 1)
 
         self.dr_selection_menu = QtWidgets.QComboBox()
-        self.dr_selection_menu.setFixedSize(QtCore.QSize(130, 50))
+        self.dr_selection_menu.setFixedSize(QtCore.QSize(150, 50))
+        self.dr_selection_menu.setContentsMargins(0, 0, 0, 0)
         self.dr_selection_menu.setStyleSheet(
-            'color: black; font-family: Helvetica; font-style: normal; font-size: 24px'
+            'color: black; font-family: Helvetica; font-style: normal; font-size: 34px'
         )
         dr_algorithms = ['PCA', 'ICA', 'ISOMAP', 't-SNE', 'UMAP']
         for algo in dr_algorithms:
@@ -1868,7 +1869,7 @@ class UI_MainWindow(QWidget):
                 self.slider_1_layout = QtWidgets.QGridLayout()
                 self.slider_1_layout.setVerticalSpacing(0)
                 self.dr_result_selection_slider_1 = QtWidgets.QSlider(QtCore.Qt.Horizontal)
-                self.dr_result_selection_slider_1.setFixedSize(self.plot_size, 20)
+                self.dr_result_selection_slider_1.setFixedSize(self.plot_size, 50)
                 self.dr_result_selection_slider_1.setMinimum(0)
                 self.dr_result_selection_slider_1.setMaximum(len(self.all_high_dim_points_1) - 1)
                 self.dr_result_selection_slider_1.setValue(0)
@@ -1883,21 +1884,23 @@ class UI_MainWindow(QWidget):
                 self.slider_1_left_button = QtWidgets.QToolButton()
                 self.slider_1_left_button.setArrowType(QtCore.Qt.LeftArrow)
                 self.slider_1_left_button.clicked.connect(slider_1_left_button_clicked)
+                self.slider_1_left_button.setFixedSize(30, 30)
+                self.slider_1_left_button.setStyleSheet('color: black')
                 self.slider_1_layout.addWidget(self.slider_1_left_button, 1, 0, 1, 1)
 
                 # middle text
-                slider_1_text_pixmap = QPixmap(150, 30)
+                slider_1_text_pixmap = QPixmap(300, 50)
                 slider_1_text_pixmap.fill(QtCore.Qt.white)
                 painter = QtGui.QPainter(slider_1_text_pixmap)
-                painter.setFont(QFont('Helvetica', 12))
                 painter.drawText(
                     0,
                     0,
-                    150,
-                    30,
+                    300,
+                    50,
                     QtGui.Qt.AlignCenter,
                     f'{self.dr_result_selection_slider_1.value()+1}/{len(self.cur_class_indices)}',
                 )
+                painter.setFont(QFont('Helvetica', 30))
                 painter.end()
                 # create label to contain the texts
                 self.slider_1_text_label = QLabel(self)
@@ -1910,6 +1913,8 @@ class UI_MainWindow(QWidget):
                 # right button
                 self.slider_1_right_button = QtWidgets.QToolButton()
                 self.slider_1_right_button.setArrowType(QtCore.Qt.RightArrow)
+                self.slider_1_right_button.setFixedSize(30, 30)
+                self.slider_1_right_button.setStyleSheet('color: black')
                 self.slider_1_right_button.clicked.connect(slider_1_right_button_clicked)
                 self.slider_1_layout.addWidget(self.slider_1_right_button, 1, 2, 1, 1)
 
@@ -1923,7 +1928,7 @@ class UI_MainWindow(QWidget):
                 self.slider_2_layout = QtWidgets.QGridLayout()
                 self.slider_2_layout.setVerticalSpacing(0)
                 self.dr_result_selection_slider_2 = QtWidgets.QSlider(QtCore.Qt.Horizontal)
-                self.dr_result_selection_slider_2.setFixedSize(self.plot_size, 20)
+                self.dr_result_selection_slider_2.setFixedSize(self.plot_size, 50)
                 self.dr_result_selection_slider_2.setMinimum(0)
                 self.dr_result_selection_slider_2.setMaximum(len(self.all_high_dim_points_2) - 1)
                 self.dr_result_selection_slider_2.setValue(0)
@@ -1937,6 +1942,8 @@ class UI_MainWindow(QWidget):
                 # left button
                 self.slider_2_left_button = QtWidgets.QToolButton()
                 self.slider_2_left_button.setArrowType(QtCore.Qt.LeftArrow)
+                self.slider_2_left_button.setFixedSize(30, 30)
+                self.slider_2_left_button.setStyleSheet('color: black')
                 self.slider_2_left_button.clicked.connect(slider_2_left_button_clicked)
                 self.slider_2_layout.addWidget(self.slider_2_left_button, 1, 0, 1, 1)
 
@@ -1965,6 +1972,8 @@ class UI_MainWindow(QWidget):
                 # right button
                 self.slider_2_right_button = QtWidgets.QToolButton()
                 self.slider_2_right_button.setArrowType(QtCore.Qt.RightArrow)
+                self.slider_2_right_button.setFixedSize(30, 30)
+                self.slider_2_right_button.setStyleSheet('color: black')
                 self.slider_2_right_button.clicked.connect(slider_2_right_button_clicked)
                 self.slider_2_layout.addWidget(self.slider_2_right_button, 1, 2, 1, 1)
 
@@ -2031,7 +2040,7 @@ class UI_MainWindow(QWidget):
             if self.mode == 'digit_recognition':
                 # convert to QImage for display purpose
                 self.cur_display_image = nero_utilities.tensor_to_qt_image(
-                    self.cur_image_pt, self.display_image_size
+                    self.cur_image_pt, self.display_image_size, revert_color=True
                 )
                 # prepare image tensor for model purpose
                 self.cur_image_pt = nero_transform.prepare_mnist_image(self.cur_image_pt)
@@ -2107,7 +2116,7 @@ class UI_MainWindow(QWidget):
                         colorMap=self.color_map,
                         interactive=False,
                         orientation='horizontal',
-                        width=20,
+                        width=30,
                     )
                     # add colorbar to a specific place if in demo mode
                     dummy_view = pg.GraphicsLayoutWidget()
@@ -2534,7 +2543,7 @@ class UI_MainWindow(QWidget):
                 if self.mode == 'digit_recognition':
                     # convert to QImage for display purpose
                     self.cur_display_image = nero_utilities.tensor_to_qt_image(
-                        self.cur_image_pt, self.display_image_size
+                        self.cur_image_pt, self.display_image_size, revert_color=True
                     )
                     # prepare image tensor for model purpose
                     self.cur_image_pt = nero_transform.prepare_mnist_image(self.cur_image_pt)
@@ -2621,7 +2630,7 @@ class UI_MainWindow(QWidget):
                 if self.mode == 'digit_recognition':
                     # convert to QImage for display purpose
                     self.cur_display_image = nero_utilities.tensor_to_qt_image(
-                        self.cur_image_pt, self.display_image_size
+                        self.cur_image_pt, self.display_image_size, revert_color=True
                     )
                     # prepare image tensor for model purpose
                     self.cur_image_pt = nero_transform.prepare_mnist_image(self.cur_image_pt)
@@ -2659,22 +2668,22 @@ class UI_MainWindow(QWidget):
 
         # radio buittons on choosing the intensity quantity
         # Title on the two radio buttons
-        intensity_button_pixmap = QPixmap(300, 50)
+        intensity_button_pixmap = QPixmap(300, 60)
         intensity_button_pixmap.fill(QtCore.Qt.white)
         painter = QtGui.QPainter(intensity_button_pixmap)
-        painter.setFont(QFont('Helvetica', 24))
-        painter.drawText(0, 0, 300, 50, QtGui.Qt.AlignLeft, 'Scatterplot Sorting:')
+        painter.setFont(QFont('Helvetica', 30))
+        painter.drawText(0, 0, 300, 60, QtGui.Qt.AlignLeft, 'DR Plot Sorting:')
         painter.end()
 
         # create label to contain the texts
         intensity_button_label = QLabel(self)
         intensity_button_label.setContentsMargins(0, 0, 0, 0)
-        intensity_button_label.setFixedSize(QtCore.QSize(300, 110))
+        intensity_button_label.setFixedSize(QtCore.QSize(350, 115))
         intensity_button_label.setAlignment(QtCore.Qt.AlignLeft)
         intensity_button_label.setWordWrap(True)
         intensity_button_label.setTextFormat(QtGui.Qt.AutoText)
         intensity_button_label.setPixmap(intensity_button_pixmap)
-        intensity_button_label.setContentsMargins(0, 60, 0, 0)
+        intensity_button_label.setContentsMargins(5, 60, 0, 0)
         # add to the layout
         if self.demo:
             self.scatterplot_sorting_layout = QtWidgets.QGridLayout()
@@ -2684,13 +2693,10 @@ class UI_MainWindow(QWidget):
             self.aggregate_plot_control_layout.addWidget(intensity_button_label, 7, 0)
 
         self.mean_intensity_button = QRadioButton('Mean')
-        self.mean_intensity_button.setFixedSize(QtCore.QSize(120, 50))
+        self.mean_intensity_button.setFixedSize(QtCore.QSize(160, 50))
         self.mean_intensity_button.setContentsMargins(0, 0, 0, 0)
         self.mean_intensity_button.setStyleSheet(
-            'QRadioButton{font: 22pt Helvetica;} QRadioButton::indicator { width: 22px; height: 22px;};'
-        )
-        self.mean_intensity_button.setStyleSheet(
-            'color: black; font-family: Helvetica; font-style: normal; font-size: 22px'
+            'color: black; font-style: normal; font-family: Helvetica; font-size: 28px;'
         )
         self.mean_intensity_button.pressed.connect(mean_intensity_button_clicked)
         if self.demo:
@@ -2699,13 +2705,10 @@ class UI_MainWindow(QWidget):
             self.aggregate_plot_control_layout.addWidget(self.mean_intensity_button, 8, 0)
 
         self.variance_intensity_button = QRadioButton('Variance')
-        self.variance_intensity_button.setFixedSize(QtCore.QSize(120, 50))
+        self.variance_intensity_button.setFixedSize(QtCore.QSize(160, 50))
         self.variance_intensity_button.setContentsMargins(0, 0, 0, 0)
         self.variance_intensity_button.setStyleSheet(
-            'QRadioButton{font: 22pt Helvetica;} QRadioButton::indicator { width: 22px; height: 22px;};'
-        )
-        self.variance_intensity_button.setStyleSheet(
-            'color: black; font-family: Helvetica; font-style: normal; font-size: 22px'
+            'color: black; font-style: normal; font-family: Helvetica; font-size: 28px;'
         )
         self.variance_intensity_button.pressed.connect(variance_intensity_button_clicked)
         if self.demo:
@@ -2740,7 +2743,10 @@ class UI_MainWindow(QWidget):
         if self.demo:
             # preselected the digit we want to use in paper
             # Note: this will create error when changing subset
+            # digit 4
             selected_image = '/home/zhuokai/Desktop/UChicago/Research/nero_vis/qt_app/example_data/digit_recognition/MNIST_500/label_4_sample_6924.png'
+            # digit 6
+            # digit 9
             selected_image_index = self.all_images_paths.index(selected_image)
             self.image_index = self.cur_class_indices[selected_image_index]
 
@@ -4180,13 +4186,23 @@ class UI_MainWindow(QWidget):
         plot.hideAxis('bottom')
         plot.hideAxis('left')
 
-        # Add polar grid lines
-        plot.addLine(x=0, pen=pg.mkPen('black', width=2))
-        plot.addLine(y=0, pen=pg.mkPen('black', width=2))
-        for r in np.arange(0, 1.2, 0.2):
+        # Add horizontal and vertical grid lines
+        plot.addLine(x=0, pen=pg.mkPen('black', width=2, length=2))
+        plot.addLine(y=0, pen=pg.mkPen('black', width=2, length=2))
+        labels = ['0', '0.2', '0.4', '0.6', '0.8']
+
+        for i, r in enumerate(np.arange(0, 1.2, 0.2)):
+            # add circles
             circle = pg.QtWidgets.QGraphicsEllipseItem(-r, -r, 2 * r, 2 * r)
             circle.setPen(pg.mkPen('black', width=2))
             plot.addItem(circle)
+
+            # add horizontal axis labels
+            if i < len(labels):
+                text = pg.TextItem(labels[i], color='black')
+                text.setPos(r, 0)
+                text.setFont(QFont('Helvetica', 16))
+                plot.addItem(text)
 
         return plot
 
@@ -6015,7 +6031,7 @@ class UI_MainWindow(QWidget):
         plot_quantity_pixmap = QPixmap(300, 50)
         plot_quantity_pixmap.fill(QtCore.Qt.white)
         painter = QtGui.QPainter(plot_quantity_pixmap)
-        painter.setFont(QFont('Helvetica', 24))
+        painter.setFont(QFont('Helvetica', 30))
         painter.drawText(0, 0, 300, 50, QtGui.Qt.AlignLeft, 'NERO Metric: ')
         painter.end()
 
@@ -6027,9 +6043,9 @@ class UI_MainWindow(QWidget):
 
         # drop down menu on selection which quantity to plot
         quantity_menu = QtWidgets.QComboBox()
-        quantity_menu.setFixedSize(QtCore.QSize(200, 50))
+        quantity_menu.setFixedSize(QtCore.QSize(220, 50))
         quantity_menu.setStyleSheet(
-            'color: black; font-family: Helvetica; font-style: normal; font-size: 24px'
+            'color: black; font-family: Helvetica; font-style: normal; font-size: 34px'
         )
         quantity_menu.setEditable(True)
         quantity_menu.lineEdit().setReadOnly(True)
@@ -6037,7 +6053,6 @@ class UI_MainWindow(QWidget):
 
         quantity_menu.addItem('Accuracy')  # for aggregate case only
         quantity_menu.addItem('Confidence')
-        # quantity_menu.setCurrentText('Accuracy')
         quantity_menu.setCurrentText('Confidence')
         self.quantity_name = quantity_menu.currentText()
 
@@ -6047,7 +6062,7 @@ class UI_MainWindow(QWidget):
             self.plot_info_layout = QtWidgets.QHBoxLayout()
             self.plot_info_layout.addWidget(self.plot_quantity_label)
             self.plot_info_layout.addWidget(quantity_menu)
-            self.plot_info_layout.setContentsMargins(50, 0, 50, 0)
+            self.plot_info_layout.setContentsMargins(20, 0, 0, 0)
             self.demo_layout.addLayout(self.plot_info_layout, 0, 2)
         else:
             self.aggregate_plot_control_layout.addWidget(quantity_menu, 1, 0)
@@ -6067,14 +6082,16 @@ class UI_MainWindow(QWidget):
             self.bar_plot.plotItem.vb.setLimits(xMin=-0.5, xMax=9.5, yMin=0, yMax=1.2)
             self.bar_plot.setBackground('w')
             self.bar_plot.setFixedSize(self.plot_size * 1.7, self.plot_size * 1.7)
-            self.bar_plot.setContentsMargins(0, 0, 0, 0)
-            x_label_style = {'color': 'black', 'font-size': '14pt', 'text': 'Digit'}
-            y_label_style = {'color': 'black', 'font-size': '14pt', 'text': 'Confidence'}
+            self.bar_plot.setContentsMargins(20, 0, 0, 0)
+            x_label_style = {'color': 'black', 'font-size': '16pt', 'text': 'Digit'}
+            y_label_style = {'color': 'black', 'font-size': '16pt', 'text': 'Confidence'}
             self.bar_plot.getAxis('bottom').setLabel(**x_label_style)
             self.bar_plot.getAxis('left').setLabel(**y_label_style)
-            tick_font = QFont('Helvetica', 14)
+            tick_font = QFont('Helvetica', 16)
             self.bar_plot.getAxis('bottom').setTickFont(tick_font)
             self.bar_plot.getAxis('left').setTickFont(tick_font)
+            self.bar_plot.getAxis('bottom').setTextPen('black')
+            self.bar_plot.getAxis('left').setTextPen('black')
 
             graph_1 = pg.BarGraphItem(
                 x=np.arange(len(self.output_1)) - 0.2,
@@ -6241,7 +6258,7 @@ class UI_MainWindow(QWidget):
                     )
                     # convert image tensor to qt image and resize for display
                     self.cur_display_image = nero_utilities.tensor_to_qt_image(
-                        self.cur_image_pt, self.display_image_size
+                        self.cur_image_pt, self.display_image_size, revert_color=True
                     )
                     # update the pixmap and label
                     self.image_pixmap = QPixmap(self.cur_display_image)
@@ -7215,7 +7232,7 @@ class UI_MainWindow(QWidget):
             # self.image_pixmap = self.image_pixmap.transformed(QtGui.QTransform().rotate(angle), QtCore.Qt.SmoothTransformation)
             # convert image tensor to qt image and resize for display
             self.cur_display_image = nero_utilities.tensor_to_qt_image(
-                self.cur_image_pt, self.display_image_size
+                self.cur_image_pt, self.display_image_size, revert_color=True
             )
             # prepare image tensor for model purpose
             self.cur_image_pt = nero_transform.prepare_mnist_image(self.cur_image_pt)
