@@ -29,7 +29,7 @@ qivArrayNew() {
     assert(ret);
     ret->channel = ret->size0 = ret->size1 = 0;
     M3_SET_NAN(ret->ItoW);
-    ret->dtype = qivTypeUnknown;
+    ret->type = qivTypeUnknown;
     ret->data.vd = NULL;
     return ret;
 }
@@ -98,7 +98,7 @@ qivArrayAlloc(qivArray *qar, uint channel, uint size0, uint size1, qivType dtype
         // definitely not already allocated
         doalloc = 1;
     } else if (qar->channel != channel || qar->size0 != size0 || qar->size1 != size1
-               || qar->dtype != dtype) {
+               || qar->type != dtype) {
         // already allocated, but not the right size/type
         free(qar->data.vd);
         doalloc = 1;
@@ -118,7 +118,7 @@ qivArrayAlloc(qivArray *qar, uint channel, uint size0, uint size1, qivType dtype
     qar->channel = channel;
     qar->size0 = size0;
     qar->size1 = size1;
-    qar->dtype = dtype;
+    qar->type = dtype;
     return 0;
 }
 
@@ -230,5 +230,71 @@ qivArraySet(qivArray *qar, uint channel, uint size0, uint size1, qivType dstType
                0, 1, 0,   /* */
                0, 0, 1);
     }
+    return 0;
+}
+
+static Nrrd *
+_qivNrrdWrap(const qivArray *qar) {
+    int ntype;
+    switch (qar->type) {
+    case qivTypeUChar:
+        ntype = nrrdTypeUChar;
+        break;
+    case qivTypeReal:
+        ntype = nrrdTypeReal;
+        break;
+    default:
+        biffAddf("%s: qar->type %s (%d) not handled", __func__,
+                 airEnumStr(qivType_ae, qar->type), qar->type);
+        return NULL;
+    }
+    uint dim;
+    size_t size[3];
+    if (1 == qar->channel) {
+        dim = 2;
+        size[0] = qar->size0;
+        size[1] = qar->size1;
+    } else {
+        dim = 3;
+        size[0] = qar->channel;
+        size[1] = qar->size0;
+        size[2] = qar->size1;
+    }
+    // error checking done
+    Nrrd *ret = nrrdNew();
+    if (nrrdWrap_nva(ret, qar->data.vd, ntype, dim, size)
+        || nrrdSpaceDimensionSet(ret, 2)) {
+        biffMovef(QIV, NRRD, "%s: failed to wrap nrrd", __func__);
+        nrrdNix(ret);
+        return NULL;
+    }
+    // dim==2 --> dim-2, dim-1 == 0, 1
+    // dim==3 --> dim-2, dim-1 == 1, 2
+    // ItoW:
+    // 0  1  2
+    // 3  4  5
+    ELL_2V_SET(ret->axis[dim - 2].spaceDirection, qar->ItoW[0], qar->ItoW[3]);
+    ELL_2V_SET(ret->axis[dim - 1].spaceDirection, qar->ItoW[1], qar->ItoW[4]);
+    ELL_2V_SET(ret->spaceOrigin, qar->ItoW[2], qar->ItoW[5]);
+    return ret;
+}
+
+int
+qivArraySave(const char *fname, const qivArray *qar) {
+    if (!(fname && qar)) {
+        biffAddf("%s: got NULL pointer (%p,%p)", __func__, CVOIDP(fname), CVOIDP(qar));
+        return 1;
+    }
+    Nrrd *nrd = _qivNrrdWrap(qar);
+    if (!nrd) {
+        biffAddf(QIV, "%s: trouble wrapping", __func__);
+        return 1;
+    }
+    if (nrrdSave(fname, nrd, NULL)) {
+        biffMovef(QIV, NRRD, "%s: trouble saving", __func__);
+        nrrdNix(nrd);
+        return 1;
+    }
+    nrrdNix(nrd);
     return 0;
 }

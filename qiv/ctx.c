@@ -13,10 +13,9 @@ qivCtxNew(const qivArray *qar, qivKern kern) {
         return NULL;
     }
     // here is where we enforce the vector-field-ness of the qar
-    if (qivTypeReal != qar->dtype) {
-        biffAddf(QIV, "%s: sorry, need array dtype %s (not %s)", __func__,
-                 airEnumStr(qivType_ae, qivTypeReal),
-                 airEnumStr(qivType_ae, qar->dtype));
+    if (qivTypeReal != qar->type) {
+        biffAddf(QIV, "%s: sorry, need array type %s (not %s)", __func__,
+                 airEnumStr(qivType_ae, qivTypeReal), airEnumStr(qivType_ae, qar->type));
         return NULL;
     }
     if (2 != qar->channel) {
