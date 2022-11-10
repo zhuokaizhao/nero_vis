@@ -9,9 +9,10 @@ from PySide6 import QtGui
 # load the class names from the COCO class file
 def load_coco_classes_file(path):
 
-    fp = open(path, "r")
-    names = fp.read().split("\n")[:-1]
+    fp = open(path, 'r')
+    names = fp.read().split('\n')[:-1]
     return names
+
 
 # some helper functions
 def qt_image_to_tensor(img, share_memory=False):
@@ -22,7 +23,7 @@ def qt_image_to_tensor(img, share_memory=False):
     Be careful: make sure the numpy array is destroyed before the image,
                 otherwise the array will point to unreserved memory!!
     """
-    assert isinstance(img, QtGui.QImage), "img must be a QtGui.QImage object"
+    assert isinstance(img, QtGui.QImage), 'img must be a QtGui.QImage object'
     if img.format() == QtGui.QImage.Format.Format_Grayscale8:
         num_channel = 1
     elif img.format() == QtGui.QImage.Format.Format_RGB32:
@@ -34,14 +35,16 @@ def qt_image_to_tensor(img, share_memory=False):
 
     # Sanity check
     n_bits_buffer = len(buffer) * 8
-    n_bits_image  = img_size.width() * img_size.height() * img.depth()
+    n_bits_image = img_size.width() * img_size.height() * img.depth()
 
-    assert n_bits_buffer == n_bits_image, "size mismatch: {} != {}".format(n_bits_buffer, n_bits_image)
+    assert n_bits_buffer == n_bits_image, 'size mismatch: {} != {}'.format(
+        n_bits_buffer, n_bits_image
+    )
 
     # Note the different width height parameter order!
-    arr = np.ndarray(shape  = (img_size.height(), img_size.width(), num_channel),
-                     buffer = buffer,
-                     dtype  = np.uint8)
+    arr = np.ndarray(
+        shape=(img_size.height(), img_size.width(), num_channel), buffer=buffer, dtype=np.uint8
+    )
 
     if share_memory:
         return torch.from_numpy(arr)
@@ -49,7 +52,10 @@ def qt_image_to_tensor(img, share_memory=False):
         return torch.from_numpy(copy.deepcopy(arr))
 
 
-def tensor_to_qt_image(img_pt, new_size=None):
+def tensor_to_qt_image(img_pt, new_size=None, revert_color=False):
+
+    if revert_color:
+        img_pt = 255 - img_pt
 
     # convert input torch tensor to numpy array
     img_np = img_pt.numpy()
@@ -60,7 +66,9 @@ def tensor_to_qt_image(img_pt, new_size=None):
 
     if img_np.shape[-1] == 1:
         # qt image uses width, height
-        img_qt = QtGui.QImage(img_np, img_np.shape[1], img_np.shape[0], QtGui.QImage.Format_Grayscale8)
+        img_qt = QtGui.QImage(
+            img_np, img_np.shape[1], img_np.shape[0], QtGui.QImage.Format_Grayscale8
+        )
     elif img_np.shape[-1] == 3:
         img_qt = QtGui.QImage(img_np, img_np.shape[1], img_np.shape[0], QtGui.QImage.Format_RGB888)
 
@@ -142,28 +150,40 @@ def process_model_outputs(outputs, targets, iou_thres=0.5, conf_thres=1e-4):
         all_F_measure.append(F_measure)
 
         # sort all the qualified output based on conf (class_score) from high to low
-        cur_qualified_output_sorted_by_conf = sorted(cur_qualified_output, key=lambda x: x[4])[::-1]
+        cur_qualified_output_sorted_by_conf = sorted(cur_qualified_output, key=lambda x: x[4])[
+            ::-1
+        ]
 
         # sort all the qualified output based on iou from high to low
-        cur_qualified_output_sorted_by_iou = sorted(cur_qualified_output, key=lambda x: x[-1])[::-1]
+        cur_qualified_output_sorted_by_iou = sorted(cur_qualified_output, key=lambda x: x[-1])[
+            ::-1
+        ]
 
         # sort all the qualified output based on conf*iou from high to low
-        cur_qualified_output_sorted_by_conf_iou = sorted(cur_qualified_output, key=lambda x: x[4]*x[-1])[::-1]
+        cur_qualified_output_sorted_by_conf_iou = sorted(
+            cur_qualified_output, key=lambda x: x[4] * x[-1]
+        )[::-1]
 
         # sort all the qualified output based on conf*iou from high to low
-        cur_qualified_output_sorted_by_conf_iou_pr = sorted(cur_qualified_output, key=lambda x: x[4]*x[-1]*precision)[::-1]
+        cur_qualified_output_sorted_by_conf_iou_pr = sorted(
+            cur_qualified_output, key=lambda x: x[4] * x[-1] * precision
+        )[::-1]
 
         # keep the outputs
         all_qualified_outputs_sorted_by_conf.append(cur_qualified_output_sorted_by_conf)
         all_qualified_outputs_sorted_by_iou.append(cur_qualified_output_sorted_by_iou)
         all_qualified_outputs_sorted_by_conf_iou.append(cur_qualified_output_sorted_by_conf_iou)
-        all_qualified_outputs_sorted_by_conf_iou_pr.append(cur_qualified_output_sorted_by_conf_iou_pr)
+        all_qualified_outputs_sorted_by_conf_iou_pr.append(
+            cur_qualified_output_sorted_by_conf_iou_pr
+        )
 
     # convert list to numpy array
     all_qualified_outputs_sorted_by_conf = np.array(all_qualified_outputs_sorted_by_conf)
     all_qualified_outputs_sorted_by_iou = np.array(all_qualified_outputs_sorted_by_iou)
     all_qualified_outputs_sorted_by_conf_iou = np.array(all_qualified_outputs_sorted_by_conf_iou)
-    all_qualified_outputs_sorted_by_conf_iou_pr = np.array(all_qualified_outputs_sorted_by_conf_iou_pr)
+    all_qualified_outputs_sorted_by_conf_iou_pr = np.array(
+        all_qualified_outputs_sorted_by_conf_iou_pr
+    )
 
     # divide outputs into perspective names
     # sorted by conf
@@ -240,12 +260,27 @@ def process_model_outputs(outputs, targets, iou_thres=0.5, conf_thres=1e-4):
         all_confidence_sorted_by_conf_iou_pr.append(pred_confidence_sorted_by_conf_iou_pr)
         all_iou_sorted_by_conf_iou_pr.append(iou_sorted_by_conf_iou_pr)
 
-
-    return all_pred_labels_sorted_by_conf, all_pred_bb_sorted_by_conf, all_confidence_sorted_by_conf, all_iou_sorted_by_conf, \
-            all_pred_labels_sorted_by_iou, all_pred_bb_sorted_by_iou, all_confidence_sorted_by_iou, all_iou_sorted_by_iou, \
-            all_pred_labels_sorted_by_conf_iou, all_pred_bb_sorted_by_conf_iou, all_confidence_sorted_by_conf_iou, all_iou_sorted_by_conf_iou, \
-            all_pred_labels_sorted_by_conf_iou_pr, all_pred_bb_sorted_by_conf_iou_pr, all_confidence_sorted_by_conf_iou_pr, all_iou_sorted_by_conf_iou_pr, \
-            all_precisions, all_recalls, all_F_measure
+    return (
+        all_pred_labels_sorted_by_conf,
+        all_pred_bb_sorted_by_conf,
+        all_confidence_sorted_by_conf,
+        all_iou_sorted_by_conf,
+        all_pred_labels_sorted_by_iou,
+        all_pred_bb_sorted_by_iou,
+        all_confidence_sorted_by_iou,
+        all_iou_sorted_by_iou,
+        all_pred_labels_sorted_by_conf_iou,
+        all_pred_bb_sorted_by_conf_iou,
+        all_confidence_sorted_by_conf_iou,
+        all_iou_sorted_by_conf_iou,
+        all_pred_labels_sorted_by_conf_iou_pr,
+        all_pred_bb_sorted_by_conf_iou_pr,
+        all_confidence_sorted_by_conf_iou_pr,
+        all_iou_sorted_by_conf_iou_pr,
+        all_precisions,
+        all_recalls,
+        all_F_measure,
+    )
 
 
 def bbox_iou(box1, box2):
@@ -273,13 +308,16 @@ def bbox_iou(box1, box2):
 
     return iou
 
+
 # lerp between two ranges
 def lerp(pos, in_min, in_max, out_min, out_max):
 
     # an array of numbers of be lerped
     if type(pos) is np.ndarray:
         alpha = np.true_divide(np.subtract(pos, in_min), float(in_max - in_min))
-        new_pos = np.multiply(np.subtract(1.0, alpha), float(out_min)) + np.multiply(alpha, float(out_max))
+        new_pos = np.multiply(np.subtract(1.0, alpha), float(out_min)) + np.multiply(
+            alpha, float(out_max)
+        )
     # a float number
     else:
         alpha = float(pos - in_min) / float(in_max - in_min)
@@ -290,7 +328,7 @@ def lerp(pos, in_min, in_max, out_min, out_max):
 
 # compute average precision
 def compute_ap(recall, precision):
-    """ Compute the average precision, given the recall and precision curves.
+    """Compute the average precision, given the recall and precision curves.
     Code originally from https://github.com/rbgirshick/py-faster-rcnn.
 
     # Arguments
