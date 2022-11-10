@@ -15,7 +15,9 @@ extern "C" {
 
 /* The things #define'd here according to SCIVIS_REAL_IS_DOUBLE simplify connecting to
    other external libraries that do not know about our choice of "real", but which can
-   handle either float or double. */
+   handle either float or double. Note these things do not start with the "qiv" prefix,
+   which is misleading, but that's why these are limited to the private header, with the
+   assumption that qiv coders are grateful for the familiar yet more general names. */
 #if QIV_REAL_IS_DOUBLE
 #  define airTypeReal  airTypeDouble
 #  define nrrdTypeReal nrrdTypeDouble

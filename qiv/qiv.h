@@ -117,12 +117,12 @@ typedef struct qivArray_t {
     real ItoW[9];   /* homogeneous coordinate mapping from index-space (faster
                        coordinate first) to the world-space in which the vector
                        components have been measured */
-    qivType dtype;  /* type of the data; determines which of the union members
-                       below to use */
+    qivType type;   /* type of the data; determines which of the union members
+                        below to use */
     union {         /* union for the pointer to the image data; the pointer
                        values are all the same; this is just to avoid casting.
                        The right union member to use (data.uc vs data.rl)
-                       determined at run-time by value of dtype */
+                       determined at run-time by value of type */
         void *vd;
         uchar *uc;
         real *rl;
@@ -214,6 +214,7 @@ extern int qivArraySet(qivArray *qar, uint channel, uint size0, uint size1,
                        qivType dstType, const void *srcData, int srcNType,
                        const double *edge0, const double *edge1, const double *orig);
 extern qivArray *qivArrayNix(qivArray *qar);
+extern int qivArraySave(const char *fname, const qivArray *qar);
 
 // ctx.c: for setting up and using the qivCtx
 extern qivCtx *qivCtxNew(const qivArray *qar, qivKern kern);
