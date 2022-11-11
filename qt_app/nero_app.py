@@ -265,10 +265,8 @@ class UI_MainWindow(QWidget):
                 self.batch_size = 64
 
                 # predefined model paths
-                self.model_1_name = 'FRCNN (0% jittering)'
-                self.model_1_cache_name = (
-                    self.model_1_name.split('(')[1].split(')')[0].split(' ')[0]
-                )
+                self.model_1_name = '0% jittering'
+                self.model_1_cache_name = self.model_1_name.split('%')[0]
                 self.model_1_path = glob.glob(
                     os.path.join(
                         os.getcwd(),
@@ -280,10 +278,8 @@ class UI_MainWindow(QWidget):
                     )
                 )[0]
                 # pre-trained model does not need model path
-                self.model_2_name = 'FRCNN (Pre-trained)'
-                self.model_2_cache_name = (
-                    self.model_2_name.split('(')[1].split(')')[0].split(' ')[0]
-                )
+                self.model_2_name = 'Pre-trained'
+                self.model_2_cache_name = self.model_2_name.split('-')[0]
                 self.model_2_path = None
                 # preload model
                 self.model_1 = nero_run_model.load_model(
@@ -896,10 +892,12 @@ class UI_MainWindow(QWidget):
                 print('Model 1 path:', self.model_1_path)
 
             elif self.mode == 'object_detection':
-                self.model_1_cache_name = (
-                    self.model_1_name.split('(')[1].split(')')[0].split(' ')[0]
-                )
-                if text == 'FRCNN (0% jittering)':
+                if '%' in self.model_1_name:
+                    self.model_1_cache_name = self.model_1_name.split('%')[0]
+                else:
+                    self.model_1_cache_name = self.model_1_name.split('-')[0]
+
+                if text == '0% jittering':
                     self.model_1_path = glob.glob(
                         os.path.join(
                             os.getcwd(),
@@ -915,7 +913,7 @@ class UI_MainWindow(QWidget):
                         self.mode, 'custom_trained', self.model_1_path
                     )
                     print('Model 1 path:', self.model_1_path)
-                elif text == 'FRCNN (20% jittering)':
+                elif text == '20% jittering':
                     self.model_1_path = glob.glob(
                         os.path.join(
                             os.getcwd(),
@@ -931,7 +929,7 @@ class UI_MainWindow(QWidget):
                         self.mode, 'custom_trained', self.model_1_path
                     )
                     print('Model 1 path:', self.model_1_path)
-                elif text == 'FRCNN (40% jittering)':
+                elif text == '40% jittering':
                     self.model_1_path = glob.glob(
                         os.path.join(
                             os.getcwd(),
@@ -947,7 +945,7 @@ class UI_MainWindow(QWidget):
                         self.mode, 'custom_trained', self.model_1_path
                     )
                     print('Model 1 path:', self.model_1_path)
-                elif text == 'FRCNN (60% jittering)':
+                elif text == '60% jittering':
                     self.model_1_path = glob.glob(
                         os.path.join(
                             os.getcwd(),
@@ -963,7 +961,7 @@ class UI_MainWindow(QWidget):
                         self.mode, 'custom_trained', self.model_1_path
                     )
                     print('Model 1 path:', self.model_1_path)
-                elif text == 'FRCNN (80% jittering)':
+                elif text == '80% jittering':
                     self.model_1_path = glob.glob(
                         os.path.join(
                             os.getcwd(),
@@ -979,7 +977,7 @@ class UI_MainWindow(QWidget):
                         self.mode, 'custom_trained', self.model_1_path
                     )
                     print('Model 1 path:', self.model_1_path)
-                elif text == 'FRCNN (100% jittering)':
+                elif text == '100% jittering':
                     self.model_1_path = glob.glob(
                         os.path.join(
                             os.getcwd(),
@@ -995,7 +993,7 @@ class UI_MainWindow(QWidget):
                         self.mode, 'custom_trained', self.model_1_path
                     )
                     print('Model 1 path:', self.model_1_path)
-                elif text == 'FRCNN (Pre-trained)':
+                elif text == 'Pre-trained':
                     self.model_1_path = None
                     self.model_1 = nero_run_model.load_model(
                         self.mode, 'pre_trained', self.model_1_path
@@ -1066,10 +1064,12 @@ class UI_MainWindow(QWidget):
                 print('Model 2 path:', self.model_2_path)
 
             elif self.mode == 'object_detection':
-                self.model_2_cache_name = (
-                    self.model_2_name.split('(')[1].split(')')[0].split(' ')[0]
-                )
-                if text == 'FRCNN (0% jittering)':
+                if '%' in self.model_2_name:
+                    self.model_2_cache_name = self.model_2_name.split('%')[0]
+                else:
+                    self.model_2_cache_name = self.model_2_name.split('-')[0]
+
+                if text == '0% jittering':
                     self.model_2_path = glob.glob(
                         os.path.join(
                             os.getcwd(),
@@ -1085,7 +1085,7 @@ class UI_MainWindow(QWidget):
                         self.mode, 'custom_trained', self.model_2_path
                     )
                     print('Model 2 path:', self.model_2_path)
-                elif text == 'FRCNN (20% jittering)':
+                elif text == '20% jittering':
                     self.model_2_path = glob.glob(
                         os.path.join(
                             os.getcwd(),
@@ -1101,7 +1101,7 @@ class UI_MainWindow(QWidget):
                         self.mode, 'custom_trained', self.model_2_path
                     )
                     print('Model 2 path:', self.model_2_path)
-                elif text == 'FRCNN (40% jittering)':
+                elif text == '40% jittering':
                     self.model_2_path = glob.glob(
                         os.path.join(
                             os.getcwd(),
@@ -1117,7 +1117,7 @@ class UI_MainWindow(QWidget):
                         self.mode, 'custom_trained', self.model_2_path
                     )
                     print('Model 2 path:', self.model_2_path)
-                elif text == 'FRCNN (60% jittering)':
+                elif text == '60% jittering':
                     self.model_2_path = glob.glob(
                         os.path.join(
                             os.getcwd(),
@@ -1133,7 +1133,7 @@ class UI_MainWindow(QWidget):
                         self.mode, 'custom_trained', self.model_2_path
                     )
                     print('Model 2 path:', self.model_2_path)
-                elif text == 'FRCNN (80% jittering)':
+                elif text == '80% jittering':
                     self.model_2_path = glob.glob(
                         os.path.join(
                             os.getcwd(),
@@ -1149,7 +1149,7 @@ class UI_MainWindow(QWidget):
                         self.mode, 'custom_trained', self.model_2_path
                     )
                     print('Model 2 path:', self.model_2_path)
-                elif text == 'FRCNN (100% jittering)':
+                elif text == '100% jittering':
                     self.model_2_path = glob.glob(
                         os.path.join(
                             os.getcwd(),
@@ -1165,7 +1165,7 @@ class UI_MainWindow(QWidget):
                         self.mode, 'custom_trained', self.model_2_path
                     )
                     print('Model 2 path:', self.model_2_path)
-                elif text == 'FRCNN (Pre-trained)':
+                elif text == 'Pre-trained':
                     self.model_2_path = None
                     self.model_2 = nero_run_model.load_model(
                         self.mode, 'pre_trained', self.model_2_path
@@ -1371,21 +1371,21 @@ class UI_MainWindow(QWidget):
 
         # load models choices
         # draw text
-        if self.mode == 'digit_recognition':
-            model_selection_pixmap = QPixmap(450, 50)
-            model_selection_pixmap.fill(QtCore.Qt.white)
-            painter = QtGui.QPainter(model_selection_pixmap)
-            painter.setFont(QFont('Helvetica', 30))
-            painter.drawText(0, 0, 450, 50, QtGui.Qt.AlignLeft, 'Models in Comparisons: ')
-            painter.end()
-            # create label to contain the texts
-            self.model_selection_label = QLabel(self)
-            self.model_selection_label.setFixedSize(QtCore.QSize(500, 50))
-            # self.class_selection_label.setAlignment(QtCore.Qt.AlignLeft)
-            # self.class_selection_label.setWordWrap(True)
-            # self.class_selection_label.setTextFormat(QtGui.Qt.AutoText)
-            self.model_selection_label.setPixmap(model_selection_pixmap)
-            self.model_selection_label.setContentsMargins(20, 0, 0, 0)
+        # if self.mode == 'digit_recognition':
+        model_selection_pixmap = QPixmap(450, 50)
+        model_selection_pixmap.fill(QtCore.Qt.white)
+        painter = QtGui.QPainter(model_selection_pixmap)
+        painter.setFont(QFont('Helvetica', 30))
+        painter.drawText(0, 0, 450, 50, QtGui.Qt.AlignLeft, 'Models in Comparisons: ')
+        painter.end()
+        # create label to contain the texts
+        self.model_selection_label = QLabel(self)
+        self.model_selection_label.setFixedSize(QtCore.QSize(500, 50))
+        # self.class_selection_label.setAlignment(QtCore.Qt.AlignLeft)
+        # self.class_selection_label.setWordWrap(True)
+        # self.class_selection_label.setTextFormat(QtGui.Qt.AutoText)
+        self.model_selection_label.setPixmap(model_selection_pixmap)
+        self.model_selection_label.setContentsMargins(20, 0, 0, 0)
 
         # model 1
         # graphic representation
@@ -1409,15 +1409,15 @@ class UI_MainWindow(QWidget):
             self.model_1_menu.addItem(model_1_icon, 'Data Aug')
             self.model_1_menu.setCurrentText('Original model')
         elif self.mode == 'object_detection':
-            self.model_1_menu.setFixedSize(QtCore.QSize(380, 50))
-            self.model_1_menu.addItem(model_1_icon, 'FRCNN (0% jittering)')
-            self.model_1_menu.addItem(model_1_icon, 'FRCNN (20% jittering)')
-            self.model_1_menu.addItem(model_1_icon, 'FRCNN (40% jittering)')
-            self.model_1_menu.addItem(model_1_icon, 'FRCNN (60% jittering)')
-            self.model_1_menu.addItem(model_1_icon, 'FRCNN (80% jittering)')
-            self.model_1_menu.addItem(model_1_icon, 'FRCNN (100% jittering)')
-            self.model_1_menu.addItem(model_1_icon, 'FRCNN (Pre-trained)')
-            self.model_1_menu.setCurrentText('FRCNN (0% jittering)')
+            self.model_1_menu.setFixedSize(QtCore.QSize(250, 50))
+            self.model_1_menu.addItem(model_1_icon, '0% jittering')
+            self.model_1_menu.addItem(model_1_icon, '20% jittering')
+            self.model_1_menu.addItem(model_1_icon, '40% jittering')
+            self.model_1_menu.addItem(model_1_icon, '60% jittering')
+            self.model_1_menu.addItem(model_1_icon, '80% jittering')
+            self.model_1_menu.addItem(model_1_icon, '100% jittering')
+            self.model_1_menu.addItem(model_1_icon, 'Pre-trained')
+            self.model_1_menu.setCurrentText('0% jittering')
         elif self.mode == 'piv':
             self.model_1_menu.setFixedSize(QtCore.QSize(300, 50))
             self.model_1_menu.addItem(model_1_icon, 'PIV-LiteFlowNet-en')
@@ -1434,10 +1434,11 @@ class UI_MainWindow(QWidget):
                 model_menus_layout = QtWidgets.QHBoxLayout()
                 model_menus_layout.setContentsMargins(0, 0, 0, 0)
                 model_menus_layout.addWidget(self.model_1_menu)
-            # elif self.mode == 'object_detection':
-            #     model_menus_layout = QtWidgets.QHBoxLayout()
-            #     model_menus_layout.setContentsMargins(0, 0, 0, 0)
-            #     model_menus_layout.addWidget(self.model_1_menu)
+            elif self.mode == 'object_detection':
+                # model_menus_layout = QtWidgets.QHBoxLayout()
+                model_menus_layout = QtWidgets.QGridLayout()
+                # model_menus_layout.setContentsMargins(0, 0, 30, 0)
+                model_menus_layout.addWidget(self.model_1_menu, 0, 0)
             else:
                 model_1_menu_layout = QtWidgets.QHBoxLayout()
                 model_1_menu_layout.setContentsMargins(0, 0, 0, 0)
@@ -1472,15 +1473,15 @@ class UI_MainWindow(QWidget):
             # model_2_menu.setCurrentText('E2CNN model')
             self.model_2_menu.setCurrentText('Data Aug')
         elif self.mode == 'object_detection':
-            self.model_2_menu.setFixedSize(QtCore.QSize(380, 50))
-            self.model_2_menu.addItem(model_2_icon, 'FRCNN (0% jittering)')
-            self.model_2_menu.addItem(model_2_icon, 'FRCNN (20% jittering)')
-            self.model_2_menu.addItem(model_2_icon, 'FRCNN (40% jittering)')
-            self.model_2_menu.addItem(model_2_icon, 'FRCNN (60% jittering)')
-            self.model_2_menu.addItem(model_2_icon, 'FRCNN (80% jittering)')
-            self.model_2_menu.addItem(model_2_icon, 'FRCNN (100% jittering)')
-            self.model_2_menu.addItem(model_2_icon, 'FRCNN (Pre-trained)')
-            self.model_2_menu.setCurrentText('FRCNN (Pre-trained)')
+            self.model_2_menu.setFixedSize(QtCore.QSize(250, 50))
+            self.model_2_menu.addItem(model_2_icon, '0% jittering')
+            self.model_2_menu.addItem(model_2_icon, '20% jittering')
+            self.model_2_menu.addItem(model_2_icon, '40% jittering')
+            self.model_2_menu.addItem(model_2_icon, '60% jittering')
+            self.model_2_menu.addItem(model_2_icon, '80% jittering')
+            self.model_2_menu.addItem(model_2_icon, '100% jittering')
+            self.model_2_menu.addItem(model_2_icon, 'Pre-trained')
+            self.model_2_menu.setCurrentText('Pre-trained')
         elif self.mode == 'piv':
             self.model_2_menu.setFixedSize(QtCore.QSize(300, 50))
             self.model_2_menu.addItem(model_2_icon, 'PIV-LiteFlowNet-en')
@@ -1494,10 +1495,10 @@ class UI_MainWindow(QWidget):
                 model_menus_layout.addWidget(self.model_2_menu)
                 self.demo_layout.addWidget(self.model_selection_label, 1, 2)
                 self.demo_layout.addLayout(model_menus_layout, 2, 2)
-            # elif self.mode == 'object_detection':
-            #     model_menus_layout.addWidget(self.model_2_menu)
-            #     self.demo_layout.addWidget(self.model_selection_label, 1, 2, 1, 2)
-            #     self.demo_layout.addLayout(model_menus_layout, 2, 2, 1, 2)
+            elif self.mode == 'object_detection':
+                model_menus_layout.addWidget(self.model_2_menu, 0, 1)
+                self.demo_layout.addWidget(self.model_selection_label, 1, 2)
+                self.demo_layout.addLayout(model_menus_layout, 2, 2)
             else:
                 model_2_menu_layout = QtWidgets.QHBoxLayout()
                 model_2_menu_layout.addWidget(self.model_2_menu)
@@ -2137,9 +2138,12 @@ class UI_MainWindow(QWidget):
                 # add colorbar to a specific place if in demo mode
                 dummy_view = pg.GraphicsLayoutWidget()
                 dummy_plot = pg.PlotItem()
-                dummy_plot.layout.setContentsMargins(0, 50, 10, 0)
+                if self.mode == 'digit_recognition':
+                    dummy_plot.layout.setContentsMargins(0, 50, 10, 0)
+                else:
+                    dummy_plot.layout.setContentsMargins(0, 0, 0, 0)
                 dummy_plot.setFixedHeight(0)
-                dummy_plot.setFixedWidth(self.plot_size * 1.3)
+                dummy_plot.setFixedWidth(self.plot_size * 1.2)
                 dummy_plot.hideAxis('bottom')
                 dummy_plot.hideAxis('left')
                 dummy_view.addItem(dummy_plot)
@@ -2149,7 +2153,7 @@ class UI_MainWindow(QWidget):
                     self.scatterplot_sorting_layout.addWidget(dummy_view, 3, 0, 1, 2)
                 elif self.mode == 'object_detection':
                     self.scatterplot_sorting_layout.addWidget(dummy_view, 3, 0, 1, 2)
-                    dummy_plot.layout.setContentsMargins(50, 0, 0, 200)
+                    dummy_plot.layout.setContentsMargins(50, 0, 0, 0)
 
             # quantize all the intensity into color
             color_indices = []
@@ -2271,7 +2275,7 @@ class UI_MainWindow(QWidget):
                     self.low_dim_scatter_view_1.ci.setContentsMargins(20, 100, 0, 0)
                 elif self.mode == 'object_detection':
                     self.low_dim_scatter_view_1.setFixedSize(
-                        self.plot_size * 1.4, self.plot_size * 1.4
+                        self.plot_size * 1.3, self.plot_size * 1.3
                     )
                     self.low_dim_scatter_view_1.ci.setContentsMargins(20, 0, 0, 0)
                 # add plot
@@ -2298,7 +2302,7 @@ class UI_MainWindow(QWidget):
                     self.low_dim_scatter_view_2.ci.setContentsMargins(20, 0, 0, 0)
                 elif self.mode == 'object_detection':
                     self.low_dim_scatter_view_2.setFixedSize(
-                        self.plot_size * 1.4, self.plot_size * 1.4
+                        self.plot_size * 1.35, self.plot_size * 1.35
                     )
                     self.low_dim_scatter_view_2.ci.setContentsMargins(20, 0, 0, 100)
                 # add plot
@@ -2774,7 +2778,9 @@ class UI_MainWindow(QWidget):
                 selected_image_index = self.all_images_paths.index(selected_image)
             elif self.mode == 'object_detection':
                 # take the worst-performing one by default
-                selected_image_index = 0
+                selected_image = '/home/zhuokai/Desktop/UChicago/Research/nero_vis/qt_app/example_data/object_detection/COCO_500/images/car_797_0.jpg'
+                selected_image_index = self.all_images_paths.index(selected_image)
+                # selected_image_index = 0
 
             self.image_index = self.cur_class_indices[selected_image_index]
 
@@ -4399,12 +4405,17 @@ class UI_MainWindow(QWidget):
                 'color: black; font-family: Helvetica; font-style: normal; font-size: 24px'
             )
 
+            if 'Pre' in model_name:
+                coco_names = self.pytorch_coco_names
+            else:
+                coco_names = self.custom_coco_names
+
             data = [[' ', ' ', ' ', ' '], ['Pred #', 'Class', 'Conf', 'IOU']]
             for i in range(num_boxes_1):
                 data.append(
                     [
                         i + 1,
-                        self.custom_coco_names[int(model_output[0][0][i, 5] - 1)],
+                        coco_names[int(model_output[0][0][i, 5] - 1)],
                         model_output[0][0][i, 4],
                         model_output[0][0][i, 6],
                     ]
@@ -4749,7 +4760,7 @@ class UI_MainWindow(QWidget):
         #     dummy_plot = pg.PlotItem()
         #     dummy_plot.layout.setContentsMargins(0, 50, 10, 0)
         #     dummy_plot.setFixedHeight(0)
-        #     dummy_plot.setFixedWidth(self.plot_size * 1.3)
+        #     dummy_plot.setFixedWidth(self.plot_size * 1.2)
         #     dummy_plot.hideAxis('bottom')
         #     dummy_plot.hideAxis('left')
         #     dummy_view.addItem(dummy_plot)
@@ -4796,9 +4807,12 @@ class UI_MainWindow(QWidget):
                 view_box.addItem(heatmap)
                 heatmap_plot = pg.PlotItem(viewBox=view_box, title=title)
 
-            heatmap_plot.getAxis('bottom').setLabel('Translation in x')
+            x_label_style = {'color': 'black', 'font-size': '16pt', 'text': 'Translation in x'}
+            heatmap_plot.getAxis('bottom').setLabel(**x_label_style)
             heatmap_plot.getAxis('bottom').setStyle(tickLength=0, showValues=False)
-            heatmap_plot.getAxis('left').setLabel('Translation in y')
+
+            y_label_style = {'color': 'black', 'font-size': '16pt', 'text': 'Translation in y'}
+            heatmap_plot.getAxis('left').setLabel(**y_label_style)
             heatmap_plot.getAxis('left').setStyle(tickLength=0, showValues=False)
 
             # disable being able to move plot around
@@ -5277,10 +5291,10 @@ class UI_MainWindow(QWidget):
             # both heatmap views
             self.heatmap_view_1 = pg.GraphicsLayoutWidget()
             self.heatmap_view_1.ci.layout.setContentsMargins(0, 0, 0, 0)  # left top right bottom
-            self.heatmap_view_1.setFixedSize(self.plot_size * 1.3, self.plot_size * 1.3)
+            self.heatmap_view_1.setFixedSize(self.plot_size * 1.2, self.plot_size * 1.2)
             self.heatmap_view_2 = pg.GraphicsLayoutWidget()
             self.heatmap_view_2.ci.layout.setContentsMargins(0, 0, 0, 0)  # left top right bottom
-            self.heatmap_view_2.setFixedSize(self.plot_size * 1.3, self.plot_size * 1.3)
+            self.heatmap_view_2.setFixedSize(self.plot_size * 1.2, self.plot_size * 1.2)
 
             self.single_nero_1 = COCO_heatmap(plot_type='single', index=1)
             self.single_nero_2 = COCO_heatmap(plot_type='single', index=2)
@@ -5347,13 +5361,17 @@ class UI_MainWindow(QWidget):
             self.aggregate_heatmap_view_1.ci.layout.setContentsMargins(
                 0, 0, 0, 0
             )  # left top right bottom
-            self.aggregate_heatmap_view_1.setFixedSize(self.plot_size * 1.4, self.plot_size * 1.4)
+            self.aggregate_heatmap_view_1.setFixedSize(
+                self.plot_size * 1.35, self.plot_size * 1.35
+            )
 
             self.aggregate_heatmap_view_2 = pg.GraphicsLayoutWidget()
             self.aggregate_heatmap_view_2.ci.layout.setContentsMargins(
                 0, 0, 0, 0
             )  # left top right bottom
-            self.aggregate_heatmap_view_2.setFixedSize(self.plot_size * 1.4, self.plot_size * 1.4)
+            self.aggregate_heatmap_view_2.setFixedSize(
+                self.plot_size * 1.35, self.plot_size * 1.35
+            )
 
             self.aggregate_nero_1 = COCO_heatmap(plot_type='aggregate', index=1)
             self.aggregate_nero_2 = COCO_heatmap(plot_type='aggregate', index=2)
@@ -5765,11 +5783,11 @@ class UI_MainWindow(QWidget):
             self.heatmap_view_1 = pg.GraphicsLayoutWidget()
             # left top right bottom
             self.heatmap_view_1.ci.layout.setContentsMargins(0, 20, 0, 0)
-            self.heatmap_view_1.setFixedSize(self.plot_size * 1.3, self.plot_size * 1.3)
+            self.heatmap_view_1.setFixedSize(self.plot_size * 1.2, self.plot_size * 1.2)
             self.heatmap_view_2 = pg.GraphicsLayoutWidget()
             # left top right bottom
             self.heatmap_view_2.ci.layout.setContentsMargins(0, 20, 0, 0)
-            self.heatmap_view_2.setFixedSize(self.plot_size * 1.3, self.plot_size * 1.3)
+            self.heatmap_view_2.setFixedSize(self.plot_size * 1.2, self.plot_size * 1.2)
 
             self.single_nero_1 = PIV_heatmap()
             self.single_nero_2 = PIV_heatmap()
@@ -5809,12 +5827,12 @@ class UI_MainWindow(QWidget):
             self.detail_heatmap_view_1.ci.layout.setContentsMargins(
                 0, 20, 0, 0
             )  # left top right bottom
-            self.detail_heatmap_view_1.setFixedSize(self.plot_size * 1.3, self.plot_size * 1.3)
+            self.detail_heatmap_view_1.setFixedSize(self.plot_size * 1.2, self.plot_size * 1.2)
             self.detail_heatmap_view_2 = pg.GraphicsLayoutWidget()
             self.detail_heatmap_view_2.ci.layout.setContentsMargins(
                 0, 20, 0, 0
             )  # left top right bottom
-            self.detail_heatmap_view_2.setFixedSize(self.plot_size * 1.3, self.plot_size * 1.3)
+            self.detail_heatmap_view_2.setFixedSize(self.plot_size * 1.2, self.plot_size * 1.2)
 
             # heatmap plot
             self.detail_heatmap_1 = PIV_detail_heatmap()
@@ -5860,11 +5878,11 @@ class UI_MainWindow(QWidget):
             self.aggregate_heatmap_view_1 = pg.GraphicsLayoutWidget()
             # left top right bottom
             self.aggregate_heatmap_view_1.ci.layout.setContentsMargins(0, 20, 0, 0)
-            self.aggregate_heatmap_view_1.setFixedSize(self.plot_size * 1.3, self.plot_size * 1.3)
+            self.aggregate_heatmap_view_1.setFixedSize(self.plot_size * 1.2, self.plot_size * 1.2)
             self.aggregate_heatmap_view_2 = pg.GraphicsLayoutWidget()
             # left top right bottom
             self.aggregate_heatmap_view_2.ci.layout.setContentsMargins(0, 20, 0, 0)
-            self.aggregate_heatmap_view_2.setFixedSize(self.plot_size * 1.3, self.plot_size * 1.3)
+            self.aggregate_heatmap_view_2.setFixedSize(self.plot_size * 1.2, self.plot_size * 1.2)
             # color map is flipped so that low error is bright
             self.cm_range = (self.loss_high_bound, self.loss_low_bound)
             self.aggregate_heatmap_plot_1 = self.draw_individual_heatmap('aggregate', self.data_1)
@@ -5992,12 +6010,12 @@ class UI_MainWindow(QWidget):
         # view 1
         self.piv_detail_view_1 = pg.GraphicsLayoutWidget()
         self.piv_detail_view_1.ci.layout.setContentsMargins(0, 20, 0, 0)  # left top right bottom
-        self.piv_detail_view_1.setFixedSize(self.plot_size * 1.3, self.plot_size * 1.3)
+        self.piv_detail_view_1.setFixedSize(self.plot_size * 1.2, self.plot_size * 1.2)
 
         # view 2
         self.piv_detail_view_2 = pg.GraphicsLayoutWidget()
         self.piv_detail_view_2.ci.layout.setContentsMargins(0, 20, 0, 0)  # left top right bottom
-        self.piv_detail_view_2.setFixedSize(self.plot_size * 1.3, self.plot_size * 1.3)
+        self.piv_detail_view_2.setFixedSize(self.plot_size * 1.2, self.plot_size * 1.2)
 
         # plot both quiver plots
         gt_color = QtGui.QColor('black')
@@ -6651,7 +6669,10 @@ class UI_MainWindow(QWidget):
             quantity_menu.addItem('F1 Score')
 
         # self.quantity_menu.setCurrentIndex(0)
-        quantity_menu.setCurrentText('Conf*IOU')
+        # quantity_menu.setCurrentText('Conf*IOU')
+        # define default plotting quantity
+        quantity_menu.setCurrentText('Confidence')
+        self.quantity_name = 'Confidence'
 
         # connect the drop down menu with actions
         quantity_menu.currentTextChanged.connect(coco_nero_quantity_changed)
@@ -6664,8 +6685,6 @@ class UI_MainWindow(QWidget):
         else:
             self.aggregate_plot_control_layout.addWidget(quantity_menu, 1, 0)
 
-        # define default plotting quantity (IOU*Confidence)
-        self.quantity_name = 'Conf*IOU'
         # averaged (depends on selected class) confidence and iou of the top results (ranked by IOU)
         self.aggregate_avg_conf_1 = np.zeros((len(self.y_translation), len(self.x_translation)))
         self.aggregate_avg_conf_correctness_1 = np.zeros(
