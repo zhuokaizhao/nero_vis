@@ -374,12 +374,17 @@ qivArraySave(const char *fname, const qivArray *qar) {
         biffAddf(QIV, "%s: trouble wrapping", __func__);
         return 1;
     }
-    if (nrrdSave(fname, nrd, NULL)) {
+    NrrdIoState *nio = nrrdIoStateNew();
+    nio->bareText = AIR_FALSE;
+    nio->moreThanFloatInText = AIR_FALSE;
+    if (nrrdSave(fname, nrd, nio)) {
         biffMovef(QIV, NRRD, "%s: trouble saving", __func__);
         nrrdNix(nrd);
+        nrrdIoStateNix(nio);
         return 1;
     }
     nrrdNix(nrd);
+    nrrdIoStateNix(nio);
     return 0;
 }
 

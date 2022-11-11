@@ -111,13 +111,18 @@ qivSlineNix(qivSline *sln) {
 }
 
 int
-qivSlineTrace(qivSline *const sln,                                  //
-              qivIntg intg, uint halfLen, real hh, _Bool normalize, //
-              qivArray *vfd, qivKern kern,                          //
+qivSlineTrace(qivSline *const sln,                    //
+              qivIntg intg, real hh, _Bool normalize, //
+              qivArray *vfd, qivKern kern,            //
               real seedX, real seedY) {
     if (!(sln && vfd)) {
         biffAddf(QIV, "%s: got NULL pointer (%p,%p)", __func__, CVOIDP(sln),
                  CVOIDP(vfd));
+        return 1;
+    }
+    uint halfLen = sln->halfLen;
+    if (!halfLen) {
+        biffAddf(QIV, "%s: given sline not pre-allocated (need halfLen > 0)", __func__);
         return 1;
     }
     real seed[2];
@@ -135,11 +140,6 @@ qivSlineTrace(qivSline *const sln,                                  //
     if (airEnumValCheck(qivIntg_ae, intg)) {
         biffAddf(QIV, "%s: integration %d not a valid %s", __func__, intg,
                  qivIntg_ae->name);
-        return 1;
-    }
-    // note that this does not reallocate with every call; only when needed
-    if (qivSlineAlloc(sln, halfLen)) {
-        biffAddf(QIV, "%s: couldn't allocate streamline", __func__);
         return 1;
     }
 

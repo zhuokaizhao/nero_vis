@@ -102,6 +102,23 @@ error-checking wrapper around C function "{func_name}":
     return wrapper
 
 
+def _qivArrayNew_gc():
+    """qivArrayNew wrapper adds callback to qivArrayNix upon garbage collection"""
+    # without using this, the heap memory allocated within qivArrayNew is never
+    # free()d, and the python runtime has no idea how to free it
+    ret = _qiv.lib.qivArrayNew()
+    ret = _qiv.ffi.gc(ret, _qiv.lib.qivArrayNix)
+    return ret
+
+
+def _qivSlineNew_gc():
+    """qivSlineNew wrapper adds callback to qivSlineNix upon garbage collection"""
+    # (same story as with qivArray above)
+    ret = _qiv.lib.qivSlineNew()
+    ret = _qiv.ffi.gc(ret, _qiv.lib.qivSlineNix)
+    return ret
+
+
 def _export_qiv() -> None:
     """Figures out what to export, and how, from _qiv extension module."""
     err_val = {}  # dict maps from function name to return value signifying error
@@ -130,6 +147,12 @@ def _export_qiv() -> None:
             if str(sym).startswith("<cdata 'airEnum *' "):
                 # sym_name is name of an airEnum, wrap it as such
                 exprt = _teem.Tenum(sym, sym_name, _qiv)
+            elif 'qivArrayNew' == sym_name:
+                # this handled specially: use the destructor-adding wrapper
+                exprt = _qivArrayNew_gc
+            elif 'qivSlineNew' == sym_name:
+                # this handled specially: use the destructor-adding wrapper
+                exprt = _qivSlineNew_gc
             else:
                 if name_in:
                     exprt = sym
@@ -162,29 +185,48 @@ def _2v(ll=None):
 
 
 # input_array is a numpy array
-def set_array(input_array):
-
-    # make sure the input array is contiguous in memory (c order)
-    input_array = np.ascontiguousarray(input_array)
-    if input_array.dtype == 'float32':
-        nrrd_type = _teem.nrrdTypeFloat
-    elif input_array.dtype == 'float64':
-        nrrd_type = _teem.nrrdTypeDouble
+def from_numpy(np_arr):
+    # because of using cffi.from_buffer, we do have to enforce C order
+    # (else get error message "ValueError: ndarray is not C-contiguous")
+    # https://numpy.org/doc/stable/reference/generated/numpy.ascontiguousarray.html
+    np_arr = np.ascontiguousarray(np_arr)
+    if 2 == np_arr.ndim:
+        dim = 2
+    elif 3 == np_arr.ndim:
+        dim = 3
     else:
-        raise Exception(f'Unsupported data type {input_array.dtype}')
+        raise RuntimeError(f'Need numpy array with ndim 2 or 3 (not {np_arr.ndim})')
+    # can handle uchar, float, and double
+    if np_arr.dtype == 'float32':
+        nrrd_type = _teem.nrrdTypeFloat
+        ctype_str = 'float'
+        dst_type = _qiv.lib.qivTypeReal
+    elif np_arr.dtype == 'float64':
+        nrrd_type = _teem.nrrdTypeDouble
+        ctype_str = 'double'
+        dst_type = _qiv.lib.qivTypeReal
+    elif np_arr.dtype == 'uint8':
+        nrrd_type = _teem.nrrdTypeUChar
+        ctype_str = 'uchar'
+        dst_type = _qiv.lib.qivTypeUChar
+    else:
+        raise RuntimeError(f'Unsupported data type {np_arr.dtype}')
 
-    # pointer to numpy array
-    data = input_array.__array_interface__['data']
-
-    # initialize array
-    qv = _qiv.lib.qivArrayNew()
+    # get list of sizes
+    shape = list(np_arr.shape)
+    # because C-order is slow to fast
+    shape.reverse()
+    qv = _qivArrayNew_gc()
     _qiv.lib.qivArraySet(
         qv,  # qar
-        2,  # channel
-        input_array.shape[0],  # size0
-        input_array.shape[1],  # size1
-        _qiv.lib.qivTypeReal,  # dstType
-        data,  # srcData
+        1 if 2 == dim else shape[0],  # channel
+        shape[dim - 2],  # size0
+        shape[dim - 1],  # size1
+        dst_type,  # dstType
+        # https://cffi.readthedocs.io/en/latest/ref.html?highlight=from_buffer#ffi-buffer-ffi-from-buffer
+        # https://stackoverflow.com/questions/16276268/how-to-pass-a-numpy-array-into-a-cffi-function-and-how-to-get-one-back-out
+        _qiv.ffi.from_buffer(f'{ctype_str}*', np_arr),  # srcData
+        # data[0],  # srcData
         nrrd_type,  # srcNType
         _2v([1, 0]),  # edge0
         _2v([0, 1]),  # edge1
@@ -194,7 +236,6 @@ def set_array(input_array):
 
 
 if __name__ != '__main__':  # here because of an "import"
-
     _check_risd()
     # The value of this ffi, as opposed to "from cffi import FFI; ffi = FFI()" is that it knows
     # about the various typedefs that were learned to build the CFFI wrapper, which may in turn
@@ -207,6 +248,7 @@ if __name__ != '__main__':  # here because of an "import"
     __all__ = []
     _export_qiv()
     # little hack: export something to help connect "real" type to Teem
+    # (qivPrivate.h does these via #defines)
     if _qiv.lib.qivRealIsDouble:
         airTypeReal = _teem.airTypeDouble
         nrrdTypeReal = _teem.nrrdTypeDouble
@@ -215,4 +257,4 @@ if __name__ != '__main__':  # here because of an "import"
         nrrdTypeReal = _teem.nrrdTypeFloat
     # __all__.append('airTypeReal')
     # __all__.append('nrrdTypeReal')
-    __all__.append('set_array')
+    __all__.append('from_numpy')

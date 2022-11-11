@@ -4,6 +4,7 @@ del _x, _y
 
 # GLK build with: python3 build_qiv.py ~/teem-install ~/teem/python/cffi
 
+import numpy as np
 import teem as tm
 import qiv as q
 
@@ -23,6 +24,25 @@ def check_enums():
 
 
 check_enums()
+
+
+def check_np():
+    # make matrix that indicates errors of layout
+    dmat = np.zeros((7, 5), dtype='float64')
+    dmat[0, 0] = 0.1234567890123456789
+    dmat[1, 1] = 1
+    dmat[2, 2] = 1
+    dmat[0, -1] = 2
+    dmat[-1, 0] = 3
+    dmat[-1, -1] = 4.1234567890123456789
+    smat = np.float32(dmat)
+    # convert to qivArray and save
+    q.qivArraySave(b'mat-64.txt', q.from_numpy(dmat))
+    q.qivArraySave(b'mat-32.txt', q.from_numpy(smat))
+
+
+check_np()
+
 
 nv = tm.nrrdNew()
 # rvectr sdg -sz 30 50 -r 20 -s 0.2 -p 0 0 1 0 0 1 -o ident.nrrd
@@ -60,10 +80,10 @@ if True:
             print(f'(v⊛{kn})({p[0]},{p[1]}) = ({ovec[0]},{ovec[1]})  inside={inside[0]}')
 
 sl = q.qivSlineNew()
+q.qivSlineAlloc(sl, 10)
 q.qivSlineTrace(
     sl,  # sln
     q.qivIntgRK4,  # intg
-    10,  # halfLen
     0.1,  # hh
     False,  # normalize
     qa,  # vfd
