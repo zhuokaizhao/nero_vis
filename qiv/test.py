@@ -28,18 +28,47 @@ check_enums()
 
 def check_np():
     # make matrix that indicates errors of layout
-    dmat = np.zeros((7, 5), dtype='float64')
-    dmat[0, 0] = 0.1234567890123456789
-    dmat[1, 1] = 1
-    dmat[2, 2] = 1
-    dmat[0, -1] = 2
-    dmat[-1, 0] = 3
-    dmat[-1, -1] = 4.1234567890123456789
-    smat = np.float32(dmat)
-    print(f'dmat.dtype = {dmat.dtype}; smat.dtype = {smat.dtype}')
-    # convert to qivArray and save
-    q.qivArraySave(b'mat-64.txt', q.from_numpy(dmat))
-    q.qivArraySave(b'mat-32.txt', q.from_numpy(smat))
+    ItoW = np.identity(3)
+    ItoW[0, 1] = 0.5
+    ItoW[1, 1] = 1.5
+    ItoW[0, 2] = 2
+    ItoW[0, 2] = 4
+    ItoW[1, 2] = 3
+    print(f'ItoW =\n{ItoW}')
+    for order in ['C', 'F']:
+        print(f'check_np ----------------- order={order}')
+        dmat = np.zeros((5, 4), dtype='float64', order=order)
+        dmat[0, 0] = 0.1234567890123456789
+        dmat[1, 1] = 1
+        dmat[2, 2] = 1
+        dmat[0, -1] = 2
+        dmat[-1, 0] = 3
+        dmat[-1, -1] = 4
+        smat = np.float32(dmat)
+        print(f'smat (shape {smat.shape}) = \n{smat}')
+        print('smat flags:')
+        print(smat.flags)
+        # https://numpy.org/doc/stable/reference/generated/numpy.reshape.html
+        print(f'smat (as ints) reshaped to 1D: {np.reshape(np.int32(smat), 20, order="A")}')
+        print(f'smat length-{smat.shape[0]} axis has edge vector {list(ItoW[0:2, 0])}')
+        print(f'smat length-{smat.shape[1]} axis has edge vector {list(ItoW[0:2, 1])}')
+        print(f'dmat.dtype = {dmat.dtype}; smat.dtype = {smat.dtype}')
+        # convert to qivArray and save
+        q.qivArraySave(f'mat-64-{order}.txt'.encode('utf-8'), q.from_numpy(dmat, ItoW))
+        q.qivArraySave(f'mat-32-{order}.txt'.encode('utf-8'), q.from_numpy(smat, ItoW))
+        # both "diff mat-??-F.txt" and "diff mat-??-C.txt" should say nothing:
+        # whether the precision conversion happens inside or outside qiv, result should be same
+        # also, both "diff mat-32-?.txt" and "diff mat-64-?.txt" should say nothing:
+        # qiv.py internal converts to C-ordering, and the saved data and meta-data should the same
+        vfa = np.zeros((5, 4, 2), dtype='float32', order=order)
+        vfa[0, 0, :] = [1, 2]
+        vfa[-1, 0, :] = [3, 4]
+        vfa[0, -1, :] = [5, 6]
+        vfa[-1, -1, :] = [7, 8]
+        print(f'vfa length-{vfa.shape[0]} axis has edge vector {list(ItoW[0:2, 0])}')
+        print(f'vfa length-{vfa.shape[1]} axis has edge vector {list(ItoW[0:2, 1])}')
+        q.qivArraySave(f'vfa-{order}.nrrd'.encode('utf-8'), q.from_numpy(vfa, ItoW))
+    print('check_np ----------------- done')
 
 
 check_np()
