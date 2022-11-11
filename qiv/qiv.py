@@ -276,7 +276,6 @@ def from_numpy(np_arr, ItoW=np.identity(3)):
         # https://cffi.readthedocs.io/en/latest/ref.html?highlight=from_buffer#ffi-buffer-ffi-from-buffer
         # https://stackoverflow.com/questions/16276268/how-to-pass-a-numpy-array-into-a-cffi-function-and-how-to-get-one-back-out
         _qiv.ffi.from_buffer(f'{ctype_str}*', np_arr),  # srcData
-        # data[0],  # srcData
         nrrd_type,  # srcNType
         edge0,
         edge1,
