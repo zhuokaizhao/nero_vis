@@ -61,7 +61,15 @@ if True:
 
 sl = q.qivSlineNew()
 q.qivSlineTrace(
-    sl, q.qivIntgRK4, halfLen := 10, step := 0.1, normalize := False, qa, q.qivKernTent, 0.6, 0.8
+    sl,  # sln
+    q.qivIntgRK4,  # intg
+    10,  # halfLen
+    0.1,  # hh
+    False,  # normalize
+    qa,  # vfd
+    q.qivKernTent,  # kern
+    0.6,  # seedX
+    0.8,  # seedY
 )
 q.qivSlinePrint(sl)
 # compare to: rvectr sline -i noise.nrrd -k tent -s 0.6 0.8 -h 0.1 -l 10 -intg rk4

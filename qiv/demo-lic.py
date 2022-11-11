@@ -37,15 +37,15 @@ q.qivArraySave(b'flow.nrrd', qa)
 
 sl = q.qivSlineNew()
 q.qivSlineTrace(
-    sl,
-    q.qivIntgMidpoint,
-    halfLen := 10,
-    h := 0.25,
-    normalize := False,
-    qa,
-    q.qivKernTent,
-    5.0,
-    0.0,
+    sl,  # sln
+    q.qivIntgMidpoint,  # intg
+    10,  # halfLen
+    0.25,  # hh
+    False,  # normalize
+    qa,  # vfd
+    q.qivKernTent,  # kern
+    5.0,  # seedX
+    0.0,  # seedY
 )
 q.qivSlinePrint(sl)
 # compare to: rvectr sline -i flow.nrrd -k tent -s 5 0 -h 0.25 -l 10 -intg midpoint
