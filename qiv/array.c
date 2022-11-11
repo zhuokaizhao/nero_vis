@@ -375,8 +375,14 @@ qivArraySave(const char *fname, const qivArray *qar) {
         return 1;
     }
     NrrdIoState *nio = nrrdIoStateNew();
+    /* Passing a NrrdIoState to nrrdSave is the way to over-write any default
+       behaviors, two of which are to only allow float-type values stored in text files
+       (when fname passed to nrrdSave ends with ".txt"), and to not store any metadata
+       in the text file. These two flags change both, respectively. However, note that
+       the floating type saved here is whatever qiv calls "real", which is set when
+       compiling libqiv. */
+    nio->moreThanFloatInText = AIR_TRUE;
     nio->bareText = AIR_FALSE;
-    nio->moreThanFloatInText = AIR_FALSE;
     if (nrrdSave(fname, nrd, nio)) {
         biffMovef(QIV, NRRD, "%s: trouble saving", __func__);
         nrrdNix(nrd);
