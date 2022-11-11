@@ -50,8 +50,8 @@ shapeTypeCheck(uint channel, uint size0, uint size1, qivType dtype) {
         biffAddf(QIV, "%s: invalid channel value %u", __func__, channel);
         return 1;
     }
-    if (!(5 <= size0 && 5 <= size1)) {
-        biffAddf(QIV, "%s: array sizes (%u,%u) must be >= 5", __func__, size0, size1);
+    if (!(4 <= size0 && 4 <= size1)) {
+        biffAddf(QIV, "%s: array sizes (%u,%u) must be >= 4", __func__, size0, size1);
         return 1;
     }
     if (airEnumValCheck(qivType_ae, dtype)) {
