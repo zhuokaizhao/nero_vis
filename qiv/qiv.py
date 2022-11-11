@@ -185,7 +185,7 @@ def _2v(ll=None):
 
 
 # input_array is a numpy array
-def from_nparray(np_arr):
+def from_numpy(np_arr):
     # because of using cffi.from_buffer, we do have to enforce C order
     # (else get error message "ValueError: ndarray is not C-contiguous")
     # https://numpy.org/doc/stable/reference/generated/numpy.ascontiguousarray.html
@@ -216,7 +216,7 @@ def from_nparray(np_arr):
     shape = list(np_arr.shape)
     # because C-order is slow to fast
     shape.reverse()
-    qv = _qivArrayNew_wrap()
+    qv = _qivArrayNew_gc()
     _qiv.lib.qivArraySet(
         qv,  # qar
         1 if 2 == dim else shape[0],  # channel
@@ -257,4 +257,4 @@ if __name__ != '__main__':  # here because of an "import"
         nrrdTypeReal = _teem.nrrdTypeFloat
     # __all__.append('airTypeReal')
     # __all__.append('nrrdTypeReal')
-    __all__.append('from_nparray')
+    __all__.append('from_numpy')
