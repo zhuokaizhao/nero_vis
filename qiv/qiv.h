@@ -7,10 +7,11 @@
 #define QIV_HAS_BEEN_INCLUDED
 
 // begin includes
-#include <stdio.h>  // for printf
-#include <stdint.h> // for uint8_t
-#include <stdlib.h> // for malloc, qsort
-#include <assert.h> // for assert()
+#include <stdio.h>   // for printf
+#include <stdint.h>  // for uint8_t
+#include <stdlib.h>  // for malloc, qsort
+#include <assert.h>  // for assert()
+#include <stdbool.h> // for C99 _Bool type and true,false values
 // define QIV_COMPILE when compiling libqiv or a non-Python thing depending on libqiv
 #ifdef QIV_COMPILE
 // things from Teem used in qiv API
@@ -114,9 +115,10 @@ typedef struct qivArray_t {
                        axis; these are the second and third axes in the
                        linearization; the fastest axis is one holding the *two*
                        vector components */
-    real ItoW[9];   /* homogeneous coordinate mapping from index-space (faster
+    real ItoW[9],   /* homogeneous coordinate mapping from index-space (faster
                        coordinate first) to the world-space in which the vector
                        components have been measured */
+      WtoI[9];      /* inverse of ItoW, set whenever ItoW is set */
     qivType type;   /* type of the data; determines which of the union members
                         below to use */
     union {         /* union for the pointer to the image data; the pointer
@@ -128,30 +130,6 @@ typedef struct qivArray_t {
         real *rl;
     } data;
 } qivArray;
-
-/*
-  struct qivCtx: all the state associated with computing convolution, and
-  streamlines, and LIC (line integral convolution). Mostly implemented in
-  ctx.c.
-
-  Note that nothing in this project is intended to run multi-threaded; in this
-  sense convolution in this project is more like that in p2mapr than p3rendr.
-*/
-typedef struct qivCtx_t {
-    const qivArray *qar; /* vector field to process. */
-    qivKern kern;        /* how do we interpolate */
-    real WtoI[9];        /* inverse of vfl->ItoW, for homog coord mapping
-                            from world to index space */
-    int insideOnly;      /* do not actually care about the full convolution
-                            result, only the value of "inside" */
-
-    /* output to be set in qivConvoEval:
-       inside: the following convolution results could be computed
-       vec: the vector reconstructed componentwise by convolution
-    */
-    int inside;
-    real vec[2];
-} qivCtx;
 
 /*
   qivSline: A container for a single streamline. qivSlineTrace uses this to
@@ -213,33 +191,46 @@ extern int qivArrayAlloc(qivArray *qar, uint channel, uint size0, uint size1,
 extern int qivArraySet(qivArray *qar, uint channel, uint size0, uint size1,
                        qivType dstType, const void *srcData, int srcNType,
                        const double *edge0, const double *edge1, const double *orig);
+extern int qivArrayOrientationSet(qivArray *qar, const double *edge0,
+                                  const double *edge1, const double *orig);
+extern int qivArraySyntheticFlowSet(qivArray *qar,                  //
+                                    const real v0, const real v1,   //
+                                    const real j00, const real j01, //
+                                    const real j10, const real j11);
 extern qivArray *qivArrayNix(qivArray *qar);
 extern int qivArraySave(const char *fname, const qivArray *qar);
-
-// ctx.c: for setting up and using the qivCtx
-extern qivCtx *qivCtxNew(const qivArray *qar, qivKern kern);
-extern qivCtx *qivCtxNix(qivCtx *ctx);
+extern int qivArrayBBox(double xyMin[2], double xyMax[2], const qivArray *qar);
 
 // convo.c: for convolution
-extern void qivConvoEval(qivCtx *ctx, real xw, real yw, int sgn, int norm);
+extern _Bool _qivConvoEval(real ovec[2],        // returns "(xw,yw) was inside"
+                           int sgn, _Bool norm, //
+                           const qivArray *vfd, qivKern kern, //
+                           real xw, real yw);                 //
+extern int qivConvoEval(_Bool *inside, real ovec[const 2], // returns non-zero if error
+                        int sgn, _Bool norm,               //
+                        const qivArray *vfd, qivKern kern, //
+                        real xw, real yw);
 
 // sline.c: for storing and computing streamlines
 extern qivSline *qivSlineNew(void);
 extern int qivSlineAlloc(qivSline *sln, uint halfLen);
 extern qivSline *qivSlineNix(qivSline *sln);
-extern int qivSlineTrace(qivSline *const sln, real seedX, real seedY, uint halfLen,
-                         real hh, int normalize, int intg, qivCtx *ctx);
+extern int qivSlineTrace(qivSline *const sln,                                  //
+                         qivIntg intg, uint halfLen, real hh, _Bool normalize, //
+                         qivArray *vfd, qivKern kern,                          //
+                         real seedX, real seedY);
 extern void qivSlinePrint(qivSline *const sln);
 
-// lic.c: for Line Integral Convolution: TODO finish qivLICEval
+// lic.c: for Line Integral Convolution
 /*
 extern int qivLICEval(real *const result, qivSline *const sln, real wx, real wy,
-                      uint halfLen, real hh, int normalize, int intg,
-                      const qivField *rnd, const real *rWtoI, int rndLinterp,
-                      qivCtx *ctx);
+                      uint halfLen, real hh, _Bool normalize, qivIntg intg,
+                      const qivArray *rnd, _Bool rndLinterp, qivArray *vfd,
+                      qivKern kern);
+
 extern int qivLIC(qivField *const lmg, qivField *const pmg, int prop, uint halfLen,
-                  real hh, int normalize, int intg, const qivField *rnd, int
-                  rndLinterp, qivCtx *ctx);
+                  real hh, _Bool normalize, qivIntg intg, const qivField *rnd,
+                  _Bool rndLinterp, qivCtx *ctx);
 */
 
 #ifdef __cplusplus

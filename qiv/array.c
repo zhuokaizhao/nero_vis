@@ -29,6 +29,7 @@ qivArrayNew() {
     assert(ret);
     ret->channel = ret->size0 = ret->size1 = 0;
     M3_SET_NAN(ret->ItoW);
+    M3_SET_NAN(ret->WtoI);
     ret->type = qivTypeUnknown;
     ret->data.vd = NULL;
     return ret;
@@ -44,8 +45,7 @@ qivArrayNix(qivArray *qar) {
 }
 
 static int
-_metaDataCheck(uint channel, uint size0, uint size1, qivType dtype, const double *edge0,
-               const double *edge1, const double *orig) {
+shapeTypeCheck(uint channel, uint size0, uint size1, qivType dtype) {
     if (!(1 <= channel && channel <= 3)) {
         biffAddf(QIV, "%s: invalid channel value %u", __func__, channel);
         return 1;
@@ -58,15 +58,20 @@ _metaDataCheck(uint channel, uint size0, uint size1, qivType dtype, const double
         biffAddf(QIV, "%s: invalid type %d", __func__, dtype);
         return 1;
     }
+    return 0;
+}
+
+static int
+orientationCheck(const double *edge0, const double *edge1, const double *orig) {
     uint haveP = !!edge0 + !!edge1 + !!orig;
     if (!(0 == haveP || 3 == haveP)) {
-        biffAddf(QIV,
-                 "%s: edge0 (%p), edge1 (%p), orig (%p) should either be "
-                 "all non-NULL or all NULL",
-                 __func__, CVOIDP(edge0), CVOIDP(edge1), CVOIDP(orig));
+        biffAddf(
+          QIV,
+          "%s: edge0 (%p), edge1 (%p), orig (%p) should be all NULL, or all non-NULL",
+          __func__, CVOIDP(edge0), CVOIDP(edge1), CVOIDP(orig));
         return 1;
     }
-    if (haveP) { // have all of edge0, edge1, orig
+    if (haveP) {
         int isf[3] = {V2_ISFINITE(edge0), V2_ISFINITE(edge1), V2_ISFINITE(orig)};
         if (!(isf[0] && isf[1] && isf[2])) {
             biffAddf(QIV, "%s: edge0, edge1, orig must all be finite (got %d, %d, %d)",
@@ -83,14 +88,32 @@ _metaDataCheck(uint channel, uint size0, uint size1, qivType dtype, const double
     return 0;
 }
 
+static void
+orientationSet(qivArray *qar, const double *edge0, const double *edge1,
+               const double *orig) {
+    if (edge0 && edge1 && orig) {
+        M3_SET(qar->ItoW,                   /* */
+               edge0[0], edge1[0], orig[0], /* */
+               edge0[1], edge1[1], orig[1], /* */
+               0, 0, 1);
+    } else {
+        M3_SET(qar->ItoW, /* */
+               1, 0, 0,   /* */
+               0, 1, 0,   /* */
+               0, 0, 1);
+    }
+    _qiv3M_aff_inv(qar->WtoI, qar->ItoW);
+    return;
+}
+
 int
 qivArrayAlloc(qivArray *qar, uint channel, uint size0, uint size1, qivType dtype) {
     if (!qar) {
         biffAddf(QIV, "%s: got NULL array pointer", __func__);
         return 1;
     }
-    if (_metaDataCheck(channel, size0, size1, dtype, NULL, NULL, NULL)) {
-        biffAddf(QIV, "%s: problem with basic meta-data", __func__);
+    if (shapeTypeCheck(channel, size0, size1, dtype)) {
+        biffAddf(QIV, "%s: problem with shape or type", __func__);
         return 1;
     }
     int doalloc;
@@ -114,7 +137,11 @@ qivArrayAlloc(qivArray *qar, uint channel, uint size0, uint size1, qivType dtype
             return 1;
         }
     }
-    // qar->ItoW untouched
+    /* we invalidate ItoW and WtoI every time, even if !doalloc, because the logical
+       result of calling an allocation function is that something has changed about index
+       space, which means ItoW has to be re-set, with qivArrayOrientationSet() */
+    M3_SET_NAN(qar->ItoW);
+    M3_SET_NAN(qar->WtoI);
     qar->channel = channel;
     qar->size0 = size0;
     qar->size1 = size1;
@@ -134,6 +161,8 @@ qivArrayAlloc(qivArray *qar, uint channel, uint size0, uint size1, qivType dtype
    edge0,edge1: 2-vectors giving change in world-space from increasing the
        faster,slower spatial array index; will go into first,second columns of ItoW
    orig: location of first sample in world-sapce, will go into third column of ItoW
+   As a little convenience, all of edge0, edge1, orig can be NULL to say:
+      "make ItoW be the identity matrix"
    */
 int
 qivArraySet(qivArray *qar, uint channel, uint size0, uint size1, qivType dstType,
@@ -143,8 +172,12 @@ qivArraySet(qivArray *qar, uint channel, uint size0, uint size1, qivType dstType
         biffAddf(QIV, "%s: got NULL array", __func__);
         return 1;
     }
-    if (_metaDataCheck(channel, size0, size1, dstType, edge0, edge1, orig)) {
-        biffAddf(QIV, "%s: problem with meta-data", __func__);
+    if (shapeTypeCheck(channel, size0, size1, dstType)) {
+        biffAddf(QIV, "%s: problem with shape or type", __func__);
+        return 1;
+    }
+    if (orientationCheck(edge0, edge1, orig)) {
+        biffAddf(QIV, "%s: problem with orientation (edge0, edge1, orig)", __func__);
         return 1;
     }
     if (!srcData) {
@@ -219,22 +252,71 @@ qivArraySet(qivArray *qar, uint channel, uint size0, uint size1, qivType dstType
             }
         }
     }
-    if (edge0) {                            /* and edge1 and orig */
-        M3_SET(qar->ItoW,                   /* */
-               edge0[0], edge1[0], orig[0], /* */
-               edge0[1], edge1[1], orig[1], /* */
-               0, 0, 1);
-    } else {
-        M3_SET(qar->ItoW, /* */
-               1, 0, 0,   /* */
-               0, 1, 0,   /* */
-               0, 0, 1);
+    orientationSet(qar, edge0, edge1, orig);
+    return 0;
+}
+
+int
+qivArrayOrientationSet(qivArray *qar, const double *edge0, const double *edge1,
+                       const double *orig) {
+    if (orientationCheck(edge0, edge1, orig)) {
+        biffAddf(QIV, "%s: problem with orientation (edge0, edge1, orig)", __func__);
+        return 1;
+    }
+    orientationSet(qar, edge0, edge1, orig);
+    return 0;
+}
+
+int
+qivArraySyntheticFlowSet(qivArray *qar, const real v0, const real v1, const real j00,
+                         const real j01, const real j10, const real j11) {
+    if (!qar) {
+        biffAddf(QIV, "%s: got NULL pointer", __func__);
+        return 1;
+    }
+    if (!(2 == qar->channel && qivTypeReal == qar->type)) {
+        biffAddf(QIV, "%s: need 2-channel %s array (not %u-channel %s)", __func__,
+                 airEnumStr(qivType_ae, qivTypeReal), /* */
+                 qar->channel, airEnumStr(qivType_ae, qar->type));
+        return 1;
+    }
+    if (!M3_ISFINITE(qar->ItoW)) {
+        biffAddf(QIV, "%s: array does not seem to have ItoW set", __func__);
+        return 1;
+    }
+    if (!(isfinite(v0) && isfinite(v1) && /* */
+          isfinite(j00) && isfinite(j01) && isfinite(j10) && isfinite(j11))) {
+        biffAddf(QIV,
+                 "%s: not all of vector (%g,%g) or jacobian(%g,%g,%g,%g) "
+                 "components exist ",
+                 __func__, v0, v1, j00, j01, j10, j11);
+        return 1;
+    }
+    uint sz0 = qar->size0, sz1 = qar->size1;
+    real pi[3], pw[3],             // homog-coord position in index,world space
+      dv[2],                       // change in vector due to offset from origin
+      J[4] = {j00, j01, j10, j11}; // Jacobian
+    real *vv = qar->data.rl;       // pointer to current vector
+    for (uint jj = 0; jj < sz1; jj++) {
+        for (uint ii = 0; ii < sz0; ii++) {
+            V3_SET(pi, ii, jj, 1);
+            MV3_MUL(pw, qar->ItoW, pi); // index to world
+            MV2_MUL(dv, J, pw);         // world position to vector change
+            V2_SET(vv, v0 + dv[0], v1 + dv[1]);
+            vv += 2; // move to next vector
+        }
     }
     return 0;
 }
 
+/* creates a Nrrd around a given qivArray
+   NOTE: this asserts some things that are not assumptions of qiv itself:
+   -- that world-space is nrrdSpaceRightUp,
+   -- that the axes are cell-centered
+   These assumptions make the nrrd compatible with SciVis class p4vectr
+*/
 static Nrrd *
-_qivNrrdWrap(const qivArray *qar) {
+_nrrdWrapper(const qivArray *qar) {
     int ntype;
     switch (qar->type) {
     case qivTypeUChar:
@@ -263,7 +345,7 @@ _qivNrrdWrap(const qivArray *qar) {
     // error checking done
     Nrrd *ret = nrrdNew();
     if (nrrdWrap_nva(ret, qar->data.vd, ntype, dim, size)
-        || nrrdSpaceDimensionSet(ret, 2)) {
+        || nrrdSpaceSet(ret, nrrdSpaceRightUp)) {
         biffMovef(QIV, NRRD, "%s: failed to wrap nrrd", __func__);
         nrrdNix(ret);
         return NULL;
@@ -276,6 +358,8 @@ _qivNrrdWrap(const qivArray *qar) {
     ELL_2V_SET(ret->axis[dim - 2].spaceDirection, qar->ItoW[0], qar->ItoW[3]);
     ELL_2V_SET(ret->axis[dim - 1].spaceDirection, qar->ItoW[1], qar->ItoW[4]);
     ELL_2V_SET(ret->spaceOrigin, qar->ItoW[2], qar->ItoW[5]);
+    ret->axis[dim - 2].center = nrrdCenterCell;
+    ret->axis[dim - 1].center = nrrdCenterCell;
     return ret;
 }
 
@@ -285,7 +369,7 @@ qivArraySave(const char *fname, const qivArray *qar) {
         biffAddf("%s: got NULL pointer (%p,%p)", __func__, CVOIDP(fname), CVOIDP(qar));
         return 1;
     }
-    Nrrd *nrd = _qivNrrdWrap(qar);
+    Nrrd *nrd = _nrrdWrapper(qar);
     if (!nrd) {
         biffAddf(QIV, "%s: trouble wrapping", __func__);
         return 1;
@@ -296,5 +380,39 @@ qivArraySave(const char *fname, const qivArray *qar) {
         return 1;
     }
     nrrdNix(nrd);
+    return 0;
+}
+
+int
+qivArrayBBox(double xyMin[2], double xyMax[2], const qivArray *qar) {
+    if (!(xyMin && xyMax && qar)) {
+        biffAddf(QIV, "%s: got NULL pointer", __func__);
+        return 1;
+    }
+    if (!M3_ISFINITE(qar->ItoW)) {
+        biffAddf(QIV, "%s: array does not seem to have ItoW set", __func__);
+        return 1;
+    }
+    real pi[3] = {0, 0, 1}, pw[3] = {0, 0, 1};
+    uint sz0 = qar->size0;
+    uint sz1 = qar->size1;
+    for (uint jj = 0; jj < 2; jj++) {
+        pi[1] = jj * (sz1 - 1);
+        for (uint ii = 0; ii < 2; ii++) {
+            pi[0] = ii * (sz0 - 1);
+            MV3_MUL(pw, qar->ItoW, pi); // index to world
+            if (!ii && !jj) {
+                /* initialize min, max corners */
+                V2_COPY(xyMin, pw);
+                V2_COPY(xyMax, pw);
+            } else {
+                /* update corners */
+                xyMin[0] = MIN(xyMin[0], pw[0]);
+                xyMin[1] = MIN(xyMin[1], pw[1]);
+                xyMax[0] = MAX(xyMax[0], pw[0]);
+                xyMax[1] = MAX(xyMax[1], pw[1]);
+            }
+        }
+    }
     return 0;
 }

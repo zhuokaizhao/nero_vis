@@ -60,3 +60,17 @@ qivNan(unsigned short payload) {
 #endif
     return rr.v;
 }
+
+void
+_qiv3M_aff_inv(real inv[9], const real m[9]) {
+    /* clang-format off */
+    real aa = m[0]; real bb = m[1]; real rr = m[2];
+    real cc = m[3]; real dd = m[4]; real ss = m[5];
+    real det = bb*cc - aa*dd;
+    M3_SET(inv,
+           -dd/det, bb/det, (dd*rr - bb*ss)/det,
+           cc/det, -aa/det, (-cc*rr + aa*ss)/det,
+           0, 0, 1);
+    /* clang-format on */
+    return;
+}

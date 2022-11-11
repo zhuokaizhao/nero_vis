@@ -48,7 +48,7 @@ def header(hdr_fname: str, risd: bool):
         lines = [line.rstrip() for line in file.readlines()]
     # lose the directives
     drop_at('#ifndef QIV_HAS_BEEN_INCLUDED', 2, lines)
-    idx = drop_at('// begin includes', 10, lines)
+    idx = drop_at('// begin includes', 11, lines)
     if '// end includes' != lines[idx]:
         raise RuntimeError(
             f'# of lines between "// begin includes" and "// end includes" not expected'

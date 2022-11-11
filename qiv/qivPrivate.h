@@ -50,6 +50,7 @@ extern int _qivVerbose;
 #else
 #  define Verbose 0
 #endif
+extern void _qiv3M_aff_inv(real inv[9], const real m[9]);
 
 #ifdef __cplusplus
 }

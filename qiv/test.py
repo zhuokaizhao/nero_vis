@@ -5,17 +5,16 @@ del _x, _y
 # GLK build with: python3 build_qiv.py ~/teem-install ~/teem/python/cffi
 
 import teem as tm
-from qiv import *
-import _qiv
+import qiv as q
 
 
 def check_enums():
-    ers = _qiv.ffi.new(f'char[{tm.AIR_STRLEN_LARGE}]')
+    ers = q.ffi.new(f'char[{tm.AIR_STRLEN_LARGE}]')
     problem = False
-    for enm in [qivType_ae, qivIntg_ae, qivStop_ae, qivKern_ae]:
-        if _qiv.lib.airEnumCheck(ers, enm()):
+    for enm in [q.qivType_ae, q.qivIntg_ae, q.qivStop_ae, q.qivKern_ae]:
+        if q.lib.airEnumCheck(ers, enm()):
             print(f'problem with airEnum {enm.name}:')
-            print(_qiv.ffi.string(ers).decode('utf-8'))
+            print(q.ffi.string(ers).decode('utf-8'))
             problem = True
     # buffer pointed to by ers is free'd when ers is garbage-collected
     if problem:
@@ -32,35 +31,45 @@ tm.nrrdLoad(nv, b'noise.nrrd', tm.NULL)
 # rvectr sdg -sz 10 8 -l 10 8 -r 0 -s 0 -p 0 0 1 0 0 1 -c 4.5 3.5 -o 000.nrrd
 # tm.nrrdLoad(nv, b'000.nrrd', tm.NULL)
 
-qa = qivArrayNew()
-qivArraySet(
+qa = q.qivArrayNew()
+q.qivArraySet(
     qa,
     nv.axis[0].size,
     nv.axis[1].size,
     nv.axis[2].size,
-    qivTypeReal,
+    q.qivTypeReal,
     nv.data,
     nv.type,
     nv.axis[1].spaceDirection,
     nv.axis[2].spaceDirection,
     nv.spaceOrigin,
 )
+q.qivArraySave(b'tmp.nrrd', qa)
 
 # qivVerboseSet(1)
 
-qtent = qivCtxNew(qa, qivKernTent)
-qctmr = qivCtxNew(qa, qivKernCtmr)
-qbspl = qivCtxNew(qa, qivKernBspln)
-tp = [[0.0, 0.0], [0.10, 0.33], [0.11, 0.32], [0.12, 0.31], [0.13, 0.30], [-0.2222, 0.5555]]
+tp = [[0.0, 0.0], [0.11, 0.32], [0.12, 0.31], [-0.2222, 0.5555], [-222, 555]]
+inside = q.ffi.new('_Bool[1]')
+kern = {'tent': q.qivKernTent, 'ctmr': q.qivKernCtmr, 'bspln': q.qivKernBspln}
+ovec = q.ffi.new('real[2]')
 if True:
-    for p in tp:
-        qivConvoEval(qtent, p[0], p[1], 1, 0)
-        print(f'(v*tent)({p[0]},{p[1]}) = ({qtent.vec[0]},{qtent.vec[1]})')
-        qivConvoEval(qctmr, p[0], p[1], 1, 0)
-        print(f'(v*ctmr)({p[0]},{p[1]}) = ({qctmr.vec[0]},{qctmr.vec[1]})')
-        qivConvoEval(qbspl, p[0], p[1], 1, 0)
-        print(f'(v*bspl)({p[0]},{p[1]}) = ({qbspl.vec[0]},{qbspl.vec[1]})')
+    for kn, kp in kern.items():
+        print(f'with {kn} kernel')
+        for p in tp:
+            q.qivConvoEval(inside, ovec, 1, False, qa, kp, p[0], p[1])
+            print(f'(v⊛{kn})({p[0]},{p[1]}) = ({ovec[0]},{ovec[1]})  inside={inside[0]}')
 
-sl = qivSlineNew()
-qivSlineTrace(sl, 0.6, 0.8, 10, 0.1, 0, qivIntgRK4, qtent)
-qivSlinePrint(sl)
+sl = q.qivSlineNew()
+q.qivSlineTrace(
+    sl,  # sln
+    q.qivIntgRK4,  # intg
+    10,  # halfLen
+    0.1,  # hh
+    False,  # normalize
+    qa,  # vfd
+    q.qivKernTent,  # kern
+    0.6,  # seedX
+    0.8,  # seedY
+)
+q.qivSlinePrint(sl)
+# compare to: rvectr sline -i noise.nrrd -k tent -s 0.6 0.8 -h 0.1 -l 10 -intg rk4

@@ -67,10 +67,13 @@ def _check_risd():
 # The functions that use biff. If function name starts with "*", a NULL return
 # indicates an error, otherwise a non-zero integer return indicates an error
 _BIFF_LIST = [
-    'qivArraySet',
     'qivArrayAlloc',
+    'qivArraySet',
+    'qivArrayOrientationSet',
+    'qivArraySyntheticFlowSet',
     'qivArraySave',
-    '*qivCtxNew',
+    'qivArrayBBox',
+    'qivConvoEval',
     'qivSlineAlloc',
     'qivSlineTrace',
     #'qivLICEval',
@@ -149,6 +152,15 @@ def _export_qiv() -> None:
                 __all__.append(sym_name)
 
 
+def _2v(ll=None):
+    """_2v(ll) returns a cdata double[2]; if ll: initialized with ll[0] and ll[1]"""
+    dbp = _qiv.ffi.new('double[2]')
+    if ll:
+        dbp[0] = ll[0]
+        dbp[1] = ll[1]
+    return dbp
+
+
 # input_array is a numpy array
 def set_array(input_array):
 
@@ -164,31 +176,20 @@ def set_array(input_array):
     # pointer to numpy array
     data = input_array.__array_interface__['data']
 
-    # ItoW relationship
-    edge0 = _qiv.ffi.new('double[2]')
-    edge0[0] = 1.0
-    edge0[1] = 0.0
-    edge1 = _qiv.ffi.new('double[2]')
-    edge1[0] = 0.0
-    edge1[1] = 1.0
-    orig = _qiv.ffi.new('double[2]')
-    orig[0] = 0.0
-    orig[1] = 0.0
-
     # initialize array
-    qv = _qiv.qivArrayNew()
-    _qiv.qivArraySet(
-        qar=qv,
-        channel=2,
-        size0=input_array.shape[0],
-        size1=input_array.shape[1],
-        srcData=data,
-        srcNType=nrrd_type,
-        edge0=edge0,
-        edge1=edge1,
-        orig=orig,
+    qv = _qiv.lib.qivArrayNew()
+    _qiv.lib.qivArraySet(
+        qv,  # qar
+        2,  # channel
+        input_array.shape[0],  # size0
+        input_array.shape[1],  # size1
+        _qiv.lib.qivTypeReal,  # dstType
+        data,  # srcData
+        nrrd_type,  # srcNType
+        _2v([1, 0]),  # edge0
+        _2v([0, 1]),  # edge1
+        _2v([0, 0]),  # orig
     )
-
     return qv
 
 
