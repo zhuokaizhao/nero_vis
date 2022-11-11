@@ -178,26 +178,54 @@ def _export_qiv() -> None:
 def _2v(ll=None):
     """_2v(ll) returns a cdata double[2]; if ll: initialized with ll[0] and ll[1]"""
     dbp = _qiv.ffi.new('double[2]')
-    if ll:
+    if ll is not None:
         dbp[0] = ll[0]
         dbp[1] = ll[1]
     return dbp
 
 
 # input_array is a numpy array
-def from_numpy(np_arr):
-    # because of using cffi.from_buffer, we do have to enforce C order
-    # (else get error message "ValueError: ndarray is not C-contiguous")
-    # ascontiguousarray imposes C order
-    # https://numpy.org/doc/stable/reference/generated/numpy.ascontiguousarray.html
-    np_arr = np.ascontiguousarray(np_arr)
-    # print(f'------------------\nnp_arr.dtype = {np_arr.dtype}')
+def from_numpy(np_arr, ItoW=np.identity(3)):
+    """Converts from a numpy array np_arr to a qivArray. Numpy dtypes are handled as follows:
+    uint8 goes to qivTypeUChar, and both float32 and float64 go to qivTypeReal (which is either
+    float or double, depending on how libqiv was compiled). The passed ItoW matrix (identity by
+    default) describes the numpy array orientation as follows:
+    1st column ItoW[0:2, 0] == world-space position change from incrementing 1st index into np_arr,
+    2nd column ItoW[0:2, 1] == world-space position change from incrementing 2nd index into np_arr,
+    3rd column ItoW[0:2, 2] == world-space position of first sample (np_arr[0,0] or np_arr[0,0,:])
+    """
+    f_cont = np_arr.flags.f_contiguous
+    c_cont = np_arr.flags.c_contiguous
+    if 1 != f_cont + c_cont:
+        raise RuntimeError(
+            f'Expected exactly one of F,C-contiguous to be true (not {f_cont},{c_cont})'
+        )
     if 2 == np_arr.ndim:
         dim = 2
     elif 3 == np_arr.ndim:
         dim = 3
     else:
         raise RuntimeError(f'Need numpy array with ndim 2 or 3 (not {np_arr.ndim})')
+    # get list of sizes
+    shape = list(np_arr.shape)
+    if 3 == dim:
+        if not (shape[0] >= 4 and shape[1] >= 4):
+            raise RuntimeError(
+                'first two axes (the spatial axes) should have >= 4 samples '
+                f'(not {shape[0]}, {shape[1]}'
+            )
+        if shape[2] > 3:
+            raise RuntimeError(f'last (non-spatial) axis size can be 2 or 3 (not {shape[2]})')
+    if (3, 3) != ItoW.shape:
+        raise RuntimeError(f'ItoW shape must be (3,3) not {ItoW.shape}')
+    if [0, 0, 1] != list(ItoW[2, :]):
+        raise RuntimeError(f'ItoW bottom row must be [0,0,1] not {list(ItoW[2,:])}')
+    # because of using cffi.from_buffer, we do have to enforce C order
+    # (else get error message "ValueError: ndarray is not C-contiguous")
+    # ascontiguousarray imposes C order
+    # https://numpy.org/doc/stable/reference/generated/numpy.ascontiguousarray.html
+    # NOTE: re-using the same variable np_array for what may be new memory ordering
+    np_arr = np.ascontiguousarray(np_arr)
     # can handle incoming uchar, float, and double data, but inside a qivArray these
     # become only just uchar or "real", where the meaning of real (float or double)
     # is set at compile-time in libqiv
@@ -221,10 +249,23 @@ def from_numpy(np_arr):
     # dtstr = _qiv.ffi.string(_qiv.lib.airEnumStr(_qiv.lib.qivType_ae, dst_type)).decode('utf-8')
     # print(f'dst_type = {dtstr} ({dst_type})')
 
-    # get list of sizes
-    shape = list(np_arr.shape)
-    # because C-order is slow to fast
+    # "C-contiguous" (downstream of ascontiguousarray()) is slow-to-fast:
+    # ---> change (in-place) to shape to match qiv's (and nrrd's) fast-to-slow
     shape.reverse()
+    # form 2-vectors from columns of ItoW
+    edge1 = _2v(ItoW[0:2, 0])  # evecA (first)
+    edge0 = _2v(ItoW[0:2, 1])  # evecB (second)
+    orig = _2v(ItoW[0:2, 2])
+    # If original incoming np_arr was C-contiguous (and ascontiguousarray() kept it
+    # that way) then we have a slow-to-fast ordering of syntactic axes:
+    # evecA is for slower spatial axis, and edgeB is for faster, and the fast-to-slow
+    # description to qiv/nrrd is edgeB, edgeA.
+    # If the incoming np_array was F-contiguous (fast-to-slow), the *syntactically*
+    # earlier spatial axis (described by evecA) was faster, and the later edgeB is slower.
+    # But we unfortunately don't have access to original F-contiguous data; we had to
+    # use ascontiguousarray(), which made it slow-to-fast, so the account above of
+    # edgeB == edge0 as faster and edgeA == edge1 as slower is still correct.
+    # create self-deleting qivArray pointer
     qv = _qivArrayNew_gc()
     _qiv.lib.qivArraySet(
         qv,  # qar
@@ -237,9 +278,9 @@ def from_numpy(np_arr):
         _qiv.ffi.from_buffer(f'{ctype_str}*', np_arr),  # srcData
         # data[0],  # srcData
         nrrd_type,  # srcNType
-        _2v([1, 0]),  # edge0
-        _2v([0, 1]),  # edge1
-        _2v([0, 0]),  # orig
+        edge0,
+        edge1,
+        orig,
     )
     return qv
 
