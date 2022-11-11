@@ -188,15 +188,19 @@ def _2v(ll=None):
 def from_numpy(np_arr):
     # because of using cffi.from_buffer, we do have to enforce C order
     # (else get error message "ValueError: ndarray is not C-contiguous")
+    # ascontiguousarray imposes C order
     # https://numpy.org/doc/stable/reference/generated/numpy.ascontiguousarray.html
     np_arr = np.ascontiguousarray(np_arr)
+    # print(f'------------------\nnp_arr.dtype = {np_arr.dtype}')
     if 2 == np_arr.ndim:
         dim = 2
     elif 3 == np_arr.ndim:
         dim = 3
     else:
         raise RuntimeError(f'Need numpy array with ndim 2 or 3 (not {np_arr.ndim})')
-    # can handle uchar, float, and double
+    # can handle incoming uchar, float, and double data, but inside a qivArray these
+    # become only just uchar or "real", where the meaning of real (float or double)
+    # is set at compile-time in libqiv
     if np_arr.dtype == 'float32':
         nrrd_type = _teem.nrrdTypeFloat
         ctype_str = 'float'
@@ -211,6 +215,11 @@ def from_numpy(np_arr):
         dst_type = _qiv.lib.qivTypeUChar
     else:
         raise RuntimeError(f'Unsupported data type {np_arr.dtype}')
+    # print(f'nrrd_type = {_teem.nrrdType.str(nrrd_type)} ({nrrd_type})')
+    # print(f'ctype_str = {ctype_str}')
+    # (this clumsiness is why the Tenum was created, btw)
+    # dtstr = _qiv.ffi.string(_qiv.lib.airEnumStr(_qiv.lib.qivType_ae, dst_type)).decode('utf-8')
+    # print(f'dst_type = {dtstr} ({dst_type})')
 
     # get list of sizes
     shape = list(np_arr.shape)

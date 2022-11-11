@@ -36,6 +36,7 @@ def check_np():
     dmat[-1, 0] = 3
     dmat[-1, -1] = 4.1234567890123456789
     smat = np.float32(dmat)
+    print(f'dmat.dtype = {dmat.dtype}; smat.dtype = {smat.dtype}')
     # convert to qivArray and save
     q.qivArraySave(b'mat-64.txt', q.from_numpy(dmat))
     q.qivArraySave(b'mat-32.txt', q.from_numpy(smat))

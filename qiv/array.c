@@ -50,8 +50,8 @@ shapeTypeCheck(uint channel, uint size0, uint size1, qivType dtype) {
         biffAddf(QIV, "%s: invalid channel value %u", __func__, channel);
         return 1;
     }
-    if (!(5 <= size0 && 5 <= size1)) {
-        biffAddf(QIV, "%s: array sizes (%u,%u) must be >= 5", __func__, size0, size1);
+    if (!(4 <= size0 && 4 <= size1)) {
+        biffAddf(QIV, "%s: array sizes (%u,%u) must be >= 4", __func__, size0, size1);
         return 1;
     }
     if (airEnumValCheck(qivType_ae, dtype)) {
@@ -375,8 +375,14 @@ qivArraySave(const char *fname, const qivArray *qar) {
         return 1;
     }
     NrrdIoState *nio = nrrdIoStateNew();
+    /* Passing a NrrdIoState to nrrdSave is the way to over-write any default
+       behaviors, two of which are to only allow float-type values stored in text files
+       (when fname passed to nrrdSave ends with ".txt"), and to not store any metadata
+       in the text file. These two flags change both, respectively. However, note that
+       the floating type saved here is whatever qiv calls "real", which is set when
+       compiling libqiv. */
+    nio->moreThanFloatInText = AIR_TRUE;
     nio->bareText = AIR_FALSE;
-    nio->moreThanFloatInText = AIR_FALSE;
     if (nrrdSave(fname, nrd, nio)) {
         biffMovef(QIV, NRRD, "%s: trouble saving", __func__);
         nrrdNix(nrd);
