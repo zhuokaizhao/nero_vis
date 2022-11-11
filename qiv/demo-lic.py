@@ -36,10 +36,10 @@ print(f'array bbox min={xyMin[0]},{xyMin[1]}  max={xyMax[0]},{xyMax[1]}')
 q.qivArraySave(b'flow.nrrd', qa)
 
 sl = q.qivSlineNew()
+q.qivSlineAlloc(sl, 10)
 q.qivSlineTrace(
     sl,  # sln
     q.qivIntgMidpoint,  # intg
-    10,  # halfLen
     0.25,  # hh
     False,  # normalize
     qa,  # vfd

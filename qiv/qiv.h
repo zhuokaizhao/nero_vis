@@ -186,6 +186,7 @@ extern const airEnum *const qivKern_ae;
 
 // array.c
 extern qivArray *qivArrayNew(void);
+extern qivArray *qivArrayNix(qivArray *qar);
 extern int qivArrayAlloc(qivArray *qar, uint channel, uint size0, uint size1,
                          qivType dtype);
 extern int qivArraySet(qivArray *qar, uint channel, uint size0, uint size1,
@@ -197,7 +198,6 @@ extern int qivArraySyntheticFlowSet(qivArray *qar,                  //
                                     const real v0, const real v1,   //
                                     const real j00, const real j01, //
                                     const real j10, const real j11);
-extern qivArray *qivArrayNix(qivArray *qar);
 extern int qivArraySave(const char *fname, const qivArray *qar);
 extern int qivArrayBBox(double xyMin[2], double xyMax[2], const qivArray *qar);
 
@@ -215,19 +215,20 @@ extern int qivConvoEval(_Bool *inside, real ovec[const 2], // returns non-zero i
 extern qivSline *qivSlineNew(void);
 extern int qivSlineAlloc(qivSline *sln, uint halfLen);
 extern qivSline *qivSlineNix(qivSline *sln);
-extern int qivSlineTrace(qivSline *const sln,                                  //
-                         qivIntg intg, uint halfLen, real hh, _Bool normalize, //
-                         qivArray *vfd, qivKern kern,                          //
+extern int qivSlineTrace(qivSline *const sln,                    //
+                         qivIntg intg, real hh, _Bool normalize, //
+                         qivArray *vfd, qivKern kern,            //
                          real seedX, real seedY);
 extern void qivSlinePrint(qivSline *const sln);
 
 // lic.c: for Line Integral Convolution
 /*
-extern int qivLICEval(real *const result, qivSline *const sln, real wx, real wy,
-                      uint halfLen, real hh, _Bool normalize, qivIntg intg,
-                      const qivArray *rnd, _Bool rndLinterp, qivArray *vfd,
-                      qivKern kern);
-
+extern int qivLICEval(real *const result,                     //
+                      const qivArray *rnd, _Bool rndLinterp,  //
+                      qivSline *const sln,                    //
+                      qivIntg intg, real hh, _Bool normalize, //
+                      qivArray *vfd, qivKern kern,            //
+                      real xw, real yw);
 extern int qivLIC(qivField *const lmg, qivField *const pmg, int prop, uint halfLen,
                   real hh, _Bool normalize, qivIntg intg, const qivField *rnd,
                   _Bool rndLinterp, qivCtx *ctx);

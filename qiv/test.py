@@ -60,10 +60,10 @@ if True:
             print(f'(v⊛{kn})({p[0]},{p[1]}) = ({ovec[0]},{ovec[1]})  inside={inside[0]}')
 
 sl = q.qivSlineNew()
+q.qivSlineAlloc(sl, 10)
 q.qivSlineTrace(
     sl,  # sln
     q.qivIntgRK4,  # intg
-    10,  # halfLen
     0.1,  # hh
     False,  # normalize
     qa,  # vfd
