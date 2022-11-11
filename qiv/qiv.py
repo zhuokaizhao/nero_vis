@@ -102,6 +102,23 @@ error-checking wrapper around C function "{func_name}":
     return wrapper
 
 
+def _qivArrayNew_gc():
+    """qivArrayNew wrapper adds callback to qivArrayNix upon garbage collection"""
+    # without using this, the heap memory allocated within qivArrayNew is never
+    # free()d, and the python runtime has no idea how to free it
+    ret = _qiv.lib.qivArrayNew()
+    ret = _qiv.ffi.gc(ret, _qiv.lib.qivArrayNix)
+    return ret
+
+
+def _qivSlineNew_gc():
+    """qivSlineNew wrapper adds callback to qivSlineNix upon garbage collection"""
+    # (same story as with qivArray above)
+    ret = _qiv.lib.qivSlineNew()
+    ret = _qiv.ffi.gc(ret, _qiv.lib.qivSlineNix)
+    return ret
+
+
 def _export_qiv() -> None:
     """Figures out what to export, and how, from _qiv extension module."""
     err_val = {}  # dict maps from function name to return value signifying error
@@ -130,6 +147,12 @@ def _export_qiv() -> None:
             if str(sym).startswith("<cdata 'airEnum *' "):
                 # sym_name is name of an airEnum, wrap it as such
                 exprt = _teem.Tenum(sym, sym_name, _qiv)
+            elif 'qivArrayNew' == sym_name:
+                # this handled specially: use the destructor-adding wrapper
+                exprt = _qivArrayNew_gc
+            elif 'qivSlineNew' == sym_name:
+                # this handled specially: use the destructor-adding wrapper
+                exprt = _qivSlineNew_gc
             else:
                 if name_in:
                     exprt = sym
@@ -193,7 +216,7 @@ def from_nparray(np_arr):
     shape = list(np_arr.shape)
     # because C-order is slow to fast
     shape.reverse()
-    qv = _qiv.lib.qivArrayNew()
+    qv = _qivArrayNew_wrap()
     _qiv.lib.qivArraySet(
         qv,  # qar
         1 if 2 == dim else shape[0],  # channel
@@ -213,7 +236,6 @@ def from_nparray(np_arr):
 
 
 if __name__ != '__main__':  # here because of an "import"
-
     _check_risd()
     # The value of this ffi, as opposed to "from cffi import FFI; ffi = FFI()" is that it knows
     # about the various typedefs that were learned to build the CFFI wrapper, which may in turn
@@ -226,6 +248,7 @@ if __name__ != '__main__':  # here because of an "import"
     __all__ = []
     _export_qiv()
     # little hack: export something to help connect "real" type to Teem
+    # (qivPrivate.h does these via #defines)
     if _qiv.lib.qivRealIsDouble:
         airTypeReal = _teem.airTypeDouble
         nrrdTypeReal = _teem.nrrdTypeDouble
