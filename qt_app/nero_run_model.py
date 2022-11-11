@@ -13,7 +13,7 @@ from torchvision import transforms
 import torch.nn.functional as F
 from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
 
-os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+os.environ['CUDA_VISIBLE_DEVICES'] = '0'
 
 # add parent directories for importing model scripts
 current = os.path.dirname(os.path.realpath(__file__))
@@ -27,7 +27,7 @@ import nero_transform
 
 # helper function that resizes the image
 def resize(image, size):
-    image = F.interpolate(image.unsqueeze(0), size=size, mode="nearest").squeeze(0)
+    image = F.interpolate(image.unsqueeze(0), size=size, mode='nearest').squeeze(0)
     return image
 
 
@@ -37,27 +37,27 @@ def load_model(mode, network_model, model_dir):
     # basic settings for pytorch
     if torch.cuda.is_available():
         # device set up
-        device = torch.device("cuda:0")
+        device = torch.device('cuda:0')
     else:
-        device = torch.device("cpu")
+        device = torch.device('cpu')
 
-    if mode == "digit_recognition":
+    if mode == 'digit_recognition':
         # model
-        if network_model == "non_eqv" or network_model == "aug_eqv":
-            model = models.Non_Eqv_Net_MNIST("rotation").to(device)
+        if network_model == 'non_eqv' or network_model == 'aug_eqv':
+            model = models.Non_Eqv_Net_MNIST('rotation').to(device)
 
-        elif network_model == "rot_eqv":
+        elif network_model == 'rot_eqv':
             # number of groups for e2cnn
             num_rotation = 8
             model = models.Rot_Eqv_Net_MNIST(image_size=None, num_rotation=num_rotation).to(device)
 
         loaded_model = torch.load(model_dir, map_location=device)
-        model.load_state_dict(loaded_model["state_dict"])
+        model.load_state_dict(loaded_model['state_dict'])
 
-    elif mode == "object_detection":
+    elif mode == 'object_detection':
         num_classes = 5
         image_size = 128
-        if network_model == "custom_trained":
+        if network_model == 'custom_trained':
             model = torchvision.models.detection.fasterrcnn_resnet50_fpn(
                 pretrained=False,
                 num_classes=num_classes + 1,
@@ -70,26 +70,26 @@ def load_model(mode, network_model, model_dir):
             model.roi_heads.box_predictor = FastRCNNPredictor(in_features, num_classes + 1)
             model.to(device)
             model.load_state_dict(torch.load(model_dir, map_location=device))
-            print(f"{network_model} loaded from {model_dir}")
+            print(f'{network_model} loaded from {model_dir}')
 
-        elif network_model == "pre_trained":
+        elif network_model == 'pre_trained':
             model = torchvision.models.detection.fasterrcnn_resnet50_fpn(
                 pretrained=True, min_size=image_size
             ).to(device)
 
-            print(f"{network_model} loaded from PyTorch")
+            print(f'{network_model} loaded from PyTorch')
 
-    elif mode == "piv":
-        if network_model == "PIV-LiteFlowNet-en":
+    elif mode == 'piv':
+        if network_model == 'PIV-LiteFlowNet-en':
             # model = models.PIV_LiteFlowNet_en()
             model = models.piv_liteflownet()
             model.to(device)
             loaded_model = torch.load(model_dir, map_location=device)
             model.load_state_dict(loaded_model)
-            print(f"{network_model} loaded from {model_dir}")
+            print(f'{network_model} loaded from {model_dir}')
 
     else:
-        raise Exception(f"Unrecognized mode {mode}")
+        raise Exception(f'Unrecognized mode {mode}')
 
     # set model in evaluation mode
     model.eval()
@@ -109,14 +109,14 @@ def run_mnist_once(model, test_image, test_label=None, batch_size=None, rotate_a
         # reformatfrom (batch_size, height, width, channel) to (batch_size, channel, height, width)
         test_image = test_image.permute((0, 3, 1, 2)).float()
     else:
-        raise Exception("Wrong input image shape")
+        raise Exception('Wrong input image shape')
 
     # basic settings for pytorch
     if torch.cuda.is_available():
         # device set up
-        device = torch.device("cuda:0")
+        device = torch.device('cuda:0')
     else:
-        device = torch.device("cpu")
+        device = torch.device('cpu')
 
     with torch.no_grad():
         # single image mode
@@ -131,7 +131,7 @@ def run_mnist_once(model, test_image, test_label=None, batch_size=None, rotate_a
 
         # multiple images (aggregated) mode
         elif len(test_image.shape) == 4 and batch_size:
-            loss_function = torch.nn.CrossEntropyLoss(reduction="none")
+            loss_function = torch.nn.CrossEntropyLoss(reduction='none')
             all_output = np.zeros((len(test_image), 10))
             all_batch_avg_losses = []
             total_num_correct = 0
@@ -145,10 +145,10 @@ def run_mnist_once(model, test_image, test_label=None, batch_size=None, rotate_a
                 individual_losses_per_digit.append([])
 
             test_kwargs = {
-                "batch_size": batch_size,
-                "num_workers": 8,
-                "pin_memory": True,
-                "shuffle": False,
+                'batch_size': batch_size,
+                'num_workers': 8,
+                'pin_memory': True,
+                'shuffle': False,
             }
 
             # generate dataset and data loader
@@ -169,7 +169,7 @@ def run_mnist_once(model, test_image, test_label=None, batch_size=None, rotate_a
                         # normalize for MNIST dataset
                         torchvision.transforms.Normalize((0.1307,), (0.3081,)),
                         # padding to 29, 29
-                        torchvision.transforms.Pad((0, 0, 1, 1), fill=0, padding_mode="constant"),
+                        torchvision.transforms.Pad((0, 0, 1, 1), fill=0, padding_mode='constant'),
                     ]
                 )
             else:
@@ -178,7 +178,7 @@ def run_mnist_once(model, test_image, test_label=None, batch_size=None, rotate_a
                         # normalize for MNIST dataset
                         torchvision.transforms.Normalize((0.1307,), (0.3081,)),
                         # padding to 29, 29
-                        torchvision.transforms.Pad((0, 0, 1, 1), fill=0, padding_mode="constant"),
+                        torchvision.transforms.Pad((0, 0, 1, 1), fill=0, padding_mode='constant'),
                     ]
                 )
 
@@ -232,14 +232,14 @@ def clean_model_outputs(model_name, outputs_dict, original_names, desired_names)
     # actually outputs_dict has length 1 because it is single image mode
     for i in range(len(outputs_dict)):
         image_pred = outputs_dict[i]
-        pred_boxes = image_pred["boxes"].cpu()
-        pred_labels = image_pred["labels"].cpu()
-        pred_confs = image_pred["scores"].cpu()
+        pred_boxes = image_pred['boxes'].cpu()
+        pred_labels = image_pred['labels'].cpu()
+        pred_confs = image_pred['scores'].cpu()
         # print('\npred_labels', pred_labels)
         # the model proposes multiple bounding boxes for each object
         if len(pred_boxes) != 0:
             # when we are using pretrained model and ground truth label is present
-            if model_name == "FasterRCNN (Pre-trained)":
+            if model_name == 'FasterRCNN (Pre-trained)':
                 valid_indices = []
                 for j in range(len(pred_labels)):
                     # print('\nPred label 1', original_names[int(pred_labels[j]-1)])
@@ -395,12 +395,12 @@ def run_coco_once(
     # basic settings for pytorch
     if torch.cuda.is_available():
         # device set up
-        device = torch.device("cuda")
+        device = torch.device('cuda')
     else:
-        device = torch.device("cpu")
+        device = torch.device('cpu')
 
     # prepare input image shapes
-    if mode == "single":
+    if mode == 'single':
         # reformat input image from (height, width, channel) to (batch size, channel, height, width)
         test_image = test_image.permute((2, 0, 1))[None, :, :, :].float()
         with torch.no_grad():
@@ -426,14 +426,14 @@ def run_coco_once(
                 all_F_measure = np.zeros(1)
 
     # multiple image (batch) mode
-    elif mode == "aggregate":
+    elif mode == 'aggregate':
         if not coco_names:
-            raise Exception("Needs coco_names for aggregate mode")
+            raise Exception('Needs coco_names for aggregate mode')
 
         # in this mode test_label needs to be None
         if test_label:
             raise Exception(
-                f"{mode} mode requires NO test_label input as they are loaded via dataloader"
+                f'{mode} mode requires NO test_label input as they are loaded via dataloader'
             )
 
         img_size = 128
@@ -515,15 +515,15 @@ def run_piv_once(mode, model_name, model, image_1, image_2):
     # basic settings for pytorch
     if torch.cuda.is_available():
         # device set up
-        device = torch.device("cuda")
+        device = torch.device('cuda')
         Tensor = torch.cuda.FloatTensor
     else:
-        device = torch.device("cpu")
+        device = torch.device('cpu')
         Tensor = torch.FloatTensor
 
-    if mode == "single":
+    if mode == 'single':
 
-        if model_name == "PIV-LiteFlowNet-en":
+        if model_name == 'PIV-LiteFlowNet-en':
             # permute from [height, width, dim] to [dim, height, width] and add index upfront
             img1 = image_1.permute(2, 0, 1).unsqueeze(0).float().to(device)
             img2 = image_2.permute(2, 0, 1).unsqueeze(0).float().to(device)
@@ -538,9 +538,9 @@ def run_piv_once(mode, model_name, model, image_1, image_2):
 
             u = (cur_label_pred_pt[:, :, 0] / 256).numpy()
             v = (cur_label_pred_pt[:, :, 1] / 256).numpy()
-            print(f"ML average u {np.mean(u)}, average v {np.mean(v)}")
+            print(f'ML average u {np.mean(u)}, average v {np.mean(v)}')
 
-        elif model_name == "Horn-Schunck":
+        elif model_name == 'Horn-Schunck':
             image_1_np_gray = np.dot(image_1.numpy()[:, :, :3], [0.299, 0.587, 0.114])
             image_2_np_gray = np.dot(image_2.numpy()[:, :, :3], [0.299, 0.587, 0.114])
             image_1_np_gray = np.array(image_1_np_gray, dtype=np.uint8)
@@ -575,14 +575,14 @@ def run_piv_once(mode, model_name, model, image_1, image_2):
             )
             u = cur_label_pred_np[:, :, 0]
             v = cur_label_pred_np[:, :, 1]
-            print(f"Farneback average u {np.mean(u)}, average v {np.mean(v)}")
+            print(f'Farneback average u {np.mean(u)}, average v {np.mean(v)}')
             cur_label_pred_pt = torch.from_numpy(cur_label_pred_np)
 
         return cur_label_pred_pt
 
-    elif mode == "aggregate":
+    elif mode == 'aggregate':
 
-        if model_name == "PIV-LiteFlowNet-en":
+        if model_name == 'PIV-LiteFlowNet-en':
             # permute from [index, height, width, dim] to [index, dim, height, width]
             img1 = image_1.permute(0, 3, 1, 2).float().to(device)
             img2 = image_2.permute(0, 3, 1, 2).float().to(device)
@@ -597,9 +597,9 @@ def run_piv_once(mode, model_name, model, image_1, image_2):
 
             u = (cur_labels_pred_pt[:, :, :, 0] / 256).numpy()
             v = (cur_labels_pred_pt[:, :, :, 1] / 256).numpy()
-            print(f"ML average u {np.mean(u)}, average v {np.mean(v)}")
+            print(f'ML average u {np.mean(u)}, average v {np.mean(v)}')
 
-        elif model_name == "Horn-Schunck":
+        elif model_name == 'Horn-Schunck':
             # number of images
             num_images = len(image_1)
             cur_labels_pred_pt = torch.zeros((num_images, image_1.shape[1], image_1.shape[2], 2))
@@ -624,6 +624,6 @@ def run_piv_once(mode, model_name, model, image_1, image_2):
 
             u = cur_labels_pred_pt[:, :, :, 0].numpy()
             v = cur_labels_pred_pt[:, :, :, 1].numpy()
-            print(f"Farneback average u {np.mean(u)}, average v {np.mean(v)}")
+            print(f'Farneback average u {np.mean(u)}, average v {np.mean(v)}')
 
         return cur_labels_pred_pt

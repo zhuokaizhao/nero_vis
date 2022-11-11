@@ -35,7 +35,7 @@ def prepare_mnist_image(image):
     # add standard normalization
     image = torchvision.transforms.Normalize((0.1307,), (0.3081,))(image)
     # padding for MNIST model
-    image = torchvision.transforms.Pad((0, 0, 1, 1), fill=0, padding_mode="constant")(image)
+    image = torchvision.transforms.Pad((0, 0, 1, 1), fill=0, padding_mode='constant')(image)
     # permute back
     image = torch.permute(image, (1, 2, 0))
 
@@ -47,8 +47,8 @@ def load_classes(path):
     """
     Loads class labels at 'path'
     """
-    fp = open(path, "r")
-    names = fp.read().split("\n")[:-1]
+    fp = open(path, 'r')
+    names = fp.read().split('\n')[:-1]
     return names
 
 
@@ -325,7 +325,7 @@ def flip_piv_data(image_1, image_2, label, flip_type):
         label_flipped = np.zeros(1)
 
     # flip the images and label
-    if flip_type == "horizontal":
+    if flip_type == 'horizontal':
         image_1_flipped = torch.flip(image_1, dims=[1])
         image_2_flipped = torch.flip(image_2, dims=[1])
         # flip the ground truth horizontally (by y axis)
@@ -336,7 +336,7 @@ def flip_piv_data(image_1, image_2, label, flip_type):
             label_flipped[:, :, 0] = -label_flipped_temp[:, :, 0]
             label_flipped[:, :, 1] = label_flipped_temp[:, :, 1]
 
-    elif flip_type == "vertical":
+    elif flip_type == 'vertical':
         image_1_flipped = torch.flip(image_1, dims=[0])
         image_2_flipped = torch.flip(image_2, dims=[0])
         # flip the ground truth vertically (by x axis)
@@ -348,21 +348,21 @@ def flip_piv_data(image_1, image_2, label, flip_type):
             label_flipped[:, :, 1] = -label_flipped_temp[:, :, 1]
 
     # / diagonal = rotate 90 ccw + vertical flip
-    elif flip_type == "left-diagonal":
+    elif flip_type == 'left-diagonal':
         image_1_rotated, image_2_rotated, label_rotated = rotate_piv_data(
             image_1, image_2, label, 90
         )
         image_1_flipped, image_2_flipped, label_flipped = flip_piv_data(
-            image_1_rotated, image_2_rotated, label_rotated, flip_type="vertical"
+            image_1_rotated, image_2_rotated, label_rotated, flip_type='vertical'
         )
 
     # \ diagonal = rotate 90 ccw + horizontal flip
-    elif flip_type == "right-diagonal":
+    elif flip_type == 'right-diagonal':
         image_1_rotated, image_2_rotated, label_rotated = rotate_piv_data(
             image_1, image_2, label, 90
         )
         image_1_flipped, image_2_flipped, label_flipped = flip_piv_data(
-            image_1_rotated, image_2_rotated, label_rotated, flip_type="horizontal"
+            image_1_rotated, image_2_rotated, label_rotated, flip_type='horizontal'
         )
 
     return image_1_flipped, image_2_flipped, label_flipped

@@ -41,8 +41,10 @@ class UI_MainWindow(QWidget):
     def __init__(self, pre_selected_mode, demo, cache_path):
         super().__init__()
         # window size
-        self.resize(1920, 1080)
-        # self.resize(2260, 1080)
+        if pre_selected_mode == 'digit_recognition':
+            self.resize(1920, 1080)
+        elif pre_selected_mode == 'object_detection' or pre_selected_mode == 'piv':
+            self.resize(2280, 1080)
         # set window title
         self.setWindowTitle('Non-Equivariance Revealed on Orbits')
         # white background color
@@ -1368,22 +1370,22 @@ class UI_MainWindow(QWidget):
         self.image_existed = False
 
         # load models choices
-        # if self.mode == 'digit_recognition':
         # draw text
-        model_selection_pixmap = QPixmap(450, 50)
-        model_selection_pixmap.fill(QtCore.Qt.white)
-        painter = QtGui.QPainter(model_selection_pixmap)
-        painter.setFont(QFont('Helvetica', 30))
-        painter.drawText(0, 0, 450, 50, QtGui.Qt.AlignLeft, 'Models in Comparisons: ')
-        painter.end()
-        # create label to contain the texts
-        self.model_selection_label = QLabel(self)
-        self.model_selection_label.setFixedSize(QtCore.QSize(500, 50))
-        # self.class_selection_label.setAlignment(QtCore.Qt.AlignLeft)
-        # self.class_selection_label.setWordWrap(True)
-        # self.class_selection_label.setTextFormat(QtGui.Qt.AutoText)
-        self.model_selection_label.setPixmap(model_selection_pixmap)
-        self.model_selection_label.setContentsMargins(20, 0, 0, 0)
+        if self.mode == 'digit_recognition':
+            model_selection_pixmap = QPixmap(450, 50)
+            model_selection_pixmap.fill(QtCore.Qt.white)
+            painter = QtGui.QPainter(model_selection_pixmap)
+            painter.setFont(QFont('Helvetica', 30))
+            painter.drawText(0, 0, 450, 50, QtGui.Qt.AlignLeft, 'Models in Comparisons: ')
+            painter.end()
+            # create label to contain the texts
+            self.model_selection_label = QLabel(self)
+            self.model_selection_label.setFixedSize(QtCore.QSize(500, 50))
+            # self.class_selection_label.setAlignment(QtCore.Qt.AlignLeft)
+            # self.class_selection_label.setWordWrap(True)
+            # self.class_selection_label.setTextFormat(QtGui.Qt.AutoText)
+            self.model_selection_label.setPixmap(model_selection_pixmap)
+            self.model_selection_label.setContentsMargins(20, 0, 0, 0)
 
         # model 1
         # graphic representation
@@ -1415,7 +1417,7 @@ class UI_MainWindow(QWidget):
             self.model_1_menu.addItem(model_1_icon, 'FRCNN (80% jittering)')
             self.model_1_menu.addItem(model_1_icon, 'FRCNN (100% jittering)')
             self.model_1_menu.addItem(model_1_icon, 'FRCNN (Pre-trained)')
-            self.model_1_menu.setCurrentText('Custom-trained FRCNN')
+            self.model_1_menu.setCurrentText('FRCNN (0% jittering)')
         elif self.mode == 'piv':
             self.model_1_menu.setFixedSize(QtCore.QSize(300, 50))
             self.model_1_menu.addItem(model_1_icon, 'PIV-LiteFlowNet-en')
@@ -1432,15 +1434,15 @@ class UI_MainWindow(QWidget):
                 model_menus_layout = QtWidgets.QHBoxLayout()
                 model_menus_layout.setContentsMargins(0, 0, 0, 0)
                 model_menus_layout.addWidget(self.model_1_menu)
-            elif self.mode == 'object_detection':
-                model_menus_layout = QtWidgets.QHBoxLayout()
-                model_menus_layout.setContentsMargins(0, 0, 0, 0)
-                model_menus_layout.addWidget(self.model_1_menu)
+            # elif self.mode == 'object_detection':
+            #     model_menus_layout = QtWidgets.QHBoxLayout()
+            #     model_menus_layout.setContentsMargins(0, 0, 0, 0)
+            #     model_menus_layout.addWidget(self.model_1_menu)
             else:
                 model_1_menu_layout = QtWidgets.QHBoxLayout()
                 model_1_menu_layout.setContentsMargins(0, 0, 0, 0)
                 model_1_menu_layout.addWidget(self.model_1_menu)
-                self.demo_layout.addLayout(model_1_menu_layout, 2, 0)
+                self.demo_layout.addLayout(model_1_menu_layout, 1, 3)
         else:
             self.load_menu_layout.addWidget(self.model_1_menu, 2, 3)
 
@@ -1492,15 +1494,15 @@ class UI_MainWindow(QWidget):
                 model_menus_layout.addWidget(self.model_2_menu)
                 self.demo_layout.addWidget(self.model_selection_label, 1, 2)
                 self.demo_layout.addLayout(model_menus_layout, 2, 2)
-            elif self.mode == 'object_detection':
-                model_menus_layout.addWidget(self.model_2_menu)
-                self.demo_layout.addWidget(self.model_selection_label, 1, 2)
-                self.demo_layout.addLayout(model_menus_layout, 2, 2, 1, 2)
+            # elif self.mode == 'object_detection':
+            #     model_menus_layout.addWidget(self.model_2_menu)
+            #     self.demo_layout.addWidget(self.model_selection_label, 1, 2, 1, 2)
+            #     self.demo_layout.addLayout(model_menus_layout, 2, 2, 1, 2)
             else:
                 model_2_menu_layout = QtWidgets.QHBoxLayout()
                 model_2_menu_layout.addWidget(self.model_2_menu)
                 model_2_menu_layout.setContentsMargins(0, 0, 0, 0)
-                self.demo_layout.addLayout(model_2_menu_layout, 4, 0)
+                self.demo_layout.addLayout(model_2_menu_layout, 2, 3)
         else:
             self.load_menu_layout.addWidget(self.model_2_menu, 3, 3)
 
@@ -3444,10 +3446,10 @@ class UI_MainWindow(QWidget):
             display_rect_height / self.image_size
         ) + (rect_center_y - display_rect_height / 2)
         gt_display_rect_width = (self.cur_image_label[0, 3] - self.cur_image_label[0, 1]) * (
-            display_rect_width / self.image_size / 1.12
+            display_rect_width / self.image_size / 1.21
         )
         gt_display_rect_height = (self.cur_image_label[0, 4] - self.cur_image_label[0, 2]) * (
-            display_rect_height / self.image_size / 1.12
+            display_rect_height / self.image_size / 1.21
         )
         self.draw_rectangle(
             painter,
@@ -3786,10 +3788,10 @@ class UI_MainWindow(QWidget):
                 )
                 gt_display_rect_width = (
                     self.cur_image_label[0, 3] - self.cur_image_label[0, 1]
-                ) * (self.display_image_size / self.uncropped_image_size / 1.12)
+                ) * (self.display_image_size / self.uncropped_image_size / 1.21)
                 gt_display_rect_height = (
                     self.cur_image_label[0, 4] - self.cur_image_label[0, 2]
-                ) * (self.display_image_size / self.uncropped_image_size / 1.12)
+                ) * (self.display_image_size / self.uncropped_image_size / 1.21)
                 self.draw_rectangle(
                     painter,
                     gt_display_center_x,
@@ -4263,7 +4265,7 @@ class UI_MainWindow(QWidget):
 
     # draw detailed look of COCO models output on cropped regions
     def draw_model_output(self, take_from_aggregate_output=False):
-        def draw_detailed_plot(detailed_display_image, model_output, color):
+        def draw_detailed_plot(detailed_display_image, model_output, model_name, color):
 
             # prepare a pixmap for the image
             detailed_image_pixmap = QPixmap(detailed_display_image)
@@ -4278,18 +4280,18 @@ class UI_MainWindow(QWidget):
             gt_display_center_x = (
                 (self.cur_image_label[0, 1] + self.cur_image_label[0, 3])
                 / 2
-                * (self.plot_size * 1.12 / self.image_size)
+                * (self.plot_size * 1.21 / self.image_size)
             )
             gt_display_center_y = (
                 (self.cur_image_label[0, 2] + self.cur_image_label[0, 4])
                 / 2
-                * (self.plot_size * 1.12 / self.image_size)
+                * (self.plot_size * 1.21 / self.image_size)
             )
             gt_display_rect_width = (self.cur_image_label[0, 3] - self.cur_image_label[0, 1]) * (
-                self.plot_size * 1.12 / self.image_size
+                self.plot_size * 1.21 / self.image_size
             )
             gt_display_rect_height = (self.cur_image_label[0, 4] - self.cur_image_label[0, 2]) * (
-                self.plot_size * 1.12 / self.image_size
+                self.plot_size * 1.21 / self.image_size
             )
             self.draw_rectangle(
                 painter,
@@ -4312,18 +4314,18 @@ class UI_MainWindow(QWidget):
                 center_x = (
                     (bounding_boxes[i, 0] + bounding_boxes[i, 2])
                     // 2
-                    * (self.plot_size * 1.12 / self.image_size)
+                    * (self.plot_size * 1.21 / self.image_size)
                 )
                 center_y = (
                     (bounding_boxes[i, 1] + bounding_boxes[i, 3])
                     // 2
-                    * (self.plot_size * 1.12 / self.image_size)
+                    * (self.plot_size * 1.21 / self.image_size)
                 )
                 model_display_rect_width = (bounding_boxes[i, 2] - bounding_boxes[i, 0]) * (
-                    self.plot_size * 1.12 / self.image_size
+                    self.plot_size * 1.21 / self.image_size
                 )
                 model_display_rect_height = (bounding_boxes[i, 3] - bounding_boxes[i, 1]) * (
-                    self.plot_size * 1.12 / self.image_size
+                    self.plot_size * 1.21 / self.image_size
                 )
 
                 # compute alpha value based on confidence
@@ -4393,8 +4395,11 @@ class UI_MainWindow(QWidget):
             detailed_image_table.verticalScrollBar().hide()
             detailed_image_table.setFrameStyle(QtWidgets.QFrame.NoFrame)
             detailed_image_table.setColumnWidth(0, 20)
+            detailed_image_table.setStyleSheet(
+                'color: black; font-family: Helvetica; font-style: normal; font-size: 24px'
+            )
 
-            data = [['Prediction #', 'Class', 'Conf', 'IOU']]
+            data = [[' ', ' ', ' ', ' '], ['Pred #', 'Class', 'Conf', 'IOU']]
             for i in range(num_boxes_1):
                 data.append(
                     [
@@ -4416,7 +4421,7 @@ class UI_MainWindow(QWidget):
             # still needs the new cropped image for detail model readout vis
             self.detailed_display_image = nero_utilities.tensor_to_qt_image(
                 self.loaded_image_pt[self.y_min : self.y_max, self.x_min : self.x_max, :],
-                self.display_image_size * 1.12,
+                self.display_image_size * 1.21,
             )
             self.output_1 = [
                 [self.aggregate_outputs_1[self.block_y, self.block_x][self.image_index]]
@@ -4427,7 +4432,7 @@ class UI_MainWindow(QWidget):
         else:
             self.detailed_display_image = nero_utilities.tensor_to_qt_image(
                 self.loaded_image_pt[self.y_min : self.y_max, self.x_min : self.x_max, :],
-                self.display_image_size * 1.12,
+                self.display_image_size * 1.21,
             )
             # run model with the cropped view
             self.cropped_image_pt = (
@@ -4437,11 +4442,11 @@ class UI_MainWindow(QWidget):
 
         # display for model 1
         self.detailed_image_label_1, self.detailed_text_label_1 = draw_detailed_plot(
-            self.detailed_display_image, self.output_1, 'blue'
+            self.detailed_display_image, self.output_1, self.model_1_name, 'blue'
         )
         # display for model 2
         self.detailed_image_label_2, self.detailed_text_label_2 = draw_detailed_plot(
-            self.detailed_display_image, self.output_2, 'magenta'
+            self.detailed_display_image, self.output_2, self.model_2_name, 'magenta'
         )
         # spacer item between image and text
         image_text_spacer = QtWidgets.QSpacerItem(
@@ -4457,9 +4462,9 @@ class UI_MainWindow(QWidget):
         elif self.data_mode == 'aggregate':
             if self.demo:
                 self.demo_layout.addWidget(self.detailed_image_label_1, 2, 3, 3, 1)
-                self.demo_layout.addWidget(self.detailed_text_label_1, 2, 4, 3, 1)
+                self.demo_layout.addWidget(self.detailed_text_label_1, 3, 4, 4, 1)
                 self.demo_layout.addWidget(self.detailed_image_label_2, 4, 3, 3, 1)
-                self.demo_layout.addWidget(self.detailed_text_label_2, 4, 4, 3, 1)
+                self.demo_layout.addWidget(self.detailed_text_label_2, 5, 4, 4, 1)
             else:
                 self.aggregate_result_layout.addWidget(self.detailed_image_label_1, 2, 4)
                 self.aggregate_result_layout.addItem(image_text_spacer, 3, 5)
@@ -4492,7 +4497,7 @@ class UI_MainWindow(QWidget):
                         self.aggregate_result_layout.addWidget(self.image_label, 1, 4, 2, 1)
                 elif self.mode == 'object_detection' or self.mode == 'piv':
                     if self.demo:
-                        self.demo_layout.addWidget(self.image_label, 0, 4, 5, 1)
+                        self.demo_layout.addWidget(self.image_label, 1, 4, 2, 1)
                     else:
                         self.aggregate_result_layout.addWidget(self.image_label, 1, 3, 3, 1)
 
@@ -4595,10 +4600,10 @@ class UI_MainWindow(QWidget):
                             )
                             gt_display_rect_width = (
                                 self.cur_image_label[0, 3] - self.cur_image_label[0, 1]
-                            ) * (self.display_image_size / self.uncropped_image_size / 1.12)
+                            ) * (self.display_image_size / self.uncropped_image_size / 1.21)
                             gt_display_rect_height = (
                                 self.cur_image_label[0, 4] - self.cur_image_label[0, 2]
-                            ) * (self.display_image_size / self.uncropped_image_size / 1.12)
+                            ) * (self.display_image_size / self.uncropped_image_size / 1.21)
                             self.draw_rectangle(
                                 painter,
                                 gt_display_center_x,
@@ -6809,10 +6814,10 @@ class UI_MainWindow(QWidget):
         # checkbox on if doing real-time inference
         self.realtime_inference_checkbox = QtWidgets.QCheckBox('Realtime inference when dragging')
         self.realtime_inference_checkbox.setStyleSheet(
-            'color: black; font-family: Helvetica; font-style: normal; font-size: 18px'
+            'color: black; font-family: Helvetica; font-style: normal; font-size: 18px; background-color: white;'
         )
-        self.realtime_inference_checkbox.setFixedSize(QtCore.QSize(500, 100))
-        self.realtime_inference_checkbox.setContentsMargins(100, 50, 0, 0)
+        self.realtime_inference_checkbox.setFixedSize(QtCore.QSize(300, 30))
+        self.realtime_inference_checkbox.setContentsMargins(0, 0, 0, 0)
         self.realtime_inference_checkbox.stateChanged.connect(realtime_inference_checkbox_clicked)
         if self.realtime_inference:
             self.realtime_inference_checkbox.setChecked(True)
@@ -6821,7 +6826,7 @@ class UI_MainWindow(QWidget):
 
         # layout that controls the plotting items
         if self.demo:
-            self.demo_layout.addWidget(self.realtime_inference_checkbox, 4, 2, 1, 2)
+            self.demo_layout.addWidget(self.realtime_inference_checkbox, 0, 4)
         else:
             self.single_plot_control_layout = QtWidgets.QVBoxLayout()
             self.single_plot_control_layout.addWidget(self.realtime_inference_checkbox)
