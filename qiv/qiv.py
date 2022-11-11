@@ -162,29 +162,48 @@ def _2v(ll=None):
 
 
 # input_array is a numpy array
-def set_array(input_array):
-
-    # make sure the input array is contiguous in memory (c order)
-    input_array = np.ascontiguousarray(input_array)
-    if input_array.dtype == 'float32':
-        nrrd_type = _teem.nrrdTypeFloat
-    elif input_array.dtype == 'float64':
-        nrrd_type = _teem.nrrdTypeDouble
+def from_nparray(np_arr):
+    # because of using cffi.from_buffer, we do have to enforce C order
+    # (else get error message "ValueError: ndarray is not C-contiguous")
+    # https://numpy.org/doc/stable/reference/generated/numpy.ascontiguousarray.html
+    np_arr = np.ascontiguousarray(np_arr)
+    if 2 == np_arr.ndim:
+        dim = 2
+    elif 3 == np_arr.ndim:
+        dim = 3
     else:
-        raise Exception(f'Unsupported data type {input_array.dtype}')
+        raise RuntimeError(f'Need numpy array with ndim 2 or 3 (not {np_arr.ndim})')
+    # can handle uchar, float, and double
+    if np_arr.dtype == 'float32':
+        nrrd_type = _teem.nrrdTypeFloat
+        ctype_str = 'float'
+        dst_type = _qiv.lib.qivTypeReal
+    elif np_arr.dtype == 'float64':
+        nrrd_type = _teem.nrrdTypeDouble
+        ctype_str = 'double'
+        dst_type = _qiv.lib.qivTypeReal
+    elif np_arr.dtype == 'uint8':
+        nrrd_type = _teem.nrrdTypeUChar
+        ctype_str = 'uchar'
+        dst_type = _qiv.lib.qivTypeUChar
+    else:
+        raise RuntimeError(f'Unsupported data type {np_arr.dtype}')
 
-    # pointer to numpy array
-    data = input_array.__array_interface__['data']
-
-    # initialize array
+    # get list of sizes
+    shape = list(np_arr.shape)
+    # because C-order is slow to fast
+    shape.reverse()
     qv = _qiv.lib.qivArrayNew()
     _qiv.lib.qivArraySet(
         qv,  # qar
-        2,  # channel
-        input_array.shape[0],  # size0
-        input_array.shape[1],  # size1
-        _qiv.lib.qivTypeReal,  # dstType
-        data,  # srcData
+        1 if 2 == dim else shape[0],  # channel
+        shape[dim - 2],  # size0
+        shape[dim - 1],  # size1
+        dst_type,  # dstType
+        # https://cffi.readthedocs.io/en/latest/ref.html?highlight=from_buffer#ffi-buffer-ffi-from-buffer
+        # https://stackoverflow.com/questions/16276268/how-to-pass-a-numpy-array-into-a-cffi-function-and-how-to-get-one-back-out
+        _qiv.ffi.from_buffer(f'{ctype_str}*', np_arr),  # srcData
+        # data[0],  # srcData
         nrrd_type,  # srcNType
         _2v([1, 0]),  # edge0
         _2v([0, 1]),  # edge1
@@ -215,4 +234,4 @@ if __name__ != '__main__':  # here because of an "import"
         nrrdTypeReal = _teem.nrrdTypeFloat
     # __all__.append('airTypeReal')
     # __all__.append('nrrdTypeReal')
-    __all__.append('set_array')
+    __all__.append('from_nparray')
