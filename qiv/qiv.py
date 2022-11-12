@@ -37,12 +37,12 @@ except ModuleNotFoundError as _exc:
 
 try:
     import _qiv
-except ModuleNotFoundError:
+except ModuleNotFoundError as _exc:
     print(
         f'*\n* {__name__}.py: failed to load libqiv extension module _qiv.\n'
         '* Did you first run "python3 build_qiv.py"?\n*\n'
     )
-    raise
+    raise _exc
 
 # halt if python2; thanks to https://preview.tinyurl.com/44f2beza
 _x, *_y = 1, 2  # NOTE: A SyntaxError means you need python3, not python2
