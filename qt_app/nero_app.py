@@ -5909,6 +5909,16 @@ class UI_MainWindow(QWidget):
     def draw_quiver_plot(
         self, ground_truth_vectors, pred_vectors, gt_color, pred_color, title=None
     ):
+        # test qiv stuff
+        # ground_truth_vectors_np = ground_truth_vectors.numpy()
+        # print(ground_truth_vectors_np[:4, :4].flags)
+        # exit()
+        # ground_truth_vectors_qiv = qiv.from_numpy(
+        #     np.ascontiguousarray(ground_truth_vectors_np[:4, :4])
+        # )
+        # qiv.qivArraySave(f'ground_truth_vectors.txt'.encode('utf-8'), ground_truth_vectors_qiv)
+        # exit()
+
         class MyArrowItem(pg.ArrowItem):
             def paint(self, p, *args):
                 p.translate(-self.boundingRect().center() * 2)
