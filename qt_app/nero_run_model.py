@@ -597,7 +597,7 @@ def run_piv_once(mode, model_name, model, image_1, image_2):
 
             u = (cur_labels_pred_pt[:, :, :, 0] / 256).numpy()
             v = (cur_labels_pred_pt[:, :, :, 1] / 256).numpy()
-            print(f'ML average u {np.mean(u)}, average v {np.mean(v)}')
+            # print(f'ML average u {np.mean(u)}, average v {np.mean(v)}')
 
         elif model_name == 'Horn-Schunck':
             # number of images
@@ -624,6 +624,6 @@ def run_piv_once(mode, model_name, model, image_1, image_2):
 
             u = cur_labels_pred_pt[:, :, :, 0].numpy()
             v = cur_labels_pred_pt[:, :, :, 1].numpy()
-            print(f'Farneback average u {np.mean(u)}, average v {np.mean(v)}')
+            # print(f'Farneback average u {np.mean(u)}, average v {np.mean(v)}')
 
         return cur_labels_pred_pt

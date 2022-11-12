@@ -25,6 +25,9 @@ import nero_run_model
 
 import warnings
 
+import teem
+import qiv
+
 warnings.filterwarnings('ignore')
 
 # globa configurations
@@ -347,7 +350,7 @@ class UI_MainWindow(QWidget):
                 # heatmap and detailed image plot size
                 self.plot_size = 320
                 # batch size when running in aggregate mode
-                self.batch_size = 16
+                self.batch_size = 4
                 # image (input data) modification mode
                 self.rotation = False
                 self.flip = False
@@ -1262,7 +1265,7 @@ class UI_MainWindow(QWidget):
             )
         elif self.mode == 'piv':
             self.aggregate_data_dirs = sorted(
-                glob.glob(os.path.join(os.getcwd(), 'example_data', self.mode, f'COCO*')),
+                glob.glob(os.path.join(os.getcwd(), 'example_data', self.mode, f'JHTDB*')),
                 reverse=True,
             )
         # load all images in the folder
@@ -1499,7 +1502,7 @@ class UI_MainWindow(QWidget):
                 model_menus_layout.addWidget(self.model_2_menu, 0, 1)
                 self.demo_layout.addWidget(self.model_selection_label, 1, 2)
                 self.demo_layout.addLayout(model_menus_layout, 2, 2)
-            else:
+            elif self.mode == 'piv':
                 model_2_menu_layout = QtWidgets.QHBoxLayout()
                 model_2_menu_layout.addWidget(self.model_2_menu)
                 model_2_menu_layout.setContentsMargins(0, 0, 0, 0)
@@ -1531,15 +1534,15 @@ class UI_MainWindow(QWidget):
 
         # batch size when running in aggregate mode
         if self.mode == 'digit_recognition':
-            self.batch_size = 100
+            # self.batch_size = 100
             # add to general layout
             self.layout.addLayout(self.aggregate_result_layout, 1, 0, 3, 3)
         elif self.mode == 'object_detection':
-            self.batch_size = 64
+            # self.batch_size = 64
             # add to general layout
             self.layout.addLayout(self.aggregate_result_layout, 1, 0, 3, 3)
         elif self.mode == 'piv':
-            self.batch_size = 16
+            # self.batch_size = 8
             self.layout.addLayout(self.aggregate_result_layout, 1, 0, 3, 3)
 
     def init_single_result_layout(self):
@@ -2776,11 +2779,14 @@ class UI_MainWindow(QWidget):
                 # digit 4, 6 and 9
                 selected_image = '/home/zhuokai/Desktop/UChicago/Research/nero_vis/qt_app/example_data/digit_recognition/MNIST_500/label_4_sample_6924.png'
                 selected_image_index = self.all_images_paths.index(selected_image)
+                # selected_image_index = 0
             elif self.mode == 'object_detection':
-                # take the worst-performing one by default
                 selected_image = '/home/zhuokai/Desktop/UChicago/Research/nero_vis/qt_app/example_data/object_detection/COCO_500/images/car_797_0.jpg'
                 selected_image_index = self.all_images_paths.index(selected_image)
                 # selected_image_index = 0
+            elif self.mode == 'piv':
+                # take the worst-performing one by default
+                selected_image_index = 0
 
             self.image_index = self.cur_class_indices[selected_image_index]
 
@@ -3088,36 +3094,6 @@ class UI_MainWindow(QWidget):
             time_reverses = [0, 1]
             self.num_transformations = 16
 
-            # output are dense 2D velocity field of the input image pairs
-            # output for all transformation, has shape (num_transformations, num_samples, image_size, image_size, 2)
-            self.aggregate_outputs_1 = torch.zeros(
-                (
-                    self.num_transformations,
-                    len(self.all_images_1_paths),
-                    self.image_size,
-                    self.image_size,
-                    2,
-                )
-            )
-            self.aggregate_outputs_2 = torch.zeros(
-                (
-                    self.num_transformations,
-                    len(self.all_images_2_paths),
-                    self.image_size,
-                    self.image_size,
-                    2,
-                )
-            )
-            self.aggregate_ground_truths = torch.zeros(
-                (
-                    self.num_transformations,
-                    len(self.all_labels_paths),
-                    self.image_size,
-                    self.image_size,
-                    2,
-                )
-            )
-
             # always try loading from cache
             self.aggregate_outputs_1 = torch.from_numpy(
                 self.load_from_cache(
@@ -3136,6 +3112,36 @@ class UI_MainWindow(QWidget):
             )
 
             if not self.load_successfully:
+                # output are dense 2D velocity field of the input image pairs
+                # output for all transformation, has shape (num_transformations, num_samples, image_size, image_size, 2)
+                self.aggregate_outputs_1 = torch.zeros(
+                    (
+                        self.num_transformations,
+                        len(self.all_images_1_paths),
+                        self.image_size,
+                        self.image_size,
+                        2,
+                    )
+                )
+                self.aggregate_outputs_2 = torch.zeros(
+                    (
+                        self.num_transformations,
+                        len(self.all_images_2_paths),
+                        self.image_size,
+                        self.image_size,
+                        2,
+                    )
+                )
+                self.aggregate_ground_truths = torch.zeros(
+                    (
+                        self.num_transformations,
+                        len(self.all_labels_paths),
+                        self.image_size,
+                        self.image_size,
+                        2,
+                    )
+                )
+
                 # take a batch of images
                 num_batches = int(len(self.all_images_1_paths) / self.batch_size)
                 if len(self.all_images_1_paths) % self.batch_size != 0:
