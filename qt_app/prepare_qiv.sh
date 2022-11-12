@@ -27,3 +27,7 @@ make clean
 make
 python build_qiv.py $teem_install_path $teem_python_path
 cd ../qt_app
+
+# export paths (teem and qiv)
+PYTHONPATH="/home/zhuokai/Desktop/UChicago/teem/python/cffi/:/home/zhuokai/Desktop/UChicago/Research/nero_vis/qiv/:$PYTHONPATH"
+export PYTHONPATH
