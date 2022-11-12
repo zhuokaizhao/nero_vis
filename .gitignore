@@ -7,6 +7,7 @@
 *.tif
 *.flo
 *.json
+*.gif
 
 # for the c library
 *.o
