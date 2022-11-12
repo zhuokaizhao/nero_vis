@@ -197,8 +197,8 @@ def from_numpy(np_arr, ItoW=np.identity(3)):
     f_cont = np_arr.flags.f_contiguous
     c_cont = np_arr.flags.c_contiguous
     if 1 != f_cont + c_cont:
-        raise RuntimeError(
-            f'Expected exactly one of F,C-contiguous to be true (not {f_cont},{c_cont})'
+        print(
+            f'Warning: Expected exactly one of F,C-contiguous to be true (not {f_cont},{c_cont})'
         )
     if 2 == np_arr.ndim:
         dim = 2
