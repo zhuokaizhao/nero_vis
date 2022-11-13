@@ -19,10 +19,6 @@ q.qivArrayOrientationSet(
 )
 # this samples a flow that rotates the first world-space basis vector towards the second
 q.qivArraySyntheticFlowSet(qa, 0, 0, 0, -1, 1, 0)
-xyMin = q.dbl2()
-xyMax = q.dbl2()
-q.qivArrayBBox(xyMin, xyMax, qa)
-print(f'array bbox min={xyMin[0]},{xyMin[1]}  max={xyMax[0]},{xyMax[1]}')
 # saving for reference
 q.qivArraySave(b'flow.nrrd', qa)
 
