@@ -46,7 +46,9 @@ class UI_MainWindow(QWidget):
         # window size
         if pre_selected_mode == 'digit_recognition':
             self.resize(1920, 1080)
-        elif pre_selected_mode == 'object_detection' or pre_selected_mode == 'piv':
+        elif pre_selected_mode == 'object_detection':
+            self.resize(2280, 1080)
+        elif pre_selected_mode == 'piv':
             self.resize(2280, 1080)
         # set window title
         self.setWindowTitle('Non-Equivariance Revealed on Orbits')
@@ -1221,8 +1223,12 @@ class UI_MainWindow(QWidget):
         # initialize layout for loading menus
         if self.demo:
             self.demo_layout = QtWidgets.QGridLayout()
-            self.demo_layout.setHorizontalSpacing(0)
-            self.demo_layout.setVerticalSpacing(0)
+            if self.mode == 'piv':
+                self.demo_layout.setHorizontalSpacing(10)
+                self.demo_layout.setVerticalSpacing(0)
+            else:
+                self.demo_layout.setHorizontalSpacing(0)
+                self.demo_layout.setVerticalSpacing(0)
         else:
             self.load_menu_layout = QtWidgets.QGridLayout()
 
@@ -1231,7 +1237,10 @@ class UI_MainWindow(QWidget):
         model_pixmap.fill(QtCore.Qt.white)
         painter = QtGui.QPainter(model_pixmap)
         painter.setFont(QFont('Helvetica', 30))
-        painter.drawText(0, 0, 350, 50, QtGui.Qt.AlignLeft, 'Data Set:')
+        if self.mode == 'piv':
+            painter.drawText(0, 0, 350, 50, QtGui.Qt.AlignLeft, 'Dataset:')
+        else:
+            painter.drawText(0, 0, 350, 50, QtGui.Qt.AlignLeft, 'Data Set:')
         painter.end()
 
         # create label to contain the texts
@@ -1388,18 +1397,24 @@ class UI_MainWindow(QWidget):
         # self.class_selection_label.setWordWrap(True)
         # self.class_selection_label.setTextFormat(QtGui.Qt.AutoText)
         self.model_selection_label.setPixmap(model_selection_pixmap)
-        self.model_selection_label.setContentsMargins(20, 0, 0, 0)
+        if self.mode == 'piv':
+            self.model_selection_label.setContentsMargins(0, 0, 0, 0)
+        else:
+            self.model_selection_label.setContentsMargins(20, 0, 0, 0)
 
         # model 1
         # graphic representation
         self.model_1_label = QLabel(self)
         self.model_1_label.setContentsMargins(0, 0, 0, 0)
         self.model_1_label.setAlignment(QtCore.Qt.AlignCenter)
-        model_1_icon = QPixmap(25, 25)
-        model_1_icon.fill(QtCore.Qt.white)
-        # draw model representation
-        painter = QtGui.QPainter(model_1_icon)
-        draw_circle(painter, 12, 12, 10, 'blue')
+        if self.mode == 'digit_recognition' or self.mode == 'object_detection':
+            model_1_icon = QPixmap(25, 25)
+            model_1_icon.fill(QtCore.Qt.white)
+            # draw model representation
+            painter = QtGui.QPainter(model_1_icon)
+            draw_circle(painter, 12, 12, 10, 'blue')
+        elif self.mode == 'piv':
+            model_1_icon = QtGui.QIcon('symbols/top_row_icon.png')
 
         self.model_1_menu = QtWidgets.QComboBox()
         self.model_1_menu.setStyleSheet(
@@ -1422,9 +1437,12 @@ class UI_MainWindow(QWidget):
             self.model_1_menu.addItem(model_1_icon, 'Pre-trained')
             self.model_1_menu.setCurrentText('0% jittering')
         elif self.mode == 'piv':
-            self.model_1_menu.setFixedSize(QtCore.QSize(350, 50))
-            self.model_1_menu.addItem(model_1_icon, 'PIV-LiteFlowNet-en')
-            self.model_1_menu.addItem(model_1_icon, 'Gunnar-Farneback')
+            self.model_1_menu.setFixedSize(QtCore.QSize(400, 50))
+            self.model_1_menu.setIconSize(QtCore.QSize(50, 50))
+            self.model_1_menu.addItem('PIV-LiteFlowNet-en')
+            self.model_1_menu.addItem('Gunnar-Farneback')
+            self.model_1_menu.setItemIcon(0, model_1_icon)
+            self.model_1_menu.setItemIcon(1, model_1_icon)
             self.model_1_menu.setCurrentText('PIV-LiteFlowNet-en')
 
         # connect the drop down menu with actions
@@ -1451,11 +1469,14 @@ class UI_MainWindow(QWidget):
         self.model_2_label = QLabel(self)
         self.model_2_label.setContentsMargins(0, 0, 0, 0)
         self.model_2_label.setAlignment(QtCore.Qt.AlignCenter)
-        model_2_icon = QPixmap(25, 25)
-        model_2_icon.fill(QtCore.Qt.white)
-        # draw model representation
-        painter = QtGui.QPainter(model_2_icon)
-        draw_circle(painter, 12, 12, 10, 'magenta')
+        if self.mode == 'digit_recognition' or self.mode == 'object_detection':
+            model_2_icon = QPixmap(25, 25)
+            model_2_icon.fill(QtCore.Qt.white)
+            # draw model representation
+            painter = QtGui.QPainter(model_2_icon)
+            draw_circle(painter, 12, 12, 10, 'magenta')
+        elif self.mode == 'piv':
+            model_2_icon = QtGui.QIcon('symbols/bottom_row_icon.png')
 
         self.model_2_menu = QtWidgets.QComboBox()
         self.model_2_menu.setStyleSheet(
@@ -1482,9 +1503,12 @@ class UI_MainWindow(QWidget):
             self.model_2_menu.addItem(model_2_icon, 'Pre-trained')
             self.model_2_menu.setCurrentText('Pre-trained')
         elif self.mode == 'piv':
-            self.model_2_menu.setFixedSize(QtCore.QSize(350, 50))
+            self.model_2_menu.setFixedSize(QtCore.QSize(400, 50))
+            self.model_2_menu.setIconSize(QtCore.QSize(50, 50))
             self.model_2_menu.addItem(model_2_icon, 'PIV-LiteFlowNet-en')
             self.model_2_menu.addItem(model_2_icon, 'Gunnar-Farneback')
+            self.model_2_menu.setItemIcon(0, model_2_icon)
+            self.model_2_menu.setItemIcon(1, model_2_icon)
             self.model_2_menu.setCurrentText('Gunnar-Farneback')
 
         # connect the drop down menu with actions
@@ -1619,7 +1643,7 @@ class UI_MainWindow(QWidget):
                 self.run_dimension_reduction()
 
         @QtCore.Slot()
-        def detail_nero_checkbox_clicked(state):
+        def average_nero_checkbox_clicked(state):
             if state == QtCore.Qt.Checked:
                 self.show_average = False
             else:
@@ -1712,13 +1736,18 @@ class UI_MainWindow(QWidget):
         dr_selection_pixmap = QPixmap(330, 60)
         dr_selection_pixmap.fill(QtCore.Qt.white)
         painter = QtGui.QPainter(dr_selection_pixmap)
-        painter.setFont(QFont('Helvetica', 30))
-        painter.drawText(0, 0, 330, 60, QtGui.Qt.AlignLeft, 'DR Plot Layout: ')
+        if self.mode == 'digit_recognition' or self.mode == 'object_detection':
+            painter.setFont(QFont('Helvetica', 30))
+            painter.drawText(0, 0, 330, 60, QtGui.Qt.AlignLeft, 'DR Plot Layout: ')
+        elif self.mode == 'piv':
+            painter.setFont(QFont('Helvetica', 30))
+            painter.drawText(0, 0, 330, 60, QtGui.Qt.AlignLeft, 'DR Layout: ')
         painter.end()
         # create label to contain the texts
         self.dr_selection_label = QLabel(self)
         self.dr_selection_label.setFixedSize(QtCore.QSize(330, 60))
         self.dr_selection_label.setPixmap(dr_selection_pixmap)
+
         # add to the layout
         if self.demo:
             scatterplot_layout = QtWidgets.QHBoxLayout()
@@ -1760,22 +1789,22 @@ class UI_MainWindow(QWidget):
 
         # for PIV only, toggle between average or detail plot
         if self.mode == 'piv':
-            self.detail_nero_checkbox = QtWidgets.QCheckBox('Detail NERO')
-            self.detail_nero_checkbox.setStyleSheet(
+            self.average_nero_checkbox = QtWidgets.QCheckBox('Show averaged NERO')
+            self.average_nero_checkbox.setStyleSheet(
                 'color: black; font-style: normal; font-family: Helvetica; font-size: 24px;'
             )
-            self.detail_nero_checkbox.setFixedSize(QtCore.QSize(300, 50))
-            self.detail_nero_checkbox.stateChanged.connect(detail_nero_checkbox_clicked)
-            self.detail_nero_checkbox.setChecked(True)
-            if self.detail_nero_checkbox.checkState() == QtCore.Qt.Checked:
-                self.show_average = False
-            else:
+            self.average_nero_checkbox.setFixedSize(QtCore.QSize(300, 50))
+            self.average_nero_checkbox.stateChanged.connect(average_nero_checkbox_clicked)
+            self.average_nero_checkbox.setChecked(False)
+            if self.average_nero_checkbox.checkState() == QtCore.Qt.Checked:
                 self.show_average = True
+            else:
+                self.show_average = False
 
             if self.demo:
-                self.demo_layout.addWidget(self.detail_nero_checkbox, 4, 2, 1, 1)
+                self.demo_layout.addWidget(self.average_nero_checkbox, 2, 0, 1, 1)
             else:
-                self.aggregate_plot_control_layout.addWidget(self.detail_nero_checkbox, 6, 0)
+                self.aggregate_plot_control_layout.addWidget(self.average_nero_checkbox, 6, 0)
 
     # run PCA on demand
     @QtCore.Slot()
@@ -2127,10 +2156,16 @@ class UI_MainWindow(QWidget):
             # if self.mode == 'digit_recognition':
             # digit recognition does not have color defined elsewhere like others since it never uses heatmaps
             self.color_map = pg.colormap.get('viridis')
-            self.cm_range = [0, 1]
-            scatter_lut = self.color_map.getLookupTable(
-                start=self.cm_range[0], stop=self.cm_range[1], nPts=500, alpha=False
-            )
+            if self.mode == 'piv':
+                self.cm_range = (self.loss_high_bound, self.loss_low_bound)
+                scatter_lut = self.color_map.getLookupTable(
+                    start=self.cm_range[1], stop=self.cm_range[0], nPts=500, alpha=False
+                )
+            else:
+                self.cm_range = [0, 1]
+                scatter_lut = self.color_map.getLookupTable(
+                    start=self.cm_range[0], stop=self.cm_range[1], nPts=500, alpha=False
+                )
             # digit recognition has color bar only for scatter plot
             if self.demo:
                 self.color_bar = pg.ColorBarItem(
@@ -2720,8 +2755,12 @@ class UI_MainWindow(QWidget):
         intensity_button_pixmap = QPixmap(300, 60)
         intensity_button_pixmap.fill(QtCore.Qt.white)
         painter = QtGui.QPainter(intensity_button_pixmap)
-        painter.setFont(QFont('Helvetica', 30))
-        painter.drawText(0, 0, 300, 60, QtGui.Qt.AlignLeft, 'DR Plot Sorting:')
+        if self.mode == 'digit_recognition' or self.mode == 'object_detection':
+            painter.setFont(QFont('Helvetica', 30))
+            painter.drawText(0, 0, 300, 60, QtGui.Qt.AlignLeft, 'DR Plot Sorting:')
+        elif self.mode == 'piv':
+            painter.setFont(QFont('Helvetica', 30))
+            painter.drawText(0, 0, 300, 60, QtGui.Qt.AlignLeft, 'DR Sorting:')
         painter.end()
 
         # create label to contain the texts
@@ -3843,10 +3882,10 @@ class UI_MainWindow(QWidget):
 
         elif self.mode == 'piv':
 
-            if self.detail_nero_checkbox.checkState() == QtCore.Qt.Checked:
-                self.show_average = False
-            else:
+            if self.average_nero_checkbox.checkState() == QtCore.Qt.Checked:
                 self.show_average = True
+            else:
+                self.show_average = False
 
             # flags on controlling current image tensor
             self.rotate_ccw = False
@@ -3860,12 +3899,12 @@ class UI_MainWindow(QWidget):
                 # add buttons for controlling the single GIF
                 self.gif_control_layout = QtWidgets.QVBoxLayout()
                 self.gif_control_layout.setAlignment(QtGui.Qt.AlignTop)
-                self.gif_control_layout.setContentsMargins(0, 70, 0, 0)
+                self.gif_control_layout.setContentsMargins(0, 0, 0, 0)
                 if self.data_mode == 'single':
                     self.single_result_layout.addLayout(self.gif_control_layout, 2, 0)
                 elif self.data_mode == 'aggregate':
                     if self.demo:
-                        self.demo_layout.addLayout(self.gif_control_layout, 0, 5, 3, 1)
+                        self.demo_layout.addLayout(self.gif_control_layout, 0, 5, 2, 1)
                     else:
                         self.aggregate_result_layout.addLayout(self.gif_control_layout, 2, 3)
 
@@ -4529,9 +4568,14 @@ class UI_MainWindow(QWidget):
                         self.demo_layout.addWidget(self.image_label, 0, 3, 3, 1)
                     else:
                         self.aggregate_result_layout.addWidget(self.image_label, 1, 4, 2, 1)
-                elif self.mode == 'object_detection' or self.mode == 'piv':
+                elif self.mode == 'object_detection':
                     if self.demo:
                         self.demo_layout.addWidget(self.image_label, 1, 4, 2, 1)
+                    else:
+                        self.aggregate_result_layout.addWidget(self.image_label, 1, 3, 3, 1)
+                elif self.mode == 'piv':
+                    if self.demo:
+                        self.demo_layout.addWidget(self.image_label, 0, 4, 3, 1)
                     else:
                         self.aggregate_result_layout.addWidget(self.image_label, 1, 3, 3, 1)
 
@@ -4684,8 +4728,10 @@ class UI_MainWindow(QWidget):
         elif self.mode == 'piv':
 
             # plot_size should be bigger than the display_size, so that some margins exist
-            self.image_label.setFixedSize(self.plot_size, self.plot_size)
+            self.image_label.setFixedSize(self.plot_size * 1.3, self.plot_size * 1.3)
             image_gif = QtGui.QMovie(self.gif_path)
+            gif_size = QtCore.QSize(self.plot_size * 1.2, self.plot_size * 1.2)
+            image_gif.setScaledSize(gif_size)
             # add to the label
             self.image_label.setMovie(image_gif)
             image_gif.start()
@@ -5805,11 +5851,11 @@ class UI_MainWindow(QWidget):
             # heatmap view
             self.heatmap_view_1 = pg.GraphicsLayoutWidget()
             # left top right bottom
-            self.heatmap_view_1.ci.layout.setContentsMargins(0, 20, 0, 0)
+            self.heatmap_view_1.ci.layout.setContentsMargins(0, 0, 0, 0)
             self.heatmap_view_1.setFixedSize(self.plot_size * 1.2, self.plot_size * 1.2)
             self.heatmap_view_2 = pg.GraphicsLayoutWidget()
             # left top right bottom
-            self.heatmap_view_2.ci.layout.setContentsMargins(0, 20, 0, 0)
+            self.heatmap_view_2.ci.layout.setContentsMargins(0, 0, 0, 0)
             self.heatmap_view_2.setFixedSize(self.plot_size * 1.2, self.plot_size * 1.2)
 
             self.single_nero_1 = PIV_heatmap()
@@ -5848,12 +5894,12 @@ class UI_MainWindow(QWidget):
             # heatmap view
             self.detail_heatmap_view_1 = pg.GraphicsLayoutWidget()
             self.detail_heatmap_view_1.ci.layout.setContentsMargins(
-                0, 20, 0, 0
+                0, 0, 0, 0
             )  # left top right bottom
             self.detail_heatmap_view_1.setFixedSize(self.plot_size * 1.2, self.plot_size * 1.2)
             self.detail_heatmap_view_2 = pg.GraphicsLayoutWidget()
             self.detail_heatmap_view_2.ci.layout.setContentsMargins(
-                0, 20, 0, 0
+                0, 0, 0, 0
             )  # left top right bottom
             self.detail_heatmap_view_2.setFixedSize(self.plot_size * 1.2, self.plot_size * 1.2)
 
@@ -5900,11 +5946,11 @@ class UI_MainWindow(QWidget):
             # heatmap view
             self.aggregate_heatmap_view_1 = pg.GraphicsLayoutWidget()
             # left top right bottom
-            self.aggregate_heatmap_view_1.ci.layout.setContentsMargins(0, 20, 0, 0)
+            self.aggregate_heatmap_view_1.ci.layout.setContentsMargins(0, 0, 0, 0)
             self.aggregate_heatmap_view_1.setFixedSize(self.plot_size * 1.2, self.plot_size * 1.2)
             self.aggregate_heatmap_view_2 = pg.GraphicsLayoutWidget()
             # left top right bottom
-            self.aggregate_heatmap_view_2.ci.layout.setContentsMargins(0, 20, 0, 0)
+            self.aggregate_heatmap_view_2.ci.layout.setContentsMargins(0, 0, 0, 0)
             self.aggregate_heatmap_view_2.setFixedSize(self.plot_size * 1.2, self.plot_size * 1.2)
             # color map is flipped so that low error is bright
             self.cm_range = (self.loss_high_bound, self.loss_low_bound)
@@ -5947,6 +5993,8 @@ class UI_MainWindow(QWidget):
         quiver_plot.vb.disableAutoRange()
         quiver_plot.setXRange(-1, len(ground_truth_vectors) + 1, padding=0)
         quiver_plot.setYRange(-1, len(ground_truth_vectors) + 1, padding=0)
+        quiver_plot.hideAxis('bottom')
+        quiver_plot.hideAxis('left')
         # Not letting user zoom out past axis limit
         quiver_plot.vb.setLimits(
             xMin=-1,
@@ -6043,13 +6091,13 @@ class UI_MainWindow(QWidget):
 
         # view 1
         self.piv_detail_view_1 = pg.GraphicsLayoutWidget()
-        self.piv_detail_view_1.ci.layout.setContentsMargins(0, 20, 0, 0)  # left top right bottom
-        self.piv_detail_view_1.setFixedSize(self.plot_size * 1.2, self.plot_size * 1.2)
+        self.piv_detail_view_1.ci.layout.setContentsMargins(0, 0, 0, 0)  # left top right bottom
+        self.piv_detail_view_1.setFixedSize(self.plot_size * 1.4, self.plot_size * 1.4)
 
         # view 2
         self.piv_detail_view_2 = pg.GraphicsLayoutWidget()
-        self.piv_detail_view_2.ci.layout.setContentsMargins(0, 20, 0, 0)  # left top right bottom
-        self.piv_detail_view_2.setFixedSize(self.plot_size * 1.2, self.plot_size * 1.2)
+        self.piv_detail_view_2.ci.layout.setContentsMargins(0, 0, 0, 0)  # left top right bottom
+        self.piv_detail_view_2.setFixedSize(self.plot_size * 1.4, self.plot_size * 1.4)
 
         # plot both quiver plots
         gt_color = QtGui.QColor('black')
@@ -6076,8 +6124,8 @@ class UI_MainWindow(QWidget):
             self.single_result_layout.addWidget(self.piv_detail_view_2, 2, 2)
         elif self.data_mode == 'aggregate':
             if self.demo:
-                self.demo_layout.addWidget(self.piv_detail_view_1, 3, 4, 1, 1)
-                self.demo_layout.addWidget(self.piv_detail_view_2, 5, 4, 1, 1)
+                self.demo_layout.addWidget(self.piv_detail_view_1, 2, 4, 3, 1)
+                self.demo_layout.addWidget(self.piv_detail_view_2, 4, 4, 3, 1)
             else:
                 self.aggregate_result_layout.addWidget(self.piv_detail_view_1, 2, 4)
                 self.aggregate_result_layout.addWidget(self.piv_detail_view_2, 2, 5)
@@ -7096,19 +7144,19 @@ class UI_MainWindow(QWidget):
 
         # title
         # draw text
-        plot_quantity_pixmap = QPixmap(200, 50)
+        plot_quantity_pixmap = QPixmap(300, 50)
         plot_quantity_pixmap.fill(QtCore.Qt.white)
         painter = QtGui.QPainter(plot_quantity_pixmap)
-        painter.setFont(QFont('Helvetica', 18))
-        painter.drawText(0, 5, 200, 50, QtGui.Qt.AlignLeft, 'NERO plot of: ')
+        painter.setFont(QFont('Helvetica', 30))
+        painter.drawText(0, 0, 300, 50, QtGui.Qt.AlignLeft, 'NERO Metric: ')
         painter.end()
         # create label to contain the texts
         self.plot_quantity_label = QLabel(self)
-        self.plot_quantity_label.setFixedSize(QtCore.QSize(200, 50))
+        self.plot_quantity_label.setFixedSize(QtCore.QSize(300, 50))
         self.plot_quantity_label.setPixmap(plot_quantity_pixmap)
         # drop down menu on selection which quantity to plot
         quantity_menu = QtWidgets.QComboBox()
-        quantity_menu.setFixedSize(QtCore.QSize(220, 50))
+        quantity_menu.setFixedSize(QtCore.QSize(150, 50))
         quantity_menu.setStyleSheet(
             'color: black; font-family: Helvetica; font-style: normal; font-size: 34px'
         )
@@ -7243,7 +7291,7 @@ class UI_MainWindow(QWidget):
             # layout that controls the plotting items
             self.single_plot_control_layout = QtWidgets.QVBoxLayout()
             quantity_menu = QtWidgets.QComboBox()
-            quantity_menu.setFixedSize(QtCore.QSize(250, 50))
+            quantity_menu.setFixedSize(QtCore.QSize(220, 50))
             quantity_menu.setStyleSheet('font-size: 18px')
             quantity_menu.setStyleSheet('color: black')
             quantity_menu.setEditable(True)
@@ -7406,9 +7454,10 @@ if __name__ == '__main__':
     app.exec()
 
     # remove all .GIF from cache
-    all_gif_paths = glob.glob(os.path.join(os.getcwd(), 'cache', '*.gif'))
-    for gif_path in all_gif_paths:
-        os.remove(gif_path)
+    if mode == 'piv':
+        all_gif_paths = glob.glob(os.path.join(os.getcwd(), 'cache', f'{mode}', '*.gif'))
+        for gif_path in all_gif_paths:
+            os.remove(gif_path)
 
     # exit the app
     sys.exit()
