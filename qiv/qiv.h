@@ -7,10 +7,6 @@
 #define QIV_HAS_BEEN_INCLUDED
 
 // begin includes
-#include <stdio.h>   // for printf
-#include <stdint.h>  // for uint8_t
-#include <stdlib.h>  // for malloc, qsort
-#include <assert.h>  // for assert()
 #include <stdbool.h> // for C99 _Bool type and true,false values
 // define QIV_COMPILE when compiling libqiv or a non-Python thing depending on libqiv
 #ifdef QIV_COMPILE
@@ -192,6 +188,8 @@ extern int qivArrayAlloc(qivArray *qar, uint channel, uint size0, uint size1,
 extern int qivArraySet(qivArray *qar, uint channel, uint size0, uint size1,
                        qivType dstType, const void *srcData, int srcNType,
                        const double *edge0, const double *edge1, const double *orig);
+extern int qivArrayUpsampleAlloc(qivArray *qout, uint channel, uint ups,
+                                 const qivArray *qin, qivType dtype);
 extern int qivArrayOrientationSet(qivArray *qar, const double *edge0,
                                   const double *edge1, const double *orig);
 extern int qivArraySyntheticFlowSet(qivArray *qar,                  //
@@ -199,7 +197,6 @@ extern int qivArraySyntheticFlowSet(qivArray *qar,                  //
                                     const real j00, const real j01, //
                                     const real j10, const real j11);
 extern int qivArraySave(const char *fname, const qivArray *qar);
-extern int qivArrayBBox(double xyMin[2], double xyMax[2], const qivArray *qar);
 
 // convo.c: for convolution
 extern _Bool _qivConvoEval(real ovec[2],        // returns "(xw,yw) was inside"
@@ -215,20 +212,24 @@ extern int qivConvoEval(_Bool *inside, real ovec[const 2], // returns non-zero i
 extern qivSline *qivSlineNew(void);
 extern int qivSlineAlloc(qivSline *sln, uint halfLen);
 extern qivSline *qivSlineNix(qivSline *sln);
-extern int qivSlineTrace(qivSline *const sln,                    //
+extern int qivSlineTrace(_Bool doErr, qivSline *const sln,       //
                          qivIntg intg, real hh, _Bool normalize, //
                          qivArray *vfd, qivKern kern,            //
                          real seedX, real seedY);
 extern void qivSlinePrint(qivSline *const sln);
 
 // lic.c: for Line Integral Convolution
+extern int qivLICEvalCheck(const qivArray *rnd, _Bool rndLinterp,  //
+                           qivSline *const sln,                    //
+                           qivIntg intg, real hh, _Bool normalize, //
+                           qivArray *vfd, qivKern kern,            //
+                           real xw, real yw);
+extern real qivLICEval(const qivArray *rnd, _Bool rndLinterp,  //
+                       qivSline *const sln,                    //
+                       qivIntg intg, real hh, _Bool normalize, //
+                       qivArray *vfd, qivKern kern,            //
+                       real xw, real yw);
 /*
-extern int qivLICEval(real *const result,                     //
-                      const qivArray *rnd, _Bool rndLinterp,  //
-                      qivSline *const sln,                    //
-                      qivIntg intg, real hh, _Bool normalize, //
-                      qivArray *vfd, qivKern kern,            //
-                      real xw, real yw);
 extern int qivLIC(qivField *const lmg, qivField *const pmg, int prop, uint halfLen,
                   real hh, _Bool normalize, qivIntg intg, const qivField *rnd,
                   _Bool rndLinterp, qivCtx *ctx);

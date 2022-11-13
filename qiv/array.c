@@ -256,6 +256,75 @@ qivArraySet(qivArray *qar, uint channel, uint size0, uint size1, qivType dstType
     return 0;
 }
 
+/* allocates in qout an isotropic sampling of the domain covered by qin, with upsampling
+ * factor ups. NOT YET TESTED! */
+int
+qivArrayUpsampleAlloc(qivArray *qout, uint channel, uint ups, const qivArray *qin,
+                      qivType dtype) {
+    if (!(qout && qin)) {
+        biffAddf(QIV, "%s: got NULL output (%p) or input (%p)", __func__, CVOIDP(qout),
+                 CVOIDP(qin));
+        return 1;
+    }
+    if (!(ups > 0)) {
+        biffAddf(QIV, "%s: upsampling factor %u not > 0", __func__, ups);
+        return 1;
+    }
+    // using double-precision for geometry computations
+    // edge vectors for input array
+    double iedge[2][2] = {{qin->ItoW[0], qin->ItoW[3]}, //
+                          {qin->ItoW[1], qin->ItoW[4]}};
+    double iorig[2] = {qin->ItoW[2], qin->ItoW[5]};
+    uint osize[2], isize[2] = {qin->size0, qin->size1};
+    double inorm[2][2], ilen[2], _ostep[2];
+    for (uint ii = 0; ii < 2; ii++) {
+        // length along sides of (cell-centered) input array
+        double ll;
+        V2_NORM(inorm[ii], iedge[ii], ll);
+        ilen[ii] = ll * isize[ii];
+        // output array sizes
+        osize[ii] = ups * isize[ii];
+        // initial computation of inter-sample steps in (cell-centered) output array
+        _ostep[ii] = ilen[ii] / osize[ii];
+        if (_qivVerbose) {
+            printf("%s: [%u] iedge = %g %g  --> (len %g) inorm = %g %g\n", __func__, ii,
+                   iedge[ii][0], iedge[ii][1], ilen[ii], inorm[ii][0], inorm[ii][1]);
+            printf("    osize = %u, _ostep = %g\n", osize[ii], _ostep[ii]);
+        }
+    }
+    // final *isotropic* inter-sample step in output
+    double ostep = (_ostep[0] + _ostep[1]) / 2;
+    if (_qivVerbose) {
+        printf("%s: ostep = %g\n", __func__, ostep);
+    }
+    double oedge[2][2];
+    for (uint ii = 0; ii < 2; ii++) {
+        V2_SCALE(oedge[ii], ostep / osize[ii], inorm[ii]);
+        if (_qivVerbose) {
+            printf("%s: [%u] oedge = %g %g\n", __func__, ii, oedge[ii][0], oedge[ii][1]);
+        }
+    }
+    double cent[2], oorig[2];
+    ELL_2V_SCALE_ADD3(cent,                                 //
+                      1, iorig,                             //
+                      ((double)isize[0] - 1) / 2, iedge[0], //
+                      ((double)isize[1] - 1) / 2, iedge[1]);
+    ELL_2V_SCALE_ADD3(oorig,                                 //
+                      1, cent,                               //
+                      -((double)osize[0] - 1) / 2, oedge[0], //
+                      -((double)osize[1] - 1) / 2, oedge[1]);
+    if (_qivVerbose) {
+        printf("%s: cent = %g %g  --> oorig = %g %g\n", __func__, cent[0], cent[1],
+               oorig[0], oorig[1]);
+    }
+    if (qivArrayAlloc(qout, channel, osize[0], osize[1], dtype)) {
+        biffAddf(QIV, "%s: trouble allocating output", __func__);
+        return 1;
+    }
+    orientationSet(qout, oedge[0], oedge[1], oorig);
+    return 0;
+}
+
 int
 qivArrayOrientationSet(qivArray *qar, const double *edge0, const double *edge1,
                        const double *orig) {
@@ -391,39 +460,5 @@ qivArraySave(const char *fname, const qivArray *qar) {
     }
     nrrdNix(nrd);
     nrrdIoStateNix(nio);
-    return 0;
-}
-
-int
-qivArrayBBox(double xyMin[2], double xyMax[2], const qivArray *qar) {
-    if (!(xyMin && xyMax && qar)) {
-        biffAddf(QIV, "%s: got NULL pointer", __func__);
-        return 1;
-    }
-    if (!M3_ISFINITE(qar->ItoW)) {
-        biffAddf(QIV, "%s: array does not seem to have ItoW set", __func__);
-        return 1;
-    }
-    real pi[3] = {0, 0, 1}, pw[3] = {0, 0, 1};
-    uint sz0 = qar->size0;
-    uint sz1 = qar->size1;
-    for (uint jj = 0; jj < 2; jj++) {
-        pi[1] = jj * (sz1 - 1);
-        for (uint ii = 0; ii < 2; ii++) {
-            pi[0] = ii * (sz0 - 1);
-            MV3_MUL(pw, qar->ItoW, pi); // index to world
-            if (!ii && !jj) {
-                /* initialize min, max corners */
-                V2_COPY(xyMin, pw);
-                V2_COPY(xyMax, pw);
-            } else {
-                /* update corners */
-                xyMin[0] = MIN(xyMin[0], pw[0]);
-                xyMin[1] = MIN(xyMin[1], pw[1]);
-                xyMax[0] = MAX(xyMax[0], pw[0]);
-                xyMax[1] = MAX(xyMax[1], pw[1]);
-            }
-        }
-    }
     return 0;
 }

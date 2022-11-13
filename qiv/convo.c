@@ -144,13 +144,13 @@ qivConvoEval(_Bool *inside, real ovec[const 2], // returns non-zero if error
                 CVOIDP(ovec), CVOIDP(vfd));
         return 1;
     }
+    if (2 != vfd->channel) {
+        biffAddf(QIV, "%s: need #channel == 2 (not %d)", __func__, vfd->channel);
+        return 1;
+    }
     if (qivTypeReal != vfd->type) {
         biffAddf(QIV, "%s: sorry, need array type %s (not %s)", __func__,
                  airEnumStr(qivType_ae, qivTypeReal), airEnumStr(qivType_ae, vfd->type));
-        return 1;
-    }
-    if (2 != vfd->channel) {
-        biffAddf(QIV, "%s: need #channel == 2 (not %d)", __func__, vfd->channel);
         return 1;
     }
     if (airEnumValCheck(qivKern_ae, kern)) {
