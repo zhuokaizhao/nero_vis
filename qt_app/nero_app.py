@@ -369,15 +369,15 @@ class UI_MainWindow(QWidget):
                         f'*.paramOnly',
                     )
                 )[0]
-                # Horn-Schunck does not need model path
-                self.model_2_name = 'Horn-Schunck'
+                # Gunnar-Farneback does not need model path
+                self.model_2_name = 'Gunnar-Farneback'
                 self.model_2_cache_name = self.model_2_name
                 self.model_2_path = None
                 # preload model
                 self.model_1 = nero_run_model.load_model(
                     self.mode, self.model_1_name, self.model_1_path
                 )
-                # Horn-Schunck is not a model
+                # Gunnar-Farneback is not a model
                 # self.model_2 = nero_run_model.load_model(self.mode, self.model_1_name, self.model_1_path)
                 self.model_2 = None
 
@@ -1016,8 +1016,8 @@ class UI_MainWindow(QWidget):
                     )
                     print('Model 1 path:', self.model_1_path)
 
-                elif text == 'Horn-Schunck':
-                    # Horn-Schunck does not need model path
+                elif text == 'Gunnar-Farneback':
+                    # Gunnar-Farneback does not need model path
                     self.model_2_path = None
                     self.model_2 = None
 
@@ -1188,8 +1188,8 @@ class UI_MainWindow(QWidget):
                     )
                     print('Model 1 path:', self.model_1_path)
 
-                elif text == 'Horn-Schunck':
-                    # Horn-Schunck does not need model path
+                elif text == 'Gunnar-Farneback':
+                    # Gunnar-Farneback does not need model path
                     self.model_2_path = None
                     self.model_2 = None
 
@@ -1337,7 +1337,7 @@ class UI_MainWindow(QWidget):
 
         elif self.mode == 'piv':
             # different flow types
-            self.flow_types = ['uniform', 'backstep', 'cylinder', 'SQG', 'DNS', 'JHTDB']
+            self.flow_types = ['Uniform', 'Backstep', 'Cylinder', 'SQG', 'DNS', 'Isotropic']
             self.single_images_1_paths = []
             self.single_images_2_paths = []
             self.single_labels_paths = []
@@ -1422,9 +1422,9 @@ class UI_MainWindow(QWidget):
             self.model_1_menu.addItem(model_1_icon, 'Pre-trained')
             self.model_1_menu.setCurrentText('0% jittering')
         elif self.mode == 'piv':
-            self.model_1_menu.setFixedSize(QtCore.QSize(300, 50))
+            self.model_1_menu.setFixedSize(QtCore.QSize(350, 50))
             self.model_1_menu.addItem(model_1_icon, 'PIV-LiteFlowNet-en')
-            self.model_1_menu.addItem(model_1_icon, 'Horn-Schunck')
+            self.model_1_menu.addItem(model_1_icon, 'Gunnar-Farneback')
             self.model_1_menu.setCurrentText('PIV-LiteFlowNet-en')
 
         # connect the drop down menu with actions
@@ -1438,15 +1438,11 @@ class UI_MainWindow(QWidget):
                 model_menus_layout.setContentsMargins(0, 0, 0, 0)
                 model_menus_layout.addWidget(self.model_1_menu)
             elif self.mode == 'object_detection':
-                # model_menus_layout = QtWidgets.QHBoxLayout()
                 model_menus_layout = QtWidgets.QGridLayout()
-                # model_menus_layout.setContentsMargins(0, 0, 30, 0)
                 model_menus_layout.addWidget(self.model_1_menu, 0, 0)
-            else:
-                model_1_menu_layout = QtWidgets.QHBoxLayout()
-                model_1_menu_layout.setContentsMargins(0, 0, 0, 0)
-                model_1_menu_layout.addWidget(self.model_1_menu)
-                self.demo_layout.addLayout(model_1_menu_layout, 1, 3)
+            elif self.mode == 'piv':
+                model_menus_layout = QtWidgets.QGridLayout()
+                model_menus_layout.addWidget(self.model_1_menu, 0, 0)
         else:
             self.load_menu_layout.addWidget(self.model_1_menu, 2, 3)
 
@@ -1486,10 +1482,10 @@ class UI_MainWindow(QWidget):
             self.model_2_menu.addItem(model_2_icon, 'Pre-trained')
             self.model_2_menu.setCurrentText('Pre-trained')
         elif self.mode == 'piv':
-            self.model_2_menu.setFixedSize(QtCore.QSize(300, 50))
+            self.model_2_menu.setFixedSize(QtCore.QSize(350, 50))
             self.model_2_menu.addItem(model_2_icon, 'PIV-LiteFlowNet-en')
-            self.model_2_menu.addItem(model_2_icon, 'Horn-Schunck')
-            self.model_2_menu.setCurrentText('Horn-Schunck')
+            self.model_2_menu.addItem(model_2_icon, 'Gunnar-Farneback')
+            self.model_2_menu.setCurrentText('Gunnar-Farneback')
 
         # connect the drop down menu with actions
         self.model_2_menu.currentTextChanged.connect(model_2_selection_changed)
@@ -1503,10 +1499,13 @@ class UI_MainWindow(QWidget):
                 self.demo_layout.addWidget(self.model_selection_label, 1, 2)
                 self.demo_layout.addLayout(model_menus_layout, 2, 2)
             elif self.mode == 'piv':
-                model_2_menu_layout = QtWidgets.QHBoxLayout()
-                model_2_menu_layout.addWidget(self.model_2_menu)
-                model_2_menu_layout.setContentsMargins(0, 0, 0, 0)
-                self.demo_layout.addLayout(model_2_menu_layout, 2, 3)
+                model_menus_layout.addWidget(self.model_2_menu, 0, 1)
+                self.demo_layout.addWidget(self.model_selection_label, 1, 2)
+                self.demo_layout.addLayout(model_menus_layout, 2, 2, 1, 2)
+                # model_2_menu_layout = QtWidgets.QHBoxLayout()
+                # model_2_menu_layout.addWidget(self.model_2_menu)
+                # model_2_menu_layout.setContentsMargins(0, 0, 0, 0)
+                # self.demo_layout.addLayout(model_2_menu_layout, 2, 3)
         else:
             self.load_menu_layout.addWidget(self.model_2_menu, 3, 3)
 
@@ -1534,15 +1533,12 @@ class UI_MainWindow(QWidget):
 
         # batch size when running in aggregate mode
         if self.mode == 'digit_recognition':
-            # self.batch_size = 100
             # add to general layout
             self.layout.addLayout(self.aggregate_result_layout, 1, 0, 3, 3)
         elif self.mode == 'object_detection':
-            # self.batch_size = 64
             # add to general layout
             self.layout.addLayout(self.aggregate_result_layout, 1, 0, 3, 3)
         elif self.mode == 'piv':
-            # self.batch_size = 8
             self.layout.addLayout(self.aggregate_result_layout, 1, 0, 3, 3)
 
     def init_single_result_layout(self):
@@ -1765,10 +1761,12 @@ class UI_MainWindow(QWidget):
         # for PIV only, toggle between average or detail plot
         if self.mode == 'piv':
             self.detail_nero_checkbox = QtWidgets.QCheckBox('Detail NERO')
-            self.detail_nero_checkbox.setStyleSheet('font-size: 18px')
+            self.detail_nero_checkbox.setStyleSheet(
+                'color: black; font-style: normal; font-family: Helvetica; font-size: 24px;'
+            )
             self.detail_nero_checkbox.setFixedSize(QtCore.QSize(300, 50))
             self.detail_nero_checkbox.stateChanged.connect(detail_nero_checkbox_clicked)
-            self.detail_nero_checkbox.setChecked(False)
+            self.detail_nero_checkbox.setChecked(True)
             if self.detail_nero_checkbox.checkState() == QtCore.Qt.Checked:
                 self.show_average = False
             else:
@@ -1937,6 +1935,8 @@ class UI_MainWindow(QWidget):
                     elif self.mode == 'object_detection':
                         self.demo_layout.addLayout(self.slider_1_layout, 4, 1, 1, 1)
                         self.slider_1_layout.setContentsMargins(40, 0, 0, 0)
+                    elif self.mode == 'piv':
+                        self.demo_layout.addLayout(self.slider_1_layout, 4, 1, 1, 1)
                 else:
                     self.aggregate_result_layout.addLayout(self.slider_1_layout, 3, 1)
 
@@ -2000,6 +2000,8 @@ class UI_MainWindow(QWidget):
                     elif self.mode == 'object_detection':
                         self.demo_layout.addLayout(self.slider_2_layout, 6, 1, 1, 1)
                         self.slider_2_layout.setContentsMargins(40, 0, 0, 0)
+                    elif self.mode == 'piv':
+                        self.demo_layout.addLayout(self.slider_2_layout, 6, 1, 1, 1)
                 else:
                     self.aggregate_result_layout.addLayout(self.slider_2_layout, 3, 2)
 
@@ -2082,7 +2084,7 @@ class UI_MainWindow(QWidget):
                     self.blank_image_pil,
                 ]
                 self.gif_path = os.path.join(
-                    self.cache_dir, self.loaded_image_1_name.split('.')[0] + '.gif'
+                    self.cache_dir, self.mode, self.loaded_image_1_name.split('.')[0] + '.gif'
                 )
                 display_image_1_pil.save(
                     fp=self.gif_path,
@@ -2155,6 +2157,9 @@ class UI_MainWindow(QWidget):
                 if self.mode == 'digit_recognition':
                     self.scatterplot_sorting_layout.addWidget(dummy_view, 3, 0, 1, 2)
                 elif self.mode == 'object_detection':
+                    self.scatterplot_sorting_layout.addWidget(dummy_view, 3, 0, 1, 2)
+                    dummy_plot.layout.setContentsMargins(50, 0, 0, 0)
+                elif self.mode == 'piv':
                     self.scatterplot_sorting_layout.addWidget(dummy_view, 3, 0, 1, 2)
                     dummy_plot.layout.setContentsMargins(50, 0, 0, 0)
 
@@ -2281,6 +2286,12 @@ class UI_MainWindow(QWidget):
                         self.plot_size * 1.3, self.plot_size * 1.3
                     )
                     self.low_dim_scatter_view_1.ci.setContentsMargins(20, 0, 0, 0)
+                elif self.mode == 'piv':
+                    self.low_dim_scatter_view_1.setFixedSize(
+                        self.plot_size * 1.3, self.plot_size * 1.3
+                    )
+                    self.low_dim_scatter_view_1.ci.setContentsMargins(20, 0, 0, 0)
+
                 # add plot
                 self.low_dim_scatter_plot_1 = self.low_dim_scatter_view_1.addPlot()
                 if self.mode == 'object_detection':
@@ -2308,6 +2319,12 @@ class UI_MainWindow(QWidget):
                         self.plot_size * 1.35, self.plot_size * 1.35
                     )
                     self.low_dim_scatter_view_2.ci.setContentsMargins(20, 0, 0, 100)
+                elif self.mode == 'piv':
+                    self.low_dim_scatter_view_2.setFixedSize(
+                        self.plot_size * 1.35, self.plot_size * 1.35
+                    )
+                    self.low_dim_scatter_view_2.ci.setContentsMargins(20, 0, 0, 100)
+
                 # add plot
                 self.low_dim_scatter_plot_2 = self.low_dim_scatter_view_2.addPlot()
                 self.low_dim_scatter_plot_2.hideAxis('left')
@@ -2391,8 +2408,8 @@ class UI_MainWindow(QWidget):
             # arguebly the layout for PIV is the same as object detection, but separated them for future expandibility
             elif self.mode == 'piv':
                 if self.demo:
-                    self.demo_layout.addWidget(self.low_dim_scatter_view_1, 5, 1, 1, 1)
-                    self.demo_layout.addWidget(self.low_dim_scatter_view_2, 7, 1, 1, 1)
+                    self.demo_layout.addWidget(self.low_dim_scatter_view_1, 2, 1, 3, 1)
+                    self.demo_layout.addWidget(self.low_dim_scatter_view_2, 4, 1, 3, 1)
                 else:
                     self.aggregate_result_layout.addWidget(self.low_dim_scatter_view_1, 2, 1)
                     self.aggregate_result_layout.addWidget(self.low_dim_scatter_view_2, 2, 2)
@@ -3306,7 +3323,7 @@ class UI_MainWindow(QWidget):
 
                             # add to all outputs
                             # HS does not need further pixel normalization
-                            if self.model_1_name == 'Horn-Schunck':
+                            if self.model_1_name == 'Gunnar-Farneback':
                                 self.aggregate_outputs_1[
                                     is_time_reversed * 8 + transformation_index,
                                     index_range[0] : index_range[1],
@@ -3319,7 +3336,7 @@ class UI_MainWindow(QWidget):
                                     cur_outputs_1 / self.image_size
                                 )
 
-                            if self.model_2_name == 'Horn-Schunck':
+                            if self.model_2_name == 'Gunnar-Farneback':
                                 self.aggregate_outputs_2[
                                     is_time_reversed * 8 + transformation_index,
                                     index_range[0] : index_range[1],
@@ -3848,7 +3865,7 @@ class UI_MainWindow(QWidget):
                     self.single_result_layout.addLayout(self.gif_control_layout, 2, 0)
                 elif self.data_mode == 'aggregate':
                     if self.demo:
-                        self.demo_layout.addLayout(self.gif_control_layout, 0, 5, 4, 1)
+                        self.demo_layout.addLayout(self.gif_control_layout, 0, 5, 3, 1)
                     else:
                         self.aggregate_result_layout.addLayout(self.gif_control_layout, 2, 3)
 
@@ -4114,12 +4131,12 @@ class UI_MainWindow(QWidget):
                         )
 
                         # HS does not need further pixel normalization
-                        if self.model_1_name == 'Horn-Schunck':
+                        if self.model_1_name == 'Gunnar-Farneback':
                             self.all_quantities_1[i] = quantity_1
                         else:
                             self.all_quantities_1[i] = quantity_1 / self.image_size
 
-                        if self.model_2_name == 'Horn-Schunck':
+                        if self.model_2_name == 'Gunnar-Farneback':
                             self.all_quantities_2[i] = quantity_2
                         else:
                             self.all_quantities_2[i] = quantity_2 / self.image_size
@@ -5821,8 +5838,8 @@ class UI_MainWindow(QWidget):
                 self.single_result_layout.addWidget(self.heatmap_view_2, 1, 2)
             elif self.data_mode == 'aggregate':
                 if self.demo:
-                    self.demo_layout.addWidget(self.heatmap_view_1, 5, 2, 1, 1)
-                    self.demo_layout.addWidget(self.heatmap_view_2, 7, 2, 1, 1)
+                    self.demo_layout.addWidget(self.heatmap_view_1, 3, 2, 1, 1)
+                    self.demo_layout.addWidget(self.heatmap_view_2, 5, 2, 1, 1)
                 else:
                     self.aggregate_result_layout.addWidget(self.heatmap_view_1, 1, 4)
                     self.aggregate_result_layout.addWidget(self.heatmap_view_2, 1, 5)
@@ -5870,8 +5887,8 @@ class UI_MainWindow(QWidget):
                 self.single_result_layout.addWidget(self.detail_heatmap_view_2, 1, 2)
             elif self.data_mode == 'aggregate':
                 if self.demo:
-                    self.demo_layout.addWidget(self.detail_heatmap_view_1, 5, 3, 1, 1)
-                    self.demo_layout.addWidget(self.detail_heatmap_view_2, 7, 3, 1, 1)
+                    self.demo_layout.addWidget(self.detail_heatmap_view_1, 3, 3, 1, 1)
+                    self.demo_layout.addWidget(self.detail_heatmap_view_2, 5, 3, 1, 1)
                 else:
                     self.aggregate_result_layout.addWidget(self.detail_heatmap_view_1, 1, 4)
                     self.aggregate_result_layout.addWidget(self.detail_heatmap_view_2, 1, 5)
@@ -5899,8 +5916,8 @@ class UI_MainWindow(QWidget):
             self.aggregate_heatmap_view_2.addItem(self.aggregate_heatmap_plot_2)
 
             if self.demo:
-                self.demo_layout.addWidget(self.aggregate_heatmap_view_1, 5, 0, 1, 1)
-                self.demo_layout.addWidget(self.aggregate_heatmap_view_2, 7, 0, 1, 1)
+                self.demo_layout.addWidget(self.aggregate_heatmap_view_1, 3, 0, 1, 1)
+                self.demo_layout.addWidget(self.aggregate_heatmap_view_2, 5, 0, 1, 1)
             else:
                 self.aggregate_result_layout.addWidget(self.aggregate_heatmap_view_1, 1, 1)
                 self.aggregate_result_layout.addWidget(self.aggregate_heatmap_view_2, 1, 2)
@@ -5911,10 +5928,11 @@ class UI_MainWindow(QWidget):
     ):
         # test qiv stuff
         # ground_truth_vectors_np = ground_truth_vectors.numpy()
-        # print(ground_truth_vectors_np[:4, :4].flags)
-        # exit()
+        # print(ground_truth_vectors_np[:4, :4, 0].flags)
+        # print(ground_truth_vectors_np[:4, :4, 0].shape)
+        # print(ground_truth_vectors_np[:4, :4, 0])
         # ground_truth_vectors_qiv = qiv.from_numpy(
-        #     np.ascontiguousarray(ground_truth_vectors_np[:4, :4])
+        #     np.ascontiguousarray(ground_truth_vectors_np[:4, :4, 0])
         # )
         # qiv.qivArraySave(f'ground_truth_vectors.txt'.encode('utf-8'), ground_truth_vectors_qiv)
         # exit()
@@ -6058,8 +6076,8 @@ class UI_MainWindow(QWidget):
             self.single_result_layout.addWidget(self.piv_detail_view_2, 2, 2)
         elif self.data_mode == 'aggregate':
             if self.demo:
-                self.demo_layout.addWidget(self.piv_detail_view_1, 5, 4, 1, 1)
-                self.demo_layout.addWidget(self.piv_detail_view_2, 7, 4, 1, 1)
+                self.demo_layout.addWidget(self.piv_detail_view_1, 3, 4, 1, 1)
+                self.demo_layout.addWidget(self.piv_detail_view_2, 5, 4, 1, 1)
             else:
                 self.aggregate_result_layout.addWidget(self.piv_detail_view_1, 2, 4)
                 self.aggregate_result_layout.addWidget(self.piv_detail_view_2, 2, 5)

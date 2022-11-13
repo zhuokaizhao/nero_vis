@@ -599,7 +599,7 @@ def run_piv_once(mode, model_name, model, image_1, image_2):
             v = (cur_labels_pred_pt[:, :, :, 1] / 256).numpy()
             # print(f'ML average u {np.mean(u)}, average v {np.mean(v)}')
 
-        elif model_name == 'Horn-Schunck':
+        elif model_name == 'Gunnar-Farneback':
             # number of images
             num_images = len(image_1)
             cur_labels_pred_pt = torch.zeros((num_images, image_1.shape[1], image_1.shape[2], 2))
