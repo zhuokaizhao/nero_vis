@@ -188,6 +188,8 @@ extern int qivArrayAlloc(qivArray *qar, uint channel, uint size0, uint size1,
 extern int qivArraySet(qivArray *qar, uint channel, uint size0, uint size1,
                        qivType dstType, const void *srcData, int srcNType,
                        const double *edge0, const double *edge1, const double *orig);
+extern int qivArrayUpsampleAlloc(qivArray *qout, uint channel, uint ups,
+                                 const qivArray *qin, qivType dtype);
 extern int qivArrayOrientationSet(qivArray *qar, const double *edge0,
                                   const double *edge1, const double *orig);
 extern int qivArraySyntheticFlowSet(qivArray *qar,                  //
@@ -195,7 +197,6 @@ extern int qivArraySyntheticFlowSet(qivArray *qar,                  //
                                     const real j00, const real j01, //
                                     const real j10, const real j11);
 extern int qivArraySave(const char *fname, const qivArray *qar);
-extern int qivArrayBBox(double xyMin[2], double xyMax[2], const qivArray *qar);
 
 // convo.c: for convolution
 extern _Bool _qivConvoEval(real ovec[2],        // returns "(xw,yw) was inside"

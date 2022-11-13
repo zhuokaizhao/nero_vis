@@ -73,10 +73,10 @@ def _check_risd():
 _BIFF_LIST = [
     'qivArrayAlloc',
     'qivArraySet',
+    'qivArrayUpsampleAlloc',
     'qivArrayOrientationSet',
     'qivArraySyntheticFlowSet',
     'qivArraySave',
-    'qivArrayBBox',
     'qivConvoEval',
     'qivSlineAlloc',
     'qivSlineTrace',  # (but first noErr arg can make it never fail)
