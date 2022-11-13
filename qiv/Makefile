@@ -74,7 +74,7 @@ ARRR ?= ar crs
 
 ## These are the header and source files involved.
 HDR := qiv.h qivPrivate.h qivMath.h
-SRCS := misc.c aenum.c array.c convo.c sline.c # lic.c
+SRCS := misc.c aenum.c array.c convo.c sline.c lic.c
 OBJS := $(SRCS:.c=.o)
 
 all: $(LLIBSH)

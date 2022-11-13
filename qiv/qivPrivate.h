@@ -29,6 +29,8 @@ extern "C" {
 #endif
 
 #include <assert.h> // for assert()
+#include <stdio.h>  // for printf
+#include <stdlib.h> // for malloc, qsort
 #include <math.h>
 #include <tgmath.h> // type-generic math macros
 /* <tgmath.h> #includes <complex.h>, which in turn defines a macro "I", which removes "I"

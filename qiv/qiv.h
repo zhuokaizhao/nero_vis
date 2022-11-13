@@ -7,10 +7,6 @@
 #define QIV_HAS_BEEN_INCLUDED
 
 // begin includes
-#include <stdio.h>   // for printf
-#include <stdint.h>  // for uint8_t
-#include <stdlib.h>  // for malloc, qsort
-#include <assert.h>  // for assert()
 #include <stdbool.h> // for C99 _Bool type and true,false values
 // define QIV_COMPILE when compiling libqiv or a non-Python thing depending on libqiv
 #ifdef QIV_COMPILE
@@ -215,20 +211,24 @@ extern int qivConvoEval(_Bool *inside, real ovec[const 2], // returns non-zero i
 extern qivSline *qivSlineNew(void);
 extern int qivSlineAlloc(qivSline *sln, uint halfLen);
 extern qivSline *qivSlineNix(qivSline *sln);
-extern int qivSlineTrace(qivSline *const sln,                    //
+extern int qivSlineTrace(_Bool doErr, qivSline *const sln,       //
                          qivIntg intg, real hh, _Bool normalize, //
                          qivArray *vfd, qivKern kern,            //
                          real seedX, real seedY);
 extern void qivSlinePrint(qivSline *const sln);
 
 // lic.c: for Line Integral Convolution
+extern int qivLICEvalCheck(const qivArray *rnd, _Bool rndLinterp,  //
+                           qivSline *const sln,                    //
+                           qivIntg intg, real hh, _Bool normalize, //
+                           qivArray *vfd, qivKern kern,            //
+                           real xw, real yw);
+extern real qivLICEval(const qivArray *rnd, _Bool rndLinterp,  //
+                       qivSline *const sln,                    //
+                       qivIntg intg, real hh, _Bool normalize, //
+                       qivArray *vfd, qivKern kern,            //
+                       real xw, real yw);
 /*
-extern int qivLICEval(real *const result,                     //
-                      const qivArray *rnd, _Bool rndLinterp,  //
-                      qivSline *const sln,                    //
-                      qivIntg intg, real hh, _Bool normalize, //
-                      qivArray *vfd, qivKern kern,            //
-                      real xw, real yw);
 extern int qivLIC(qivField *const lmg, qivField *const pmg, int prop, uint halfLen,
                   real hh, _Bool normalize, qivIntg intg, const qivField *rnd,
                   _Bool rndLinterp, qivCtx *ctx);

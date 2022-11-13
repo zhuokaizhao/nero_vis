@@ -112,6 +112,7 @@ if True:
 sl = q.qivSlineNew()
 q.qivSlineAlloc(sl, 10)
 q.qivSlineTrace(
+    True,  # doErr
     sl,  # sln
     q.qivIntgRK4,  # intg
     0.1,  # hh

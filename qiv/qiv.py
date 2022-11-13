@@ -28,7 +28,7 @@ except ModuleNotFoundError as _exc:
     print(
         """
 ***
-*** qiv.py could not "import teem"
+*** qiv.py: could not "import teem"
 *** Maybe add the path to teem.py to environment variable PYTHONPATH ?
 ***
     """
@@ -39,8 +39,12 @@ try:
     import _qiv
 except ModuleNotFoundError as _exc:
     print(
-        f'*\n* {__name__}.py: failed to load libqiv extension module _qiv.\n'
-        '* Did you first run "python3 build_qiv.py"?\n*\n'
+        """
+***
+*** qiv.py: could not "import _qiv" (the libqiv extension module)
+*** Did you first run "python3 build_qiv.py" ?
+***
+"""
     )
     raise _exc
 
@@ -75,8 +79,8 @@ _BIFF_LIST = [
     'qivArrayBBox',
     'qivConvoEval',
     'qivSlineAlloc',
-    'qivSlineTrace',
-    #'qivLICEval',
+    'qivSlineTrace',  # (but first noErr arg can make it never fail)
+    'qivLICEvalCheck',  # the error checking for qivLICEval
 ]
 
 
@@ -175,8 +179,8 @@ def _export_qiv() -> None:
                 __all__.append(sym_name)
 
 
-def _2v(ll=None):
-    """_2v(ll) returns a cdata double[2]; if ll: initialized with ll[0] and ll[1]"""
+def dbl2(ll=None):
+    """dbl2(ll) returns a cdata double[2]; if ll: initialized with ll[0] and ll[1]"""
     dbp = _qiv.ffi.new('double[2]')
     if ll is not None:
         dbp[0] = ll[0]
@@ -253,9 +257,9 @@ def from_numpy(np_arr, ItoW=np.identity(3)):
     # ---> change (in-place) to shape to match qiv's (and nrrd's) fast-to-slow
     shape.reverse()
     # form 2-vectors from columns of ItoW
-    edge1 = _2v(ItoW[0:2, 0])  # evecA (first)
-    edge0 = _2v(ItoW[0:2, 1])  # evecB (second)
-    orig = _2v(ItoW[0:2, 2])
+    edge1 = dbl2(ItoW[0:2, 0])  # evecA (first)
+    edge0 = dbl2(ItoW[0:2, 1])  # evecB (second)
+    orig = dbl2(ItoW[0:2, 2])
     # If original incoming np_arr was C-contiguous (and ascontiguousarray() kept it
     # that way) then we have a slow-to-fast ordering of syntactic axes:
     # evecA is for slower spatial axis, and edgeB is for faster, and the fast-to-slow
