@@ -6089,6 +6089,20 @@ class UI_MainWindow(QWidget):
             detail_rect_x_local - 4 : detail_rect_x_local + 4,
         ]
 
+        # save vector fields for glk
+        # qiv.qivArraySave(
+        #     f'ground_truth.nrrd'.encode('utf-8'),
+        #     qiv.from_numpy(self.all_ground_truths[self.rectangle_index].numpy()),
+        # )
+        # qiv.qivArraySave(
+        #     f'ml_pred.nrrd'.encode('utf-8'),
+        #     qiv.from_numpy(self.all_quantities_1[self.rectangle_index].numpy()),
+        # )
+        # qiv.qivArraySave(
+        #     f'farneback_pred.nrrd'.encode('utf-8'),
+        #     qiv.from_numpy(self.all_quantities_2[self.rectangle_index].numpy()),
+        # )
+
         # view 1
         self.piv_detail_view_1 = pg.GraphicsLayoutWidget()
         self.piv_detail_view_1.ci.layout.setContentsMargins(0, 0, 0, 0)  # left top right bottom
@@ -6441,6 +6455,7 @@ class UI_MainWindow(QWidget):
 
     # function that computes consensus among different experiments
     def compute_consensus(self, mode):
+        # consensus for object detection is consist of averaged bounding boxes centers, widths and heights, each image will have a consensus as an estimation for ground truth
         if self.mode == 'object_detection':
             if mode == 'single':
                 for y in range(self.aggregate_outputs_1.shape[0]):
