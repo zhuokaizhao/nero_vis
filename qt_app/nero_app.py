@@ -2539,9 +2539,6 @@ class UI_MainWindow(QWidget):
                     elif self.quantity_name == 'IOU':
                         cur_value_1 = cur_iou_1
                         cur_value_2 = cur_iou_2
-                    elif self.quantity_name == 'Consensus':
-                        cur_value_1 = self.aggregate_consensus_1[y, x, index]
-                        cur_value_2 = self.aggregate_consensus_2[y, x, index]
 
                     # below values exist in non-demo mode
                     elif self.quantity_name == 'Precision':
@@ -3209,161 +3206,34 @@ class UI_MainWindow(QWidget):
                 f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_2_cache_name}_consensus_F_measure'
             )
 
-            if not self.load_successfully:
+            # if not self.load_successfully:
+            if True:
                 print(f'Computing consensus from model outputs')
-                # each image has one consensus as an approximate for ground truth
-                # consensus has layout [num_images, x1, y1, x2, y2, class_label]
+
+                # compute consensus for two models
+                self.aggregate_consensus_1 = self.compute_consensus(self.aggregate_outputs_1)
+                self.aggregate_consensus_2 = self.compute_consensus(self.aggregate_outputs_2)
+
+                # compute losses computed based on consensus (instead of ground truth)
                 # model 1
-                self.aggregate_consensus_1 = np.zeros((len(self.all_images_paths), 5))
-                self.aggregate_consensus_precision_1 = np.zeros(
-                    (len(self.y_translation), len(self.x_translation)), dtype=np.ndarray
-                )
-                self.aggregate_consensus_recall_1 = np.zeros(
-                    (len(self.y_translation), len(self.x_translation)), dtype=np.ndarray
-                )
-                self.aggregate_consensus_F_measure_1 = np.zeros(
-                    (len(self.y_translation), len(self.x_translation)), dtype=np.ndarray
-                )
-                self.aggregate_consensus_mAP_1 = np.zeros(
-                    (len(self.y_translation), len(self.x_translation))
+                (
+                    self.aggregate_consensus_precision_1,
+                    self.aggregate_consensus_recall_1,
+                    self.aggregate_consensus_F_measure_1,
+                    self.aggregate_consensus_mAP_1,
+                ) = self.compute_consensus_losses(
+                    self.aggregate_outputs_1, self.aggregate_consensus_1
                 )
 
                 # model 2
-                self.aggregate_consensus_2 = np.zeros((len(self.all_images_paths), 5))
-                self.aggregate_consensus_precision_2 = np.zeros(
-                    (len(self.y_translation), len(self.x_translation)), dtype=np.ndarray
+                (
+                    self.aggregate_consensus_precision_2,
+                    self.aggregate_consensus_recall_2,
+                    self.aggregate_consensus_F_measure_2,
+                    self.aggregate_consensus_mAP_2,
+                ) = self.compute_consensus_losses(
+                    self.aggregate_outputs_2, self.aggregate_consensus_2
                 )
-                self.aggregate_consensus_recall_2 = np.zeros(
-                    (len(self.y_translation), len(self.x_translation)), dtype=np.ndarray
-                )
-                self.aggregate_consensus_F_measure_2 = np.zeros(
-                    (len(self.y_translation), len(self.x_translation)), dtype=np.ndarray
-                )
-                self.aggregate_consensus_mAP_2 = np.zeros(
-                    (len(self.y_translation), len(self.x_translation))
-                )
-
-                # compute consensus by avareging best model outputs
-                # highest confidence output is at the top of aggregate_outputs_1
-                for i in range(len(self.all_images_paths)):
-                    # model output layout: x1, y1, x2, y2, conf, class_pred, iou, label correctness
-                    x1_sum_1 = 0
-                    y1_sum_1 = 0
-                    x2_sum_1 = 0
-                    y2_sum_1 = 0
-                    label_sum_1 = 0
-                    for y in range(self.aggregate_outputs_1.shape[0]):
-                        for x in range(self.aggregate_outputs_1.shape[1]):
-                            x1_sum_1 += self.aggregate_outputs_1[y, x][i][0, 0]
-                            y1_sum_1 += self.aggregate_outputs_1[y, x][i][0, 1]
-                            x2_sum_1 += self.aggregate_outputs_1[y, x][i][0, 2]
-                            y2_sum_1 += self.aggregate_outputs_1[y, x][i][0, 3]
-                            label_sum_1 += self.aggregate_outputs_1[y, x][i][0, 5]
-
-                    x1_sum_2 = 0
-                    y1_sum_2 = 0
-                    x2_sum_2 = 0
-                    y2_sum_2 = 0
-                    label_sum_2 = 0
-                    for y in range(self.aggregate_outputs_2.shape[0]):
-                        for x in range(self.aggregate_outputs_2.shape[1]):
-                            x1_sum_2 += self.aggregate_outputs_2[y, x][i][0, 0]
-                            y1_sum_2 += self.aggregate_outputs_2[y, x][i][0, 1]
-                            x2_sum_2 += self.aggregate_outputs_2[y, x][i][0, 2]
-                            y2_sum_2 += self.aggregate_outputs_2[y, x][i][0, 3]
-                            label_sum_2 += self.aggregate_outputs_2[y, x][i][0, 5]
-
-                    self.aggregate_consensus_1[i] = [
-                        x1_sum_1
-                        / (self.aggregate_outputs_1.shape[0] * self.aggregate_outputs_1.shape[1]),
-                        y1_sum_1
-                        / (self.aggregate_outputs_1.shape[0] * self.aggregate_outputs_1.shape[1]),
-                        x2_sum_1
-                        / (self.aggregate_outputs_1.shape[0] * self.aggregate_outputs_1.shape[1]),
-                        x2_sum_1
-                        / (self.aggregate_outputs_1.shape[0] * self.aggregate_outputs_1.shape[1]),
-                        int(
-                            label_sum_1
-                            / (
-                                self.aggregate_outputs_1.shape[0]
-                                * self.aggregate_outputs_1.shape[1]
-                            )
-                        ),
-                    ]
-
-                    self.aggregate_consensus_2[i] = [
-                        x1_sum_2
-                        / (self.aggregate_outputs_2.shape[0] * self.aggregate_outputs_2.shape[1]),
-                        y1_sum_2
-                        / (self.aggregate_outputs_2.shape[0] * self.aggregate_outputs_2.shape[1]),
-                        x2_sum_2
-                        / (self.aggregate_outputs_2.shape[0] * self.aggregate_outputs_2.shape[1]),
-                        x2_sum_2
-                        / (self.aggregate_outputs_2.shape[0] * self.aggregate_outputs_2.shape[1]),
-                        int(
-                            label_sum_2
-                            / (
-                                self.aggregate_outputs_2.shape[0]
-                                * self.aggregate_outputs_2.shape[1]
-                            )
-                        ),
-                    ]
-
-                # compute losses using consensus
-                for y, y_tran in enumerate(self.y_translation):
-                    for x, x_tran in enumerate(self.x_translation):
-                        print(f'y_tran = {y_tran}, x_tran = {x_tran}')
-                        # current model outputs after shifting back
-                        # model 1
-                        cur_model_outputs_1 = self.aggregate_outputs_1[y, x]
-                        # transform model 1 outputs back
-                        for i in range(len(cur_model_outputs_1)):
-                            cur_model_outputs_1[i][:, 0] = cur_model_outputs_1[i][:, 0] - x_tran
-                            cur_model_outputs_1[i][:, 1] = cur_model_outputs_1[i][:, 1] - y_tran
-                            cur_model_outputs_1[i][:, 2] = cur_model_outputs_1[i][:, 2] - x_tran
-                            cur_model_outputs_1[i][:, 3] = cur_model_outputs_1[i][:, 3] - y_tran
-
-                        # model 2
-                        cur_model_outputs_2 = self.aggregate_outputs_2[y, x]
-                        # transform model 1 outputs back
-                        for i in range(len(cur_model_outputs_2)):
-                            cur_model_outputs_2[i][:, 0] = cur_model_outputs_2[i][:, 0] - x_tran
-                            cur_model_outputs_2[i][:, 1] = cur_model_outputs_2[i][:, 1] - y_tran
-                            cur_model_outputs_2[i][:, 2] = cur_model_outputs_2[i][:, 2] - x_tran
-                            cur_model_outputs_2[i][:, 3] = cur_model_outputs_2[i][:, 3] - y_tran
-
-                        # compute losses using consensus
-                        # model 1
-                        (
-                            cur_consensus_precision_1,
-                            cur_consensus_recall_1,
-                            cur_consensus_F_measure_1,
-                        ) = nero_run_model.evaluate_coco_with_consensus(
-                            cur_model_outputs_1, self.aggregate_consensus_1
-                        )
-                        # model 2
-                        (
-                            cur_consensus_precision_2,
-                            cur_consensus_recall_2,
-                            cur_consensus_F_measure_2,
-                        ) = nero_run_model.evaluate_coco_with_consensus(
-                            cur_model_outputs_2, self.aggregate_consensus_2
-                        )
-
-                        # compute mAP from precision and recall
-                        self.aggregate_consensus_precision_1[y, x] = cur_consensus_precision_1
-                        self.aggregate_consensus_recall_1[y, x] = cur_consensus_recall_1
-                        self.aggregate_consensus_mAP_1[y, x] = nero_utilities.compute_ap(
-                            cur_consensus_recall_1, cur_consensus_precision_1
-                        )
-                        self.aggregate_consensus_F_measure_1[y, x] = cur_consensus_F_measure_1
-
-                        self.aggregate_consensus_precision_2[y, x] = cur_consensus_precision_2
-                        self.aggregate_consensus_recall_2[y, x] = cur_consensus_recall_2
-                        self.aggregate_consensus_mAP_2[y, x] = nero_utilities.compute_ap(
-                            cur_consensus_recall_2, cur_consensus_precision_2
-                        )
-                        self.aggregate_consensus_F_measure_2[y, x] = cur_consensus_F_measure_2
 
                 # save to cache
                 self.save_to_cache(
@@ -6720,125 +6590,90 @@ class UI_MainWindow(QWidget):
             raise Exception('Unsupported display mode')
 
     # function that computes consensus among different experiments
-    def compute_consensus(self, mode):
+    def compute_consensus(self, model_outputs):
         # consensus for object detection is consist of averaged bounding boxes centers, widths and heights, each image will have a consensus as an estimation for ground truth
         if self.mode == 'object_detection':
-            if mode == 'single':
-                for y in range(self.aggregate_outputs_1.shape[0]):
-                    for x in range(self.aggregate_outputs_1.shape[1]):
-                        # correct translation amount
-                        x_tran = self.x_translation[x] + 1e-5
-                        y_tran = self.y_translation[y] + 1e-5
 
-                        # current bounding box center from model 1 and 2
-                        if self.data_mode == 'single':
-                            cur_center_x_1 = (
-                                self.all_quantities_1[y, x, 0] + self.all_quantities_1[y, x, 2]
-                            ) / 2
-                            cur_center_y_1 = (
-                                self.all_quantities_1[y, x, 1] + self.all_quantities_1[y, x, 3]
-                            ) / 2
-                            cur_center_x_2 = (
-                                self.all_quantities_2[y, x, 0] + self.all_quantities_2[y, x, 2]
-                            ) / 2
-                            cur_center_y_2 = (
-                                self.all_quantities_2[y, x, 1] + self.all_quantities_2[y, x, 3]
-                            ) / 2
-                        # when in the three level mode (access single from aggregate result)
-                        elif self.data_mode == 'aggregate':
-                            cur_center_x_1 = (
-                                self.aggregate_outputs_1[y, x][self.image_index][0, 0]
-                                + self.aggregate_outputs_1[y, x][self.image_index][0, 2]
-                            ) / 2
-                            cur_center_y_1 = (
-                                self.aggregate_outputs_1[y, x][self.image_index][0, 1]
-                                + self.aggregate_outputs_1[y, x][self.image_index][0, 3]
-                            ) / 2
-                            cur_center_x_2 = (
-                                self.aggregate_outputs_2[y, x][self.image_index][0, 0]
-                                + self.aggregate_outputs_2[y, x][self.image_index][0, 2]
-                            ) / 2
-                            cur_center_y_2 = (
-                                self.aggregate_outputs_2[y, x][self.image_index][0, 1]
-                                + self.aggregate_outputs_2[y, x][self.image_index][0, 3]
-                            ) / 2
+            # initialize outputs
+            aggregate_consensus = np.zeros((len(self.all_images_paths), 5))
 
-                        # model output translation
-                        x_tran_model_1 = cur_center_x_1 - self.image_size // 2 - 1
-                        y_tran_model_1 = cur_center_y_1 - self.image_size // 2 - 1
-                        x_tran_model_2 = cur_center_x_2 - self.image_size // 2 - 1
-                        y_tran_model_2 = cur_center_y_2 - self.image_size // 2 - 1
+            # each image has one consensus as an approximate for ground truth
+            # consensus has layout [num_images, x1, y1, x2, y2, class_label]
+            # compute consensus by avareging best model outputs
+            # highest confidence output is at the top of aggregate_outputs_1
+            for i in range(len(self.all_images_paths)):
+                # model output layout: x1, y1, x2, y2, conf, class_pred, iou, label correctness
+                x1_sum_1 = 0
+                y1_sum_1 = 0
+                x2_sum_1 = 0
+                y2_sum_1 = 0
+                label_sum_1 = 0
+                for y in range(model_outputs.shape[0]):
+                    for x in range(model_outputs.shape[1]):
+                        x1_sum_1 += model_outputs[y, x][i][0, 0]
+                        y1_sum_1 += model_outputs[y, x][i][0, 1]
+                        x2_sum_1 += model_outputs[y, x][i][0, 2]
+                        y2_sum_1 += model_outputs[y, x][i][0, 3]
+                        label_sum_1 += model_outputs[y, x][i][0, 5]
 
-                        # compute percentage
-                        self.cur_single_plot_quantity_1[y, x] = 1 - np.sqrt(
-                            (x_tran_model_1 - x_tran) ** 2 + (y_tran_model_1 - y_tran) ** 2
-                        ) / np.sqrt(x_tran**2 + y_tran**2)
-                        self.cur_single_plot_quantity_2[y, x] = 1 - np.sqrt(
-                            (x_tran_model_2 - x_tran) ** 2 + (y_tran_model_2 - y_tran) ** 2
-                        ) / np.sqrt(x_tran**2 + y_tran**2)
+                aggregate_consensus[i] = [
+                    x1_sum_1 / (model_outputs.shape[0] * model_outputs.shape[1]),
+                    y1_sum_1 / (model_outputs.shape[0] * model_outputs.shape[1]),
+                    x2_sum_1 / (model_outputs.shape[0] * model_outputs.shape[1]),
+                    x2_sum_1 / (model_outputs.shape[0] * model_outputs.shape[1]),
+                    int(label_sum_1 / (model_outputs.shape[0] * model_outputs.shape[1])),
+                ]
 
-            elif mode == 'aggregate':
-                self.aggregate_consensus_1 = np.zeros(
+            return aggregate_consensus
+
+        elif self.mode == 'piv':
+            raise NotImplementedError
+
+    def compute_consensus_losses(self, model_outputs, consensus):
+
+        if self.mode == 'object_detection':
+            consensus_precision = np.zeros(
+                (len(self.y_translation), len(self.x_translation)), dtype=np.ndarray
+            )
+            consensus_recall = np.zeros(
+                (len(self.y_translation), len(self.x_translation)), dtype=np.ndarray
+            )
+            consensus_F_measure = np.zeros(
+                (len(self.y_translation), len(self.x_translation)), dtype=np.ndarray
+            )
+            consensus_mAP = np.zeros((len(self.y_translation), len(self.x_translation)))
+
+            # compute losses using consensus
+            for y, y_tran in enumerate(self.y_translation):
+                for x, x_tran in enumerate(self.x_translation):
+                    print(f'y_tran = {y_tran}, x_tran = {x_tran}')
+                    # current model outputs after shifting back
+                    # model 1
+                    cur_model_outputs = model_outputs[y, x]
+                    # transform model 1 outputs back
+                    for i in range(len(cur_model_outputs)):
+                        cur_model_outputs[i][:, 0] = cur_model_outputs[i][:, 0] - x_tran
+                        cur_model_outputs[i][:, 1] = cur_model_outputs[i][:, 1] - y_tran
+                        cur_model_outputs[i][:, 2] = cur_model_outputs[i][:, 2] - x_tran
+                        cur_model_outputs[i][:, 3] = cur_model_outputs[i][:, 3] - y_tran
+
+                    # compute losses using consensus
+                    # model 1
                     (
-                        self.aggregate_outputs_1.shape[0],
-                        self.aggregate_outputs_1.shape[1],
-                        len(self.aggregate_outputs_1[0, 0]),
+                        cur_consensus_precision,
+                        cur_consensus_recall,
+                        cur_consensus_F_measure,
+                    ) = nero_run_model.evaluate_coco_with_consensus(cur_model_outputs, consensus)
+
+                    # compute mAP from precision and recall
+                    consensus_precision[y, x] = cur_consensus_precision
+                    consensus_recall[y, x] = cur_consensus_recall
+                    consensus_mAP[y, x] = nero_utilities.compute_ap(
+                        cur_consensus_recall, cur_consensus_precision
                     )
-                )
+                    consensus_F_measure[y, x] = cur_consensus_F_measure
 
-                self.aggregate_consensus_2 = np.zeros(
-                    (
-                        self.aggregate_outputs_2.shape[0],
-                        self.aggregate_outputs_2.shape[1],
-                        len(self.aggregate_outputs_2[0, 0]),
-                    )
-                )
-                # for each position, compute its bounding box center
-                for y in range(self.aggregate_outputs_1.shape[0]):
-                    for x in range(self.aggregate_outputs_1.shape[1]):
-                        # correct translation amount
-                        x_tran = self.x_translation[x] + 1e-5
-                        y_tran = self.y_translation[y] + 1e-5
-
-                        # current bounding box center from model 1 and 2 for each object
-                        for k in range(len(self.aggregate_outputs_1[y, x])):
-                            cur_center_x_1 = (
-                                self.aggregate_outputs_1[y, x][k][0, 0]
-                                + self.aggregate_outputs_1[y, x][k][0, 2]
-                            ) / 2
-                            cur_center_y_1 = (
-                                self.aggregate_outputs_1[y, x][k][0, 1]
-                                + self.aggregate_outputs_1[y, x][k][0, 3]
-                            ) / 2
-                            cur_center_x_2 = (
-                                self.aggregate_outputs_2[y, x][k][0, 0]
-                                + self.aggregate_outputs_2[y, x][k][0, 2]
-                            ) / 2
-                            cur_center_y_2 = (
-                                self.aggregate_outputs_2[y, x][k][0, 1]
-                                + self.aggregate_outputs_2[y, x][k][0, 3]
-                            ) / 2
-
-                            # model output translation
-                            x_tran_model_1 = cur_center_x_1 - self.image_size // 2 - 1
-                            y_tran_model_1 = cur_center_y_1 - self.image_size // 2 - 1
-                            x_tran_model_2 = cur_center_x_2 - self.image_size // 2 - 1
-                            y_tran_model_2 = cur_center_y_2 - self.image_size // 2 - 1
-
-                            # compute percentage
-                            self.aggregate_consensus_1[y, x, k] = 1 - np.sqrt(
-                                (x_tran_model_1 - x_tran) ** 2 + (y_tran_model_1 - y_tran) ** 2
-                            ) / np.sqrt(x_tran**2 + y_tran**2)
-                            self.aggregate_consensus_2[y, x, k] = 1 - np.sqrt(
-                                (x_tran_model_2 - x_tran) ** 2 + (y_tran_model_2 - y_tran) ** 2
-                            ) / np.sqrt(x_tran**2 + y_tran**2)
-
-                        self.cur_aggregate_plot_quantity_1[y, x] = np.average(
-                            self.aggregate_consensus_1[y, x]
-                        )
-                        self.cur_aggregate_plot_quantity_2[y, x] = np.average(
-                            self.aggregate_consensus_2[y, x]
-                        )
+            return consensus_precision, consensus_recall, consensus_mAP, consensus_F_measure
 
         elif self.mode == 'piv':
             raise NotImplementedError
@@ -6880,8 +6715,6 @@ class UI_MainWindow(QWidget):
             elif text == 'IOU':
                 self.cur_aggregate_plot_quantity_1 = self.aggregate_avg_iou_1
                 self.cur_aggregate_plot_quantity_2 = self.aggregate_avg_iou_2
-            elif text == 'Consensus':
-                self.compute_consensus('aggregate')
 
             # below quantities won't show in the demo mode
             elif text == 'Precision':
@@ -6987,10 +6820,6 @@ class UI_MainWindow(QWidget):
                                     y, x
                                 ][self.image_index][0, 6]
 
-                # Consensus computing
-                elif text == 'Consensus':
-                    self.compute_consensus('single')
-
                 # re-display the heatmap
                 self.draw_coco_nero(mode='single')
 
@@ -7023,7 +6852,6 @@ class UI_MainWindow(QWidget):
         quantity_menu.addItem('Conf*IOU')
         quantity_menu.addItem('Confidence')
         quantity_menu.addItem('IOU')
-        quantity_menu.addItem('Consensus')
         # some extra qualities to plot (not available in individual NERO plot)
         if not self.demo:
             quantity_menu.addItem('Precision')
