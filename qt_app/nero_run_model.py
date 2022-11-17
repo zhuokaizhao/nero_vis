@@ -274,32 +274,35 @@ def clean_model_outputs(model_name, outputs_dict, original_names, desired_names)
     return outputs
 
 
+# helper function that computes iou between bounding boxes
+def bbox_iou(box1, box2):
+    """
+    Returns the IoU of two bounding boxes
+    """
+    # Get the coordinates of bounding boxes
+    b1_x1, b1_y1, b1_x2, b1_y2 = box1[:, 0], box1[:, 1], box1[:, 2], box1[:, 3]
+    b2_x1, b2_y1, b2_x2, b2_y2 = box2[:, 0], box2[:, 1], box2[:, 2], box2[:, 3]
+
+    # get the corrdinates of the intersection rectangle
+    inter_rect_x1 = torch.max(b1_x1, b2_x1)
+    inter_rect_y1 = torch.max(b1_y1, b2_y1)
+    inter_rect_x2 = torch.min(b1_x2, b2_x2)
+    inter_rect_y2 = torch.min(b1_y2, b2_y2)
+    # Intersection area
+    inter_area = torch.clamp(inter_rect_x2 - inter_rect_x1 + 1, min=0) * torch.clamp(
+        inter_rect_y2 - inter_rect_y1 + 1, min=0
+    )
+    # Union Area
+    b1_area = (b1_x2 - b1_x1 + 1) * (b1_y2 - b1_y1 + 1)
+    b2_area = (b2_x2 - b2_x1 + 1) * (b2_y2 - b2_y1 + 1)
+
+    iou = inter_area / (b1_area + b2_area - inter_area + 1e-16)
+
+    return iou.item()
+
+
 # helper function on processing coco model output
 def process_model_outputs(outputs, targets, iou_thres=0.5, conf_thres=0):
-    def bbox_iou(box1, box2):
-        """
-        Returns the IoU of two bounding boxes
-        """
-        # Get the coordinates of bounding boxes
-        b1_x1, b1_y1, b1_x2, b1_y2 = box1[:, 0], box1[:, 1], box1[:, 2], box1[:, 3]
-        b2_x1, b2_y1, b2_x2, b2_y2 = box2[:, 0], box2[:, 1], box2[:, 2], box2[:, 3]
-
-        # get the corrdinates of the intersection rectangle
-        inter_rect_x1 = torch.max(b1_x1, b2_x1)
-        inter_rect_y1 = torch.max(b1_y1, b2_y1)
-        inter_rect_x2 = torch.min(b1_x2, b2_x2)
-        inter_rect_y2 = torch.min(b1_y2, b2_y2)
-        # Intersection area
-        inter_area = torch.clamp(inter_rect_x2 - inter_rect_x1 + 1, min=0) * torch.clamp(
-            inter_rect_y2 - inter_rect_y1 + 1, min=0
-        )
-        # Union Area
-        b1_area = (b1_x2 - b1_x1 + 1) * (b1_y2 - b1_y1 + 1)
-        b2_area = (b2_x2 - b2_x1 + 1) * (b2_y2 - b2_y1 + 1)
-
-        iou = inter_area / (b1_area + b2_area - inter_area + 1e-16)
-
-        return iou.item()
 
     # get all the outputs (the model proposes multiple bounding boxes for each object)
     all_qualified_outputs = np.zeros(len(outputs), dtype=np.ndarray)
@@ -375,6 +378,67 @@ def process_model_outputs(outputs, targets, iou_thres=0.5, conf_thres=0):
         all_F_measure[i] = F_measure
 
     return all_qualified_outputs, all_precisions, all_recalls, all_F_measure
+
+
+# function that works with evaluating model performance with consensus format
+def evaluate_coco_with_consensus(outputs, consensus, iou_thres=0.5):
+
+    # initialize outputs
+    all_precisions = np.zeros(len(outputs))
+    all_recalls = np.zeros(len(outputs))
+    all_F_measure = np.zeros(len(outputs))
+
+    # loop through model's outputs on each image sample
+    for i in range(len(outputs)):
+
+        if outputs[i] is None:
+            continue
+
+        # each output has format (x1, y1, x2, y2, conf, class_pred)
+        # convert outputs to tensor
+        cur_object_outputs = torch.from_numpy(np.array(outputs[i]))
+        cur_consensus = torch.from_numpy(consensus[i])
+
+        # all predicted labels and true label for the current object
+        pred_labels = cur_object_outputs[:, 5].numpy()
+        true_label = cur_consensus[4]
+
+        # all predicted bounding boxes and true bb for the current object
+        pred_boxes = cur_object_outputs[:, :4]
+        true_boxes = cur_consensus[0:4]
+        num_true_positive = 0
+        num_false_positive = 0
+
+        # loop through all the proposed bounding boxes
+        for j, pred_box in enumerate(pred_boxes):
+            # compute iou
+            cur_iou = bbox_iou(pred_box.unsqueeze(0), true_boxes.unsqueeze(0))
+
+            # if the label is predicted correctly
+            if pred_labels[j] == true_label:
+                # if iou passed threshold
+                if cur_iou > iou_thres:
+                    num_true_positive += 1
+                else:
+                    num_false_positive += 1
+            # if the label is wrong, mark as false positive
+            else:
+                num_false_positive += 1
+
+        # Number of TP and FP is computed from all predictions (un-iou thresheld)
+        # precision = TP / (TP + FP)
+        precision = num_true_positive / (num_true_positive + num_false_positive + 1e-16)
+        # Recall = TP / (TP + FN), where (TP + FN) is just the number of ground truths
+        recall = min(1, num_true_positive / (len(true_boxes) + 1e-16))
+        # F-measure = (2 * Precision * Recall) / (Precision + Recall)
+        F_measure = (2 * precision * recall) / (precision + recall + 1e-16)
+
+        # rank all outputs based on IOU and then convert to numpy array
+        all_precisions[i] = precision
+        all_recalls[i] = recall
+        all_F_measure[i] = F_measure
+
+    return all_precisions, all_recalls, all_F_measure
 
 
 # run model on either a single COCO image or a batch of COCO images

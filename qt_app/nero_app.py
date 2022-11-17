@@ -1643,6 +1643,13 @@ class UI_MainWindow(QWidget):
                 self.run_dimension_reduction()
 
         @QtCore.Slot()
+        def run_consensus_checkbox_clicked(state):
+            if state == QtCore.Qt.Checked:
+                self.use_consensus = True
+            else:
+                self.use_consensus = False
+
+        @QtCore.Slot()
         def average_nero_checkbox_clicked(state):
             if state == QtCore.Qt.Checked:
                 self.show_average = False
@@ -1787,24 +1794,50 @@ class UI_MainWindow(QWidget):
         if not self.demo:
             self.aggregate_plot_control_layout.addWidget(self.run_dr_button, 3, 0)
 
-        # for PIV only, toggle between average or detail plot
-        if self.mode == 'piv':
-            self.average_nero_checkbox = QtWidgets.QCheckBox('Show averaged NERO')
-            self.average_nero_checkbox.setStyleSheet(
+        # add checkbox options for COCO and PIV
+        if self.mode == 'object_detection' or self.mode == 'piv':
+            self.checkbox_layout = QtWidgets.QVBoxLayout()
+            self.checkbox_layout.setAlignment(QtGui.Qt.AlignTop)
+            self.checkbox_layout.setContentsMargins(0, 0, 0, 0)
+
+            # consensus
+            self.use_consensus_checkbox = QtWidgets.QCheckBox('Use Consensus')
+            self.use_consensus_checkbox.setStyleSheet(
                 'color: black; font-style: normal; font-family: Helvetica; font-size: 24px;'
             )
-            self.average_nero_checkbox.setFixedSize(QtCore.QSize(300, 50))
-            self.average_nero_checkbox.stateChanged.connect(average_nero_checkbox_clicked)
-            self.average_nero_checkbox.setChecked(False)
-            if self.average_nero_checkbox.checkState() == QtCore.Qt.Checked:
-                self.show_average = True
+            self.use_consensus_checkbox.setFixedSize(QtCore.QSize(300, 50))
+            self.use_consensus_checkbox.stateChanged.connect(run_consensus_checkbox_clicked)
+            # set conensus to default when we don't have ground truth labels
+            if self.all_labels_paths == []:
+                self.use_consensus_checkbox.setChecked(True)
+                self.use_consensus = True
             else:
-                self.show_average = False
+                self.use_consensus_checkbox.setChecked(False)
+                self.use_consensus = False
+
+            # add to layout
+            self.checkbox_layout.addWidget(self.use_consensus_checkbox)
+
+            # piv only averaged NERO
+            if self.mode == 'piv':
+                self.average_nero_checkbox = QtWidgets.QCheckBox('Show averaged NERO')
+                self.average_nero_checkbox.setStyleSheet(
+                    'color: black; font-style: normal; font-family: Helvetica; font-size: 24px;'
+                )
+                self.average_nero_checkbox.setFixedSize(QtCore.QSize(300, 50))
+                self.average_nero_checkbox.stateChanged.connect(average_nero_checkbox_clicked)
+                self.average_nero_checkbox.setChecked(False)
+                if self.average_nero_checkbox.checkState() == QtCore.Qt.Checked:
+                    self.show_average = True
+                else:
+                    self.show_average = False
+
+                self.checkbox_layout.addWidget(self.average_nero_checkbox)
 
             if self.demo:
-                self.demo_layout.addWidget(self.average_nero_checkbox, 2, 0, 1, 1)
+                self.demo_layout.addLayout(self.checkbox_layout, 2, 0, 1, 1)
             else:
-                self.aggregate_plot_control_layout.addWidget(self.average_nero_checkbox, 6, 0)
+                self.aggregate_plot_control_layout.addLayout(self.checkbox_layout, 6, 0)
 
     # run PCA on demand
     @QtCore.Slot()
@@ -3140,6 +3173,239 @@ class UI_MainWindow(QWidget):
                 self.save_to_cache(
                     name=f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_2_cache_name}_F_measure',
                     content=self.aggregate_F_measure_2,
+                )
+
+            # load consensus, an alternative to ground truths, and associate losses
+            # model 1
+            self.aggregate_consensus_1 = self.load_from_cache(
+                f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_1_cache_name}_consensus'
+            )
+            self.aggregate_consensus_precision_1 = self.load_from_cache(
+                f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_1_cache_name}_consensus_precision'
+            )
+            self.aggregate_consensus_recall_1 = self.load_from_cache(
+                f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_1_cache_name}_consensus_recall'
+            )
+            self.aggregate_consensus_mAP_1 = self.load_from_cache(
+                f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_1_cache_name}_consensus_mAP'
+            )
+            self.aggregate_consensus_F_measure_1 = self.load_from_cache(
+                f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_1_cache_name}_consensus_F_measure'
+            )
+            # model 2
+            self.aggregate_consensus_2 = self.load_from_cache(
+                f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_2_cache_name}_consensus'
+            )
+            self.aggregate_consensus_precision_2 = self.load_from_cache(
+                f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_2_cache_name}_consensus_precision'
+            )
+            self.aggregate_consensus_recall_2 = self.load_from_cache(
+                f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_2_cache_name}_consensus_recall'
+            )
+            self.aggregate_consensus_mAP_2 = self.load_from_cache(
+                f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_2_cache_name}_consensus_mAP'
+            )
+            self.aggregate_consensus_F_measure_2 = self.load_from_cache(
+                f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_2_cache_name}_consensus_F_measure'
+            )
+
+            if not self.load_successfully:
+                print(f'Computing consensus from model outputs')
+                # each image has one consensus as an approximate for ground truth
+                # consensus has layout [num_images, x1, y1, x2, y2, class_label]
+                # model 1
+                self.aggregate_consensus_1 = np.zeros((len(self.all_images_paths), 5))
+                self.aggregate_consensus_precision_1 = np.zeros(
+                    (len(self.y_translation), len(self.x_translation)), dtype=np.ndarray
+                )
+                self.aggregate_consensus_recall_1 = np.zeros(
+                    (len(self.y_translation), len(self.x_translation)), dtype=np.ndarray
+                )
+                self.aggregate_consensus_F_measure_1 = np.zeros(
+                    (len(self.y_translation), len(self.x_translation)), dtype=np.ndarray
+                )
+                self.aggregate_consensus_mAP_1 = np.zeros(
+                    (len(self.y_translation), len(self.x_translation))
+                )
+
+                # model 2
+                self.aggregate_consensus_2 = np.zeros((len(self.all_images_paths), 5))
+                self.aggregate_consensus_precision_2 = np.zeros(
+                    (len(self.y_translation), len(self.x_translation)), dtype=np.ndarray
+                )
+                self.aggregate_consensus_recall_2 = np.zeros(
+                    (len(self.y_translation), len(self.x_translation)), dtype=np.ndarray
+                )
+                self.aggregate_consensus_F_measure_2 = np.zeros(
+                    (len(self.y_translation), len(self.x_translation)), dtype=np.ndarray
+                )
+                self.aggregate_consensus_mAP_2 = np.zeros(
+                    (len(self.y_translation), len(self.x_translation))
+                )
+
+                # compute consensus by avareging best model outputs
+                # highest confidence output is at the top of aggregate_outputs_1
+                for i in range(len(self.all_images_paths)):
+                    # model output layout: x1, y1, x2, y2, conf, class_pred, iou, label correctness
+                    x1_sum_1 = 0
+                    y1_sum_1 = 0
+                    x2_sum_1 = 0
+                    y2_sum_1 = 0
+                    label_sum_1 = 0
+                    for y in range(self.aggregate_outputs_1.shape[0]):
+                        for x in range(self.aggregate_outputs_1.shape[1]):
+                            x1_sum_1 += self.aggregate_outputs_1[y, x][i][0, 0]
+                            y1_sum_1 += self.aggregate_outputs_1[y, x][i][0, 1]
+                            x2_sum_1 += self.aggregate_outputs_1[y, x][i][0, 2]
+                            y2_sum_1 += self.aggregate_outputs_1[y, x][i][0, 3]
+                            label_sum_1 += self.aggregate_outputs_1[y, x][i][0, 5]
+
+                    x1_sum_2 = 0
+                    y1_sum_2 = 0
+                    x2_sum_2 = 0
+                    y2_sum_2 = 0
+                    label_sum_2 = 0
+                    for y in range(self.aggregate_outputs_2.shape[0]):
+                        for x in range(self.aggregate_outputs_2.shape[1]):
+                            x1_sum_2 += self.aggregate_outputs_2[y, x][i][0, 0]
+                            y1_sum_2 += self.aggregate_outputs_2[y, x][i][0, 1]
+                            x2_sum_2 += self.aggregate_outputs_2[y, x][i][0, 2]
+                            y2_sum_2 += self.aggregate_outputs_2[y, x][i][0, 3]
+                            label_sum_2 += self.aggregate_outputs_2[y, x][i][0, 5]
+
+                    self.aggregate_consensus_1[i] = [
+                        x1_sum_1
+                        / (self.aggregate_outputs_1.shape[0] * self.aggregate_outputs_1.shape[1]),
+                        y1_sum_1
+                        / (self.aggregate_outputs_1.shape[0] * self.aggregate_outputs_1.shape[1]),
+                        x2_sum_1
+                        / (self.aggregate_outputs_1.shape[0] * self.aggregate_outputs_1.shape[1]),
+                        x2_sum_1
+                        / (self.aggregate_outputs_1.shape[0] * self.aggregate_outputs_1.shape[1]),
+                        int(
+                            label_sum_1
+                            / (
+                                self.aggregate_outputs_1.shape[0]
+                                * self.aggregate_outputs_1.shape[1]
+                            )
+                        ),
+                    ]
+
+                    self.aggregate_consensus_2[i] = [
+                        x1_sum_2
+                        / (self.aggregate_outputs_2.shape[0] * self.aggregate_outputs_2.shape[1]),
+                        y1_sum_2
+                        / (self.aggregate_outputs_2.shape[0] * self.aggregate_outputs_2.shape[1]),
+                        x2_sum_2
+                        / (self.aggregate_outputs_2.shape[0] * self.aggregate_outputs_2.shape[1]),
+                        x2_sum_2
+                        / (self.aggregate_outputs_2.shape[0] * self.aggregate_outputs_2.shape[1]),
+                        int(
+                            label_sum_2
+                            / (
+                                self.aggregate_outputs_2.shape[0]
+                                * self.aggregate_outputs_2.shape[1]
+                            )
+                        ),
+                    ]
+
+                # compute losses using consensus
+                for y, y_tran in enumerate(self.y_translation):
+                    for x, x_tran in enumerate(self.x_translation):
+                        print(f'y_tran = {y_tran}, x_tran = {x_tran}')
+                        # current model outputs after shifting back
+                        # model 1
+                        cur_model_outputs_1 = self.aggregate_outputs_1[y, x]
+                        # transform model 1 outputs back
+                        for i in range(len(cur_model_outputs_1)):
+                            cur_model_outputs_1[i][:, 0] = cur_model_outputs_1[i][:, 0] - x_tran
+                            cur_model_outputs_1[i][:, 1] = cur_model_outputs_1[i][:, 1] - y_tran
+                            cur_model_outputs_1[i][:, 2] = cur_model_outputs_1[i][:, 2] - x_tran
+                            cur_model_outputs_1[i][:, 3] = cur_model_outputs_1[i][:, 3] - y_tran
+
+                        # model 2
+                        cur_model_outputs_2 = self.aggregate_outputs_2[y, x]
+                        # transform model 1 outputs back
+                        for i in range(len(cur_model_outputs_2)):
+                            cur_model_outputs_2[i][:, 0] = cur_model_outputs_2[i][:, 0] - x_tran
+                            cur_model_outputs_2[i][:, 1] = cur_model_outputs_2[i][:, 1] - y_tran
+                            cur_model_outputs_2[i][:, 2] = cur_model_outputs_2[i][:, 2] - x_tran
+                            cur_model_outputs_2[i][:, 3] = cur_model_outputs_2[i][:, 3] - y_tran
+
+                        # compute losses using consensus
+                        # model 1
+                        (
+                            cur_consensus_precision_1,
+                            cur_consensus_recall_1,
+                            cur_consensus_F_measure_1,
+                        ) = nero_run_model.evaluate_coco_with_consensus(
+                            cur_model_outputs_1, self.aggregate_consensus_1
+                        )
+                        # model 2
+                        (
+                            cur_consensus_precision_2,
+                            cur_consensus_recall_2,
+                            cur_consensus_F_measure_2,
+                        ) = nero_run_model.evaluate_coco_with_consensus(
+                            cur_model_outputs_2, self.aggregate_consensus_2
+                        )
+
+                        # compute mAP from precision and recall
+                        self.aggregate_consensus_precision_1[y, x] = cur_consensus_precision_1
+                        self.aggregate_consensus_recall_1[y, x] = cur_consensus_recall_1
+                        self.aggregate_consensus_mAP_1[y, x] = nero_utilities.compute_ap(
+                            cur_consensus_recall_1, cur_consensus_precision_1
+                        )
+                        self.aggregate_consensus_F_measure_1[y, x] = cur_consensus_F_measure_1
+
+                        self.aggregate_consensus_precision_2[y, x] = cur_consensus_precision_2
+                        self.aggregate_consensus_recall_2[y, x] = cur_consensus_recall_2
+                        self.aggregate_consensus_mAP_2[y, x] = nero_utilities.compute_ap(
+                            cur_consensus_recall_2, cur_consensus_precision_2
+                        )
+                        self.aggregate_consensus_F_measure_2[y, x] = cur_consensus_F_measure_2
+
+                # save to cache
+                self.save_to_cache(
+                    name=f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_1_cache_name}_consensus',
+                    content=self.aggregate_consensus_1,
+                )
+                self.save_to_cache(
+                    name=f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_1_cache_name}_consensus_precision',
+                    content=self.aggregate_consensus_precision_1,
+                )
+                self.save_to_cache(
+                    name=f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_1_cache_name}_consensus_recall',
+                    content=self.aggregate_consensus_recall_1,
+                )
+                self.save_to_cache(
+                    name=f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_1_cache_name}_consensus_mAP',
+                    content=self.aggregate_consensus_mAP_1,
+                )
+                self.save_to_cache(
+                    name=f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_1_cache_name}_consensus_F_measure',
+                    content=self.aggregate_consensus_F_measure_1,
+                )
+
+                self.save_to_cache(
+                    name=f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_2_cache_name}_consensus',
+                    content=self.aggregate_consensus_2,
+                )
+                self.save_to_cache(
+                    name=f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_2_cache_name}_consensus_precision',
+                    content=self.aggregate_consensus_precision_2,
+                )
+                self.save_to_cache(
+                    name=f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_2_cache_name}_consensus_recall',
+                    content=self.aggregate_consensus_recall_2,
+                )
+                self.save_to_cache(
+                    name=f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_2_cache_name}_consensus_mAP',
+                    content=self.aggregate_consensus_mAP_2,
+                )
+                self.save_to_cache(
+                    name=f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_2_cache_name}_consensus_F_measure',
+                    content=self.aggregate_consensus_F_measure_2,
                 )
 
             # display the result
