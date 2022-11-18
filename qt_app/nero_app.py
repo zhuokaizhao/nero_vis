@@ -1651,9 +1651,6 @@ class UI_MainWindow(QWidget):
                 self.use_consensus = False
                 print(f'Plotting {self.quantity_name} with respect to ground truth')
 
-            # update annotations on input image
-            self.display_coco_image()
-
             # update plotting quantities
             for y in range(len(self.y_translation)):
                 for x in range(len(self.x_translation)):
@@ -1807,61 +1804,61 @@ class UI_MainWindow(QWidget):
             if self.dr_result_existed:
                 self.run_dimension_reduction()
 
-            # update single NERO plot as well
-            for y in range(len(self.y_translation)):
-                for x in range(len(self.x_translation)):
-                    if self.quantity_name == 'Conf*IOU':
-                        if self.use_consensus:
-                            self.cur_single_plot_quantity_1[y, x] = (
-                                self.aggregate_consensus_outputs_1[y, x][self.image_index][0, 4]
-                                * self.aggregate_consensus_outputs_1[y, x][self.image_index][0, 6]
-                            )
-                            self.cur_single_plot_quantity_2[y, x] = (
-                                self.aggregate_consensus_outputs_2[y, x][self.image_index][0, 4]
-                                * self.aggregate_consensus_outputs_2[y, x][self.image_index][0, 6]
-                            )
-                        else:
-                            self.cur_single_plot_quantity_1[y, x] = (
-                                self.aggregate_outputs_1[y, x][self.image_index][0, 4]
-                                * self.aggregate_outputs_1[y, x][self.image_index][0, 6]
-                            )
-                            self.cur_single_plot_quantity_2[y, x] = (
-                                self.aggregate_outputs_2[y, x][self.image_index][0, 4]
-                                * self.aggregate_outputs_2[y, x][self.image_index][0, 6]
-                            )
-                    elif self.quantity_name == 'Confidence':
-                        if self.use_consensus:
-                            self.cur_single_plot_quantity_1[
-                                y, x
-                            ] = self.aggregate_consensus_outputs_1[y, x][self.image_index][0, 4]
-                            self.cur_single_plot_quantity_2[
-                                y, x
-                            ] = self.aggregate_consensus_outputs_2[y, x][self.image_index][0, 4]
-                        else:
-                            self.cur_single_plot_quantity_1[y, x] = self.aggregate_outputs_1[y, x][
-                                self.image_index
-                            ][0, 4]
-                            self.cur_single_plot_quantity_2[y, x] = self.aggregate_outputs_2[y, x][
-                                self.image_index
-                            ][0, 4]
-                    elif self.quantity_name == 'IOU':
-                        if self.use_consensus:
-                            self.cur_single_plot_quantity_1[
-                                y, x
-                            ] = self.aggregate_consensus_outputs_1[y, x][self.image_index][0, 6]
-                            self.cur_single_plot_quantity_2[
-                                y, x
-                            ] = self.aggregate_consensus_outputs_2[y, x][self.image_index][0, 6]
-                        else:
-                            self.cur_single_plot_quantity_1[y, x] = self.aggregate_outputs_1[y, x][
-                                self.image_index
-                            ][0, 6]
-                            self.cur_single_plot_quantity_2[y, x] = self.aggregate_outputs_2[y, x][
-                                self.image_index
-                            ][0, 6]
+            # # update single NERO plot as well
+            # for y in range(len(self.y_translation)):
+            #     for x in range(len(self.x_translation)):
+            #         if self.quantity_name == 'Conf*IOU':
+            #             if self.use_consensus:
+            #                 self.cur_single_plot_quantity_1[y, x] = (
+            #                     self.aggregate_consensus_outputs_1[y, x][self.image_index][0, 4]
+            #                     * self.aggregate_consensus_outputs_1[y, x][self.image_index][0, 6]
+            #                 )
+            #                 self.cur_single_plot_quantity_2[y, x] = (
+            #                     self.aggregate_consensus_outputs_2[y, x][self.image_index][0, 4]
+            #                     * self.aggregate_consensus_outputs_2[y, x][self.image_index][0, 6]
+            #                 )
+            #             else:
+            #                 self.cur_single_plot_quantity_1[y, x] = (
+            #                     self.aggregate_outputs_1[y, x][self.image_index][0, 4]
+            #                     * self.aggregate_outputs_1[y, x][self.image_index][0, 6]
+            #                 )
+            #                 self.cur_single_plot_quantity_2[y, x] = (
+            #                     self.aggregate_outputs_2[y, x][self.image_index][0, 4]
+            #                     * self.aggregate_outputs_2[y, x][self.image_index][0, 6]
+            #                 )
+            #         elif self.quantity_name == 'Confidence':
+            #             if self.use_consensus:
+            #                 self.cur_single_plot_quantity_1[
+            #                     y, x
+            #                 ] = self.aggregate_consensus_outputs_1[y, x][self.image_index][0, 4]
+            #                 self.cur_single_plot_quantity_2[
+            #                     y, x
+            #                 ] = self.aggregate_consensus_outputs_2[y, x][self.image_index][0, 4]
+            #             else:
+            #                 self.cur_single_plot_quantity_1[y, x] = self.aggregate_outputs_1[y, x][
+            #                     self.image_index
+            #                 ][0, 4]
+            #                 self.cur_single_plot_quantity_2[y, x] = self.aggregate_outputs_2[y, x][
+            #                     self.image_index
+            #                 ][0, 4]
+            #         elif self.quantity_name == 'IOU':
+            #             if self.use_consensus:
+            #                 self.cur_single_plot_quantity_1[
+            #                     y, x
+            #                 ] = self.aggregate_consensus_outputs_1[y, x][self.image_index][0, 6]
+            #                 self.cur_single_plot_quantity_2[
+            #                     y, x
+            #                 ] = self.aggregate_consensus_outputs_2[y, x][self.image_index][0, 6]
+            #             else:
+            #                 self.cur_single_plot_quantity_1[y, x] = self.aggregate_outputs_1[y, x][
+            #                     self.image_index
+            #                 ][0, 6]
+            #                 self.cur_single_plot_quantity_2[y, x] = self.aggregate_outputs_2[y, x][
+            #                     self.image_index
+            #                 ][0, 6]
 
-                # re-display the heatmap
-                self.draw_coco_nero(mode='single')
+            # # re-display the heatmap
+            # self.draw_coco_nero(mode='single')
 
         @QtCore.Slot()
         def average_nero_checkbox_clicked():
@@ -2735,13 +2732,22 @@ class UI_MainWindow(QWidget):
                     x = int(j % len(self.x_translation))
 
                     # aggregate_outputs_1 has shape (num_y_translations, num_x_translations, num_samples, 8)
-                    cur_conf_1 = self.aggregate_outputs_1[y, x][index][0, 4]
-                    cur_iou_1 = self.aggregate_outputs_1[y, x][index][0, 6]
-                    cur_correctness_1 = self.aggregate_outputs_1[y, x][index][0, 7]
+                    if self.use_consensus:
+                        cur_conf_1 = self.aggregate_consensus_outputs_1[y, x][index][0, 4]
+                        cur_iou_1 = self.aggregate_consensus_outputs_1[y, x][index][0, 6]
+                        cur_correctness_1 = self.aggregate_consensus_outputs_1[y, x][index][0, 7]
 
-                    cur_conf_2 = self.aggregate_outputs_2[y, x][index][0, 4]
-                    cur_iou_2 = self.aggregate_outputs_2[y, x][index][0, 6]
-                    cur_correctness_2 = self.aggregate_outputs_2[y, x][index][0, 7]
+                        cur_conf_2 = self.aggregate_consensus_outputs_2[y, x][index][0, 4]
+                        cur_iou_2 = self.aggregate_consensus_outputs_2[y, x][index][0, 6]
+                        cur_correctness_2 = self.aggregate_consensus_outputs_2[y, x][index][0, 7]
+                    else:
+                        cur_conf_1 = self.aggregate_outputs_1[y, x][index][0, 4]
+                        cur_iou_1 = self.aggregate_outputs_1[y, x][index][0, 6]
+                        cur_correctness_1 = self.aggregate_outputs_1[y, x][index][0, 7]
+
+                        cur_conf_2 = self.aggregate_outputs_2[y, x][index][0, 4]
+                        cur_iou_2 = self.aggregate_outputs_2[y, x][index][0, 6]
+                        cur_correctness_2 = self.aggregate_outputs_2[y, x][index][0, 7]
 
                     # always have the correctness involved
                     if self.quantity_name == 'Conf*IOU':
@@ -2756,14 +2762,26 @@ class UI_MainWindow(QWidget):
 
                     # below values exist in non-demo mode
                     elif self.quantity_name == 'Precision':
-                        cur_value_1 = self.aggregate_precision_1[y, x][index]
-                        cur_value_2 = self.aggregate_precision_2[y, x][index]
+                        if self.use_consensus:
+                            cur_value_1 = self.aggregate_consensus_precision_1[y, x][index]
+                            cur_value_2 = self.aggregate_consensus_precision_2[y, x][index]
+                        else:
+                            cur_value_1 = self.aggregate_precision_1[y, x][index]
+                            cur_value_2 = self.aggregate_precision_2[y, x][index]
                     elif self.quantity_name == 'Recall':
-                        cur_value_1 = self.aggregate_recall_1[y, x][index]
-                        cur_value_2 = self.aggregate_recall_2[y, x][index]
+                        if self.use_consensus:
+                            cur_value_1 = self.aggregate_consensus_recall_1[y, x][index]
+                            cur_value_2 = self.aggregate_consensus_recall_2[y, x][index]
+                        else:
+                            cur_value_1 = self.aggregate_recall_1[y, x][index]
+                            cur_value_2 = self.aggregate_recall_2[y, x][index]
                     elif self.quantity_name == 'F1 Score':
-                        cur_value_1 = self.aggregate_F_measure_1[y, x][index]
-                        cur_value_2 = self.aggregate_F_measure_2[y, x][index]
+                        if self.use_consensus:
+                            cur_value_1 = self.aggregate_consensus_F_measure_1[y, x][index]
+                            cur_value_2 = self.aggregate_consensus_F_measure_2[y, x][index]
+                        else:
+                            cur_value_1 = self.aggregate_F_measure_1[y, x][index]
+                            cur_value_2 = self.aggregate_F_measure_2[y, x][index]
                     elif self.quantity_name == 'mAP':
                         cur_value_1 = 0
                         cur_value_2 = 0
@@ -3836,6 +3854,30 @@ class UI_MainWindow(QWidget):
 
         return bb_min_x, bb_min_y, bb_max_x, bb_max_y
 
+    # helper function that computes consensus for cut out images
+    def update_consensus(self, cur_bounding_box, image_size):
+        # convert key object bounding box to be based on extracted image
+        x_min_center_bb = cur_bounding_box[0]
+        y_min_center_bb = cur_bounding_box[1]
+        x_max_center_bb = cur_bounding_box[2]
+        y_max_center_bb = cur_bounding_box[3]
+
+        # compute the center of the object in the extracted image
+        object_center_x = (x_min_center_bb + x_max_center_bb) / 2
+        object_center_y = (y_min_center_bb + y_max_center_bb) / 2
+
+        # compute the width and height of the real bounding box of this object
+        original_bb_width = cur_bounding_box[2] - cur_bounding_box[0]
+        original_bb_height = cur_bounding_box[3] - cur_bounding_box[1]
+
+        # compute the range of the bounding box, do the clamping if go out of extracted image
+        bb_min_x = max(0, object_center_x - original_bb_width / 2)
+        bb_max_x = min(image_size[1] - 1, object_center_x + original_bb_width / 2)
+        bb_min_y = max(0, object_center_y - original_bb_height / 2)
+        bb_max_y = min(image_size[0] - 1, object_center_y + original_bb_height / 2)
+
+        return bb_min_x, bb_min_y, bb_max_x, bb_max_y
+
     # helper function on redisplaying COCO input image with FOV mask and ground truth labelling
     def display_coco_image(self):
         # display the whole image
@@ -4266,41 +4308,104 @@ class UI_MainWindow(QWidget):
                     cover_color,
                 )
 
-                # re-compute the ground truth label bounding boxes of the cropped image
-                for i in range(len(self.cur_image_label)):
-                    self.cur_image_label[i, 1:5] = self.compute_label(
-                        self.loaded_image_label[i, :4],
-                        self.x_min,
-                        self.y_min,
+                # re-compute the ground truth or consensus bounding boxes of the cropped image
+                if self.use_consensus:
+                    self.cur_consensus_1 = self.update_consensus(
+                        self.aggregate_consensus_1[self.image_index][:4],
+                        (self.image_size, self.image_size),
+                    )
+                    self.cur_consensus_2 = self.update_consensus(
+                        self.aggregate_consensus_2[self.image_index][:4],
                         (self.image_size, self.image_size),
                     )
 
-                # draw the ground truth label
-                gt_display_center_x = (
-                    self.cur_image_label[0, 1] + self.cur_image_label[0, 3]
-                ) / 2 * (self.display_image_size / self.uncropped_image_size) + (
-                    rect_center_x - display_rect_width / 2
-                )
-                gt_display_center_y = (
-                    self.cur_image_label[0, 4] + self.cur_image_label[0, 2]
-                ) / 2 * (self.display_image_size / self.uncropped_image_size) + (
-                    rect_center_y - display_rect_height / 2
-                )
-                gt_display_rect_width = (
-                    self.cur_image_label[0, 3] - self.cur_image_label[0, 1]
-                ) * (self.display_image_size / self.uncropped_image_size / 1.21)
-                gt_display_rect_height = (
-                    self.cur_image_label[0, 4] - self.cur_image_label[0, 2]
-                ) * (self.display_image_size / self.uncropped_image_size / 1.21)
-                self.draw_rectangle(
-                    painter,
-                    gt_display_center_x,
-                    gt_display_center_y,
-                    gt_display_rect_width,
-                    gt_display_rect_height,
-                    color='yellow',
-                    label='Ground Truth',
-                )
+                    # draw the consensus label
+                    gt_display_center_x_1 = (
+                        self.cur_consensus_1[0] + self.cur_consensus_1[2]
+                    ) / 2 * (self.display_image_size / self.uncropped_image_size) + (
+                        rect_center_x - display_rect_width / 2
+                    )
+                    gt_display_center_y_1 = (
+                        self.cur_consensus_1[1] + self.cur_consensus_1[3]
+                    ) / 2 * (self.display_image_size / self.uncropped_image_size) + (
+                        rect_center_y - display_rect_height / 2
+                    )
+                    gt_display_rect_width_1 = (
+                        self.cur_consensus_1[2] - self.cur_consensus_1[0]
+                    ) * (self.display_image_size / self.uncropped_image_size / 1.21)
+                    gt_display_rect_height_1 = (
+                        self.cur_consensus_1[3] - self.cur_consensus_1[1]
+                    ) * (self.display_image_size / self.uncropped_image_size / 1.21)
+                    self.draw_rectangle(
+                        painter,
+                        gt_display_center_x_1,
+                        gt_display_center_y_1,
+                        gt_display_rect_width_1,
+                        gt_display_rect_height_1,
+                        color='yellow',
+                        label='Consensus_1',
+                    )
+
+                    gt_display_center_x_2 = (
+                        self.cur_consensus_2[0] + self.cur_consensus_2[2]
+                    ) / 2 * (self.display_image_size / self.uncropped_image_size) + (
+                        rect_center_x - display_rect_width / 2
+                    )
+                    gt_display_center_y_2 = (
+                        self.cur_consensus_2[1] + self.cur_consensus_2[3]
+                    ) / 2 * (self.display_image_size / self.uncropped_image_size) + (
+                        rect_center_y - display_rect_height / 2
+                    )
+                    gt_display_rect_width_2 = (
+                        self.cur_consensus_2[2] - self.cur_consensus_2[0]
+                    ) * (self.display_image_size / self.uncropped_image_size / 1.21)
+                    gt_display_rect_height_2 = (
+                        self.cur_consensus_2[3] - self.cur_consensus_2[1]
+                    ) * (self.display_image_size / self.uncropped_image_size / 1.21)
+                    self.draw_rectangle(
+                        painter,
+                        gt_display_center_x_2,
+                        gt_display_center_y_2,
+                        gt_display_rect_width_2,
+                        gt_display_rect_height_2,
+                        color='orange',
+                        label='Consensus_2',
+                    )
+                else:
+                    for i in range(len(self.cur_image_label)):
+                        self.cur_image_label[i, 1:5] = self.compute_label(
+                            self.loaded_image_label[i, :4],
+                            self.x_min,
+                            self.y_min,
+                            (self.image_size, self.image_size),
+                        )
+
+                    # draw the ground truth label
+                    gt_display_center_x = (
+                        self.cur_image_label[0, 1] + self.cur_image_label[0, 3]
+                    ) / 2 * (self.display_image_size / self.uncropped_image_size) + (
+                        rect_center_x - display_rect_width / 2
+                    )
+                    gt_display_center_y = (
+                        self.cur_image_label[0, 4] + self.cur_image_label[0, 2]
+                    ) / 2 * (self.display_image_size / self.uncropped_image_size) + (
+                        rect_center_y - display_rect_height / 2
+                    )
+                    gt_display_rect_width = (
+                        self.cur_image_label[0, 3] - self.cur_image_label[0, 1]
+                    ) * (self.display_image_size / self.uncropped_image_size / 1.21)
+                    gt_display_rect_height = (
+                        self.cur_image_label[0, 4] - self.cur_image_label[0, 2]
+                    ) * (self.display_image_size / self.uncropped_image_size / 1.21)
+                    self.draw_rectangle(
+                        painter,
+                        gt_display_center_x,
+                        gt_display_center_y,
+                        gt_display_rect_width,
+                        gt_display_rect_height,
+                        color='yellow',
+                        label='Ground Truth',
+                    )
                 painter.end()
 
                 # update pixmap with the label
@@ -4777,32 +4882,87 @@ class UI_MainWindow(QWidget):
             # draw ground truth
             painter = QtGui.QPainter(detailed_image_pixmap)
             # draw the ground truth label
-            gt_display_center_x = (
-                (self.cur_image_label[0, 1] + self.cur_image_label[0, 3])
-                / 2
-                * (self.plot_size * 1.21 / self.image_size)
-            )
-            gt_display_center_y = (
-                (self.cur_image_label[0, 2] + self.cur_image_label[0, 4])
-                / 2
-                * (self.plot_size * 1.21 / self.image_size)
-            )
-            gt_display_rect_width = (self.cur_image_label[0, 3] - self.cur_image_label[0, 1]) * (
-                self.plot_size * 1.21 / self.image_size
-            )
-            gt_display_rect_height = (self.cur_image_label[0, 4] - self.cur_image_label[0, 2]) * (
-                self.plot_size * 1.21 / self.image_size
-            )
-            self.draw_rectangle(
-                painter,
-                gt_display_center_x,
-                gt_display_center_y,
-                gt_display_rect_width,
-                gt_display_rect_height,
-                color='yellow',
-                alpha=166,
-                label='Ground Truth',
-            )
+            if self.use_consensus:
+                gt_display_center_x_1 = (
+                    (self.cur_consensus_1[0] + self.cur_consensus_1[2])
+                    / 2
+                    * (self.plot_size * 1.21 / self.image_size)
+                )
+                gt_display_center_y_1 = (
+                    (self.cur_consensus_1[1] + self.cur_consensus_1[3])
+                    / 2
+                    * (self.plot_size * 1.21 / self.image_size)
+                )
+                gt_display_rect_width_1 = (self.cur_consensus_1[2] - self.cur_consensus_1[0]) * (
+                    self.plot_size * 1.21 / self.image_size
+                )
+                gt_display_rect_height_1 = (self.cur_consensus_1[3] - self.cur_consensus_1[1]) * (
+                    self.plot_size * 1.21 / self.image_size
+                )
+                self.draw_rectangle(
+                    painter,
+                    gt_display_center_x_1,
+                    gt_display_center_y_1,
+                    gt_display_rect_width_1,
+                    gt_display_rect_height_1,
+                    color='yellow',
+                    alpha=166,
+                    label='Consensus_1',
+                )
+
+                gt_display_center_x_2 = (
+                    (self.cur_consensus_2[0] + self.cur_consensus_2[2])
+                    / 2
+                    * (self.plot_size * 1.21 / self.image_size)
+                )
+                gt_display_center_y_2 = (
+                    (self.cur_consensus_2[1] + self.cur_consensus_2[3])
+                    / 2
+                    * (self.plot_size * 1.21 / self.image_size)
+                )
+                gt_display_rect_width_2 = (self.cur_consensus_2[2] - self.cur_consensus_2[0]) * (
+                    self.plot_size * 1.21 / self.image_size
+                )
+                gt_display_rect_height_2 = (self.cur_consensus_2[3] - self.cur_consensus_2[1]) * (
+                    self.plot_size * 1.21 / self.image_size
+                )
+                self.draw_rectangle(
+                    painter,
+                    gt_display_center_x_2,
+                    gt_display_center_y_2,
+                    gt_display_rect_width_2,
+                    gt_display_rect_height_2,
+                    color='orange',
+                    alpha=166,
+                    label='Consensus_2',
+                )
+            else:
+                gt_display_center_x = (
+                    (self.cur_image_label[0, 1] + self.cur_image_label[0, 3])
+                    / 2
+                    * (self.plot_size * 1.21 / self.image_size)
+                )
+                gt_display_center_y = (
+                    (self.cur_image_label[0, 2] + self.cur_image_label[0, 4])
+                    / 2
+                    * (self.plot_size * 1.21 / self.image_size)
+                )
+                gt_display_rect_width = (
+                    self.cur_image_label[0, 3] - self.cur_image_label[0, 1]
+                ) * (self.plot_size * 1.21 / self.image_size)
+                gt_display_rect_height = (
+                    self.cur_image_label[0, 4] - self.cur_image_label[0, 2]
+                ) * (self.plot_size * 1.21 / self.image_size)
+                self.draw_rectangle(
+                    painter,
+                    gt_display_center_x,
+                    gt_display_center_y,
+                    gt_display_rect_width,
+                    gt_display_rect_height,
+                    color='yellow',
+                    alpha=166,
+                    label='Ground Truth',
+                )
 
             # box from model 1
             bounding_boxes = model_output[0][0][:, :4]
@@ -7411,8 +7571,8 @@ class UI_MainWindow(QWidget):
 
         # draw result using heatmaps
         @QtCore.Slot()
-        def realtime_inference_checkbox_clicked(state):
-            if state == QtCore.Qt.Checked:
+        def realtime_inference_checkbox_clicked():
+            if self.realtime_inference_checkbox.isChecked():
                 self.realtime_inference = True
             else:
                 self.realtime_inference = False
