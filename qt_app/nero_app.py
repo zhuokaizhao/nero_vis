@@ -1756,6 +1756,7 @@ class UI_MainWindow(QWidget):
                             all_samples_F_measure_sum_2.append(self.aggregate_F_measure_2[y, x][i])
 
                     # take the average result
+                    # model 1
                     self.aggregate_avg_conf_1[y, x] = np.mean(all_samples_conf_sum_1)
                     self.aggregate_avg_conf_correctness_1[y, x] = np.mean(
                         all_sampels_conf_correctness_sum_1
@@ -1768,6 +1769,7 @@ class UI_MainWindow(QWidget):
                     self.aggregate_avg_recall_1[y, x] = np.mean(all_samples_recall_sum_1)
                     self.aggregate_avg_F_measure_1[y, x] = np.mean(all_samples_F_measure_sum_1)
 
+                    # model 2
                     self.aggregate_avg_conf_2[y, x] = np.mean(all_samples_conf_sum_2)
                     self.aggregate_avg_conf_correctness_2[y, x] = np.mean(
                         all_sampels_conf_correctness_sum_2
@@ -1804,61 +1806,61 @@ class UI_MainWindow(QWidget):
             if self.dr_result_existed:
                 self.run_dimension_reduction()
 
-            # # update single NERO plot as well
-            # for y in range(len(self.y_translation)):
-            #     for x in range(len(self.x_translation)):
-            #         if self.quantity_name == 'Conf*IOU':
-            #             if self.use_consensus:
-            #                 self.cur_single_plot_quantity_1[y, x] = (
-            #                     self.aggregate_consensus_outputs_1[y, x][self.image_index][0, 4]
-            #                     * self.aggregate_consensus_outputs_1[y, x][self.image_index][0, 6]
-            #                 )
-            #                 self.cur_single_plot_quantity_2[y, x] = (
-            #                     self.aggregate_consensus_outputs_2[y, x][self.image_index][0, 4]
-            #                     * self.aggregate_consensus_outputs_2[y, x][self.image_index][0, 6]
-            #                 )
-            #             else:
-            #                 self.cur_single_plot_quantity_1[y, x] = (
-            #                     self.aggregate_outputs_1[y, x][self.image_index][0, 4]
-            #                     * self.aggregate_outputs_1[y, x][self.image_index][0, 6]
-            #                 )
-            #                 self.cur_single_plot_quantity_2[y, x] = (
-            #                     self.aggregate_outputs_2[y, x][self.image_index][0, 4]
-            #                     * self.aggregate_outputs_2[y, x][self.image_index][0, 6]
-            #                 )
-            #         elif self.quantity_name == 'Confidence':
-            #             if self.use_consensus:
-            #                 self.cur_single_plot_quantity_1[
-            #                     y, x
-            #                 ] = self.aggregate_consensus_outputs_1[y, x][self.image_index][0, 4]
-            #                 self.cur_single_plot_quantity_2[
-            #                     y, x
-            #                 ] = self.aggregate_consensus_outputs_2[y, x][self.image_index][0, 4]
-            #             else:
-            #                 self.cur_single_plot_quantity_1[y, x] = self.aggregate_outputs_1[y, x][
-            #                     self.image_index
-            #                 ][0, 4]
-            #                 self.cur_single_plot_quantity_2[y, x] = self.aggregate_outputs_2[y, x][
-            #                     self.image_index
-            #                 ][0, 4]
-            #         elif self.quantity_name == 'IOU':
-            #             if self.use_consensus:
-            #                 self.cur_single_plot_quantity_1[
-            #                     y, x
-            #                 ] = self.aggregate_consensus_outputs_1[y, x][self.image_index][0, 6]
-            #                 self.cur_single_plot_quantity_2[
-            #                     y, x
-            #                 ] = self.aggregate_consensus_outputs_2[y, x][self.image_index][0, 6]
-            #             else:
-            #                 self.cur_single_plot_quantity_1[y, x] = self.aggregate_outputs_1[y, x][
-            #                     self.image_index
-            #                 ][0, 6]
-            #                 self.cur_single_plot_quantity_2[y, x] = self.aggregate_outputs_2[y, x][
-            #                     self.image_index
-            #                 ][0, 6]
+            # update single NERO plot as well
+            for y in range(len(self.y_translation)):
+                for x in range(len(self.x_translation)):
+                    if self.quantity_name == 'Conf*IOU':
+                        if self.use_consensus:
+                            self.cur_single_plot_quantity_1[y, x] = (
+                                self.aggregate_consensus_outputs_1[y, x][self.image_index][0, 4]
+                                * self.aggregate_consensus_outputs_1[y, x][self.image_index][0, 6]
+                            )
+                            self.cur_single_plot_quantity_2[y, x] = (
+                                self.aggregate_consensus_outputs_2[y, x][self.image_index][0, 4]
+                                * self.aggregate_consensus_outputs_2[y, x][self.image_index][0, 6]
+                            )
+                        else:
+                            self.cur_single_plot_quantity_1[y, x] = (
+                                self.aggregate_outputs_1[y, x][self.image_index][0, 4]
+                                * self.aggregate_outputs_1[y, x][self.image_index][0, 6]
+                            )
+                            self.cur_single_plot_quantity_2[y, x] = (
+                                self.aggregate_outputs_2[y, x][self.image_index][0, 4]
+                                * self.aggregate_outputs_2[y, x][self.image_index][0, 6]
+                            )
+                    elif self.quantity_name == 'Confidence':
+                        if self.use_consensus:
+                            self.cur_single_plot_quantity_1[
+                                y, x
+                            ] = self.aggregate_consensus_outputs_1[y, x][self.image_index][0, 4]
+                            self.cur_single_plot_quantity_2[
+                                y, x
+                            ] = self.aggregate_consensus_outputs_2[y, x][self.image_index][0, 4]
+                        else:
+                            self.cur_single_plot_quantity_1[y, x] = self.aggregate_outputs_1[y, x][
+                                self.image_index
+                            ][0, 4]
+                            self.cur_single_plot_quantity_2[y, x] = self.aggregate_outputs_2[y, x][
+                                self.image_index
+                            ][0, 4]
+                    elif self.quantity_name == 'IOU':
+                        if self.use_consensus:
+                            self.cur_single_plot_quantity_1[
+                                y, x
+                            ] = self.aggregate_consensus_outputs_1[y, x][self.image_index][0, 6]
+                            self.cur_single_plot_quantity_2[
+                                y, x
+                            ] = self.aggregate_consensus_outputs_2[y, x][self.image_index][0, 6]
+                        else:
+                            self.cur_single_plot_quantity_1[y, x] = self.aggregate_outputs_1[y, x][
+                                self.image_index
+                            ][0, 6]
+                            self.cur_single_plot_quantity_2[y, x] = self.aggregate_outputs_2[y, x][
+                                self.image_index
+                            ][0, 6]
 
-            # # re-display the heatmap
-            # self.draw_coco_nero(mode='single')
+            # re-display the heatmap
+            self.draw_coco_nero(mode='single')
 
         @QtCore.Slot()
         def average_nero_checkbox_clicked():
@@ -3445,8 +3447,8 @@ class UI_MainWindow(QWidget):
                 f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_2_cache_name}_consensus_F_measure'
             )
 
-            if not self.load_successfully:
-                # if True:
+            # if not self.load_successfully:
+            if True:
                 print(f'Computing consensus from model outputs')
 
                 # compute consensus for two models
@@ -7109,6 +7111,7 @@ class UI_MainWindow(QWidget):
                     # current model outputs after shifting back
                     # model 1
                     cur_model_outputs = model_outputs[y, x]
+
                     # transform model 1 outputs back
                     for i in range(len(cur_model_outputs)):
                         cur_model_outputs[i][:, 0] = cur_model_outputs[i][:, 0] + x_tran
