@@ -383,7 +383,8 @@ def process_model_outputs(outputs, targets, iou_thres=0.5, conf_thres=0):
 # function that works with evaluating model performance with consensus format
 def evaluate_coco_with_consensus(outputs, consensus, iou_thres=0.5):
 
-    # initialize outputs
+    # augmented outputs have label correctness and iou appended to the input outputs
+    all_augmented_outputs = np.zeros(len(outputs), dtype=np.ndarray)
     all_precisions = np.zeros(len(outputs))
     all_recalls = np.zeros(len(outputs))
     all_F_measure = np.zeros(len(outputs))
@@ -401,21 +402,23 @@ def evaluate_coco_with_consensus(outputs, consensus, iou_thres=0.5):
 
         # all predicted labels and true label for the current object
         pred_labels = cur_object_outputs[:, 5].numpy()
-        true_label = cur_consensus[4]
+        consensus_label = cur_consensus[4]
 
         # all predicted bounding boxes and true bb for the current object
         pred_boxes = cur_object_outputs[:, :4]
-        true_boxes = cur_consensus[0:4]
+        consensus_box = cur_consensus[0:4]
+        augmented_outputs = []
         num_true_positive = 0
         num_false_positive = 0
 
         # loop through all the proposed bounding boxes
         for j, pred_box in enumerate(pred_boxes):
             # compute iou
-            cur_iou = bbox_iou(pred_box.unsqueeze(0), true_boxes.unsqueeze(0))
+            cur_iou = bbox_iou(pred_box.unsqueeze(0), consensus_box.unsqueeze(0))
 
             # if the label is predicted correctly
-            if pred_labels[j] == true_label:
+            if pred_labels[j] == consensus_label:
+                label_correctness = 1
                 # if iou passed threshold
                 if cur_iou > iou_thres:
                     num_true_positive += 1
@@ -423,22 +426,30 @@ def evaluate_coco_with_consensus(outputs, consensus, iou_thres=0.5):
                     num_false_positive += 1
             # if the label is wrong, mark as false positive
             else:
+                label_correctness = 0
                 num_false_positive += 1
+
+            # even it might be wrong, we want the output
+            augmented_outputs.append(
+                np.append(cur_object_outputs[j].numpy(), (cur_iou, label_correctness))
+            )
 
         # Number of TP and FP is computed from all predictions (un-iou thresheld)
         # precision = TP / (TP + FP)
         precision = num_true_positive / (num_true_positive + num_false_positive + 1e-16)
         # Recall = TP / (TP + FN), where (TP + FN) is just the number of ground truths
-        recall = min(1, num_true_positive / (len(true_boxes) + 1e-16))
+        recall = min(1, num_true_positive / (len(consensus_box) + 1e-16))
         # F-measure = (2 * Precision * Recall) / (Precision + Recall)
         F_measure = (2 * precision * recall) / (precision + recall + 1e-16)
 
         # rank all outputs based on IOU and then convert to numpy array
+        augmented_outputs = np.array(sorted(augmented_outputs, key=lambda x: x[6])[::-1])
+        all_augmented_outputs[i] = augmented_outputs
         all_precisions[i] = precision
         all_recalls[i] = recall
         all_F_measure[i] = F_measure
 
-    return all_precisions, all_recalls, all_F_measure
+    return all_augmented_outputs, all_precisions, all_recalls, all_F_measure
 
 
 # run model on either a single COCO image or a batch of COCO images

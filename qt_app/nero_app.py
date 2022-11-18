@@ -1643,18 +1643,232 @@ class UI_MainWindow(QWidget):
                 self.run_dimension_reduction()
 
         @QtCore.Slot()
-        def run_consensus_checkbox_clicked(state):
-            if state == QtCore.Qt.Checked:
+        def use_consensus_checkbox_clicked():
+            if self.use_consensus_checkbox.isChecked():
                 self.use_consensus = True
+                print(f'Plotting {self.quantity_name} with respect to consensus')
             else:
                 self.use_consensus = False
+                print(f'Plotting {self.quantity_name} with respect to ground truth')
+
+            # update annotations on input image
+            self.display_coco_image()
+
+            # update plotting quantities
+            for y in range(len(self.y_translation)):
+                for x in range(len(self.x_translation)):
+                    # model 1
+                    all_samples_conf_sum_1 = []
+                    all_sampels_conf_correctness_sum_1 = []
+                    all_samples_iou_sum_1 = []
+                    all_sampels_iou_correctness_sum_1 = []
+                    all_samples_precision_sum_1 = []
+                    all_samples_recall_sum_1 = []
+                    all_samples_F_measure_sum_1 = []
+
+                    # model 2
+                    all_samples_conf_sum_2 = []
+                    all_sampels_conf_correctness_sum_2 = []
+                    all_samples_iou_sum_2 = []
+                    all_sampels_iou_correctness_sum_2 = []
+                    all_samples_precision_sum_2 = []
+                    all_samples_recall_sum_2 = []
+                    all_samples_F_measure_sum_2 = []
+
+                    if self.use_consensus:
+                        for i in range(len(self.aggregate_consensus_outputs_1[y, x])):
+                            # model 1
+                            all_samples_conf_sum_1.append(
+                                self.aggregate_consensus_outputs_1[y, x][i][0, 4]
+                            )
+                            all_sampels_conf_correctness_sum_1.append(
+                                self.aggregate_consensus_outputs_1[y, x][i][0, 4]
+                                * self.aggregate_consensus_outputs_1[y, x][i][0, 7]
+                            )
+                            all_samples_iou_sum_1.append(
+                                self.aggregate_consensus_outputs_1[y, x][i][0, 6]
+                            )
+                            all_sampels_iou_correctness_sum_1.append(
+                                self.aggregate_consensus_outputs_1[y, x][i][0, 6]
+                                * self.aggregate_consensus_outputs_1[y, x][i][0, 7]
+                            )
+                            all_samples_precision_sum_1.append(
+                                self.aggregate_consensus_precision_1[y, x][i]
+                            )
+                            all_samples_recall_sum_1.append(
+                                self.aggregate_consensus_recall_1[y, x][i]
+                            )
+                            all_samples_F_measure_sum_1.append(
+                                self.aggregate_consensus_F_measure_1[y, x][i]
+                            )
+
+                            # model 2
+                            all_samples_conf_sum_2.append(
+                                self.aggregate_consensus_outputs_2[y, x][i][0, 4]
+                            )
+                            all_sampels_conf_correctness_sum_2.append(
+                                self.aggregate_consensus_outputs_2[y, x][i][0, 4]
+                                * self.aggregate_consensus_outputs_2[y, x][i][0, 7]
+                            )
+                            all_samples_iou_sum_2.append(
+                                self.aggregate_consensus_outputs_2[y, x][i][0, 6]
+                            )
+                            all_sampels_iou_correctness_sum_2.append(
+                                self.aggregate_consensus_outputs_2[y, x][i][0, 6]
+                                * self.aggregate_consensus_outputs_2[y, x][i][0, 7]
+                            )
+                            all_samples_precision_sum_2.append(
+                                self.aggregate_consensus_precision_2[y, x][i]
+                            )
+                            all_samples_recall_sum_2.append(
+                                self.aggregate_consensus_recall_2[y, x][i]
+                            )
+                            all_samples_F_measure_sum_2.append(
+                                self.aggregate_consensus_F_measure_2[y, x][i]
+                            )
+                    else:
+                        for i in range(len(self.aggregate_outputs_1[y, x])):
+                            # model 1
+                            all_samples_conf_sum_1.append(self.aggregate_outputs_1[y, x][i][0, 4])
+                            all_sampels_conf_correctness_sum_1.append(
+                                self.aggregate_outputs_1[y, x][i][0, 4]
+                                * self.aggregate_outputs_1[y, x][i][0, 7]
+                            )
+                            all_samples_iou_sum_1.append(self.aggregate_outputs_1[y, x][i][0, 6])
+                            all_sampels_iou_correctness_sum_1.append(
+                                self.aggregate_outputs_1[y, x][i][0, 6]
+                                * self.aggregate_outputs_1[y, x][i][0, 7]
+                            )
+                            all_samples_precision_sum_1.append(self.aggregate_precision_1[y, x][i])
+                            all_samples_recall_sum_1.append(self.aggregate_recall_1[y, x][i])
+                            all_samples_F_measure_sum_1.append(self.aggregate_F_measure_1[y, x][i])
+
+                            # model 2
+                            all_samples_conf_sum_2.append(self.aggregate_outputs_2[y, x][i][0, 4])
+                            all_sampels_conf_correctness_sum_2.append(
+                                self.aggregate_outputs_2[y, x][i][0, 4]
+                                * self.aggregate_outputs_2[y, x][i][0, 7]
+                            )
+                            all_samples_iou_sum_2.append(self.aggregate_outputs_2[y, x][i][0, 6])
+                            all_sampels_iou_correctness_sum_2.append(
+                                self.aggregate_outputs_2[y, x][i][0, 6]
+                                * self.aggregate_outputs_2[y, x][i][0, 7]
+                            )
+                            all_samples_precision_sum_2.append(self.aggregate_precision_2[y, x][i])
+                            all_samples_recall_sum_2.append(self.aggregate_recall_2[y, x][i])
+                            all_samples_F_measure_sum_2.append(self.aggregate_F_measure_2[y, x][i])
+
+                    # take the average result
+                    self.aggregate_avg_conf_1[y, x] = np.mean(all_samples_conf_sum_1)
+                    self.aggregate_avg_conf_correctness_1[y, x] = np.mean(
+                        all_sampels_conf_correctness_sum_1
+                    )
+                    self.aggregate_avg_iou_1[y, x] = np.mean(all_samples_iou_sum_1)
+                    self.aggregate_avg_iou_correctness_1[y, x] = np.mean(
+                        all_sampels_iou_correctness_sum_1
+                    )
+                    self.aggregate_avg_precision_1[y, x] = np.mean(all_samples_precision_sum_1)
+                    self.aggregate_avg_recall_1[y, x] = np.mean(all_samples_recall_sum_1)
+                    self.aggregate_avg_F_measure_1[y, x] = np.mean(all_samples_F_measure_sum_1)
+
+                    self.aggregate_avg_conf_2[y, x] = np.mean(all_samples_conf_sum_2)
+                    self.aggregate_avg_conf_correctness_2[y, x] = np.mean(
+                        all_sampels_conf_correctness_sum_2
+                    )
+                    self.aggregate_avg_iou_2[y, x] = np.mean(all_samples_iou_sum_2)
+                    self.aggregate_avg_iou_correctness_2[y, x] = np.mean(
+                        all_sampels_iou_correctness_sum_2
+                    )
+                    self.aggregate_avg_precision_2[y, x] = np.mean(all_samples_precision_sum_2)
+                    self.aggregate_avg_recall_2[y, x] = np.mean(all_samples_recall_sum_2)
+                    self.aggregate_avg_F_measure_2[y, x] = np.mean(all_samples_F_measure_sum_2)
+
+            # default plotting quantity
+            if self.quantity_name == 'Confidence':
+                self.cur_aggregate_plot_quantity_1 = self.aggregate_avg_conf_1
+                self.cur_aggregate_plot_quantity_2 = self.aggregate_avg_conf_2
+            elif self.quantity_name == 'IOU':
+                self.cur_aggregate_plot_quantity_1 = self.aggregate_avg_iou_1
+                self.cur_aggregate_plot_quantity_2 = self.aggregate_avg_iou_2
+            elif self.quantity_name == 'Conf*IOU':
+                self.cur_aggregate_plot_quantity_1 = (
+                    self.aggregate_avg_conf_1 * self.aggregate_avg_iou_1
+                )
+                self.cur_aggregate_plot_quantity_2 = (
+                    self.aggregate_avg_conf_2 * self.aggregate_avg_iou_2
+                )
+            else:
+                raise Exception(f'Unknown quantity {self.quantity_name}')
+
+            # re-display the aggregate heatmap
+            self.draw_coco_nero(mode='aggregate')
+
+            # re-run dimension reduction and show result
+            if self.dr_result_existed:
+                self.run_dimension_reduction()
+
+            # update single NERO plot as well
+            for y in range(len(self.y_translation)):
+                for x in range(len(self.x_translation)):
+                    if self.quantity_name == 'Conf*IOU':
+                        if self.use_consensus:
+                            self.cur_single_plot_quantity_1[y, x] = (
+                                self.aggregate_consensus_outputs_1[y, x][self.image_index][0, 4]
+                                * self.aggregate_consensus_outputs_1[y, x][self.image_index][0, 6]
+                            )
+                            self.cur_single_plot_quantity_2[y, x] = (
+                                self.aggregate_consensus_outputs_2[y, x][self.image_index][0, 4]
+                                * self.aggregate_consensus_outputs_2[y, x][self.image_index][0, 6]
+                            )
+                        else:
+                            self.cur_single_plot_quantity_1[y, x] = (
+                                self.aggregate_outputs_1[y, x][self.image_index][0, 4]
+                                * self.aggregate_outputs_1[y, x][self.image_index][0, 6]
+                            )
+                            self.cur_single_plot_quantity_2[y, x] = (
+                                self.aggregate_outputs_2[y, x][self.image_index][0, 4]
+                                * self.aggregate_outputs_2[y, x][self.image_index][0, 6]
+                            )
+                    elif self.quantity_name == 'Confidence':
+                        if self.use_consensus:
+                            self.cur_single_plot_quantity_1[
+                                y, x
+                            ] = self.aggregate_consensus_outputs_1[y, x][self.image_index][0, 4]
+                            self.cur_single_plot_quantity_2[
+                                y, x
+                            ] = self.aggregate_consensus_outputs_2[y, x][self.image_index][0, 4]
+                        else:
+                            self.cur_single_plot_quantity_1[y, x] = self.aggregate_outputs_1[y, x][
+                                self.image_index
+                            ][0, 4]
+                            self.cur_single_plot_quantity_2[y, x] = self.aggregate_outputs_2[y, x][
+                                self.image_index
+                            ][0, 4]
+                    elif self.quantity_name == 'IOU':
+                        if self.use_consensus:
+                            self.cur_single_plot_quantity_1[
+                                y, x
+                            ] = self.aggregate_consensus_outputs_1[y, x][self.image_index][0, 6]
+                            self.cur_single_plot_quantity_2[
+                                y, x
+                            ] = self.aggregate_consensus_outputs_2[y, x][self.image_index][0, 6]
+                        else:
+                            self.cur_single_plot_quantity_1[y, x] = self.aggregate_outputs_1[y, x][
+                                self.image_index
+                            ][0, 6]
+                            self.cur_single_plot_quantity_2[y, x] = self.aggregate_outputs_2[y, x][
+                                self.image_index
+                            ][0, 6]
+
+                # re-display the heatmap
+                self.draw_coco_nero(mode='single')
 
         @QtCore.Slot()
-        def average_nero_checkbox_clicked(state):
-            if state == QtCore.Qt.Checked:
-                self.show_average = False
-            else:
+        def average_nero_checkbox_clicked():
+            if self.average_nero_checkbox.isChecked():
                 self.show_average = True
+            else:
+                self.show_average = False
 
             self.draw_piv_nero('aggregate')
 
@@ -1806,7 +2020,7 @@ class UI_MainWindow(QWidget):
                 'color: black; font-style: normal; font-family: Helvetica; font-size: 24px;'
             )
             self.use_consensus_checkbox.setFixedSize(QtCore.QSize(300, 50))
-            self.use_consensus_checkbox.stateChanged.connect(run_consensus_checkbox_clicked)
+            self.use_consensus_checkbox.stateChanged.connect(use_consensus_checkbox_clicked)
             # set conensus to default when we don't have ground truth labels
             if self.all_labels_paths == []:
                 self.use_consensus_checkbox.setChecked(True)
@@ -3177,6 +3391,9 @@ class UI_MainWindow(QWidget):
             self.aggregate_consensus_1 = self.load_from_cache(
                 f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_1_cache_name}_consensus'
             )
+            self.aggregate_consensus_outputs_1 = self.load_from_cache(
+                f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_1_cache_name}_consensus_outputs'
+            )
             self.aggregate_consensus_precision_1 = self.load_from_cache(
                 f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_1_cache_name}_consensus_precision'
             )
@@ -3189,9 +3406,13 @@ class UI_MainWindow(QWidget):
             self.aggregate_consensus_F_measure_1 = self.load_from_cache(
                 f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_1_cache_name}_consensus_F_measure'
             )
+
             # model 2
             self.aggregate_consensus_2 = self.load_from_cache(
                 f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_2_cache_name}_consensus'
+            )
+            self.aggregate_consensus_outputs_2 = self.load_from_cache(
+                f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_2_cache_name}_consensus_outputs'
             )
             self.aggregate_consensus_precision_2 = self.load_from_cache(
                 f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_2_cache_name}_consensus_precision'
@@ -3206,8 +3427,8 @@ class UI_MainWindow(QWidget):
                 f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_2_cache_name}_consensus_F_measure'
             )
 
-            # if not self.load_successfully:
-            if True:
+            if not self.load_successfully:
+                # if True:
                 print(f'Computing consensus from model outputs')
 
                 # compute consensus for two models
@@ -3217,20 +3438,22 @@ class UI_MainWindow(QWidget):
                 # compute losses computed based on consensus (instead of ground truth)
                 # model 1
                 (
+                    self.aggregate_consensus_outputs_1,
                     self.aggregate_consensus_precision_1,
                     self.aggregate_consensus_recall_1,
-                    self.aggregate_consensus_F_measure_1,
                     self.aggregate_consensus_mAP_1,
+                    self.aggregate_consensus_F_measure_1,
                 ) = self.compute_consensus_losses(
                     self.aggregate_outputs_1, self.aggregate_consensus_1
                 )
 
                 # model 2
                 (
+                    self.aggregate_consensus_outputs_2,
                     self.aggregate_consensus_precision_2,
                     self.aggregate_consensus_recall_2,
-                    self.aggregate_consensus_F_measure_2,
                     self.aggregate_consensus_mAP_2,
+                    self.aggregate_consensus_F_measure_2,
                 ) = self.compute_consensus_losses(
                     self.aggregate_outputs_2, self.aggregate_consensus_2
                 )
@@ -3239,6 +3462,10 @@ class UI_MainWindow(QWidget):
                 self.save_to_cache(
                     name=f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_1_cache_name}_consensus',
                     content=self.aggregate_consensus_1,
+                )
+                self.save_to_cache(
+                    name=f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_1_cache_name}_consensus_outputs',
+                    content=self.aggregate_consensus_outputs_1,
                 )
                 self.save_to_cache(
                     name=f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_1_cache_name}_consensus_precision',
@@ -3260,6 +3487,10 @@ class UI_MainWindow(QWidget):
                 self.save_to_cache(
                     name=f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_2_cache_name}_consensus',
                     content=self.aggregate_consensus_2,
+                )
+                self.save_to_cache(
+                    name=f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_2_cache_name}_consensus_outputs',
+                    content=self.aggregate_consensus_outputs_2,
                 )
                 self.save_to_cache(
                     name=f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_2_cache_name}_consensus_precision',
@@ -3639,31 +3870,96 @@ class UI_MainWindow(QWidget):
         # end the painter
         painter.end()
 
-        # draw ground truth label on the display image
-        # draw rectangle on the displayed image to indicate scanning process
+        # draw ground truth or consensus label on the display image
         painter = QtGui.QPainter(self.image_pixmap)
-        # draw the ground truth label
-        gt_display_center_x = (self.cur_image_label[0, 1] + self.cur_image_label[0, 3]) / 2 * (
-            display_rect_width / self.image_size
-        ) + (rect_center_x - display_rect_width / 2)
-        gt_display_center_y = (self.cur_image_label[0, 2] + self.cur_image_label[0, 4]) / 2 * (
-            display_rect_height / self.image_size
-        ) + (rect_center_y - display_rect_height / 2)
-        gt_display_rect_width = (self.cur_image_label[0, 3] - self.cur_image_label[0, 1]) * (
-            display_rect_width / self.image_size / 1.21
-        )
-        gt_display_rect_height = (self.cur_image_label[0, 4] - self.cur_image_label[0, 2]) * (
-            display_rect_height / self.image_size / 1.21
-        )
-        self.draw_rectangle(
-            painter,
-            gt_display_center_x,
-            gt_display_center_y,
-            gt_display_rect_width,
-            gt_display_rect_height,
-            color='yellow',
-            label='Ground Truth',
-        )
+        if self.use_consensus:
+            # draw the consensus label
+            # we have two sets of consensus from two sets of models outputs
+            gt_display_center_x_1 = (
+                self.aggregate_consensus_1[self.image_index][0]
+                + self.aggregate_consensus_1[self.image_index][2]
+            ) / 2 * (display_rect_width / self.image_size) + (
+                rect_center_x - display_rect_width / 2
+            )
+            gt_display_center_y_1 = (
+                self.aggregate_consensus_1[self.image_index][1]
+                + self.aggregate_consensus_1[self.image_index][3]
+            ) / 2 * (display_rect_height / self.image_size) + (
+                rect_center_y - display_rect_height / 2
+            )
+            gt_display_rect_width_1 = (
+                self.aggregate_consensus_1[self.image_index][2]
+                - self.aggregate_consensus_1[self.image_index][0]
+            ) * (display_rect_width / self.image_size / 1.21)
+            gt_display_rect_height_1 = (
+                self.aggregate_consensus_1[self.image_index][3]
+                - self.aggregate_consensus_1[self.image_index][1]
+            ) * (display_rect_height / self.image_size / 1.21)
+
+            self.draw_rectangle(
+                painter,
+                gt_display_center_x_1,
+                gt_display_center_y_1,
+                gt_display_rect_width_1,
+                gt_display_rect_height_1,
+                color='yellow',
+                label='Consensus_1',
+            )
+
+            gt_display_center_x_2 = (
+                self.aggregate_consensus_2[self.image_index][0]
+                + self.aggregate_consensus_2[self.image_index][2]
+            ) / 2 * (display_rect_width / self.image_size) + (
+                rect_center_x - display_rect_width / 2
+            )
+            gt_display_center_y_2 = (
+                self.aggregate_consensus_2[self.image_index][1]
+                + self.aggregate_consensus_2[self.image_index][3]
+            ) / 2 * (display_rect_height / self.image_size) + (
+                rect_center_y - display_rect_height / 2
+            )
+            gt_display_rect_width_2 = (
+                self.aggregate_consensus_2[self.image_index][2]
+                - self.aggregate_consensus_2[self.image_index][0]
+            ) * (display_rect_width / self.image_size / 1.21)
+            gt_display_rect_height_2 = (
+                self.aggregate_consensus_2[self.image_index][3]
+                - self.aggregate_consensus_2[self.image_index][1]
+            ) * (display_rect_height / self.image_size / 1.21)
+
+            self.draw_rectangle(
+                painter,
+                gt_display_center_x_2,
+                gt_display_center_y_2,
+                gt_display_rect_width_2,
+                gt_display_rect_height_2,
+                color='orange',
+                label='Consensus_2',
+            )
+        else:
+            # draw the ground truth label
+            gt_display_center_x = (self.cur_image_label[0, 1] + self.cur_image_label[0, 3]) / 2 * (
+                display_rect_width / self.image_size
+            ) + (rect_center_x - display_rect_width / 2)
+            gt_display_center_y = (self.cur_image_label[0, 2] + self.cur_image_label[0, 4]) / 2 * (
+                display_rect_height / self.image_size
+            ) + (rect_center_y - display_rect_height / 2)
+            gt_display_rect_width = (self.cur_image_label[0, 3] - self.cur_image_label[0, 1]) * (
+                display_rect_width / self.image_size / 1.21
+            )
+            gt_display_rect_height = (self.cur_image_label[0, 4] - self.cur_image_label[0, 2]) * (
+                display_rect_height / self.image_size / 1.21
+            )
+
+            self.draw_rectangle(
+                painter,
+                gt_display_center_x,
+                gt_display_center_y,
+                gt_display_rect_width,
+                gt_display_rect_height,
+                color='yellow',
+                label='Ground Truth',
+            )
         painter.end()
 
         # update pixmap with the label
@@ -6610,10 +6906,10 @@ class UI_MainWindow(QWidget):
                 label_sum_1 = 0
                 for y in range(model_outputs.shape[0]):
                     for x in range(model_outputs.shape[1]):
-                        x1_sum_1 += model_outputs[y, x][i][0, 0]
-                        y1_sum_1 += model_outputs[y, x][i][0, 1]
-                        x2_sum_1 += model_outputs[y, x][i][0, 2]
-                        y2_sum_1 += model_outputs[y, x][i][0, 3]
+                        x1_sum_1 += model_outputs[y, x][i][0, 0] + x
+                        y1_sum_1 += model_outputs[y, x][i][0, 1] + y
+                        x2_sum_1 += model_outputs[y, x][i][0, 2] + x
+                        y2_sum_1 += model_outputs[y, x][i][0, 3] + y
                         label_sum_1 += model_outputs[y, x][i][0, 5]
 
                 aggregate_consensus[i] = [
@@ -6632,6 +6928,9 @@ class UI_MainWindow(QWidget):
     def compute_consensus_losses(self, model_outputs, consensus):
 
         if self.mode == 'object_detection':
+            consensus_outputs = np.zeros(
+                (len(self.y_translation), len(self.x_translation)), dtype=np.ndarray
+            )
             consensus_precision = np.zeros(
                 (len(self.y_translation), len(self.x_translation)), dtype=np.ndarray
             )
@@ -6652,28 +6951,37 @@ class UI_MainWindow(QWidget):
                     cur_model_outputs = model_outputs[y, x]
                     # transform model 1 outputs back
                     for i in range(len(cur_model_outputs)):
-                        cur_model_outputs[i][:, 0] = cur_model_outputs[i][:, 0] - x_tran
-                        cur_model_outputs[i][:, 1] = cur_model_outputs[i][:, 1] - y_tran
-                        cur_model_outputs[i][:, 2] = cur_model_outputs[i][:, 2] - x_tran
-                        cur_model_outputs[i][:, 3] = cur_model_outputs[i][:, 3] - y_tran
+                        cur_model_outputs[i][:, 0] = cur_model_outputs[i][:, 0] + x_tran
+                        cur_model_outputs[i][:, 1] = cur_model_outputs[i][:, 1] + y_tran
+                        cur_model_outputs[i][:, 2] = cur_model_outputs[i][:, 2] + x_tran
+                        cur_model_outputs[i][:, 3] = cur_model_outputs[i][:, 3] + y_tran
 
                     # compute losses using consensus
                     # model 1
                     (
+                        cur_augmented_outputs,
                         cur_consensus_precision,
                         cur_consensus_recall,
                         cur_consensus_F_measure,
                     ) = nero_run_model.evaluate_coco_with_consensus(cur_model_outputs, consensus)
 
-                    # compute mAP from precision and recall
+                    # record
+                    consensus_outputs[y, x] = cur_augmented_outputs
                     consensus_precision[y, x] = cur_consensus_precision
                     consensus_recall[y, x] = cur_consensus_recall
+                    # compute mAP from precision and recall
                     consensus_mAP[y, x] = nero_utilities.compute_ap(
                         cur_consensus_recall, cur_consensus_precision
                     )
                     consensus_F_measure[y, x] = cur_consensus_F_measure
 
-            return consensus_precision, consensus_recall, consensus_mAP, consensus_F_measure
+            return (
+                consensus_outputs,
+                consensus_precision,
+                consensus_recall,
+                consensus_mAP,
+                consensus_F_measure,
+            )
 
         elif self.mode == 'piv':
             raise NotImplementedError
@@ -6699,16 +7007,20 @@ class UI_MainWindow(QWidget):
         def coco_nero_quantity_changed(text):
             print('Plotting:', text, 'on aggregate NERO plot')
             self.quantity_name = text
-            # if text == 'Conf*IOU':
-            #     self.cur_aggregate_plot_quantity_1 = self.aggregate_avg_conf_1 * self.aggregate_avg_iou_1
-            #     self.cur_aggregate_plot_quantity_2 = self.aggregate_avg_conf_2 * self.aggregate_avg_iou_2
             if text == 'Conf*IOU':
                 self.cur_aggregate_plot_quantity_1 = (
-                    self.aggregate_avg_conf_correctness_1 * self.aggregate_avg_iou_correctness_1
+                    self.aggregate_avg_conf_1 * self.aggregate_avg_iou_1
                 )
                 self.cur_aggregate_plot_quantity_2 = (
-                    self.aggregate_avg_conf_correctness_2 * self.aggregate_avg_iou_correctness_2
+                    self.aggregate_avg_conf_2 * self.aggregate_avg_iou_2
                 )
+            # if text == 'Conf*IOU':
+            #     self.cur_aggregate_plot_quantity_1 = (
+            #         self.aggregate_avg_conf_correctness_1 * self.aggregate_avg_iou_correctness_1
+            #     )
+            #     self.cur_aggregate_plot_quantity_2 = (
+            #         self.aggregate_avg_conf_correctness_2 * self.aggregate_avg_iou_correctness_2
+            #     )
             elif text == 'Confidence':
                 self.cur_aggregate_plot_quantity_1 = self.aggregate_avg_conf_1
                 self.cur_aggregate_plot_quantity_2 = self.aggregate_avg_conf_2
@@ -6849,9 +7161,9 @@ class UI_MainWindow(QWidget):
         quantity_menu.lineEdit().setReadOnly(True)
         quantity_menu.lineEdit().setAlignment(QtCore.Qt.AlignCenter)
 
-        quantity_menu.addItem('Conf*IOU')
         quantity_menu.addItem('Confidence')
         quantity_menu.addItem('IOU')
+        quantity_menu.addItem('Conf*IOU')
         # some extra qualities to plot (not available in individual NERO plot)
         if not self.demo:
             quantity_menu.addItem('Precision')
@@ -6859,11 +7171,12 @@ class UI_MainWindow(QWidget):
             quantity_menu.addItem('AP')
             quantity_menu.addItem('F1 Score')
 
-        # self.quantity_menu.setCurrentIndex(0)
-        # quantity_menu.setCurrentText('Conf*IOU')
         # define default plotting quantity
-        quantity_menu.setCurrentText('Confidence')
-        self.quantity_name = 'Confidence'
+        # self.quantity_menu.setCurrentIndex(0)
+        quantity_menu.setCurrentText('Conf*IOU')
+        self.quantity_name = 'Conf*IOU'
+        # quantity_menu.setCurrentText('Confidence')
+        # self.quantity_name = 'Confidence'
 
         # connect the drop down menu with actions
         quantity_menu.currentTextChanged.connect(coco_nero_quantity_changed)
@@ -6876,61 +7189,129 @@ class UI_MainWindow(QWidget):
         else:
             self.aggregate_plot_control_layout.addWidget(quantity_menu, 1, 0)
 
-        # averaged (depends on selected class) confidence and iou of the top results (ranked by IOU)
+        # model 1
+        # averaged confidence and iou of the top results (ranked by IOU)
         self.aggregate_avg_conf_1 = np.zeros((len(self.y_translation), len(self.x_translation)))
+        # conf * label_correctness
         self.aggregate_avg_conf_correctness_1 = np.zeros(
             (len(self.y_translation), len(self.x_translation))
         )
+        # iou
         self.aggregate_avg_iou_1 = np.zeros((len(self.y_translation), len(self.x_translation)))
+        # iou * label_correctness
         self.aggregate_avg_iou_correctness_1 = np.zeros(
             (len(self.y_translation), len(self.x_translation))
         )
+        # precision
         self.aggregate_avg_precision_1 = np.zeros(
             (len(self.y_translation), len(self.x_translation))
         )
+        # recall
         self.aggregate_avg_recall_1 = np.zeros((len(self.y_translation), len(self.x_translation)))
+        # F-score
         self.aggregate_avg_F_measure_1 = np.zeros(
             (len(self.y_translation), len(self.x_translation))
         )
 
+        # model 2
+        # confidence
         self.aggregate_avg_conf_2 = np.zeros((len(self.y_translation), len(self.x_translation)))
+        # conf * label_correctness
         self.aggregate_avg_conf_correctness_2 = np.zeros(
             (len(self.y_translation), len(self.x_translation))
         )
+        # iou
         self.aggregate_avg_iou_2 = np.zeros((len(self.y_translation), len(self.x_translation)))
+        # iou * label_correctness
         self.aggregate_avg_iou_correctness_2 = np.zeros(
             (len(self.y_translation), len(self.x_translation))
         )
+        # precision
         self.aggregate_avg_precision_2 = np.zeros(
             (len(self.y_translation), len(self.x_translation))
         )
+        # recall
         self.aggregate_avg_recall_2 = np.zeros((len(self.y_translation), len(self.x_translation)))
+        # F-score
         self.aggregate_avg_F_measure_2 = np.zeros(
             (len(self.y_translation), len(self.x_translation))
         )
 
         for y in range(len(self.y_translation)):
             for x in range(len(self.x_translation)):
+                # model 1
                 all_samples_conf_sum_1 = []
                 all_sampels_conf_correctness_sum_1 = []
                 all_samples_iou_sum_1 = []
                 all_sampels_iou_correctness_sum_1 = []
+                all_samples_precision_sum_1 = []
+                all_samples_recall_sum_1 = []
+                all_samples_F_measure_sum_1 = []
+
+                # model 2
                 all_samples_conf_sum_2 = []
                 all_sampels_conf_correctness_sum_2 = []
                 all_samples_iou_sum_2 = []
                 all_sampels_iou_correctness_sum_2 = []
-                all_samples_precision_sum_1 = []
                 all_samples_precision_sum_2 = []
-                all_samples_recall_sum_1 = []
                 all_samples_recall_sum_2 = []
-                all_samples_F_measure_sum_1 = []
                 all_samples_F_measure_sum_2 = []
-                for i in range(len(self.aggregate_outputs_1[y, x])):
-                    # either all the classes or one specific class
-                    if (
-                        self.class_selection == 'all'
-                        or self.class_selection == self.loaded_images_labels[i]
-                    ):
+
+                # either all the classes or one specific class
+                # if (
+                #     self.class_selection == 'all'
+                #     or self.class_selection == self.loaded_images_labels[i]
+                # ):
+                if self.use_consensus:
+                    for i in range(len(self.aggregate_consensus_outputs_1[y, x])):
+                        # model 1
+                        all_samples_conf_sum_1.append(
+                            self.aggregate_consensus_outputs_1[y, x][i][0, 4]
+                        )
+                        all_sampels_conf_correctness_sum_1.append(
+                            self.aggregate_consensus_outputs_1[y, x][i][0, 4]
+                            * self.aggregate_consensus_outputs_1[y, x][i][0, 7]
+                        )
+                        all_samples_iou_sum_1.append(
+                            self.aggregate_consensus_outputs_1[y, x][i][0, 6]
+                        )
+                        all_sampels_iou_correctness_sum_1.append(
+                            self.aggregate_consensus_outputs_1[y, x][i][0, 6]
+                            * self.aggregate_consensus_outputs_1[y, x][i][0, 7]
+                        )
+                        all_samples_precision_sum_1.append(
+                            self.aggregate_consensus_precision_1[y, x][i]
+                        )
+                        all_samples_recall_sum_1.append(self.aggregate_consensus_recall_1[y, x][i])
+                        all_samples_F_measure_sum_1.append(
+                            self.aggregate_consensus_F_measure_1[y, x][i]
+                        )
+
+                        # model 2
+                        all_samples_conf_sum_2.append(
+                            self.aggregate_consensus_outputs_2[y, x][i][0, 4]
+                        )
+                        all_sampels_conf_correctness_sum_2.append(
+                            self.aggregate_consensus_outputs_2[y, x][i][0, 4]
+                            * self.aggregate_consensus_outputs_2[y, x][i][0, 7]
+                        )
+                        all_samples_iou_sum_2.append(
+                            self.aggregate_consensus_outputs_2[y, x][i][0, 6]
+                        )
+                        all_sampels_iou_correctness_sum_2.append(
+                            self.aggregate_consensus_outputs_2[y, x][i][0, 6]
+                            * self.aggregate_consensus_outputs_2[y, x][i][0, 7]
+                        )
+                        all_samples_precision_sum_2.append(
+                            self.aggregate_consensus_precision_2[y, x][i]
+                        )
+                        all_samples_recall_sum_2.append(self.aggregate_consensus_recall_2[y, x][i])
+                        all_samples_F_measure_sum_2.append(
+                            self.aggregate_consensus_F_measure_2[y, x][i]
+                        )
+                else:
+                    for i in range(len(self.aggregate_outputs_1[y, x])):
+                        # model 1
                         all_samples_conf_sum_1.append(self.aggregate_outputs_1[y, x][i][0, 4])
                         all_sampels_conf_correctness_sum_1.append(
                             self.aggregate_outputs_1[y, x][i][0, 4]
@@ -6941,21 +7322,23 @@ class UI_MainWindow(QWidget):
                             self.aggregate_outputs_1[y, x][i][0, 6]
                             * self.aggregate_outputs_1[y, x][i][0, 7]
                         )
+                        all_samples_precision_sum_1.append(self.aggregate_precision_1[y, x][i])
+                        all_samples_recall_sum_1.append(self.aggregate_recall_1[y, x][i])
+                        all_samples_F_measure_sum_1.append(self.aggregate_F_measure_1[y, x][i])
+
+                        # model 2
                         all_samples_conf_sum_2.append(self.aggregate_outputs_2[y, x][i][0, 4])
                         all_sampels_conf_correctness_sum_2.append(
                             self.aggregate_outputs_2[y, x][i][0, 4]
-                            * self.aggregate_outputs_1[y, x][i][0, 7]
+                            * self.aggregate_outputs_2[y, x][i][0, 7]
                         )
                         all_samples_iou_sum_2.append(self.aggregate_outputs_2[y, x][i][0, 6])
                         all_sampels_iou_correctness_sum_2.append(
                             self.aggregate_outputs_2[y, x][i][0, 6]
                             * self.aggregate_outputs_2[y, x][i][0, 7]
                         )
-                        all_samples_precision_sum_1.append(self.aggregate_precision_1[y, x][i])
                         all_samples_precision_sum_2.append(self.aggregate_precision_2[y, x][i])
-                        all_samples_recall_sum_1.append(self.aggregate_recall_1[y, x][i])
                         all_samples_recall_sum_2.append(self.aggregate_recall_2[y, x][i])
-                        all_samples_F_measure_sum_1.append(self.aggregate_F_measure_1[y, x][i])
                         all_samples_F_measure_sum_2.append(self.aggregate_F_measure_2[y, x][i])
 
                 # take the average result
@@ -6983,10 +7366,23 @@ class UI_MainWindow(QWidget):
                 self.aggregate_avg_recall_2[y, x] = np.mean(all_samples_recall_sum_2)
                 self.aggregate_avg_F_measure_2[y, x] = np.mean(all_samples_F_measure_sum_2)
 
-        # default plotting quantity is Conf*IOU
-        self.cur_aggregate_plot_quantity_1 = self.aggregate_avg_conf_1 * self.aggregate_avg_iou_1
-        self.cur_aggregate_plot_quantity_2 = self.aggregate_avg_conf_2 * self.aggregate_avg_iou_2
-
+        # default plotting quantity
+        if self.quantity_name == 'Confidence':
+            self.cur_aggregate_plot_quantity_1 = self.aggregate_avg_conf_1
+            self.cur_aggregate_plot_quantity_2 = self.aggregate_avg_conf_2
+        elif self.quantity_name == 'IOU':
+            self.cur_aggregate_plot_quantity_1 = self.aggregate_avg_iou_1
+            self.cur_aggregate_plot_quantity_2 = self.aggregate_avg_iou_2
+        elif self.quantity_name == 'Conf*IOU':
+            self.cur_aggregate_plot_quantity_1 = (
+                self.aggregate_avg_conf_1 * self.aggregate_avg_iou_1
+            )
+            self.cur_aggregate_plot_quantity_2 = (
+                self.aggregate_avg_conf_2 * self.aggregate_avg_iou_2
+            )
+        else:
+            raise Exception(f'Unknown quantity {self.quantity_name}')
+        # print(self.cur_aggregate_plot_quantity_1[0, 0], self.cur_aggregate_plot_quantity_2[0, 0])
         # draw the heatmap
         self.draw_coco_nero(mode='aggregate')
 
