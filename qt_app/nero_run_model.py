@@ -383,8 +383,8 @@ def process_model_outputs(outputs, targets, iou_thres=0.5, conf_thres=0):
 # function that works with evaluating model performance with consensus format
 def evaluate_coco_with_consensus(outputs, consensus, iou_thres=0.5):
 
-    # augmented outputs have label correctness and iou appended to the input outputs
-    all_augmented_outputs = np.zeros(len(outputs), dtype=np.ndarray)
+    # updated outputs have new iou and label correctness and iou computed with consensus
+    all_updated_outputs = np.zeros(len(outputs), dtype=np.ndarray)
     all_precisions = np.zeros(len(outputs))
     all_recalls = np.zeros(len(outputs))
     all_F_measure = np.zeros(len(outputs))
@@ -407,7 +407,7 @@ def evaluate_coco_with_consensus(outputs, consensus, iou_thres=0.5):
         # all predicted bounding boxes and true bb for the current object
         pred_boxes = cur_object_outputs[:, :4]
         consensus_box = cur_consensus[0:4]
-        augmented_outputs = []
+        updated_outputs = []
         num_true_positive = 0
         num_false_positive = 0
 
@@ -430,9 +430,10 @@ def evaluate_coco_with_consensus(outputs, consensus, iou_thres=0.5):
                 num_false_positive += 1
 
             # even it might be wrong, we want the output
-            augmented_outputs.append(
-                np.append(cur_object_outputs[j].numpy(), (cur_iou, label_correctness))
-            )
+            cur_updated_output = cur_object_outputs[j].numpy()
+            cur_updated_output[6] = cur_iou
+            cur_updated_output[7] = label_correctness
+            updated_outputs.append(cur_updated_output)
 
         # Number of TP and FP is computed from all predictions (un-iou thresheld)
         # precision = TP / (TP + FP)
@@ -442,14 +443,14 @@ def evaluate_coco_with_consensus(outputs, consensus, iou_thres=0.5):
         # F-measure = (2 * Precision * Recall) / (Precision + Recall)
         F_measure = (2 * precision * recall) / (precision + recall + 1e-16)
 
-        # rank all outputs based on IOU and then convert to numpy array
-        augmented_outputs = np.array(sorted(augmented_outputs, key=lambda x: x[6])[::-1])
-        all_augmented_outputs[i] = augmented_outputs
+        # rank all outputs based on confidence and then convert to numpy array
+        updated_outputs = np.array(sorted(updated_outputs, key=lambda x: x[4])[::-1])
+        all_updated_outputs[i] = updated_outputs
         all_precisions[i] = precision
         all_recalls[i] = recall
         all_F_measure[i] = F_measure
 
-    return all_augmented_outputs, all_precisions, all_recalls, all_F_measure
+    return all_updated_outputs, all_precisions, all_recalls, all_F_measure
 
 
 # run model on either a single COCO image or a batch of COCO images

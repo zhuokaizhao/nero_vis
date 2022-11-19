@@ -3447,8 +3447,28 @@ class UI_MainWindow(QWidget):
                 f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_2_cache_name}_consensus_F_measure'
             )
 
-            # if not self.load_successfully:
-            if True:
+            # print(self.aggregate_consensus_1[0])
+            # print(self.aggregate_consensus_1.shape)
+            # print(self.aggregate_consensus_outputs_1.shape)
+            # aggregate_consensus_outputs = np.zeros(
+            #     (
+            #         self.aggregate_consensus_outputs_1.shape[0]
+            #         * self.aggregate_consensus_outputs_1.shape[1],
+            #         8,
+            #     )
+            # )
+            # for y in range(len(self.y_translation)):
+            #     for x in range(len(self.x_translation)):
+            #         aggregate_consensus_outputs[
+            #             y * len(self.y_translation) + x
+            #         ] = self.aggregate_consensus_outputs_1[y, x][0][0]
+            # print(aggregate_consensus_outputs.shape)
+            # np.save('aggregate_consensus.npy', self.aggregate_consensus_1)
+            # np.save('aggregate_consensus_outputs.npy', aggregate_consensus_outputs)
+            # exit()
+
+            if not self.load_successfully:
+                # if True:
                 print(f'Computing consensus from model outputs')
 
                 # compute consensus for two models
@@ -4779,7 +4799,7 @@ class UI_MainWindow(QWidget):
             return
 
         # left, top, width, height for QRect
-        rectangle = QtCore.QRect(center_x - width // 2, center_y - height // 2, width, height)
+        rectangle = QtCore.QRect(center_x - width / 2, center_y - height / 2, width, height)
 
         if color:
             pen = QtGui.QPen()
@@ -4975,12 +4995,12 @@ class UI_MainWindow(QWidget):
             for i in range(num_boxes_1):
                 center_x = (
                     (bounding_boxes[i, 0] + bounding_boxes[i, 2])
-                    // 2
+                    / 2
                     * (self.plot_size * 1.21 / self.image_size)
                 )
                 center_y = (
                     (bounding_boxes[i, 1] + bounding_boxes[i, 3])
-                    // 2
+                    / 2
                     * (self.plot_size * 1.21 / self.image_size)
                 )
                 model_display_rect_width = (bounding_boxes[i, 2] - bounding_boxes[i, 0]) * (
@@ -7061,25 +7081,25 @@ class UI_MainWindow(QWidget):
             # highest confidence output is at the top of aggregate_outputs_1
             for i in range(len(self.all_images_paths)):
                 # model output layout: x1, y1, x2, y2, conf, class_pred, iou, label correctness
-                x1_sum_1 = 0
-                y1_sum_1 = 0
-                x2_sum_1 = 0
-                y2_sum_1 = 0
-                label_sum_1 = 0
-                for y in range(model_outputs.shape[0]):
-                    for x in range(model_outputs.shape[1]):
-                        x1_sum_1 += model_outputs[y, x][i][0, 0] + x
-                        y1_sum_1 += model_outputs[y, x][i][0, 1] + y
-                        x2_sum_1 += model_outputs[y, x][i][0, 2] + x
-                        y2_sum_1 += model_outputs[y, x][i][0, 3] + y
-                        label_sum_1 += model_outputs[y, x][i][0, 5]
+                x1_sum = 0
+                y1_sum = 0
+                x2_sum = 0
+                y2_sum = 0
+                label_sum = 0
+                for y, y_tran in enumerate(self.y_translation):
+                    for x, x_tran in enumerate(self.x_translation):
+                        x1_sum += model_outputs[y, x][i][0, 0] - x_tran
+                        y1_sum += model_outputs[y, x][i][0, 1] - y_tran
+                        x2_sum += model_outputs[y, x][i][0, 2] - x_tran
+                        y2_sum += model_outputs[y, x][i][0, 3] - y_tran
+                        label_sum += model_outputs[y, x][i][0, 5]
 
                 aggregate_consensus[i] = [
-                    x1_sum_1 / (model_outputs.shape[0] * model_outputs.shape[1]),
-                    y1_sum_1 / (model_outputs.shape[0] * model_outputs.shape[1]),
-                    x2_sum_1 / (model_outputs.shape[0] * model_outputs.shape[1]),
-                    x2_sum_1 / (model_outputs.shape[0] * model_outputs.shape[1]),
-                    int(label_sum_1 / (model_outputs.shape[0] * model_outputs.shape[1])),
+                    x1_sum / (model_outputs.shape[0] * model_outputs.shape[1]),
+                    y1_sum / (model_outputs.shape[0] * model_outputs.shape[1]),
+                    x2_sum / (model_outputs.shape[0] * model_outputs.shape[1]),
+                    y2_sum / (model_outputs.shape[0] * model_outputs.shape[1]),
+                    int(label_sum / (model_outputs.shape[0] * model_outputs.shape[1])),
                 ]
 
             return aggregate_consensus
@@ -7109,24 +7129,24 @@ class UI_MainWindow(QWidget):
                 for x, x_tran in enumerate(self.x_translation):
                     print(f'y_tran = {y_tran}, x_tran = {x_tran}')
                     # current model outputs after shifting back
-                    # model 1
                     cur_model_outputs = model_outputs[y, x]
 
-                    # transform model 1 outputs back
-                    for i in range(len(cur_model_outputs)):
-                        cur_model_outputs[i][:, 0] = cur_model_outputs[i][:, 0] + x_tran
-                        cur_model_outputs[i][:, 1] = cur_model_outputs[i][:, 1] + y_tran
-                        cur_model_outputs[i][:, 2] = cur_model_outputs[i][:, 2] + x_tran
-                        cur_model_outputs[i][:, 3] = cur_model_outputs[i][:, 3] + y_tran
+                    # transform unshifted consensus for current model outputs
+                    cur_consensus = consensus.copy()
+                    cur_consensus[0] = consensus[0] + x_tran
+                    cur_consensus[1] = consensus[1] + y_tran
+                    cur_consensus[2] = consensus[2] + x_tran
+                    cur_consensus[3] = consensus[3] + y_tran
 
                     # compute losses using consensus
-                    # model 1
                     (
                         cur_augmented_outputs,
                         cur_consensus_precision,
                         cur_consensus_recall,
                         cur_consensus_F_measure,
-                    ) = nero_run_model.evaluate_coco_with_consensus(cur_model_outputs, consensus)
+                    ) = nero_run_model.evaluate_coco_with_consensus(
+                        cur_model_outputs, cur_consensus
+                    )
 
                     # record
                     consensus_outputs[y, x] = cur_augmented_outputs
