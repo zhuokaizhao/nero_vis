@@ -413,8 +413,12 @@ def evaluate_coco_with_consensus(outputs, consensus, iou_thres=0.5):
 
         # loop through all the proposed bounding boxes
         for j, pred_box in enumerate(pred_boxes):
+            print(pred_box)
+            print(consensus_box)
             # compute iou
             cur_iou = bbox_iou(pred_box.unsqueeze(0), consensus_box.unsqueeze(0))
+            print(cur_iou)
+            exit()
 
             # if the label is predicted correctly
             if pred_labels[j] == consensus_label:

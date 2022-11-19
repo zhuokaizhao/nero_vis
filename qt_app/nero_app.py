@@ -1782,7 +1782,7 @@ class UI_MainWindow(QWidget):
                     self.aggregate_avg_recall_2[y, x] = np.mean(all_samples_recall_sum_2)
                     self.aggregate_avg_F_measure_2[y, x] = np.mean(all_samples_F_measure_sum_2)
 
-            # default plotting quantity
+            # keep existing plot quantity selection
             if self.quantity_name == 'Confidence':
                 self.cur_aggregate_plot_quantity_1 = self.aggregate_avg_conf_1
                 self.cur_aggregate_plot_quantity_2 = self.aggregate_avg_conf_2
@@ -2552,74 +2552,73 @@ class UI_MainWindow(QWidget):
         # when compute_dr is true, dimension reduction is computed
         def display_dimension_reduction(compute_dr=True):
 
-            # initialize all the views, etc when the first time
-            if not self.dr_result_existed:
-                # scatter plot on low-dim points
-                self.low_dim_scatter_view_1 = pg.GraphicsLayoutWidget()
-                self.low_dim_scatter_view_1.setBackground('white')
-                if self.mode == 'digit_recognition':
-                    self.low_dim_scatter_view_1.setFixedSize(
-                        self.plot_size * 1.1, self.plot_size * 1.1
-                    )
-                    self.low_dim_scatter_view_1.ci.setContentsMargins(20, 100, 0, 0)
-                elif self.mode == 'object_detection':
-                    self.low_dim_scatter_view_1.setFixedSize(
-                        self.plot_size * 1.3, self.plot_size * 1.3
-                    )
-                    self.low_dim_scatter_view_1.ci.setContentsMargins(20, 0, 0, 0)
-                elif self.mode == 'piv':
-                    self.low_dim_scatter_view_1.setFixedSize(
-                        self.plot_size * 1.3, self.plot_size * 1.3
-                    )
-                    self.low_dim_scatter_view_1.ci.setContentsMargins(20, 0, 0, 0)
+            # initialize all the views - when not the first time, should have faster sln
+            # scatter plot on low-dim points
+            self.low_dim_scatter_view_1 = pg.GraphicsLayoutWidget()
+            self.low_dim_scatter_view_1.setBackground('white')
+            if self.mode == 'digit_recognition':
+                self.low_dim_scatter_view_1.setFixedSize(
+                    self.plot_size * 1.1, self.plot_size * 1.1
+                )
+                self.low_dim_scatter_view_1.ci.setContentsMargins(20, 100, 0, 0)
+            elif self.mode == 'object_detection':
+                self.low_dim_scatter_view_1.setFixedSize(
+                    self.plot_size * 1.3, self.plot_size * 1.3
+                )
+                self.low_dim_scatter_view_1.ci.setContentsMargins(20, 0, 0, 0)
+            elif self.mode == 'piv':
+                self.low_dim_scatter_view_1.setFixedSize(
+                    self.plot_size * 1.3, self.plot_size * 1.3
+                )
+                self.low_dim_scatter_view_1.ci.setContentsMargins(20, 0, 0, 0)
 
-                # add plot
-                self.low_dim_scatter_plot_1 = self.low_dim_scatter_view_1.addPlot()
-                if self.mode == 'object_detection':
-                    self.low_dim_scatter_plot_1.setContentsMargins(0, 0, 0, 150)
-                self.low_dim_scatter_plot_1.hideAxis('left')
-                self.low_dim_scatter_plot_1.hideAxis('bottom')
+            # add plot
+            self.low_dim_scatter_plot_1 = self.low_dim_scatter_view_1.addPlot()
+            if self.mode == 'object_detection':
+                self.low_dim_scatter_plot_1.setContentsMargins(0, 0, 0, 150)
+            self.low_dim_scatter_plot_1.hideAxis('left')
+            self.low_dim_scatter_plot_1.hideAxis('bottom')
 
-                # set axis range
-                self.low_dim_scatter_plot_1.setXRange(-1.2, 1.2, padding=0)
-                self.low_dim_scatter_plot_1.setYRange(-1.2, 1.2, padding=0)
-                # Not letting user zoom out past axis limit
-                self.low_dim_scatter_plot_1.vb.setLimits(xMin=-1.2, xMax=1.2, yMin=-1.2, yMax=1.2)
-                # No auto range when adding new item (red indicator)
-                self.low_dim_scatter_plot_1.vb.disableAutoRange(axis=pg.ViewBox.XYAxes)
+            # set axis range
+            self.low_dim_scatter_plot_1.setXRange(-1.2, 1.2, padding=0)
+            self.low_dim_scatter_plot_1.setYRange(-1.2, 1.2, padding=0)
+            # Not letting user zoom out past axis limit
+            self.low_dim_scatter_plot_1.vb.setLimits(xMin=-1.2, xMax=1.2, yMin=-1.2, yMax=1.2)
+            # No auto range when adding new item (red indicator)
+            self.low_dim_scatter_plot_1.vb.disableAutoRange(axis=pg.ViewBox.XYAxes)
 
-                self.low_dim_scatter_view_2 = pg.GraphicsLayoutWidget()
-                self.low_dim_scatter_view_2.setBackground('white')
-                if self.mode == 'digit_recognition':
-                    self.low_dim_scatter_view_2.setFixedSize(
-                        self.plot_size * 1.1, self.plot_size * 1.1
-                    )
-                    self.low_dim_scatter_view_2.ci.setContentsMargins(20, 0, 0, 0)
-                elif self.mode == 'object_detection':
-                    self.low_dim_scatter_view_2.setFixedSize(
-                        self.plot_size * 1.35, self.plot_size * 1.35
-                    )
-                    self.low_dim_scatter_view_2.ci.setContentsMargins(20, 0, 0, 100)
-                elif self.mode == 'piv':
-                    self.low_dim_scatter_view_2.setFixedSize(
-                        self.plot_size * 1.35, self.plot_size * 1.35
-                    )
-                    self.low_dim_scatter_view_2.ci.setContentsMargins(20, 0, 0, 100)
+            self.low_dim_scatter_view_2 = pg.GraphicsLayoutWidget()
+            self.low_dim_scatter_view_2.setBackground('white')
+            if self.mode == 'digit_recognition':
+                self.low_dim_scatter_view_2.setFixedSize(
+                    self.plot_size * 1.1, self.plot_size * 1.1
+                )
+                self.low_dim_scatter_view_2.ci.setContentsMargins(20, 0, 0, 0)
+            elif self.mode == 'object_detection':
+                self.low_dim_scatter_view_2.setFixedSize(
+                    self.plot_size * 1.25, self.plot_size * 1.25
+                )
+                self.low_dim_scatter_view_2.ci.setContentsMargins(20, 0, 0, 0)
+            elif self.mode == 'piv':
+                self.low_dim_scatter_view_2.setFixedSize(
+                    self.plot_size * 1.25, self.plot_size * 1.25
+                )
+                self.low_dim_scatter_view_2.ci.setContentsMargins(20, 0, 0, 100)
 
-                # add plot
-                self.low_dim_scatter_plot_2 = self.low_dim_scatter_view_2.addPlot()
-                self.low_dim_scatter_plot_2.hideAxis('left')
-                self.low_dim_scatter_plot_2.hideAxis('bottom')
+            # add plot
+            self.low_dim_scatter_plot_2 = self.low_dim_scatter_view_2.addPlot()
+            self.low_dim_scatter_plot_2.hideAxis('left')
+            self.low_dim_scatter_plot_2.hideAxis('bottom')
 
-                # set axis range
-                self.low_dim_scatter_plot_2.setXRange(-1.2, 1.2, padding=0)
-                self.low_dim_scatter_plot_2.setYRange(-1.2, 1.2, padding=0)
-                # Not letting user zoom out past axis limit
-                self.low_dim_scatter_plot_2.vb.setLimits(xMin=-1.2, xMax=1.2, yMin=-1.2, yMax=1.2)
-                # scatter item size
-                self.scatter_item_size = 12
+            # set axis range
+            self.low_dim_scatter_plot_2.setXRange(-1.2, 1.2, padding=0)
+            self.low_dim_scatter_plot_2.setYRange(-1.2, 1.2, padding=0)
+            # Not letting user zoom out past axis limit
+            self.low_dim_scatter_plot_2.vb.setLimits(xMin=-1.2, xMax=1.2, yMin=-1.2, yMax=1.2)
+            # scatter item size
+            self.scatter_item_size = 12
 
-                self.dr_result_existed = True
+            self.dr_result_existed = True
 
             # run dimension reduction algorithm
             if compute_dr:
@@ -2694,114 +2693,6 @@ class UI_MainWindow(QWidget):
                 else:
                     self.aggregate_result_layout.addWidget(self.low_dim_scatter_view_1, 2, 1)
                     self.aggregate_result_layout.addWidget(self.low_dim_scatter_view_2, 2, 2)
-
-        # run dimension reduction of all images on the selected digit
-        # each image has tensor with length being the number of translations
-        self.cur_class_indices = []
-        if self.class_selection == 'all':
-            # all the indices
-            self.cur_class_indices = list(range(len(self.loaded_images_labels)))
-        else:
-            for i in range(len(self.loaded_images_labels)):
-                if self.class_selection == self.loaded_images_labels[i]:
-                    self.cur_class_indices.append(i)
-
-        if self.mode == 'digit_recognition':
-            num_transformations = len(self.all_aggregate_angles)
-        elif self.mode == 'object_detection':
-            num_transformations = len(self.x_translation) * len(self.y_translation)
-        elif self.mode == 'piv':
-            num_transformations = 16
-
-        self.all_high_dim_points_1 = np.zeros((len(self.cur_class_indices), num_transformations))
-        self.all_high_dim_points_2 = np.zeros((len(self.cur_class_indices), num_transformations))
-
-        for i, index in enumerate(self.cur_class_indices):
-            # go through all the transfomations
-            for j in range(num_transformations):
-                if self.mode == 'digit_recognition':
-
-                    self.all_high_dim_points_1[i, j] = int(
-                        self.all_outputs_1[j][index].argmax() == self.loaded_images_labels[index]
-                    )
-                    self.all_high_dim_points_2[i, j] = int(
-                        self.all_outputs_2[j][index].argmax() == self.loaded_images_labels[index]
-                    )
-
-                elif self.mode == 'object_detection':
-
-                    y = int(j // len(self.x_translation))
-                    x = int(j % len(self.x_translation))
-
-                    # aggregate_outputs_1 has shape (num_y_translations, num_x_translations, num_samples, 8)
-                    if self.use_consensus:
-                        cur_conf_1 = self.aggregate_consensus_outputs_1[y, x][index][0, 4]
-                        cur_iou_1 = self.aggregate_consensus_outputs_1[y, x][index][0, 6]
-                        cur_correctness_1 = self.aggregate_consensus_outputs_1[y, x][index][0, 7]
-
-                        cur_conf_2 = self.aggregate_consensus_outputs_2[y, x][index][0, 4]
-                        cur_iou_2 = self.aggregate_consensus_outputs_2[y, x][index][0, 6]
-                        cur_correctness_2 = self.aggregate_consensus_outputs_2[y, x][index][0, 7]
-                    else:
-                        cur_conf_1 = self.aggregate_outputs_1[y, x][index][0, 4]
-                        cur_iou_1 = self.aggregate_outputs_1[y, x][index][0, 6]
-                        cur_correctness_1 = self.aggregate_outputs_1[y, x][index][0, 7]
-
-                        cur_conf_2 = self.aggregate_outputs_2[y, x][index][0, 4]
-                        cur_iou_2 = self.aggregate_outputs_2[y, x][index][0, 6]
-                        cur_correctness_2 = self.aggregate_outputs_2[y, x][index][0, 7]
-
-                    # always have the correctness involved
-                    if self.quantity_name == 'Conf*IOU':
-                        cur_value_1 = cur_conf_1 * cur_iou_1 * cur_correctness_1
-                        cur_value_2 = cur_conf_2 * cur_iou_2 * cur_correctness_2
-                    elif self.quantity_name == 'Confidence':
-                        cur_value_1 = cur_conf_1
-                        cur_value_2 = cur_conf_2
-                    elif self.quantity_name == 'IOU':
-                        cur_value_1 = cur_iou_1
-                        cur_value_2 = cur_iou_2
-
-                    # below values exist in non-demo mode
-                    elif self.quantity_name == 'Precision':
-                        if self.use_consensus:
-                            cur_value_1 = self.aggregate_consensus_precision_1[y, x][index]
-                            cur_value_2 = self.aggregate_consensus_precision_2[y, x][index]
-                        else:
-                            cur_value_1 = self.aggregate_precision_1[y, x][index]
-                            cur_value_2 = self.aggregate_precision_2[y, x][index]
-                    elif self.quantity_name == 'Recall':
-                        if self.use_consensus:
-                            cur_value_1 = self.aggregate_consensus_recall_1[y, x][index]
-                            cur_value_2 = self.aggregate_consensus_recall_2[y, x][index]
-                        else:
-                            cur_value_1 = self.aggregate_recall_1[y, x][index]
-                            cur_value_2 = self.aggregate_recall_2[y, x][index]
-                    elif self.quantity_name == 'F1 Score':
-                        if self.use_consensus:
-                            cur_value_1 = self.aggregate_consensus_F_measure_1[y, x][index]
-                            cur_value_2 = self.aggregate_consensus_F_measure_2[y, x][index]
-                        else:
-                            cur_value_1 = self.aggregate_F_measure_1[y, x][index]
-                            cur_value_2 = self.aggregate_F_measure_2[y, x][index]
-                    elif self.quantity_name == 'mAP':
-                        cur_value_1 = 0
-                        cur_value_2 = 0
-
-                    self.all_high_dim_points_1[i, j] = cur_value_1
-                    self.all_high_dim_points_2[i, j] = cur_value_2
-
-                elif self.mode == 'piv':
-                    self.all_high_dim_points_1[i, j] = self.loss_module(
-                        self.aggregate_outputs_1[j, i],
-                        self.aggregate_ground_truths[j, i],
-                        reduction='mean',
-                    )
-                    self.all_high_dim_points_2[i, j] = self.loss_module(
-                        self.aggregate_outputs_2[j, i],
-                        self.aggregate_ground_truths[j, i],
-                        reduction='mean',
-                    )
 
         # radio buttons on choosing quantity used to compute intensity
         @QtCore.Slot()
@@ -3014,71 +2905,182 @@ class UI_MainWindow(QWidget):
                 # run model all and display results (Individual NERO plot)
                 self.run_model_single()
 
-        # radio buittons on choosing the intensity quantity
-        # Title on the two radio buttons
-        intensity_button_pixmap = QPixmap(300, 60)
-        intensity_button_pixmap.fill(QtCore.Qt.white)
-        painter = QtGui.QPainter(intensity_button_pixmap)
-        if self.mode == 'digit_recognition' or self.mode == 'object_detection':
-            painter.setFont(QFont('Helvetica', 30))
-            painter.drawText(0, 0, 300, 60, QtGui.Qt.AlignLeft, 'DR Plot Sorting:')
+        # run dimension reduction of all images on the selected digit
+        # each image has tensor with length being the number of translations
+        self.cur_class_indices = []
+        if self.class_selection == 'all':
+            # all the indices
+            self.cur_class_indices = list(range(len(self.loaded_images_labels)))
+        else:
+            for i in range(len(self.loaded_images_labels)):
+                if self.class_selection == self.loaded_images_labels[i]:
+                    self.cur_class_indices.append(i)
+
+        if self.mode == 'digit_recognition':
+            num_transformations = len(self.all_aggregate_angles)
+        elif self.mode == 'object_detection':
+            num_transformations = len(self.x_translation) * len(self.y_translation)
         elif self.mode == 'piv':
-            painter.setFont(QFont('Helvetica', 30))
-            painter.drawText(0, 0, 300, 60, QtGui.Qt.AlignLeft, 'DR Sorting:')
-        painter.end()
+            num_transformations = 16
 
-        # create label to contain the texts
-        intensity_button_label = QLabel(self)
-        intensity_button_label.setContentsMargins(0, 0, 0, 0)
-        intensity_button_label.setFixedSize(QtCore.QSize(350, 115))
-        intensity_button_label.setAlignment(QtCore.Qt.AlignLeft)
-        intensity_button_label.setWordWrap(True)
-        intensity_button_label.setTextFormat(QtGui.Qt.AutoText)
-        intensity_button_label.setPixmap(intensity_button_pixmap)
-        intensity_button_label.setContentsMargins(5, 60, 0, 0)
-        # add to the layout
-        if self.demo:
-            self.scatterplot_sorting_layout = QtWidgets.QGridLayout()
-            # the title occupies two rows because we have two selections (mean and variance)
-            self.scatterplot_sorting_layout.addWidget(intensity_button_label, 0, 0, 2, 1)
-        else:
-            self.aggregate_plot_control_layout.addWidget(intensity_button_label, 7, 0)
+        self.all_high_dim_points_1 = np.zeros((len(self.cur_class_indices), num_transformations))
+        self.all_high_dim_points_2 = np.zeros((len(self.cur_class_indices), num_transformations))
 
-        self.mean_intensity_button = QRadioButton('Mean')
-        self.mean_intensity_button.setFixedSize(QtCore.QSize(160, 50))
-        self.mean_intensity_button.setContentsMargins(0, 0, 0, 0)
-        self.mean_intensity_button.setStyleSheet(
-            'color: black; font-style: normal; font-family: Helvetica; font-size: 28px;'
-        )
-        self.mean_intensity_button.pressed.connect(mean_intensity_button_clicked)
-        if self.demo:
-            self.scatterplot_sorting_layout.addWidget(self.mean_intensity_button, 1, 1, 1, 1)
-        else:
-            self.aggregate_plot_control_layout.addWidget(self.mean_intensity_button, 8, 0)
+        for i, index in enumerate(self.cur_class_indices):
+            # go through all the transfomations
+            for j in range(num_transformations):
+                if self.mode == 'digit_recognition':
 
-        self.variance_intensity_button = QRadioButton('Variance')
-        self.variance_intensity_button.setFixedSize(QtCore.QSize(160, 50))
-        self.variance_intensity_button.setContentsMargins(0, 0, 0, 0)
-        self.variance_intensity_button.setStyleSheet(
-            'color: black; font-style: normal; font-family: Helvetica; font-size: 28px;'
-        )
-        self.variance_intensity_button.pressed.connect(variance_intensity_button_clicked)
-        if self.demo:
-            self.scatterplot_sorting_layout.addWidget(self.variance_intensity_button, 2, 1, 1, 1)
-            # self.scatterplot_sorting_layout.setContentsMargins(0, 0, 30, 0)
-            self.demo_layout.addLayout(self.scatterplot_sorting_layout, 1, 1, 2, 1)
-        else:
-            self.aggregate_plot_control_layout.addWidget(self.variance_intensity_button, 9, 0)
+                    self.all_high_dim_points_1[i, j] = int(
+                        self.all_outputs_1[j][index].argmax() == self.loaded_images_labels[index]
+                    )
+                    self.all_high_dim_points_2[i, j] = int(
+                        self.all_outputs_2[j][index].argmax() == self.loaded_images_labels[index]
+                    )
 
-        # by default the intensities are computed via mean
-        self.mean_intensity_button.setChecked(True)
-        self.intensity_method = 'mean'
-        # compute each sample's metric average (e.g., avg confidence for mnist) across all
-        # transformations as intensity
-        self.all_intensity_1 = np.mean(self.all_high_dim_points_1, axis=1)
-        self.all_intensity_2 = np.mean(self.all_high_dim_points_2, axis=1)
-        self.intensity_min = min(np.min(self.all_intensity_1), np.min(self.all_intensity_2))
-        self.intensity_max = max(np.max(self.all_intensity_1), np.max(self.all_intensity_2))
+                elif self.mode == 'object_detection':
+
+                    y = int(j // len(self.x_translation))
+                    x = int(j % len(self.x_translation))
+
+                    # aggregate_outputs_1 has shape (num_y_translations, num_x_translations, num_samples, 8)
+                    if self.use_consensus:
+                        cur_conf_1 = self.aggregate_consensus_outputs_1[y, x][index][0, 4]
+                        cur_iou_1 = self.aggregate_consensus_outputs_1[y, x][index][0, 6]
+                        cur_correctness_1 = self.aggregate_consensus_outputs_1[y, x][index][0, 7]
+
+                        cur_conf_2 = self.aggregate_consensus_outputs_2[y, x][index][0, 4]
+                        cur_iou_2 = self.aggregate_consensus_outputs_2[y, x][index][0, 6]
+                        cur_correctness_2 = self.aggregate_consensus_outputs_2[y, x][index][0, 7]
+                    else:
+                        cur_conf_1 = self.aggregate_outputs_1[y, x][index][0, 4]
+                        cur_iou_1 = self.aggregate_outputs_1[y, x][index][0, 6]
+                        cur_correctness_1 = self.aggregate_outputs_1[y, x][index][0, 7]
+
+                        cur_conf_2 = self.aggregate_outputs_2[y, x][index][0, 4]
+                        cur_iou_2 = self.aggregate_outputs_2[y, x][index][0, 6]
+                        cur_correctness_2 = self.aggregate_outputs_2[y, x][index][0, 7]
+
+                    # always have the correctness involved
+                    if self.quantity_name == 'Conf*IOU':
+                        cur_value_1 = cur_conf_1 * cur_iou_1 * cur_correctness_1
+                        cur_value_2 = cur_conf_2 * cur_iou_2 * cur_correctness_2
+                    elif self.quantity_name == 'Confidence':
+                        cur_value_1 = cur_conf_1
+                        cur_value_2 = cur_conf_2
+                    elif self.quantity_name == 'IOU':
+                        cur_value_1 = cur_iou_1
+                        cur_value_2 = cur_iou_2
+
+                    # below values exist in non-demo mode
+                    elif self.quantity_name == 'Precision':
+                        if self.use_consensus:
+                            cur_value_1 = self.aggregate_consensus_precision_1[y, x][index]
+                            cur_value_2 = self.aggregate_consensus_precision_2[y, x][index]
+                        else:
+                            cur_value_1 = self.aggregate_precision_1[y, x][index]
+                            cur_value_2 = self.aggregate_precision_2[y, x][index]
+                    elif self.quantity_name == 'Recall':
+                        if self.use_consensus:
+                            cur_value_1 = self.aggregate_consensus_recall_1[y, x][index]
+                            cur_value_2 = self.aggregate_consensus_recall_2[y, x][index]
+                        else:
+                            cur_value_1 = self.aggregate_recall_1[y, x][index]
+                            cur_value_2 = self.aggregate_recall_2[y, x][index]
+                    elif self.quantity_name == 'F1 Score':
+                        if self.use_consensus:
+                            cur_value_1 = self.aggregate_consensus_F_measure_1[y, x][index]
+                            cur_value_2 = self.aggregate_consensus_F_measure_2[y, x][index]
+                        else:
+                            cur_value_1 = self.aggregate_F_measure_1[y, x][index]
+                            cur_value_2 = self.aggregate_F_measure_2[y, x][index]
+                    elif self.quantity_name == 'mAP':
+                        cur_value_1 = 0
+                        cur_value_2 = 0
+
+                    self.all_high_dim_points_1[i, j] = cur_value_1
+                    self.all_high_dim_points_2[i, j] = cur_value_2
+
+                elif self.mode == 'piv':
+                    self.all_high_dim_points_1[i, j] = self.loss_module(
+                        self.aggregate_outputs_1[j, i],
+                        self.aggregate_ground_truths[j, i],
+                        reduction='mean',
+                    )
+                    self.all_high_dim_points_2[i, j] = self.loss_module(
+                        self.aggregate_outputs_2[j, i],
+                        self.aggregate_ground_truths[j, i],
+                        reduction='mean',
+                    )
+
+        # radio buittons on choosing the intensity quantity
+        if not self.dr_result_existed:
+            # Title on the two radio buttons
+            intensity_button_pixmap = QPixmap(300, 60)
+            intensity_button_pixmap.fill(QtCore.Qt.white)
+            painter = QtGui.QPainter(intensity_button_pixmap)
+            if self.mode == 'digit_recognition' or self.mode == 'object_detection':
+                painter.setFont(QFont('Helvetica', 30))
+                painter.drawText(0, 0, 300, 60, QtGui.Qt.AlignLeft, 'DR Plot Sorting:')
+            elif self.mode == 'piv':
+                painter.setFont(QFont('Helvetica', 30))
+                painter.drawText(0, 0, 300, 60, QtGui.Qt.AlignLeft, 'DR Sorting:')
+            painter.end()
+
+            # create label to contain the texts
+            intensity_button_label = QLabel(self)
+            intensity_button_label.setContentsMargins(0, 0, 0, 0)
+            intensity_button_label.setFixedSize(QtCore.QSize(350, 115))
+            intensity_button_label.setAlignment(QtCore.Qt.AlignLeft)
+            intensity_button_label.setWordWrap(True)
+            intensity_button_label.setTextFormat(QtGui.Qt.AutoText)
+            intensity_button_label.setPixmap(intensity_button_pixmap)
+            intensity_button_label.setContentsMargins(5, 60, 0, 0)
+            # add to the layout
+            if self.demo:
+                self.scatterplot_sorting_layout = QtWidgets.QGridLayout()
+                # the title occupies two rows because we have two selections (mean and variance)
+                self.scatterplot_sorting_layout.addWidget(intensity_button_label, 0, 0, 2, 1)
+            else:
+                self.aggregate_plot_control_layout.addWidget(intensity_button_label, 7, 0)
+
+            self.mean_intensity_button = QRadioButton('Mean')
+            self.mean_intensity_button.setFixedSize(QtCore.QSize(160, 50))
+            self.mean_intensity_button.setContentsMargins(0, 0, 0, 0)
+            self.mean_intensity_button.setStyleSheet(
+                'color: black; font-style: normal; font-family: Helvetica; font-size: 28px;'
+            )
+            self.mean_intensity_button.pressed.connect(mean_intensity_button_clicked)
+            if self.demo:
+                self.scatterplot_sorting_layout.addWidget(self.mean_intensity_button, 1, 1, 1, 1)
+            else:
+                self.aggregate_plot_control_layout.addWidget(self.mean_intensity_button, 8, 0)
+
+            self.variance_intensity_button = QRadioButton('Variance')
+            self.variance_intensity_button.setFixedSize(QtCore.QSize(160, 50))
+            self.variance_intensity_button.setContentsMargins(0, 0, 0, 0)
+            self.variance_intensity_button.setStyleSheet(
+                'color: black; font-style: normal; font-family: Helvetica; font-size: 28px;'
+            )
+            self.variance_intensity_button.pressed.connect(variance_intensity_button_clicked)
+            if self.demo:
+                self.scatterplot_sorting_layout.addWidget(
+                    self.variance_intensity_button, 2, 1, 1, 1
+                )
+                # self.scatterplot_sorting_layout.setContentsMargins(0, 0, 30, 0)
+                self.demo_layout.addLayout(self.scatterplot_sorting_layout, 1, 1, 2, 1)
+            else:
+                self.aggregate_plot_control_layout.addWidget(self.variance_intensity_button, 9, 0)
+
+            # by default the intensities are computed via mean
+            self.mean_intensity_button.setChecked(True)
+            self.intensity_method = 'mean'
+            # compute each sample's metric average (e.g., avg confidence for mnist) across all
+            # transformations as intensity
+            self.all_intensity_1 = np.mean(self.all_high_dim_points_1, axis=1)
+            self.all_intensity_2 = np.mean(self.all_high_dim_points_2, axis=1)
+            self.intensity_min = min(np.min(self.all_intensity_1), np.min(self.all_intensity_2))
+            self.intensity_max = max(np.max(self.all_intensity_1), np.max(self.all_intensity_2))
 
         # show the scatter plot of dimension reduction result
         self.image_index = None
@@ -3270,7 +3272,8 @@ class UI_MainWindow(QWidget):
                 f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_2_cache_name}_F_measure'
             )
 
-            if not self.load_successfully:
+            # if not self.load_successfully:
+            if True:
                 # output of each sample for all translations, has shape (num_y_trans, num_x_trans, num_samples, num_samples, 7)
                 self.aggregate_outputs_1 = np.zeros(
                     (len(self.y_translation), len(self.x_translation)), dtype=np.ndarray
@@ -3467,8 +3470,8 @@ class UI_MainWindow(QWidget):
             # np.save('aggregate_consensus_outputs.npy', aggregate_consensus_outputs)
             # exit()
 
-            if not self.load_successfully:
-                # if True:
+            # if not self.load_successfully:
+            if True:
                 print(f'Computing consensus from model outputs')
 
                 # compute consensus for two models
@@ -3877,12 +3880,12 @@ class UI_MainWindow(QWidget):
         return bb_min_x, bb_min_y, bb_max_x, bb_max_y
 
     # helper function that computes consensus for cut out images
-    def update_consensus(self, cur_bounding_box, image_size):
+    def update_consensus(self, cur_bounding_box, image_size, x_dist=0, y_dist=0):
         # convert key object bounding box to be based on extracted image
-        x_min_center_bb = cur_bounding_box[0]
-        y_min_center_bb = cur_bounding_box[1]
-        x_max_center_bb = cur_bounding_box[2]
-        y_max_center_bb = cur_bounding_box[3]
+        x_min_center_bb = cur_bounding_box[0] - x_dist
+        y_min_center_bb = cur_bounding_box[1] - y_dist
+        x_max_center_bb = cur_bounding_box[2] - x_dist
+        y_max_center_bb = cur_bounding_box[3] - y_dist
 
         # compute the center of the object in the extracted image
         object_center_x = (x_min_center_bb + x_max_center_bb) / 2
@@ -3901,7 +3904,7 @@ class UI_MainWindow(QWidget):
         return bb_min_x, bb_min_y, bb_max_x, bb_max_y
 
     # helper function on redisplaying COCO input image with FOV mask and ground truth labelling
-    def display_coco_image(self):
+    def display_coco_image(self, consensus_index=None):
         # display the whole image
         self.display_image()
 
@@ -3938,65 +3941,69 @@ class UI_MainWindow(QWidget):
         painter = QtGui.QPainter(self.image_pixmap)
         if self.use_consensus:
             # draw the consensus label
+            self.cur_consensus_1 = self.update_consensus(
+                self.aggregate_consensus_1[self.image_index][:4],
+                (self.image_size, self.image_size),
+                x_dist=-self.x_tran,
+                y_dist=-self.y_tran,
+            )
+            self.cur_consensus_2 = self.update_consensus(
+                self.aggregate_consensus_2[self.image_index][:4],
+                (self.image_size, self.image_size),
+                x_dist=-self.x_tran,
+                y_dist=-self.y_tran,
+            )
             # we have two sets of consensus from two sets of models outputs
-            gt_display_center_x_1 = (
-                self.aggregate_consensus_1[self.image_index][0]
-                + self.aggregate_consensus_1[self.image_index][2]
+            consensus_display_center_x_1 = (
+                self.cur_consensus_1[0] + self.cur_consensus_1[2]
             ) / 2 * (display_rect_width / self.image_size) + (
                 rect_center_x - display_rect_width / 2
             )
-            gt_display_center_y_1 = (
-                self.aggregate_consensus_1[self.image_index][1]
-                + self.aggregate_consensus_1[self.image_index][3]
+            consensus_display_center_y_1 = (
+                self.cur_consensus_1[1] + self.cur_consensus_1[3]
             ) / 2 * (display_rect_height / self.image_size) + (
                 rect_center_y - display_rect_height / 2
             )
-            gt_display_rect_width_1 = (
-                self.aggregate_consensus_1[self.image_index][2]
-                - self.aggregate_consensus_1[self.image_index][0]
+            consensus_display_rect_width_1 = (
+                self.cur_consensus_1[2] - self.cur_consensus_1[0]
             ) * (display_rect_width / self.image_size / 1.21)
-            gt_display_rect_height_1 = (
-                self.aggregate_consensus_1[self.image_index][3]
-                - self.aggregate_consensus_1[self.image_index][1]
+            consensus_display_rect_height_1 = (
+                self.cur_consensus_1[3] - self.cur_consensus_1[1]
             ) * (display_rect_height / self.image_size / 1.21)
 
             self.draw_rectangle(
                 painter,
-                gt_display_center_x_1,
-                gt_display_center_y_1,
-                gt_display_rect_width_1,
-                gt_display_rect_height_1,
+                consensus_display_center_x_1,
+                consensus_display_center_y_1,
+                consensus_display_rect_width_1,
+                consensus_display_rect_height_1,
                 color='yellow',
                 label='Consensus_1',
             )
 
-            gt_display_center_x_2 = (
-                self.aggregate_consensus_2[self.image_index][0]
-                + self.aggregate_consensus_2[self.image_index][2]
+            consensus_display_center_x_2 = (
+                self.cur_consensus_2[0] + self.cur_consensus_2[2]
             ) / 2 * (display_rect_width / self.image_size) + (
                 rect_center_x - display_rect_width / 2
             )
-            gt_display_center_y_2 = (
-                self.aggregate_consensus_2[self.image_index][1]
-                + self.aggregate_consensus_2[self.image_index][3]
+            consensus_display_center_y_2 = (
+                self.cur_consensus_2[1] + self.cur_consensus_2[3]
             ) / 2 * (display_rect_height / self.image_size) + (
                 rect_center_y - display_rect_height / 2
             )
-            gt_display_rect_width_2 = (
-                self.aggregate_consensus_2[self.image_index][2]
-                - self.aggregate_consensus_2[self.image_index][0]
+            consensus_display_rect_width_2 = (
+                self.cur_consensus_2[2] - self.cur_consensus_2[0]
             ) * (display_rect_width / self.image_size / 1.21)
-            gt_display_rect_height_2 = (
-                self.aggregate_consensus_2[self.image_index][3]
-                - self.aggregate_consensus_2[self.image_index][1]
+            consensus_display_rect_height_2 = (
+                self.cur_consensus_2[3] - self.cur_consensus_2[1]
             ) * (display_rect_height / self.image_size / 1.21)
 
             self.draw_rectangle(
                 painter,
-                gt_display_center_x_2,
-                gt_display_center_y_2,
-                gt_display_rect_width_2,
-                gt_display_rect_height_2,
+                consensus_display_center_x_2,
+                consensus_display_center_y_2,
+                consensus_display_rect_width_2,
+                consensus_display_rect_height_2,
                 color='orange',
                 label='Consensus_2',
             )
@@ -4892,7 +4899,9 @@ class UI_MainWindow(QWidget):
 
     # draw detailed look of COCO models output on cropped regions
     def draw_model_output(self, take_from_aggregate_output=False):
-        def draw_detailed_plot(detailed_display_image, model_output, model_name, color):
+        def draw_detailed_plot(
+            detailed_display_image, model_output, model_name, color, index=None
+        ):
 
             # prepare a pixmap for the image
             detailed_image_pixmap = QPixmap(detailed_display_image)
@@ -4905,58 +4914,50 @@ class UI_MainWindow(QWidget):
             painter = QtGui.QPainter(detailed_image_pixmap)
             # draw the ground truth label
             if self.use_consensus:
-                gt_display_center_x_1 = (
-                    (self.cur_consensus_1[0] + self.cur_consensus_1[2])
-                    / 2
-                    * (self.plot_size * 1.21 / self.image_size)
-                )
-                gt_display_center_y_1 = (
-                    (self.cur_consensus_1[1] + self.cur_consensus_1[3])
-                    / 2
-                    * (self.plot_size * 1.21 / self.image_size)
-                )
-                gt_display_rect_width_1 = (self.cur_consensus_1[2] - self.cur_consensus_1[0]) * (
-                    self.plot_size * 1.21 / self.image_size
-                )
-                gt_display_rect_height_1 = (self.cur_consensus_1[3] - self.cur_consensus_1[1]) * (
-                    self.plot_size * 1.21 / self.image_size
-                )
+                if index == 1:
+                    consensus_display_center_x = (
+                        (self.cur_consensus_1[0] + self.cur_consensus_1[2])
+                        / 2
+                        * (self.plot_size * 1.21 / self.image_size)
+                    )
+                    consensus_display_center_y = (
+                        (self.cur_consensus_1[1] + self.cur_consensus_1[3])
+                        / 2
+                        * (self.plot_size * 1.21 / self.image_size)
+                    )
+                    consensus_display_rect_width = (
+                        self.cur_consensus_1[2] - self.cur_consensus_1[0]
+                    ) * (self.plot_size * 1.21 / self.image_size)
+                    consensus_display_rect_height = (
+                        self.cur_consensus_1[3] - self.cur_consensus_1[1]
+                    ) * (self.plot_size * 1.21 / self.image_size)
+                elif index == 2:
+                    consensus_display_center_x = (
+                        (self.cur_consensus_2[0] + self.cur_consensus_2[2])
+                        / 2
+                        * (self.plot_size * 1.21 / self.image_size)
+                    )
+                    consensus_display_center_y = (
+                        (self.cur_consensus_2[1] + self.cur_consensus_2[3])
+                        / 2
+                        * (self.plot_size * 1.21 / self.image_size)
+                    )
+                    consensus_display_rect_width = (
+                        self.cur_consensus_2[2] - self.cur_consensus_2[0]
+                    ) * (self.plot_size * 1.21 / self.image_size)
+                    consensus_display_rect_height = (
+                        self.cur_consensus_2[3] - self.cur_consensus_2[1]
+                    ) * (self.plot_size * 1.21 / self.image_size)
+
                 self.draw_rectangle(
                     painter,
-                    gt_display_center_x_1,
-                    gt_display_center_y_1,
-                    gt_display_rect_width_1,
-                    gt_display_rect_height_1,
+                    consensus_display_center_x,
+                    consensus_display_center_y,
+                    consensus_display_rect_width,
+                    consensus_display_rect_height,
                     color='yellow',
                     alpha=166,
-                    label='Consensus_1',
-                )
-
-                gt_display_center_x_2 = (
-                    (self.cur_consensus_2[0] + self.cur_consensus_2[2])
-                    / 2
-                    * (self.plot_size * 1.21 / self.image_size)
-                )
-                gt_display_center_y_2 = (
-                    (self.cur_consensus_2[1] + self.cur_consensus_2[3])
-                    / 2
-                    * (self.plot_size * 1.21 / self.image_size)
-                )
-                gt_display_rect_width_2 = (self.cur_consensus_2[2] - self.cur_consensus_2[0]) * (
-                    self.plot_size * 1.21 / self.image_size
-                )
-                gt_display_rect_height_2 = (self.cur_consensus_2[3] - self.cur_consensus_2[1]) * (
-                    self.plot_size * 1.21 / self.image_size
-                )
-                self.draw_rectangle(
-                    painter,
-                    gt_display_center_x_2,
-                    gt_display_center_y_2,
-                    gt_display_rect_width_2,
-                    gt_display_rect_height_2,
-                    color='orange',
-                    alpha=166,
-                    label='Consensus_2',
+                    label=f'Consensus_{index}',
                 )
             else:
                 gt_display_center_x = (
@@ -5110,12 +5111,28 @@ class UI_MainWindow(QWidget):
                 self.loaded_image_pt[self.y_min : self.y_max, self.x_min : self.x_max, :],
                 self.display_image_size * 1.21,
             )
-            self.output_1 = [
-                [self.aggregate_outputs_1[self.block_y, self.block_x][self.image_index]]
-            ]
-            self.output_2 = [
-                [self.aggregate_outputs_2[self.block_y, self.block_x][self.image_index]]
-            ]
+            if self.use_consensus:
+                self.output_1 = [
+                    [
+                        self.aggregate_consensus_outputs_1[self.block_y, self.block_x][
+                            self.image_index
+                        ]
+                    ]
+                ]
+                self.output_2 = [
+                    [
+                        self.aggregate_consensus_outputs_2[self.block_y, self.block_x][
+                            self.image_index
+                        ]
+                    ]
+                ]
+            else:
+                self.output_1 = [
+                    [self.aggregate_outputs_1[self.block_y, self.block_x][self.image_index]]
+                ]
+                self.output_2 = [
+                    [self.aggregate_outputs_2[self.block_y, self.block_x][self.image_index]]
+                ]
         else:
             self.detailed_display_image = nero_utilities.tensor_to_qt_image(
                 self.loaded_image_pt[self.y_min : self.y_max, self.x_min : self.x_max, :],
@@ -5129,11 +5146,11 @@ class UI_MainWindow(QWidget):
 
         # display for model 1
         self.detailed_image_label_1, self.detailed_text_label_1 = draw_detailed_plot(
-            self.detailed_display_image, self.output_1, self.model_1_name, 'blue'
+            self.detailed_display_image, self.output_1, self.model_1_name, 'blue', 1
         )
         # display for model 2
         self.detailed_image_label_2, self.detailed_text_label_2 = draw_detailed_plot(
-            self.detailed_display_image, self.output_2, self.model_2_name, 'magenta'
+            self.detailed_display_image, self.output_2, self.model_2_name, 'magenta', 2
         )
         # spacer item between image and text
         image_text_spacer = QtWidgets.QSpacerItem(
@@ -5270,41 +5287,108 @@ class UI_MainWindow(QWidget):
                             self.y_min = int(cur_center_y - self.image_size / 2)
                             self.y_max = int(cur_center_y + self.image_size / 2)
 
-                            # re-compute the ground truth label bounding boxes of the cropped image
-                            for i in range(len(self.cur_image_label)):
-                                self.cur_image_label[i, 1:5] = self.compute_label(
-                                    self.loaded_image_label[i, :4],
-                                    self.x_min,
-                                    self.y_min,
+                            # ground truth/consensus label bounding boxes of the cropped image
+                            if self.use_consensus:
+                                self.cur_consensus_1 = self.update_consensus(
+                                    self.aggregate_consensus_1[self.image_index][:4],
                                     (self.image_size, self.image_size),
+                                    x_dist,
+                                    y_dist,
+                                )
+                                self.cur_consensus_2 = self.update_consensus(
+                                    self.aggregate_consensus_2[self.image_index][:4],
+                                    (self.image_size, self.image_size),
+                                    x_dist,
+                                    y_dist,
                                 )
 
-                            # draw the ground truth label
-                            gt_display_center_x = (
-                                self.cur_image_label[0, 1] + self.cur_image_label[0, 3]
-                            ) / 2 * (self.display_image_size / self.uncropped_image_size) + (
-                                rect_center_x - display_rect_width / 2
-                            )
-                            gt_display_center_y = (
-                                self.cur_image_label[0, 4] + self.cur_image_label[0, 2]
-                            ) / 2 * (self.display_image_size / self.uncropped_image_size) + (
-                                rect_center_y - display_rect_height / 2
-                            )
-                            gt_display_rect_width = (
-                                self.cur_image_label[0, 3] - self.cur_image_label[0, 1]
-                            ) * (self.display_image_size / self.uncropped_image_size / 1.21)
-                            gt_display_rect_height = (
-                                self.cur_image_label[0, 4] - self.cur_image_label[0, 2]
-                            ) * (self.display_image_size / self.uncropped_image_size / 1.21)
-                            self.draw_rectangle(
-                                painter,
-                                gt_display_center_x,
-                                gt_display_center_y,
-                                gt_display_rect_width,
-                                gt_display_rect_height,
-                                color='yellow',
-                                label='Ground Truth',
-                            )
+                                # draw the consensus label
+                                gt_display_center_x_1 = (
+                                    self.cur_consensus_1[0] + self.cur_consensus_1[2]
+                                ) / 2 * (self.display_image_size / self.uncropped_image_size) + (
+                                    rect_center_x - display_rect_width / 2
+                                )
+                                gt_display_center_y_1 = (
+                                    self.cur_consensus_1[1] + self.cur_consensus_1[3]
+                                ) / 2 * (self.display_image_size / self.uncropped_image_size) + (
+                                    rect_center_y - display_rect_height / 2
+                                )
+                                gt_display_rect_width_1 = (
+                                    self.cur_consensus_1[2] - self.cur_consensus_1[0]
+                                ) * (self.display_image_size / self.uncropped_image_size / 1.21)
+                                gt_display_rect_height_1 = (
+                                    self.cur_consensus_1[3] - self.cur_consensus_1[1]
+                                ) * (self.display_image_size / self.uncropped_image_size / 1.21)
+                                self.draw_rectangle(
+                                    painter,
+                                    gt_display_center_x_1,
+                                    gt_display_center_y_1,
+                                    gt_display_rect_width_1,
+                                    gt_display_rect_height_1,
+                                    color='yellow',
+                                    label='Consensus_1',
+                                )
+
+                                gt_display_center_x_2 = (
+                                    self.cur_consensus_2[0] + self.cur_consensus_2[2]
+                                ) / 2 * (self.display_image_size / self.uncropped_image_size) + (
+                                    rect_center_x - display_rect_width / 2
+                                )
+                                gt_display_center_y_2 = (
+                                    self.cur_consensus_2[1] + self.cur_consensus_2[3]
+                                ) / 2 * (self.display_image_size / self.uncropped_image_size) + (
+                                    rect_center_y - display_rect_height / 2
+                                )
+                                gt_display_rect_width_2 = (
+                                    self.cur_consensus_2[2] - self.cur_consensus_2[0]
+                                ) * (self.display_image_size / self.uncropped_image_size / 1.21)
+                                gt_display_rect_height_2 = (
+                                    self.cur_consensus_2[3] - self.cur_consensus_2[1]
+                                ) * (self.display_image_size / self.uncropped_image_size / 1.21)
+                                self.draw_rectangle(
+                                    painter,
+                                    gt_display_center_x_2,
+                                    gt_display_center_y_2,
+                                    gt_display_rect_width_2,
+                                    gt_display_rect_height_2,
+                                    color='orange',
+                                    label='Consensus_2',
+                                )
+                            else:
+                                for i in range(len(self.cur_image_label)):
+                                    self.cur_image_label[i, 1:5] = self.compute_label(
+                                        self.loaded_image_label[i, :4],
+                                        self.x_min,
+                                        self.y_min,
+                                        (self.image_size, self.image_size),
+                                    )
+
+                                # draw the ground truth label
+                                gt_display_center_x = (
+                                    self.cur_image_label[0, 1] + self.cur_image_label[0, 3]
+                                ) / 2 * (self.display_image_size / self.uncropped_image_size) + (
+                                    rect_center_x - display_rect_width / 2
+                                )
+                                gt_display_center_y = (
+                                    self.cur_image_label[0, 4] + self.cur_image_label[0, 2]
+                                ) / 2 * (self.display_image_size / self.uncropped_image_size) + (
+                                    rect_center_y - display_rect_height / 2
+                                )
+                                gt_display_rect_width = (
+                                    self.cur_image_label[0, 3] - self.cur_image_label[0, 1]
+                                ) * (self.display_image_size / self.uncropped_image_size / 1.21)
+                                gt_display_rect_height = (
+                                    self.cur_image_label[0, 4] - self.cur_image_label[0, 2]
+                                ) * (self.display_image_size / self.uncropped_image_size / 1.21)
+                                self.draw_rectangle(
+                                    painter,
+                                    gt_display_center_x,
+                                    gt_display_center_y,
+                                    gt_display_rect_width,
+                                    gt_display_rect_height,
+                                    color='yellow',
+                                    label='Ground Truth',
+                                )
                             painter.end()
 
                             # update pixmap with the label
@@ -7132,11 +7216,14 @@ class UI_MainWindow(QWidget):
                     cur_model_outputs = model_outputs[y, x]
 
                     # transform unshifted consensus for current model outputs
-                    cur_consensus = consensus.copy()
-                    cur_consensus[0] = consensus[0] + x_tran
-                    cur_consensus[1] = consensus[1] + y_tran
-                    cur_consensus[2] = consensus[2] + x_tran
-                    cur_consensus[3] = consensus[3] + y_tran
+                    # cur_consensus = consensus.copy()
+                    # cur_consensus[0] = consensus[0] + x_tran
+                    # cur_consensus[1] = consensus[1] + y_tran
+                    # cur_consensus[2] = consensus[2] + x_tran
+                    # cur_consensus[3] = consensus[3] + y_tran
+                    cur_consensus = self.update_consensus(
+                        consensus, (self.image_size, self.image_size), x_tran, y_tran
+                    )
 
                     # compute losses using consensus
                     (
