@@ -1787,14 +1787,14 @@ class UI_MainWindow(QWidget):
                 self.cur_aggregate_plot_quantity_1 = self.aggregate_avg_conf_1
                 self.cur_aggregate_plot_quantity_2 = self.aggregate_avg_conf_2
             elif self.quantity_name == 'IOU':
-                self.cur_aggregate_plot_quantity_1 = self.aggregate_avg_iou_1
-                self.cur_aggregate_plot_quantity_2 = self.aggregate_avg_iou_2
+                self.cur_aggregate_plot_quantity_1 = self.aggregate_avg_iou_correctness_1
+                self.cur_aggregate_plot_quantity_2 = self.aggregate_avg_iou_correctness_2
             elif self.quantity_name == 'Conf*IOU':
                 self.cur_aggregate_plot_quantity_1 = (
-                    self.aggregate_avg_conf_1 * self.aggregate_avg_iou_1
+                    self.aggregate_avg_conf_1 * self.aggregate_avg_iou_correctness_1
                 )
                 self.cur_aggregate_plot_quantity_2 = (
-                    self.aggregate_avg_conf_2 * self.aggregate_avg_iou_2
+                    self.aggregate_avg_conf_2 * self.aggregate_avg_iou_correctness_2
                 )
             else:
                 raise Exception(f'Unknown quantity {self.quantity_name}')
@@ -1814,19 +1814,23 @@ class UI_MainWindow(QWidget):
                             self.cur_single_plot_quantity_1[y, x] = (
                                 self.aggregate_consensus_outputs_1[y, x][self.image_index][0, 4]
                                 * self.aggregate_consensus_outputs_1[y, x][self.image_index][0, 6]
+                                * self.aggregate_consensus_outputs_1[y, x][self.image_index][0, 7]
                             )
                             self.cur_single_plot_quantity_2[y, x] = (
                                 self.aggregate_consensus_outputs_2[y, x][self.image_index][0, 4]
                                 * self.aggregate_consensus_outputs_2[y, x][self.image_index][0, 6]
+                                * self.aggregate_consensus_outputs_1[y, x][self.image_index][0, 7]
                             )
                         else:
                             self.cur_single_plot_quantity_1[y, x] = (
                                 self.aggregate_outputs_1[y, x][self.image_index][0, 4]
                                 * self.aggregate_outputs_1[y, x][self.image_index][0, 6]
+                                * self.aggregate_outputs_1[y, x][self.image_index][0, 7]
                             )
                             self.cur_single_plot_quantity_2[y, x] = (
                                 self.aggregate_outputs_2[y, x][self.image_index][0, 4]
                                 * self.aggregate_outputs_2[y, x][self.image_index][0, 6]
+                                * self.aggregate_outputs_1[y, x][self.image_index][0, 7]
                             )
                     elif self.quantity_name == 'Confidence':
                         if self.use_consensus:
@@ -1845,19 +1849,23 @@ class UI_MainWindow(QWidget):
                             ][0, 4]
                     elif self.quantity_name == 'IOU':
                         if self.use_consensus:
-                            self.cur_single_plot_quantity_1[
-                                y, x
-                            ] = self.aggregate_consensus_outputs_1[y, x][self.image_index][0, 6]
-                            self.cur_single_plot_quantity_2[
-                                y, x
-                            ] = self.aggregate_consensus_outputs_2[y, x][self.image_index][0, 6]
+                            self.cur_single_plot_quantity_1[y, x] = (
+                                self.aggregate_consensus_outputs_1[y, x][self.image_index][0, 6]
+                                * self.aggregate_consensus_outputs_1[y, x][self.image_index][0, 7]
+                            )
+                            self.cur_single_plot_quantity_2[y, x] = (
+                                self.aggregate_consensus_outputs_2[y, x][self.image_index][0, 6]
+                                * self.aggregate_consensus_outputs_1[y, x][self.image_index][0, 7]
+                            )
                         else:
-                            self.cur_single_plot_quantity_1[y, x] = self.aggregate_outputs_1[y, x][
-                                self.image_index
-                            ][0, 6]
-                            self.cur_single_plot_quantity_2[y, x] = self.aggregate_outputs_2[y, x][
-                                self.image_index
-                            ][0, 6]
+                            self.cur_single_plot_quantity_1[y, x] = (
+                                self.aggregate_outputs_1[y, x][self.image_index][0, 6]
+                                * self.aggregate_outputs_1[y, x][self.image_index][0, 7]
+                            )
+                            self.cur_single_plot_quantity_2[y, x] = (
+                                self.aggregate_outputs_2[y, x][self.image_index][0, 6]
+                                * self.aggregate_outputs_1[y, x][self.image_index][0, 7]
+                            )
 
             # re-display the heatmap
             self.draw_coco_nero(mode='single')
@@ -1880,6 +1888,9 @@ class UI_MainWindow(QWidget):
         # change different dimension reduction algorithms
         def dr_selection_changed(text):
             self.dr_selection = text
+
+            # reset plot flag
+            self.dr_result_existed = False
 
             # re-run dimension reduction and show result
             if self.dr_result_existed:
@@ -2454,6 +2465,7 @@ class UI_MainWindow(QWidget):
                     lut_index = 499
                 elif lut_index < 0:
                     lut_index = 0
+
                 color_indices.append(scatter_lut[int(lut_index)])
 
             # image index position in the current sorted class indices
@@ -2552,73 +2564,74 @@ class UI_MainWindow(QWidget):
         # when compute_dr is true, dimension reduction is computed
         def display_dimension_reduction(compute_dr=True):
 
-            # initialize all the views - when not the first time, should have faster sln
-            # scatter plot on low-dim points
-            self.low_dim_scatter_view_1 = pg.GraphicsLayoutWidget()
-            self.low_dim_scatter_view_1.setBackground('white')
-            if self.mode == 'digit_recognition':
-                self.low_dim_scatter_view_1.setFixedSize(
-                    self.plot_size * 1.1, self.plot_size * 1.1
-                )
-                self.low_dim_scatter_view_1.ci.setContentsMargins(20, 100, 0, 0)
-            elif self.mode == 'object_detection':
-                self.low_dim_scatter_view_1.setFixedSize(
-                    self.plot_size * 1.3, self.plot_size * 1.3
-                )
-                self.low_dim_scatter_view_1.ci.setContentsMargins(20, 0, 0, 0)
-            elif self.mode == 'piv':
-                self.low_dim_scatter_view_1.setFixedSize(
-                    self.plot_size * 1.3, self.plot_size * 1.3
-                )
-                self.low_dim_scatter_view_1.ci.setContentsMargins(20, 0, 0, 0)
+            # initialize all the views when the first time
+            if not self.dr_result_existed:
+                # scatter plot on low-dim points
+                self.low_dim_scatter_view_1 = pg.GraphicsLayoutWidget()
+                self.low_dim_scatter_view_1.setBackground('white')
+                if self.mode == 'digit_recognition':
+                    self.low_dim_scatter_view_1.setFixedSize(
+                        self.plot_size * 1.1, self.plot_size * 1.1
+                    )
+                    self.low_dim_scatter_view_1.ci.setContentsMargins(20, 100, 0, 0)
+                elif self.mode == 'object_detection':
+                    self.low_dim_scatter_view_1.setFixedSize(
+                        self.plot_size * 1.3, self.plot_size * 1.3
+                    )
+                    self.low_dim_scatter_view_1.ci.setContentsMargins(20, 0, 0, 0)
+                elif self.mode == 'piv':
+                    self.low_dim_scatter_view_1.setFixedSize(
+                        self.plot_size * 1.3, self.plot_size * 1.3
+                    )
+                    self.low_dim_scatter_view_1.ci.setContentsMargins(20, 0, 0, 0)
 
-            # add plot
-            self.low_dim_scatter_plot_1 = self.low_dim_scatter_view_1.addPlot()
-            if self.mode == 'object_detection':
-                self.low_dim_scatter_plot_1.setContentsMargins(0, 0, 0, 150)
-            self.low_dim_scatter_plot_1.hideAxis('left')
-            self.low_dim_scatter_plot_1.hideAxis('bottom')
+                # add plot
+                self.low_dim_scatter_plot_1 = self.low_dim_scatter_view_1.addPlot()
+                if self.mode == 'object_detection':
+                    self.low_dim_scatter_plot_1.setContentsMargins(0, 0, 0, 150)
+                self.low_dim_scatter_plot_1.hideAxis('left')
+                self.low_dim_scatter_plot_1.hideAxis('bottom')
 
-            # set axis range
-            self.low_dim_scatter_plot_1.setXRange(-1.2, 1.2, padding=0)
-            self.low_dim_scatter_plot_1.setYRange(-1.2, 1.2, padding=0)
-            # Not letting user zoom out past axis limit
-            self.low_dim_scatter_plot_1.vb.setLimits(xMin=-1.2, xMax=1.2, yMin=-1.2, yMax=1.2)
-            # No auto range when adding new item (red indicator)
-            self.low_dim_scatter_plot_1.vb.disableAutoRange(axis=pg.ViewBox.XYAxes)
+                # set axis range
+                self.low_dim_scatter_plot_1.setXRange(-1.2, 1.2, padding=0)
+                self.low_dim_scatter_plot_1.setYRange(-1.2, 1.2, padding=0)
+                # Not letting user zoom out past axis limit
+                self.low_dim_scatter_plot_1.vb.setLimits(xMin=-1.2, xMax=1.2, yMin=-1.2, yMax=1.2)
+                # No auto range when adding new item (red indicator)
+                self.low_dim_scatter_plot_1.vb.disableAutoRange(axis=pg.ViewBox.XYAxes)
 
-            self.low_dim_scatter_view_2 = pg.GraphicsLayoutWidget()
-            self.low_dim_scatter_view_2.setBackground('white')
-            if self.mode == 'digit_recognition':
-                self.low_dim_scatter_view_2.setFixedSize(
-                    self.plot_size * 1.1, self.plot_size * 1.1
-                )
-                self.low_dim_scatter_view_2.ci.setContentsMargins(20, 0, 0, 0)
-            elif self.mode == 'object_detection':
-                self.low_dim_scatter_view_2.setFixedSize(
-                    self.plot_size * 1.25, self.plot_size * 1.25
-                )
-                self.low_dim_scatter_view_2.ci.setContentsMargins(20, 0, 0, 0)
-            elif self.mode == 'piv':
-                self.low_dim_scatter_view_2.setFixedSize(
-                    self.plot_size * 1.25, self.plot_size * 1.25
-                )
-                self.low_dim_scatter_view_2.ci.setContentsMargins(20, 0, 0, 100)
+                self.low_dim_scatter_view_2 = pg.GraphicsLayoutWidget()
+                self.low_dim_scatter_view_2.setBackground('white')
+                if self.mode == 'digit_recognition':
+                    self.low_dim_scatter_view_2.setFixedSize(
+                        self.plot_size * 1.1, self.plot_size * 1.1
+                    )
+                    self.low_dim_scatter_view_2.ci.setContentsMargins(20, 0, 0, 0)
+                elif self.mode == 'object_detection':
+                    self.low_dim_scatter_view_2.setFixedSize(
+                        self.plot_size * 1.25, self.plot_size * 1.25
+                    )
+                    self.low_dim_scatter_view_2.ci.setContentsMargins(20, 0, 0, 0)
+                elif self.mode == 'piv':
+                    self.low_dim_scatter_view_2.setFixedSize(
+                        self.plot_size * 1.25, self.plot_size * 1.25
+                    )
+                    self.low_dim_scatter_view_2.ci.setContentsMargins(20, 0, 0, 100)
 
-            # add plot
-            self.low_dim_scatter_plot_2 = self.low_dim_scatter_view_2.addPlot()
-            self.low_dim_scatter_plot_2.hideAxis('left')
-            self.low_dim_scatter_plot_2.hideAxis('bottom')
+                # add plot
+                self.low_dim_scatter_plot_2 = self.low_dim_scatter_view_2.addPlot()
+                self.low_dim_scatter_plot_2.hideAxis('left')
+                self.low_dim_scatter_plot_2.hideAxis('bottom')
 
-            # set axis range
-            self.low_dim_scatter_plot_2.setXRange(-1.2, 1.2, padding=0)
-            self.low_dim_scatter_plot_2.setYRange(-1.2, 1.2, padding=0)
-            # Not letting user zoom out past axis limit
-            self.low_dim_scatter_plot_2.vb.setLimits(xMin=-1.2, xMax=1.2, yMin=-1.2, yMax=1.2)
-            # scatter item size
-            self.scatter_item_size = 12
+                # set axis range
+                self.low_dim_scatter_plot_2.setXRange(-1.2, 1.2, padding=0)
+                self.low_dim_scatter_plot_2.setYRange(-1.2, 1.2, padding=0)
+                # Not letting user zoom out past axis limit
+                self.low_dim_scatter_plot_2.vb.setLimits(xMin=-1.2, xMax=1.2, yMin=-1.2, yMax=1.2)
+                # scatter item size
+                self.scatter_item_size = 12
 
-            self.dr_result_existed = True
+                self.dr_result_existed = True
 
             # run dimension reduction algorithm
             if compute_dr:
@@ -2969,8 +2982,8 @@ class UI_MainWindow(QWidget):
                         cur_value_1 = cur_conf_1
                         cur_value_2 = cur_conf_2
                     elif self.quantity_name == 'IOU':
-                        cur_value_1 = cur_iou_1
-                        cur_value_2 = cur_iou_2
+                        cur_value_1 = cur_iou_1 * cur_correctness_1
+                        cur_value_2 = cur_iou_2 * cur_correctness_1
 
                     # below values exist in non-demo mode
                     elif self.quantity_name == 'Precision':
@@ -3272,8 +3285,7 @@ class UI_MainWindow(QWidget):
                 f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_2_cache_name}_F_measure'
             )
 
-            # if not self.load_successfully:
-            if True:
+            if not self.load_successfully:
                 # output of each sample for all translations, has shape (num_y_trans, num_x_trans, num_samples, num_samples, 7)
                 self.aggregate_outputs_1 = np.zeros(
                     (len(self.y_translation), len(self.x_translation)), dtype=np.ndarray
@@ -3470,8 +3482,8 @@ class UI_MainWindow(QWidget):
             # np.save('aggregate_consensus_outputs.npy', aggregate_consensus_outputs)
             # exit()
 
-            # if not self.load_successfully:
-            if True:
+            if not self.load_successfully:
+                # if True:
                 print(f'Computing consensus from model outputs')
 
                 # compute consensus for two models
@@ -3879,7 +3891,7 @@ class UI_MainWindow(QWidget):
 
         return bb_min_x, bb_min_y, bb_max_x, bb_max_y
 
-    # helper function that computes consensus for cut out images
+    # helper function that clamps consensus so that it could be plotted
     def update_consensus(self, cur_bounding_box, image_size, x_dist=0, y_dist=0):
         # convert key object bounding box to be based on extracted image
         x_min_center_bb = cur_bounding_box[0] - x_dist
@@ -4801,12 +4813,21 @@ class UI_MainWindow(QWidget):
         fill=None,
         boundary_width=5,
         label=None,
+        image_size=None,
     ):
         if center_x == 0 and center_y == 0 and width == 0 and height == 0:
             return
 
         # left, top, width, height for QRect
-        rectangle = QtCore.QRect(center_x - width / 2, center_y - height / 2, width, height)
+        x1 = center_x - width / 2
+        y1 = center_y - height / 2
+        if image_size != None:
+            x1 = max(0, x1)
+            y1 = max(0, y1)
+            x1 = min(image_size[0], x1)
+            y1 = min(image_size[1], y1)
+
+        rectangle = QtCore.QRect(x1, y1, width, height)
 
         if color:
             pen = QtGui.QPen()
@@ -4987,7 +5008,7 @@ class UI_MainWindow(QWidget):
                     label='Ground Truth',
                 )
 
-            # box from model 1
+            # box from model
             bounding_boxes = model_output[0][0][:, :4]
             confidences = model_output[0][0][:, 4]
             ious = model_output[0][0][:, 6]
@@ -5026,6 +5047,10 @@ class UI_MainWindow(QWidget):
                     alpha=cur_alpha,
                     boundary_width=cur_boundary_width,
                     label=f'Prediction {i+1}',
+                    image_size=(
+                        self.plot_size * 1.21,
+                        self.plot_size * 1.21,
+                    ),
                 )
 
             painter.end()
@@ -7216,14 +7241,17 @@ class UI_MainWindow(QWidget):
                     cur_model_outputs = model_outputs[y, x]
 
                     # transform unshifted consensus for current model outputs
-                    # cur_consensus = consensus.copy()
-                    # cur_consensus[0] = consensus[0] + x_tran
-                    # cur_consensus[1] = consensus[1] + y_tran
-                    # cur_consensus[2] = consensus[2] + x_tran
-                    # cur_consensus[3] = consensus[3] + y_tran
-                    cur_consensus = self.update_consensus(
-                        consensus, (self.image_size, self.image_size), x_tran, y_tran
-                    )
+                    cur_consensus = consensus.copy()
+                    cur_consensus[0] = consensus[0] - x_tran
+                    cur_consensus[1] = consensus[1] - y_tran
+                    cur_consensus[2] = consensus[2] - x_tran
+                    cur_consensus[3] = consensus[3] - y_tran
+                    # cur_consensus = np.zeros(consensus.shape)
+                    # cur_consensus[:, 4] = consensus[:, 4]
+                    # for i in range(len(consensus)):
+                    #     cur_consensus[i, :4] = self.update_consensus(
+                    #         consensus[i, :4], (self.image_size, self.image_size), x_tran, y_tran
+                    #     )
 
                     # compute losses using consensus
                     (
@@ -7641,14 +7669,14 @@ class UI_MainWindow(QWidget):
             self.cur_aggregate_plot_quantity_1 = self.aggregate_avg_conf_1
             self.cur_aggregate_plot_quantity_2 = self.aggregate_avg_conf_2
         elif self.quantity_name == 'IOU':
-            self.cur_aggregate_plot_quantity_1 = self.aggregate_avg_iou_1
-            self.cur_aggregate_plot_quantity_2 = self.aggregate_avg_iou_2
+            self.cur_aggregate_plot_quantity_1 = self.aggregate_avg_iou_correctness_1
+            self.cur_aggregate_plot_quantity_2 = self.aggregate_avg_iou_correctness_2
         elif self.quantity_name == 'Conf*IOU':
             self.cur_aggregate_plot_quantity_1 = (
-                self.aggregate_avg_conf_1 * self.aggregate_avg_iou_1
+                self.aggregate_avg_conf_1 * self.aggregate_avg_iou_correctness_1
             )
             self.cur_aggregate_plot_quantity_2 = (
-                self.aggregate_avg_conf_2 * self.aggregate_avg_iou_2
+                self.aggregate_avg_conf_2 * self.aggregate_avg_iou_correctness_2
             )
         else:
             raise Exception(f'Unknown quantity {self.quantity_name}')
