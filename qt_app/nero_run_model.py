@@ -239,7 +239,7 @@ def clean_model_outputs(model_name, outputs_dict, original_names, desired_names)
         # the model proposes multiple bounding boxes for each object
         if len(pred_boxes) != 0:
             # when we are using pretrained model and ground truth label is present
-            if model_name == 'FasterRCNN (Pre-trained)':
+            if model_name == 'Pre-trained':
                 valid_indices = []
                 for j in range(len(pred_labels)):
                     # print('\nPred label 1', original_names[int(pred_labels[j]-1)])

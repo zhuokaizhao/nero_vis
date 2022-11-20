@@ -1436,6 +1436,7 @@ class UI_MainWindow(QWidget):
             self.model_1_menu.addItem(model_1_icon, '100% jittering')
             self.model_1_menu.addItem(model_1_icon, 'Pre-trained')
             self.model_1_menu.setCurrentText('0% jittering')
+            self.model_1_name = '0% jittering'
         elif self.mode == 'piv':
             self.model_1_menu.setFixedSize(QtCore.QSize(400, 50))
             self.model_1_menu.setIconSize(QtCore.QSize(50, 50))
@@ -1502,6 +1503,7 @@ class UI_MainWindow(QWidget):
             self.model_2_menu.addItem(model_2_icon, '100% jittering')
             self.model_2_menu.addItem(model_2_icon, 'Pre-trained')
             self.model_2_menu.setCurrentText('Pre-trained')
+            self.model_2_name = 'Pre-trained'
         elif self.mode == 'piv':
             self.model_2_menu.setFixedSize(QtCore.QSize(400, 50))
             self.model_2_menu.setIconSize(QtCore.QSize(50, 50))
@@ -2033,11 +2035,11 @@ class UI_MainWindow(QWidget):
             self.use_consensus_checkbox.stateChanged.connect(use_consensus_checkbox_clicked)
             # set conensus to default when we don't have ground truth labels
             if self.all_labels_paths == []:
-                self.use_consensus_checkbox.setChecked(True)
                 self.use_consensus = True
+                self.use_consensus_checkbox.setChecked(self.use_consensus)
             else:
-                self.use_consensus_checkbox.setChecked(False)
                 self.use_consensus = False
+                self.use_consensus_checkbox.setChecked(self.use_consensus)
 
             # add to layout
             self.checkbox_layout.addWidget(self.use_consensus_checkbox)
@@ -2413,16 +2415,17 @@ class UI_MainWindow(QWidget):
             # if self.mode == 'digit_recognition':
             # digit recognition does not have color defined elsewhere like others since it never uses heatmaps
             self.color_map = pg.colormap.get('viridis')
-            if self.mode == 'piv':
+            if self.mode == 'object_detection':
+                self.cm_range = [0, 1.0]
+                scatter_lut = self.color_map.getLookupTable(
+                    start=self.cm_range[0], stop=self.cm_range[1], nPts=500, alpha=False
+                )
+            elif self.mode == 'piv':
                 self.cm_range = (self.loss_high_bound, self.loss_low_bound)
                 scatter_lut = self.color_map.getLookupTable(
                     start=self.cm_range[1], stop=self.cm_range[0], nPts=500, alpha=False
                 )
-            else:
-                self.cm_range = [0, 1]
-                scatter_lut = self.color_map.getLookupTable(
-                    start=self.cm_range[0], stop=self.cm_range[1], nPts=500, alpha=False
-                )
+
             # digit recognition has color bar only for scatter plot
             if self.demo:
                 self.color_bar = pg.ColorBarItem(
@@ -2638,13 +2641,18 @@ class UI_MainWindow(QWidget):
                 # try to load from cache
                 low_dim_1_name = f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_1_name}_{self.class_selection}_{self.quantity_name}_{self.dr_selection}'
                 self.low_dim_1 = self.load_from_cache(low_dim_1_name)
+
+                # when no cache available
                 if not self.load_successfully:
                     self.low_dim_1 = dimension_reduce(self.all_high_dim_points_1, target_dim=2)
                     self.low_dim_1 = normalize_low_dim_result(self.low_dim_1)
                     self.save_to_cache(low_dim_1_name, self.low_dim_1)
 
+                # try to load from cache
                 low_dim_2_name = f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_2_name}_{self.class_selection}_{self.quantity_name}_{self.dr_selection}'
                 self.low_dim_2 = self.load_from_cache(low_dim_2_name)
+
+                # when no cache available
                 if not self.load_successfully:
                     self.low_dim_2 = dimension_reduce(self.all_high_dim_points_2, target_dim=2)
                     self.low_dim_2 = normalize_low_dim_result(self.low_dim_2)
@@ -2974,6 +2982,10 @@ class UI_MainWindow(QWidget):
                         cur_iou_2 = self.aggregate_outputs_2[y, x][index][0, 6]
                         cur_correctness_2 = self.aggregate_outputs_2[y, x][index][0, 7]
 
+                        if j >= 490 and j <= 510:
+                            print(cur_conf_1, cur_iou_1, cur_correctness_1)
+                            print(cur_conf_2, cur_iou_2, cur_correctness_2)
+
                     # always have the correctness involved
                     if self.quantity_name == 'Conf*IOU':
                         cur_value_1 = cur_conf_1 * cur_iou_1 * cur_correctness_1
@@ -2983,7 +2995,7 @@ class UI_MainWindow(QWidget):
                         cur_value_2 = cur_conf_2
                     elif self.quantity_name == 'IOU':
                         cur_value_1 = cur_iou_1 * cur_correctness_1
-                        cur_value_2 = cur_iou_2 * cur_correctness_1
+                        cur_value_2 = cur_iou_2 * cur_correctness_2
 
                     # below values exist in non-demo mode
                     elif self.quantity_name == 'Precision':
@@ -5107,17 +5119,12 @@ class UI_MainWindow(QWidget):
                 'color: black; font-family: Helvetica; font-style: normal; font-size: 24px'
             )
 
-            if 'Pre' in model_name:
-                coco_names = self.pytorch_coco_names
-            else:
-                coco_names = self.custom_coco_names
-
             data = [[' ', ' ', ' ', ' '], ['Pred #', 'Class', 'Conf', 'IOU']]
             for i in range(num_boxes_1):
                 data.append(
                     [
                         i + 1,
-                        coco_names[int(model_output[0][0][i, 5] - 1)],
+                        self.custom_coco_names[int(model_output[0][0][i, 5] - 1)],
                         model_output[0][0][i, 4],
                         model_output[0][0][i, 6],
                     ]
