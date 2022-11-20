@@ -3128,7 +3128,8 @@ class UI_MainWindow(QWidget):
                 selected_image_index = self.all_images_paths.index(selected_image)
                 # selected_image_index = 0
             elif self.mode == 'object_detection':
-                selected_image = '/home/zhuokai/Desktop/UChicago/Research/nero_vis/qt_app/example_data/object_detection/COCO_500/images/car_797_0.jpg'
+                # selected_image = '/home/zhuokai/Desktop/UChicago/Research/nero_vis/qt_app/example_data/object_detection/COCO_500/images/car_797_0.jpg'
+                selected_image = '/home/zhuokai/Desktop/UChicago/Research/nero_vis/qt_app/example_data/object_detection/COCO_500/images/car_3572_3.jpg'
                 selected_image_index = self.all_images_paths.index(selected_image)
                 # selected_image_index = 0
             elif self.mode == 'piv':
@@ -7314,24 +7315,17 @@ class UI_MainWindow(QWidget):
             self.quantity_name = text
             if text == 'Conf*IOU':
                 self.cur_aggregate_plot_quantity_1 = (
-                    self.aggregate_avg_conf_1 * self.aggregate_avg_iou_1
+                    self.aggregate_avg_conf_correctness_1 * self.aggregate_avg_iou_correctness_1
                 )
                 self.cur_aggregate_plot_quantity_2 = (
-                    self.aggregate_avg_conf_2 * self.aggregate_avg_iou_2
+                    self.aggregate_avg_conf_correctness_2 * self.aggregate_avg_iou_correctness_2
                 )
-            # if text == 'Conf*IOU':
-            #     self.cur_aggregate_plot_quantity_1 = (
-            #         self.aggregate_avg_conf_correctness_1 * self.aggregate_avg_iou_correctness_1
-            #     )
-            #     self.cur_aggregate_plot_quantity_2 = (
-            #         self.aggregate_avg_conf_correctness_2 * self.aggregate_avg_iou_correctness_2
-            #     )
             elif text == 'Confidence':
                 self.cur_aggregate_plot_quantity_1 = self.aggregate_avg_conf_1
                 self.cur_aggregate_plot_quantity_2 = self.aggregate_avg_conf_2
             elif text == 'IOU':
-                self.cur_aggregate_plot_quantity_1 = self.aggregate_avg_iou_1
-                self.cur_aggregate_plot_quantity_2 = self.aggregate_avg_iou_2
+                self.cur_aggregate_plot_quantity_1 = self.aggregate_avg_iou_correctness_1
+                self.cur_aggregate_plot_quantity_2 = self.aggregate_avg_iou_correctness_2
 
             # below quantities won't show in the demo mode
             elif text == 'Precision':
@@ -8075,7 +8069,7 @@ class UI_MainWindow(QWidget):
                 all_losses = np.concatenate([cur_losses_1.flatten(), cur_losses_2.flatten()])
                 self.loss_low_bound = np.percentile(all_losses, 0)
                 self.loss_high_bound = np.percentile(all_losses, 80)
-                print(self.loss_low_bound, self.loss_high_bound)
+                # print(self.loss_low_bound, self.loss_high_bound)
 
             # average element-wise loss to scalar and normalize between 0 and 1
             self.cur_single_plot_quantity_1 = cur_losses_1
