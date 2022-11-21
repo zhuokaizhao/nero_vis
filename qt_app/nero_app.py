@@ -267,7 +267,7 @@ class UI_MainWindow(QWidget):
                 self.translation_step_aggregate = 4
                 self.translation_step_single = 4
                 # batch size when running in aggregate mode
-                self.batch_size = 64
+                self.batch_size = 50
 
                 # predefined model paths
                 self.model_1_name = '0% jittering'
@@ -282,16 +282,34 @@ class UI_MainWindow(QWidget):
                         '*.pth',
                     )
                 )[0]
+
                 # pre-trained model does not need model path
-                self.model_2_name = 'Pre-trained'
-                self.model_2_cache_name = self.model_2_name.split('-')[0]
-                self.model_2_path = None
+                # self.model_2_name = 'Pre-trained'
+                # self.model_2_cache_name = self.model_2_name.split('-')[0]
+                # self.model_2_path = None
+                # self.model_2 = nero_run_model.load_model(
+                #     self.mode, 'pre_trained', self.model_2_path
+                # )
+
+                self.model_2_name = '100% jittering'
+                self.model_2_cache_name = self.model_2_name.split('%')[0]
+                self.model_2_path = glob.glob(
+                    os.path.join(
+                        os.getcwd(),
+                        'example_models',
+                        self.mode,
+                        'custom_trained',
+                        f'object_100-jittered',
+                        '*.pth',
+                    )
+                )[0]
+
                 # preload model
                 self.model_1 = nero_run_model.load_model(
                     self.mode, 'custom_trained', self.model_1_path
                 )
                 self.model_2 = nero_run_model.load_model(
-                    self.mode, 'pre_trained', self.model_2_path
+                    self.mode, 'custom_trained', self.model_2_path
                 )
 
                 # different class names (original COCO classes, custom 5-class and the one that pretrained PyTorch model uses)
@@ -1502,8 +1520,8 @@ class UI_MainWindow(QWidget):
             self.model_2_menu.addItem(model_2_icon, '80% jittering')
             self.model_2_menu.addItem(model_2_icon, '100% jittering')
             self.model_2_menu.addItem(model_2_icon, 'Pre-trained')
-            self.model_2_menu.setCurrentText('Pre-trained')
-            self.model_2_name = 'Pre-trained'
+            self.model_2_menu.setCurrentText('100% jittering')
+            self.model_2_name = '100% jittering'
         elif self.mode == 'piv':
             self.model_2_menu.setFixedSize(QtCore.QSize(400, 50))
             self.model_2_menu.setIconSize(QtCore.QSize(50, 50))
@@ -1653,7 +1671,7 @@ class UI_MainWindow(QWidget):
                 self.use_consensus = False
                 print(f'Plotting {self.quantity_name} with respect to ground truth')
 
-            # update plotting quantities
+            # update plotting quantities for aggregate NERO plots
             for y in range(len(self.y_translation)):
                 for x in range(len(self.x_translation)):
                     # model 1
@@ -1682,14 +1700,14 @@ class UI_MainWindow(QWidget):
                             )
                             all_sampels_conf_correctness_sum_1.append(
                                 self.aggregate_consensus_outputs_1[y, x][i][0, 4]
-                                * self.aggregate_consensus_outputs_1[y, x][i][0, 7]
+                                # * self.aggregate_consensus_outputs_1[y, x][i][0, 7]
                             )
                             all_samples_iou_sum_1.append(
                                 self.aggregate_consensus_outputs_1[y, x][i][0, 6]
                             )
                             all_sampels_iou_correctness_sum_1.append(
                                 self.aggregate_consensus_outputs_1[y, x][i][0, 6]
-                                * self.aggregate_consensus_outputs_1[y, x][i][0, 7]
+                                # * self.aggregate_consensus_outputs_1[y, x][i][0, 7]
                             )
                             all_samples_precision_sum_1.append(
                                 self.aggregate_consensus_precision_1[y, x][i]
@@ -1816,12 +1834,12 @@ class UI_MainWindow(QWidget):
                             self.cur_single_plot_quantity_1[y, x] = (
                                 self.aggregate_consensus_outputs_1[y, x][self.image_index][0, 4]
                                 * self.aggregate_consensus_outputs_1[y, x][self.image_index][0, 6]
-                                * self.aggregate_consensus_outputs_1[y, x][self.image_index][0, 7]
+                                # * self.aggregate_consensus_outputs_1[y, x][self.image_index][0, 7]
                             )
                             self.cur_single_plot_quantity_2[y, x] = (
                                 self.aggregate_consensus_outputs_2[y, x][self.image_index][0, 4]
                                 * self.aggregate_consensus_outputs_2[y, x][self.image_index][0, 6]
-                                * self.aggregate_consensus_outputs_1[y, x][self.image_index][0, 7]
+                                # * self.aggregate_consensus_outputs_1[y, x][self.image_index][0, 7]
                             )
                         else:
                             self.cur_single_plot_quantity_1[y, x] = (
@@ -2981,10 +2999,6 @@ class UI_MainWindow(QWidget):
                         cur_conf_2 = self.aggregate_outputs_2[y, x][index][0, 4]
                         cur_iou_2 = self.aggregate_outputs_2[y, x][index][0, 6]
                         cur_correctness_2 = self.aggregate_outputs_2[y, x][index][0, 7]
-
-                        if j >= 490 and j <= 510:
-                            print(cur_conf_1, cur_iou_1, cur_correctness_1)
-                            print(cur_conf_2, cur_iou_2, cur_correctness_2)
 
                     # always have the correctness involved
                     if self.quantity_name == 'Conf*IOU':
@@ -7250,10 +7264,10 @@ class UI_MainWindow(QWidget):
 
                     # transform unshifted consensus for current model outputs
                     cur_consensus = consensus.copy()
-                    cur_consensus[0] = consensus[0] - x_tran
-                    cur_consensus[1] = consensus[1] - y_tran
-                    cur_consensus[2] = consensus[2] - x_tran
-                    cur_consensus[3] = consensus[3] - y_tran
+                    cur_consensus[:, 0] = consensus[:, 0] - x_tran
+                    cur_consensus[:, 1] = consensus[:, 1] - y_tran
+                    cur_consensus[:, 2] = consensus[:, 2] - x_tran
+                    cur_consensus[:, 3] = consensus[:, 3] - y_tran
                     # cur_consensus = np.zeros(consensus.shape)
                     # cur_consensus[:, 4] = consensus[:, 4]
                     # for i in range(len(consensus)):
@@ -7270,6 +7284,14 @@ class UI_MainWindow(QWidget):
                     ) = nero_run_model.evaluate_coco_with_consensus(
                         cur_model_outputs, cur_consensus
                     )
+
+                    # if x_tran == 0 and y_tran == 0:
+                    # print(consensus[0])
+                    # print(cur_consensus[0])
+                    # print(cur_model_outputs[0][0])
+                    # print(cur_augmented_outputs[0][0])
+                    # if x == 1:
+                    #     exit()
 
                     # record
                     consensus_outputs[y, x] = cur_augmented_outputs
@@ -7353,28 +7375,29 @@ class UI_MainWindow(QWidget):
                 print('Plotting:', text, 'on single NERO plot')
                 self.quantity_name = text
 
-                if text == 'Conf*IOU':
-                    if self.data_mode == 'single':
-                        self.cur_single_plot_quantity_1 = (
-                            self.all_quantities_1[:, :, 4] * self.all_quantities_1[:, :, 6]
-                        )
-                        self.cur_single_plot_quantity_2 = (
-                            self.all_quantities_2[:, :, 4] * self.all_quantities_2[:, :, 6]
-                        )
-                    elif self.data_mode == 'aggregate':
-                        # current selected individual images' result on all transformations
-                        for y in range(len(self.y_translation)):
-                            for x in range(len(self.x_translation)):
-                                self.cur_single_plot_quantity_1[y, x] = (
-                                    self.aggregate_outputs_1[y, x][self.image_index][0, 4]
-                                    * self.aggregate_outputs_1[y, x][self.image_index][0, 6]
-                                )
-                                self.cur_single_plot_quantity_2[y, x] = (
-                                    self.aggregate_outputs_2[y, x][self.image_index][0, 4]
-                                    * self.aggregate_outputs_2[y, x][self.image_index][0, 6]
-                                )
+                # if text == 'Conf*IOU':
+                #     if self.data_mode == 'single':
+                #         self.cur_single_plot_quantity_1 = (
+                #             self.all_quantities_1[:, :, 4] * self.all_quantities_1[:, :, 6]
+                #         )
+                #         self.cur_single_plot_quantity_2 = (
+                #             self.all_quantities_2[:, :, 4] * self.all_quantities_2[:, :, 6]
+                #         )
+                #     elif self.data_mode == 'aggregate':
+                #         # current selected individual images' result on all transformations
+                #         for y in range(len(self.y_translation)):
+                #             for x in range(len(self.x_translation)):
+                #                 self.cur_single_plot_quantity_1[y, x] = (
+                #                     self.aggregate_outputs_1[y, x][self.image_index][0, 4]
+                #                     * self.aggregate_outputs_1[y, x][self.image_index][0, 6]
+                #                 )
+                #                 self.cur_single_plot_quantity_2[y, x] = (
+                #                     self.aggregate_outputs_2[y, x][self.image_index][0, 4]
+                #                     * self.aggregate_outputs_2[y, x][self.image_index][0, 6]
+                #                 )
 
-                if text == 'Conf*IOU*Correctness':
+                # Conf*IOU implicitly includes correctness
+                if text == 'Conf*IOU':
                     if self.data_mode == 'single':
                         self.cur_single_plot_quantity_1 = (
                             self.all_quantities_1[:, :, 4]
@@ -7569,14 +7592,14 @@ class UI_MainWindow(QWidget):
                         )
                         all_sampels_conf_correctness_sum_1.append(
                             self.aggregate_consensus_outputs_1[y, x][i][0, 4]
-                            * self.aggregate_consensus_outputs_1[y, x][i][0, 7]
+                            # * self.aggregate_consensus_outputs_1[y, x][i][0, 7]
                         )
                         all_samples_iou_sum_1.append(
                             self.aggregate_consensus_outputs_1[y, x][i][0, 6]
                         )
                         all_sampels_iou_correctness_sum_1.append(
                             self.aggregate_consensus_outputs_1[y, x][i][0, 6]
-                            * self.aggregate_consensus_outputs_1[y, x][i][0, 7]
+                            # * self.aggregate_consensus_outputs_1[y, x][i][0, 7]
                         )
                         all_samples_precision_sum_1.append(
                             self.aggregate_consensus_precision_1[y, x][i]
