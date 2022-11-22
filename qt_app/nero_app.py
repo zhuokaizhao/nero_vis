@@ -1725,14 +1725,14 @@ class UI_MainWindow(QWidget):
                             )
                             all_sampels_conf_correctness_sum_2.append(
                                 self.aggregate_consensus_outputs_2[y, x][i][0, 4]
-                                * self.aggregate_consensus_outputs_2[y, x][i][0, 7]
+                                # * self.aggregate_consensus_outputs_2[y, x][i][0, 7]
                             )
                             all_samples_iou_sum_2.append(
                                 self.aggregate_consensus_outputs_2[y, x][i][0, 6]
                             )
                             all_sampels_iou_correctness_sum_2.append(
                                 self.aggregate_consensus_outputs_2[y, x][i][0, 6]
-                                * self.aggregate_consensus_outputs_2[y, x][i][0, 7]
+                                # * self.aggregate_consensus_outputs_2[y, x][i][0, 7]
                             )
                             all_samples_precision_sum_2.append(
                                 self.aggregate_consensus_precision_2[y, x][i]
@@ -1749,12 +1749,12 @@ class UI_MainWindow(QWidget):
                             all_samples_conf_sum_1.append(self.aggregate_outputs_1[y, x][i][0, 4])
                             all_sampels_conf_correctness_sum_1.append(
                                 self.aggregate_outputs_1[y, x][i][0, 4]
-                                * self.aggregate_outputs_1[y, x][i][0, 7]
+                                # * self.aggregate_outputs_1[y, x][i][0, 7]
                             )
                             all_samples_iou_sum_1.append(self.aggregate_outputs_1[y, x][i][0, 6])
                             all_sampels_iou_correctness_sum_1.append(
                                 self.aggregate_outputs_1[y, x][i][0, 6]
-                                * self.aggregate_outputs_1[y, x][i][0, 7]
+                                # * self.aggregate_outputs_1[y, x][i][0, 7]
                             )
                             all_samples_precision_sum_1.append(self.aggregate_precision_1[y, x][i])
                             all_samples_recall_sum_1.append(self.aggregate_recall_1[y, x][i])
@@ -1764,12 +1764,12 @@ class UI_MainWindow(QWidget):
                             all_samples_conf_sum_2.append(self.aggregate_outputs_2[y, x][i][0, 4])
                             all_sampels_conf_correctness_sum_2.append(
                                 self.aggregate_outputs_2[y, x][i][0, 4]
-                                * self.aggregate_outputs_2[y, x][i][0, 7]
+                                # * self.aggregate_outputs_2[y, x][i][0, 7]
                             )
                             all_samples_iou_sum_2.append(self.aggregate_outputs_2[y, x][i][0, 6])
                             all_sampels_iou_correctness_sum_2.append(
                                 self.aggregate_outputs_2[y, x][i][0, 6]
-                                * self.aggregate_outputs_2[y, x][i][0, 7]
+                                # * self.aggregate_outputs_2[y, x][i][0, 7]
                             )
                             all_samples_precision_sum_2.append(self.aggregate_precision_2[y, x][i])
                             all_samples_recall_sum_2.append(self.aggregate_recall_2[y, x][i])
@@ -1845,12 +1845,12 @@ class UI_MainWindow(QWidget):
                             self.cur_single_plot_quantity_1[y, x] = (
                                 self.aggregate_outputs_1[y, x][self.image_index][0, 4]
                                 * self.aggregate_outputs_1[y, x][self.image_index][0, 6]
-                                * self.aggregate_outputs_1[y, x][self.image_index][0, 7]
+                                # * self.aggregate_outputs_1[y, x][self.image_index][0, 7]
                             )
                             self.cur_single_plot_quantity_2[y, x] = (
                                 self.aggregate_outputs_2[y, x][self.image_index][0, 4]
                                 * self.aggregate_outputs_2[y, x][self.image_index][0, 6]
-                                * self.aggregate_outputs_1[y, x][self.image_index][0, 7]
+                                # * self.aggregate_outputs_2[y, x][self.image_index][0, 7]
                             )
                     elif self.quantity_name == 'Confidence':
                         if self.use_consensus:
@@ -1871,20 +1871,20 @@ class UI_MainWindow(QWidget):
                         if self.use_consensus:
                             self.cur_single_plot_quantity_1[y, x] = (
                                 self.aggregate_consensus_outputs_1[y, x][self.image_index][0, 6]
-                                * self.aggregate_consensus_outputs_1[y, x][self.image_index][0, 7]
+                                # * self.aggregate_consensus_outputs_1[y, x][self.image_index][0, 7]
                             )
                             self.cur_single_plot_quantity_2[y, x] = (
                                 self.aggregate_consensus_outputs_2[y, x][self.image_index][0, 6]
-                                * self.aggregate_consensus_outputs_1[y, x][self.image_index][0, 7]
+                                # * self.aggregate_consensus_outputs_2[y, x][self.image_index][0, 7]
                             )
                         else:
                             self.cur_single_plot_quantity_1[y, x] = (
                                 self.aggregate_outputs_1[y, x][self.image_index][0, 6]
-                                * self.aggregate_outputs_1[y, x][self.image_index][0, 7]
+                                # * self.aggregate_outputs_1[y, x][self.image_index][0, 7]
                             )
                             self.cur_single_plot_quantity_2[y, x] = (
                                 self.aggregate_outputs_2[y, x][self.image_index][0, 6]
-                                * self.aggregate_outputs_1[y, x][self.image_index][0, 7]
+                                # * self.aggregate_outputs_2[y, x][self.image_index][0, 7]
                             )
 
             # re-display the heatmap
@@ -2986,30 +2986,30 @@ class UI_MainWindow(QWidget):
                     if self.use_consensus:
                         cur_conf_1 = self.aggregate_consensus_outputs_1[y, x][index][0, 4]
                         cur_iou_1 = self.aggregate_consensus_outputs_1[y, x][index][0, 6]
-                        cur_correctness_1 = self.aggregate_consensus_outputs_1[y, x][index][0, 7]
+                        # cur_correctness_1 = self.aggregate_consensus_outputs_1[y, x][index][0, 7]
 
                         cur_conf_2 = self.aggregate_consensus_outputs_2[y, x][index][0, 4]
                         cur_iou_2 = self.aggregate_consensus_outputs_2[y, x][index][0, 6]
-                        cur_correctness_2 = self.aggregate_consensus_outputs_2[y, x][index][0, 7]
+                        # cur_correctness_2 = self.aggregate_consensus_outputs_2[y, x][index][0, 7]
                     else:
                         cur_conf_1 = self.aggregate_outputs_1[y, x][index][0, 4]
                         cur_iou_1 = self.aggregate_outputs_1[y, x][index][0, 6]
-                        cur_correctness_1 = self.aggregate_outputs_1[y, x][index][0, 7]
+                        # cur_correctness_1 = self.aggregate_outputs_1[y, x][index][0, 7]
 
                         cur_conf_2 = self.aggregate_outputs_2[y, x][index][0, 4]
                         cur_iou_2 = self.aggregate_outputs_2[y, x][index][0, 6]
-                        cur_correctness_2 = self.aggregate_outputs_2[y, x][index][0, 7]
+                        # cur_correctness_2 = self.aggregate_outputs_2[y, x][index][0, 7]
 
                     # always have the correctness involved
                     if self.quantity_name == 'Conf*IOU':
-                        cur_value_1 = cur_conf_1 * cur_iou_1 * cur_correctness_1
-                        cur_value_2 = cur_conf_2 * cur_iou_2 * cur_correctness_2
+                        cur_value_1 = cur_conf_1 * cur_iou_1
+                        cur_value_2 = cur_conf_2 * cur_iou_2
                     elif self.quantity_name == 'Confidence':
                         cur_value_1 = cur_conf_1
                         cur_value_2 = cur_conf_2
                     elif self.quantity_name == 'IOU':
-                        cur_value_1 = cur_iou_1 * cur_correctness_1
-                        cur_value_2 = cur_iou_2 * cur_correctness_2
+                        cur_value_1 = cur_iou_1
+                        cur_value_2 = cur_iou_2
 
                     # below values exist in non-demo mode
                     elif self.quantity_name == 'Precision':
@@ -7263,17 +7263,17 @@ class UI_MainWindow(QWidget):
                     cur_model_outputs = model_outputs[y, x]
 
                     # transform unshifted consensus for current model outputs
-                    cur_consensus = consensus.copy()
-                    cur_consensus[:, 0] = consensus[:, 0] - x_tran
-                    cur_consensus[:, 1] = consensus[:, 1] - y_tran
-                    cur_consensus[:, 2] = consensus[:, 2] - x_tran
-                    cur_consensus[:, 3] = consensus[:, 3] - y_tran
-                    # cur_consensus = np.zeros(consensus.shape)
-                    # cur_consensus[:, 4] = consensus[:, 4]
-                    # for i in range(len(consensus)):
-                    #     cur_consensus[i, :4] = self.update_consensus(
-                    #         consensus[i, :4], (self.image_size, self.image_size), x_tran, y_tran
-                    #     )
+                    # cur_consensus = consensus.copy()
+                    # cur_consensus[:, 0] = consensus[:, 0] - x_tran
+                    # cur_consensus[:, 1] = consensus[:, 1] - y_tran
+                    # cur_consensus[:, 2] = consensus[:, 2] - x_tran
+                    # cur_consensus[:, 3] = consensus[:, 3] - y_tran
+                    cur_consensus = np.zeros(consensus.shape)
+                    cur_consensus[:, 4] = consensus[:, 4]
+                    for i in range(len(consensus)):
+                        cur_consensus[i, :4] = self.update_consensus(
+                            consensus[i, :4], (self.image_size, self.image_size), -x_tran, -y_tran
+                        )
 
                     # compute losses using consensus
                     (
@@ -7285,12 +7285,11 @@ class UI_MainWindow(QWidget):
                         cur_model_outputs, cur_consensus
                     )
 
-                    # if x_tran == 0 and y_tran == 0:
-                    # print(consensus[0])
-                    # print(cur_consensus[0])
-                    # print(cur_model_outputs[0][0])
-                    # print(cur_augmented_outputs[0][0])
-                    # if x == 1:
+                    # if x == 10:
+                    #     print(consensus[0])
+                    #     print(cur_consensus[0])
+                    #     print(cur_model_outputs[0][0])
+                    #     print(cur_augmented_outputs[0][0])
                     #     exit()
 
                     # record
@@ -7402,12 +7401,12 @@ class UI_MainWindow(QWidget):
                         self.cur_single_plot_quantity_1 = (
                             self.all_quantities_1[:, :, 4]
                             * self.all_quantities_1[:, :, 6]
-                            * self.all_quantities_1[:, :, 7]
+                            # * self.all_quantities_1[:, :, 7]
                         )
                         self.cur_single_plot_quantity_2 = (
                             self.all_quantities_2[:, :, 4]
                             * self.all_quantities_2[:, :, 6]
-                            * self.all_quantities_2[:, :, 7]
+                            # * self.all_quantities_2[:, :, 7]
                         )
                     elif self.data_mode == 'aggregate':
                         # current selected individual images' result on all transformations
@@ -7416,12 +7415,12 @@ class UI_MainWindow(QWidget):
                                 self.cur_single_plot_quantity_1[y, x] = (
                                     self.aggregate_outputs_1[y, x][self.image_index][0, 4]
                                     * self.aggregate_outputs_1[y, x][self.image_index][0, 6]
-                                    * self.aggregate_outputs_1[y, x][self.image_index][0, 7]
+                                    # * self.aggregate_outputs_1[y, x][self.image_index][0, 7]
                                 )
                                 self.cur_single_plot_quantity_2[y, x] = (
                                     self.aggregate_outputs_2[y, x][self.image_index][0, 4]
                                     * self.aggregate_outputs_2[y, x][self.image_index][0, 6]
-                                    * self.aggregate_outputs_2[y, x][self.image_index][0, 7]
+                                    # * self.aggregate_outputs_2[y, x][self.image_index][0, 7]
                                 )
 
                 elif text == 'Confidence':
@@ -7447,12 +7446,14 @@ class UI_MainWindow(QWidget):
                         # current selected individual images' result on all transformations
                         for y in range(len(self.y_translation)):
                             for x in range(len(self.x_translation)):
-                                self.cur_single_plot_quantity_1[y, x] = self.aggregate_outputs_1[
-                                    y, x
-                                ][self.image_index][0, 6]
-                                self.cur_single_plot_quantity_2[y, x] = self.aggregate_outputs_2[
-                                    y, x
-                                ][self.image_index][0, 6]
+                                self.cur_single_plot_quantity_1[y, x] = (
+                                    self.aggregate_outputs_1[y, x][self.image_index][0, 6]
+                                    # * self.aggregate_outputs_1[y, x][self.image_index][0, 7]
+                                )
+                                self.cur_single_plot_quantity_2[y, x] = (
+                                    self.aggregate_outputs_2[y, x][self.image_index][0, 6]
+                                    # * self.aggregate_outputs_2[y, x][self.image_index][0, 7]
+                                )
 
                 # re-display the heatmap
                 self.draw_coco_nero(mode='single')
@@ -7563,18 +7564,14 @@ class UI_MainWindow(QWidget):
             for x in range(len(self.x_translation)):
                 # model 1
                 all_samples_conf_sum_1 = []
-                all_sampels_conf_correctness_sum_1 = []
                 all_samples_iou_sum_1 = []
-                all_sampels_iou_correctness_sum_1 = []
                 all_samples_precision_sum_1 = []
                 all_samples_recall_sum_1 = []
                 all_samples_F_measure_sum_1 = []
 
                 # model 2
                 all_samples_conf_sum_2 = []
-                all_sampels_conf_correctness_sum_2 = []
                 all_samples_iou_sum_2 = []
-                all_sampels_iou_correctness_sum_2 = []
                 all_samples_precision_sum_2 = []
                 all_samples_recall_sum_2 = []
                 all_samples_F_measure_sum_2 = []
@@ -7590,16 +7587,8 @@ class UI_MainWindow(QWidget):
                         all_samples_conf_sum_1.append(
                             self.aggregate_consensus_outputs_1[y, x][i][0, 4]
                         )
-                        all_sampels_conf_correctness_sum_1.append(
-                            self.aggregate_consensus_outputs_1[y, x][i][0, 4]
-                            # * self.aggregate_consensus_outputs_1[y, x][i][0, 7]
-                        )
                         all_samples_iou_sum_1.append(
                             self.aggregate_consensus_outputs_1[y, x][i][0, 6]
-                        )
-                        all_sampels_iou_correctness_sum_1.append(
-                            self.aggregate_consensus_outputs_1[y, x][i][0, 6]
-                            # * self.aggregate_consensus_outputs_1[y, x][i][0, 7]
                         )
                         all_samples_precision_sum_1.append(
                             self.aggregate_consensus_precision_1[y, x][i]
@@ -7613,16 +7602,8 @@ class UI_MainWindow(QWidget):
                         all_samples_conf_sum_2.append(
                             self.aggregate_consensus_outputs_2[y, x][i][0, 4]
                         )
-                        all_sampels_conf_correctness_sum_2.append(
-                            self.aggregate_consensus_outputs_2[y, x][i][0, 4]
-                            * self.aggregate_consensus_outputs_2[y, x][i][0, 7]
-                        )
                         all_samples_iou_sum_2.append(
                             self.aggregate_consensus_outputs_2[y, x][i][0, 6]
-                        )
-                        all_sampels_iou_correctness_sum_2.append(
-                            self.aggregate_consensus_outputs_2[y, x][i][0, 6]
-                            * self.aggregate_consensus_outputs_2[y, x][i][0, 7]
                         )
                         all_samples_precision_sum_2.append(
                             self.aggregate_consensus_precision_2[y, x][i]
@@ -7635,55 +7616,27 @@ class UI_MainWindow(QWidget):
                     for i in range(len(self.aggregate_outputs_1[y, x])):
                         # model 1
                         all_samples_conf_sum_1.append(self.aggregate_outputs_1[y, x][i][0, 4])
-                        all_sampels_conf_correctness_sum_1.append(
-                            self.aggregate_outputs_1[y, x][i][0, 4]
-                            * self.aggregate_outputs_1[y, x][i][0, 7]
-                        )
                         all_samples_iou_sum_1.append(self.aggregate_outputs_1[y, x][i][0, 6])
-                        all_sampels_iou_correctness_sum_1.append(
-                            self.aggregate_outputs_1[y, x][i][0, 6]
-                            * self.aggregate_outputs_1[y, x][i][0, 7]
-                        )
                         all_samples_precision_sum_1.append(self.aggregate_precision_1[y, x][i])
                         all_samples_recall_sum_1.append(self.aggregate_recall_1[y, x][i])
                         all_samples_F_measure_sum_1.append(self.aggregate_F_measure_1[y, x][i])
 
                         # model 2
                         all_samples_conf_sum_2.append(self.aggregate_outputs_2[y, x][i][0, 4])
-                        all_sampels_conf_correctness_sum_2.append(
-                            self.aggregate_outputs_2[y, x][i][0, 4]
-                            * self.aggregate_outputs_2[y, x][i][0, 7]
-                        )
                         all_samples_iou_sum_2.append(self.aggregate_outputs_2[y, x][i][0, 6])
-                        all_sampels_iou_correctness_sum_2.append(
-                            self.aggregate_outputs_2[y, x][i][0, 6]
-                            * self.aggregate_outputs_2[y, x][i][0, 7]
-                        )
                         all_samples_precision_sum_2.append(self.aggregate_precision_2[y, x][i])
                         all_samples_recall_sum_2.append(self.aggregate_recall_2[y, x][i])
                         all_samples_F_measure_sum_2.append(self.aggregate_F_measure_2[y, x][i])
 
                 # take the average result
                 self.aggregate_avg_conf_1[y, x] = np.mean(all_samples_conf_sum_1)
-                self.aggregate_avg_conf_correctness_1[y, x] = np.mean(
-                    all_sampels_conf_correctness_sum_1
-                )
                 self.aggregate_avg_iou_1[y, x] = np.mean(all_samples_iou_sum_1)
-                self.aggregate_avg_iou_correctness_1[y, x] = np.mean(
-                    all_sampels_iou_correctness_sum_1
-                )
                 self.aggregate_avg_precision_1[y, x] = np.mean(all_samples_precision_sum_1)
                 self.aggregate_avg_recall_1[y, x] = np.mean(all_samples_recall_sum_1)
                 self.aggregate_avg_F_measure_1[y, x] = np.mean(all_samples_F_measure_sum_1)
 
                 self.aggregate_avg_conf_2[y, x] = np.mean(all_samples_conf_sum_2)
-                self.aggregate_avg_conf_correctness_2[y, x] = np.mean(
-                    all_sampels_conf_correctness_sum_2
-                )
                 self.aggregate_avg_iou_2[y, x] = np.mean(all_samples_iou_sum_2)
-                self.aggregate_avg_iou_correctness_2[y, x] = np.mean(
-                    all_sampels_iou_correctness_sum_2
-                )
                 self.aggregate_avg_precision_2[y, x] = np.mean(all_samples_precision_sum_2)
                 self.aggregate_avg_recall_2[y, x] = np.mean(all_samples_recall_sum_2)
                 self.aggregate_avg_F_measure_2[y, x] = np.mean(all_samples_F_measure_sum_2)
@@ -7693,14 +7646,14 @@ class UI_MainWindow(QWidget):
             self.cur_aggregate_plot_quantity_1 = self.aggregate_avg_conf_1
             self.cur_aggregate_plot_quantity_2 = self.aggregate_avg_conf_2
         elif self.quantity_name == 'IOU':
-            self.cur_aggregate_plot_quantity_1 = self.aggregate_avg_iou_correctness_1
-            self.cur_aggregate_plot_quantity_2 = self.aggregate_avg_iou_correctness_2
+            self.cur_aggregate_plot_quantity_1 = self.aggregate_avg_iou_1
+            self.cur_aggregate_plot_quantity_2 = self.aggregate_avg_iou_2
         elif self.quantity_name == 'Conf*IOU':
             self.cur_aggregate_plot_quantity_1 = (
-                self.aggregate_avg_conf_1 * self.aggregate_avg_iou_correctness_1
+                self.aggregate_avg_conf_1 * self.aggregate_avg_iou_1
             )
             self.cur_aggregate_plot_quantity_2 = (
-                self.aggregate_avg_conf_2 * self.aggregate_avg_iou_correctness_2
+                self.aggregate_avg_conf_2 * self.aggregate_avg_iou_2
             )
         else:
             raise Exception(f'Unknown quantity {self.quantity_name}')
@@ -7764,10 +7717,14 @@ class UI_MainWindow(QWidget):
             # add plot control layout to general layout
             self.single_result_layout.addLayout(self.single_plot_control_layout, 0, 0)
             self.cur_single_plot_quantity_1 = (
-                self.all_quantities_1[:, :, 4] * self.all_quantities_1[:, :, 6]
+                self.all_quantities_1[:, :, 4]
+                * self.all_quantities_1[:, :, 6]
+                # * self.all_quantities_1[:, :, 7]
             )
             self.cur_single_plot_quantity_2 = (
-                self.all_quantities_2[:, :, 4] * self.all_quantities_2[:, :, 6]
+                self.all_quantities_2[:, :, 4]
+                * self.all_quantities_2[:, :, 6]
+                # * self.all_quantities_2[:, :, 7]
             )
         elif self.data_mode == 'aggregate':
             # add plot control layout to general layout
@@ -7785,10 +7742,12 @@ class UI_MainWindow(QWidget):
                     self.cur_single_plot_quantity_1[y, x] = (
                         self.aggregate_outputs_1[y, x][self.image_index][0, 4]
                         * self.aggregate_outputs_1[y, x][self.image_index][0, 6]
+                        # * self.aggregate_outputs_1[y, x][self.image_index][0, 7]
                     )
                     self.cur_single_plot_quantity_2[y, x] = (
                         self.aggregate_outputs_2[y, x][self.image_index][0, 4]
                         * self.aggregate_outputs_2[y, x][self.image_index][0, 6]
+                        # * self.aggregate_outputs_2[y, x][self.image_index][0, 7]
                     )
 
         # draw the heatmap
