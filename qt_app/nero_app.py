@@ -1671,224 +1671,274 @@ class UI_MainWindow(QWidget):
                 self.use_consensus = False
                 print(f'Plotting {self.quantity_name} with respect to ground truth')
 
-            # update plotting quantities for aggregate NERO plots
-            for y in range(len(self.y_translation)):
-                for x in range(len(self.x_translation)):
-                    # model 1
-                    all_samples_conf_sum_1 = []
-                    all_sampels_conf_correctness_sum_1 = []
-                    all_samples_iou_sum_1 = []
-                    all_sampels_iou_correctness_sum_1 = []
-                    all_samples_precision_sum_1 = []
-                    all_samples_recall_sum_1 = []
-                    all_samples_F_measure_sum_1 = []
+            if self.mode == 'object_detection':
+                # update plotting quantities for aggregate NERO plots
+                for y in range(len(self.y_translation)):
+                    for x in range(len(self.x_translation)):
+                        # model 1
+                        all_samples_conf_sum_1 = []
+                        all_sampels_conf_correctness_sum_1 = []
+                        all_samples_iou_sum_1 = []
+                        all_sampels_iou_correctness_sum_1 = []
+                        all_samples_precision_sum_1 = []
+                        all_samples_recall_sum_1 = []
+                        all_samples_F_measure_sum_1 = []
 
-                    # model 2
-                    all_samples_conf_sum_2 = []
-                    all_sampels_conf_correctness_sum_2 = []
-                    all_samples_iou_sum_2 = []
-                    all_sampels_iou_correctness_sum_2 = []
-                    all_samples_precision_sum_2 = []
-                    all_samples_recall_sum_2 = []
-                    all_samples_F_measure_sum_2 = []
+                        # model 2
+                        all_samples_conf_sum_2 = []
+                        all_sampels_conf_correctness_sum_2 = []
+                        all_samples_iou_sum_2 = []
+                        all_sampels_iou_correctness_sum_2 = []
+                        all_samples_precision_sum_2 = []
+                        all_samples_recall_sum_2 = []
+                        all_samples_F_measure_sum_2 = []
 
-                    if self.use_consensus:
-                        for i in range(len(self.aggregate_consensus_outputs_1[y, x])):
-                            # model 1
-                            all_samples_conf_sum_1.append(
-                                self.aggregate_consensus_outputs_1[y, x][i][0, 4]
-                            )
-                            all_sampels_conf_correctness_sum_1.append(
-                                self.aggregate_consensus_outputs_1[y, x][i][0, 4]
-                                # * self.aggregate_consensus_outputs_1[y, x][i][0, 7]
-                            )
-                            all_samples_iou_sum_1.append(
-                                self.aggregate_consensus_outputs_1[y, x][i][0, 6]
-                            )
-                            all_sampels_iou_correctness_sum_1.append(
-                                self.aggregate_consensus_outputs_1[y, x][i][0, 6]
-                                # * self.aggregate_consensus_outputs_1[y, x][i][0, 7]
-                            )
-                            all_samples_precision_sum_1.append(
-                                self.aggregate_consensus_precision_1[y, x][i]
-                            )
-                            all_samples_recall_sum_1.append(
-                                self.aggregate_consensus_recall_1[y, x][i]
-                            )
-                            all_samples_F_measure_sum_1.append(
-                                self.aggregate_consensus_F_measure_1[y, x][i]
-                            )
-
-                            # model 2
-                            all_samples_conf_sum_2.append(
-                                self.aggregate_consensus_outputs_2[y, x][i][0, 4]
-                            )
-                            all_sampels_conf_correctness_sum_2.append(
-                                self.aggregate_consensus_outputs_2[y, x][i][0, 4]
-                                # * self.aggregate_consensus_outputs_2[y, x][i][0, 7]
-                            )
-                            all_samples_iou_sum_2.append(
-                                self.aggregate_consensus_outputs_2[y, x][i][0, 6]
-                            )
-                            all_sampels_iou_correctness_sum_2.append(
-                                self.aggregate_consensus_outputs_2[y, x][i][0, 6]
-                                # * self.aggregate_consensus_outputs_2[y, x][i][0, 7]
-                            )
-                            all_samples_precision_sum_2.append(
-                                self.aggregate_consensus_precision_2[y, x][i]
-                            )
-                            all_samples_recall_sum_2.append(
-                                self.aggregate_consensus_recall_2[y, x][i]
-                            )
-                            all_samples_F_measure_sum_2.append(
-                                self.aggregate_consensus_F_measure_2[y, x][i]
-                            )
-                    else:
-                        for i in range(len(self.aggregate_outputs_1[y, x])):
-                            # model 1
-                            all_samples_conf_sum_1.append(self.aggregate_outputs_1[y, x][i][0, 4])
-                            all_sampels_conf_correctness_sum_1.append(
-                                self.aggregate_outputs_1[y, x][i][0, 4]
-                                # * self.aggregate_outputs_1[y, x][i][0, 7]
-                            )
-                            all_samples_iou_sum_1.append(self.aggregate_outputs_1[y, x][i][0, 6])
-                            all_sampels_iou_correctness_sum_1.append(
-                                self.aggregate_outputs_1[y, x][i][0, 6]
-                                # * self.aggregate_outputs_1[y, x][i][0, 7]
-                            )
-                            all_samples_precision_sum_1.append(self.aggregate_precision_1[y, x][i])
-                            all_samples_recall_sum_1.append(self.aggregate_recall_1[y, x][i])
-                            all_samples_F_measure_sum_1.append(self.aggregate_F_measure_1[y, x][i])
-
-                            # model 2
-                            all_samples_conf_sum_2.append(self.aggregate_outputs_2[y, x][i][0, 4])
-                            all_sampels_conf_correctness_sum_2.append(
-                                self.aggregate_outputs_2[y, x][i][0, 4]
-                                # * self.aggregate_outputs_2[y, x][i][0, 7]
-                            )
-                            all_samples_iou_sum_2.append(self.aggregate_outputs_2[y, x][i][0, 6])
-                            all_sampels_iou_correctness_sum_2.append(
-                                self.aggregate_outputs_2[y, x][i][0, 6]
-                                # * self.aggregate_outputs_2[y, x][i][0, 7]
-                            )
-                            all_samples_precision_sum_2.append(self.aggregate_precision_2[y, x][i])
-                            all_samples_recall_sum_2.append(self.aggregate_recall_2[y, x][i])
-                            all_samples_F_measure_sum_2.append(self.aggregate_F_measure_2[y, x][i])
-
-                    # take the average result
-                    # model 1
-                    self.aggregate_avg_conf_1[y, x] = np.mean(all_samples_conf_sum_1)
-                    self.aggregate_avg_conf_correctness_1[y, x] = np.mean(
-                        all_sampels_conf_correctness_sum_1
-                    )
-                    self.aggregate_avg_iou_1[y, x] = np.mean(all_samples_iou_sum_1)
-                    self.aggregate_avg_iou_correctness_1[y, x] = np.mean(
-                        all_sampels_iou_correctness_sum_1
-                    )
-                    self.aggregate_avg_precision_1[y, x] = np.mean(all_samples_precision_sum_1)
-                    self.aggregate_avg_recall_1[y, x] = np.mean(all_samples_recall_sum_1)
-                    self.aggregate_avg_F_measure_1[y, x] = np.mean(all_samples_F_measure_sum_1)
-
-                    # model 2
-                    self.aggregate_avg_conf_2[y, x] = np.mean(all_samples_conf_sum_2)
-                    self.aggregate_avg_conf_correctness_2[y, x] = np.mean(
-                        all_sampels_conf_correctness_sum_2
-                    )
-                    self.aggregate_avg_iou_2[y, x] = np.mean(all_samples_iou_sum_2)
-                    self.aggregate_avg_iou_correctness_2[y, x] = np.mean(
-                        all_sampels_iou_correctness_sum_2
-                    )
-                    self.aggregate_avg_precision_2[y, x] = np.mean(all_samples_precision_sum_2)
-                    self.aggregate_avg_recall_2[y, x] = np.mean(all_samples_recall_sum_2)
-                    self.aggregate_avg_F_measure_2[y, x] = np.mean(all_samples_F_measure_sum_2)
-
-            # keep existing plot quantity selection
-            if self.quantity_name == 'Confidence':
-                self.cur_aggregate_plot_quantity_1 = self.aggregate_avg_conf_1
-                self.cur_aggregate_plot_quantity_2 = self.aggregate_avg_conf_2
-            elif self.quantity_name == 'IOU':
-                self.cur_aggregate_plot_quantity_1 = self.aggregate_avg_iou_correctness_1
-                self.cur_aggregate_plot_quantity_2 = self.aggregate_avg_iou_correctness_2
-            elif self.quantity_name == 'Conf*IOU':
-                self.cur_aggregate_plot_quantity_1 = (
-                    self.aggregate_avg_conf_1 * self.aggregate_avg_iou_correctness_1
-                )
-                self.cur_aggregate_plot_quantity_2 = (
-                    self.aggregate_avg_conf_2 * self.aggregate_avg_iou_correctness_2
-                )
-            else:
-                raise Exception(f'Unknown quantity {self.quantity_name}')
-
-            # re-display the aggregate heatmap
-            self.draw_coco_nero(mode='aggregate')
-
-            # re-run dimension reduction and show result
-            if self.dr_result_existed:
-                self.run_dimension_reduction()
-
-            # update single NERO plot as well
-            for y in range(len(self.y_translation)):
-                for x in range(len(self.x_translation)):
-                    if self.quantity_name == 'Conf*IOU':
                         if self.use_consensus:
-                            self.cur_single_plot_quantity_1[y, x] = (
-                                self.aggregate_consensus_outputs_1[y, x][self.image_index][0, 4]
-                                * self.aggregate_consensus_outputs_1[y, x][self.image_index][0, 6]
-                                # * self.aggregate_consensus_outputs_1[y, x][self.image_index][0, 7]
-                            )
-                            self.cur_single_plot_quantity_2[y, x] = (
-                                self.aggregate_consensus_outputs_2[y, x][self.image_index][0, 4]
-                                * self.aggregate_consensus_outputs_2[y, x][self.image_index][0, 6]
-                                # * self.aggregate_consensus_outputs_1[y, x][self.image_index][0, 7]
-                            )
-                        else:
-                            self.cur_single_plot_quantity_1[y, x] = (
-                                self.aggregate_outputs_1[y, x][self.image_index][0, 4]
-                                * self.aggregate_outputs_1[y, x][self.image_index][0, 6]
-                                # * self.aggregate_outputs_1[y, x][self.image_index][0, 7]
-                            )
-                            self.cur_single_plot_quantity_2[y, x] = (
-                                self.aggregate_outputs_2[y, x][self.image_index][0, 4]
-                                * self.aggregate_outputs_2[y, x][self.image_index][0, 6]
-                                # * self.aggregate_outputs_2[y, x][self.image_index][0, 7]
-                            )
-                    elif self.quantity_name == 'Confidence':
-                        if self.use_consensus:
-                            self.cur_single_plot_quantity_1[
-                                y, x
-                            ] = self.aggregate_consensus_outputs_1[y, x][self.image_index][0, 4]
-                            self.cur_single_plot_quantity_2[
-                                y, x
-                            ] = self.aggregate_consensus_outputs_2[y, x][self.image_index][0, 4]
-                        else:
-                            self.cur_single_plot_quantity_1[y, x] = self.aggregate_outputs_1[y, x][
-                                self.image_index
-                            ][0, 4]
-                            self.cur_single_plot_quantity_2[y, x] = self.aggregate_outputs_2[y, x][
-                                self.image_index
-                            ][0, 4]
-                    elif self.quantity_name == 'IOU':
-                        if self.use_consensus:
-                            self.cur_single_plot_quantity_1[y, x] = (
-                                self.aggregate_consensus_outputs_1[y, x][self.image_index][0, 6]
-                                # * self.aggregate_consensus_outputs_1[y, x][self.image_index][0, 7]
-                            )
-                            self.cur_single_plot_quantity_2[y, x] = (
-                                self.aggregate_consensus_outputs_2[y, x][self.image_index][0, 6]
-                                # * self.aggregate_consensus_outputs_2[y, x][self.image_index][0, 7]
-                            )
-                        else:
-                            self.cur_single_plot_quantity_1[y, x] = (
-                                self.aggregate_outputs_1[y, x][self.image_index][0, 6]
-                                # * self.aggregate_outputs_1[y, x][self.image_index][0, 7]
-                            )
-                            self.cur_single_plot_quantity_2[y, x] = (
-                                self.aggregate_outputs_2[y, x][self.image_index][0, 6]
-                                # * self.aggregate_outputs_2[y, x][self.image_index][0, 7]
-                            )
+                            for i in range(len(self.aggregate_consensus_outputs_1[y, x])):
+                                # model 1
+                                all_samples_conf_sum_1.append(
+                                    self.aggregate_consensus_outputs_1[y, x][i][0, 4]
+                                )
+                                all_sampels_conf_correctness_sum_1.append(
+                                    self.aggregate_consensus_outputs_1[y, x][i][0, 4]
+                                    # * self.aggregate_consensus_outputs_1[y, x][i][0, 7]
+                                )
+                                all_samples_iou_sum_1.append(
+                                    self.aggregate_consensus_outputs_1[y, x][i][0, 6]
+                                )
+                                all_sampels_iou_correctness_sum_1.append(
+                                    self.aggregate_consensus_outputs_1[y, x][i][0, 6]
+                                    # * self.aggregate_consensus_outputs_1[y, x][i][0, 7]
+                                )
+                                all_samples_precision_sum_1.append(
+                                    self.aggregate_consensus_precision_1[y, x][i]
+                                )
+                                all_samples_recall_sum_1.append(
+                                    self.aggregate_consensus_recall_1[y, x][i]
+                                )
+                                all_samples_F_measure_sum_1.append(
+                                    self.aggregate_consensus_F_measure_1[y, x][i]
+                                )
 
-            # re-display the heatmap
-            self.draw_coco_nero(mode='single')
+                                # model 2
+                                all_samples_conf_sum_2.append(
+                                    self.aggregate_consensus_outputs_2[y, x][i][0, 4]
+                                )
+                                all_sampels_conf_correctness_sum_2.append(
+                                    self.aggregate_consensus_outputs_2[y, x][i][0, 4]
+                                    # * self.aggregate_consensus_outputs_2[y, x][i][0, 7]
+                                )
+                                all_samples_iou_sum_2.append(
+                                    self.aggregate_consensus_outputs_2[y, x][i][0, 6]
+                                )
+                                all_sampels_iou_correctness_sum_2.append(
+                                    self.aggregate_consensus_outputs_2[y, x][i][0, 6]
+                                    # * self.aggregate_consensus_outputs_2[y, x][i][0, 7]
+                                )
+                                all_samples_precision_sum_2.append(
+                                    self.aggregate_consensus_precision_2[y, x][i]
+                                )
+                                all_samples_recall_sum_2.append(
+                                    self.aggregate_consensus_recall_2[y, x][i]
+                                )
+                                all_samples_F_measure_sum_2.append(
+                                    self.aggregate_consensus_F_measure_2[y, x][i]
+                                )
+                        else:
+                            for i in range(len(self.aggregate_outputs_1[y, x])):
+                                # model 1
+                                all_samples_conf_sum_1.append(
+                                    self.aggregate_outputs_1[y, x][i][0, 4]
+                                )
+                                all_sampels_conf_correctness_sum_1.append(
+                                    self.aggregate_outputs_1[y, x][i][0, 4]
+                                    # * self.aggregate_outputs_1[y, x][i][0, 7]
+                                )
+                                all_samples_iou_sum_1.append(
+                                    self.aggregate_outputs_1[y, x][i][0, 6]
+                                )
+                                all_sampels_iou_correctness_sum_1.append(
+                                    self.aggregate_outputs_1[y, x][i][0, 6]
+                                    # * self.aggregate_outputs_1[y, x][i][0, 7]
+                                )
+                                all_samples_precision_sum_1.append(
+                                    self.aggregate_precision_1[y, x][i]
+                                )
+                                all_samples_recall_sum_1.append(self.aggregate_recall_1[y, x][i])
+                                all_samples_F_measure_sum_1.append(
+                                    self.aggregate_F_measure_1[y, x][i]
+                                )
+
+                                # model 2
+                                all_samples_conf_sum_2.append(
+                                    self.aggregate_outputs_2[y, x][i][0, 4]
+                                )
+                                all_sampels_conf_correctness_sum_2.append(
+                                    self.aggregate_outputs_2[y, x][i][0, 4]
+                                    # * self.aggregate_outputs_2[y, x][i][0, 7]
+                                )
+                                all_samples_iou_sum_2.append(
+                                    self.aggregate_outputs_2[y, x][i][0, 6]
+                                )
+                                all_sampels_iou_correctness_sum_2.append(
+                                    self.aggregate_outputs_2[y, x][i][0, 6]
+                                    # * self.aggregate_outputs_2[y, x][i][0, 7]
+                                )
+                                all_samples_precision_sum_2.append(
+                                    self.aggregate_precision_2[y, x][i]
+                                )
+                                all_samples_recall_sum_2.append(self.aggregate_recall_2[y, x][i])
+                                all_samples_F_measure_sum_2.append(
+                                    self.aggregate_F_measure_2[y, x][i]
+                                )
+
+                        # take the average result
+                        # model 1
+                        self.aggregate_avg_conf_1[y, x] = np.mean(all_samples_conf_sum_1)
+                        self.aggregate_avg_conf_correctness_1[y, x] = np.mean(
+                            all_sampels_conf_correctness_sum_1
+                        )
+                        self.aggregate_avg_iou_1[y, x] = np.mean(all_samples_iou_sum_1)
+                        self.aggregate_avg_iou_correctness_1[y, x] = np.mean(
+                            all_sampels_iou_correctness_sum_1
+                        )
+                        self.aggregate_avg_precision_1[y, x] = np.mean(all_samples_precision_sum_1)
+                        self.aggregate_avg_recall_1[y, x] = np.mean(all_samples_recall_sum_1)
+                        self.aggregate_avg_F_measure_1[y, x] = np.mean(all_samples_F_measure_sum_1)
+
+                        # model 2
+                        self.aggregate_avg_conf_2[y, x] = np.mean(all_samples_conf_sum_2)
+                        self.aggregate_avg_conf_correctness_2[y, x] = np.mean(
+                            all_sampels_conf_correctness_sum_2
+                        )
+                        self.aggregate_avg_iou_2[y, x] = np.mean(all_samples_iou_sum_2)
+                        self.aggregate_avg_iou_correctness_2[y, x] = np.mean(
+                            all_sampels_iou_correctness_sum_2
+                        )
+                        self.aggregate_avg_precision_2[y, x] = np.mean(all_samples_precision_sum_2)
+                        self.aggregate_avg_recall_2[y, x] = np.mean(all_samples_recall_sum_2)
+                        self.aggregate_avg_F_measure_2[y, x] = np.mean(all_samples_F_measure_sum_2)
+
+                # keep existing plot quantity selection
+                if self.quantity_name == 'Confidence':
+                    self.cur_aggregate_plot_quantity_1 = self.aggregate_avg_conf_1
+                    self.cur_aggregate_plot_quantity_2 = self.aggregate_avg_conf_2
+                elif self.quantity_name == 'IOU':
+                    self.cur_aggregate_plot_quantity_1 = self.aggregate_avg_iou_correctness_1
+                    self.cur_aggregate_plot_quantity_2 = self.aggregate_avg_iou_correctness_2
+                elif self.quantity_name == 'Conf*IOU':
+                    self.cur_aggregate_plot_quantity_1 = (
+                        self.aggregate_avg_conf_1 * self.aggregate_avg_iou_correctness_1
+                    )
+                    self.cur_aggregate_plot_quantity_2 = (
+                        self.aggregate_avg_conf_2 * self.aggregate_avg_iou_correctness_2
+                    )
+                else:
+                    raise Exception(f'Unknown quantity {self.quantity_name}')
+
+                # re-display the aggregate heatmap
+                self.draw_coco_nero(mode='aggregate')
+
+                # re-run dimension reduction and show result
+                if self.dr_result_existed:
+                    self.run_dimension_reduction()
+
+                # update single NERO plot as well
+                for y in range(len(self.y_translation)):
+                    for x in range(len(self.x_translation)):
+                        if self.quantity_name == 'Conf*IOU':
+                            if self.use_consensus:
+                                self.cur_single_plot_quantity_1[y, x] = (
+                                    self.aggregate_consensus_outputs_1[y, x][self.image_index][
+                                        0, 4
+                                    ]
+                                    * self.aggregate_consensus_outputs_1[y, x][self.image_index][
+                                        0, 6
+                                    ]
+                                    # * self.aggregate_consensus_outputs_1[y, x][self.image_index][0, 7]
+                                )
+                                self.cur_single_plot_quantity_2[y, x] = (
+                                    self.aggregate_consensus_outputs_2[y, x][self.image_index][
+                                        0, 4
+                                    ]
+                                    * self.aggregate_consensus_outputs_2[y, x][self.image_index][
+                                        0, 6
+                                    ]
+                                    # * self.aggregate_consensus_outputs_1[y, x][self.image_index][0, 7]
+                                )
+                            else:
+                                self.cur_single_plot_quantity_1[y, x] = (
+                                    self.aggregate_outputs_1[y, x][self.image_index][0, 4]
+                                    * self.aggregate_outputs_1[y, x][self.image_index][0, 6]
+                                    # * self.aggregate_outputs_1[y, x][self.image_index][0, 7]
+                                )
+                                self.cur_single_plot_quantity_2[y, x] = (
+                                    self.aggregate_outputs_2[y, x][self.image_index][0, 4]
+                                    * self.aggregate_outputs_2[y, x][self.image_index][0, 6]
+                                    # * self.aggregate_outputs_2[y, x][self.image_index][0, 7]
+                                )
+                        elif self.quantity_name == 'Confidence':
+                            if self.use_consensus:
+                                self.cur_single_plot_quantity_1[
+                                    y, x
+                                ] = self.aggregate_consensus_outputs_1[y, x][self.image_index][
+                                    0, 4
+                                ]
+                                self.cur_single_plot_quantity_2[
+                                    y, x
+                                ] = self.aggregate_consensus_outputs_2[y, x][self.image_index][
+                                    0, 4
+                                ]
+                            else:
+                                self.cur_single_plot_quantity_1[y, x] = self.aggregate_outputs_1[
+                                    y, x
+                                ][self.image_index][0, 4]
+                                self.cur_single_plot_quantity_2[y, x] = self.aggregate_outputs_2[
+                                    y, x
+                                ][self.image_index][0, 4]
+                        elif self.quantity_name == 'IOU':
+                            if self.use_consensus:
+                                self.cur_single_plot_quantity_1[y, x] = (
+                                    self.aggregate_consensus_outputs_1[y, x][self.image_index][
+                                        0, 6
+                                    ]
+                                    # * self.aggregate_consensus_outputs_1[y, x][self.image_index][0, 7]
+                                )
+                                self.cur_single_plot_quantity_2[y, x] = (
+                                    self.aggregate_consensus_outputs_2[y, x][self.image_index][
+                                        0, 6
+                                    ]
+                                    # * self.aggregate_consensus_outputs_2[y, x][self.image_index][0, 7]
+                                )
+                            else:
+                                self.cur_single_plot_quantity_1[y, x] = (
+                                    self.aggregate_outputs_1[y, x][self.image_index][0, 6]
+                                    # * self.aggregate_outputs_1[y, x][self.image_index][0, 7]
+                                )
+                                self.cur_single_plot_quantity_2[y, x] = (
+                                    self.aggregate_outputs_2[y, x][self.image_index][0, 6]
+                                    # * self.aggregate_outputs_2[y, x][self.image_index][0, 7]
+                                )
+
+                # re-display the heatmap
+                self.draw_coco_nero(mode='single')
+
+            elif self.mode == 'piv':
+                # compute aggregate plot quantity
+                self.compute_nero_plot_quantity()
+
+                # draw the aggregate NERO plot
+                self.draw_piv_nero(mode='aggregate')
+
+                # re-run dimension reduction and show result
+                if self.dr_result_existed:
+                    self.run_dimension_reduction()
+
+                # draw the single NERO plot
+                self.draw_piv_nero(mode='single')
+
+                # draw the quiver plot
+                self.draw_piv_details()
 
         @QtCore.Slot()
         def average_nero_checkbox_clicked():
@@ -3041,16 +3091,28 @@ class UI_MainWindow(QWidget):
                     self.all_high_dim_points_2[i, j] = cur_value_2
 
                 elif self.mode == 'piv':
-                    self.all_high_dim_points_1[i, j] = self.loss_module(
-                        self.aggregate_outputs_1[j, i],
-                        self.aggregate_ground_truths[j, i],
-                        reduction='mean',
-                    )
-                    self.all_high_dim_points_2[i, j] = self.loss_module(
-                        self.aggregate_outputs_2[j, i],
-                        self.aggregate_ground_truths[j, i],
-                        reduction='mean',
-                    )
+                    if self.use_consensus:
+                        self.all_high_dim_points_1[i, j] = self.loss_module(
+                            self.aggregate_outputs_1[j, i],
+                            self.aggregate_consensus_1[j, i],
+                            reduction='mean',
+                        )
+                        self.all_high_dim_points_2[i, j] = self.loss_module(
+                            self.aggregate_outputs_2[j, i],
+                            self.aggregate_consensus_2[j, i],
+                            reduction='mean',
+                        )
+                    else:
+                        self.all_high_dim_points_1[i, j] = self.loss_module(
+                            self.aggregate_outputs_1[j, i],
+                            self.aggregate_ground_truths[j, i],
+                            reduction='mean',
+                        )
+                        self.all_high_dim_points_2[i, j] = self.loss_module(
+                            self.aggregate_outputs_2[j, i],
+                            self.aggregate_ground_truths[j, i],
+                            reduction='mean',
+                        )
 
         # radio buittons on choosing the intensity quantity
         if not self.dr_result_existed:
@@ -3854,6 +3916,32 @@ class UI_MainWindow(QWidget):
                 self.save_to_cache(
                     name=f'{self.mode}_{self.data_mode}_{self.dataset_name}_ground_truths',
                     content=self.aggregate_ground_truths,
+                )
+
+            # load consensus
+            self.aggregate_consensus_1 = self.load_from_cache(
+                f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_1_cache_name}_consensus'
+            )
+
+            self.aggregate_consensus_2 = self.load_from_cache(
+                f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_2_cache_name}_consensus'
+            )
+
+            # if not self.load_successfully:
+            if True:
+                print(f'Computing consensus from model outputs')
+                # compute untransformed consensus from model outputs
+                self.aggregate_consensus_1 = self.compute_consensus(self.aggregate_outputs_1)
+                self.aggregate_consensus_2 = self.compute_consensus(self.aggregate_outputs_2)
+
+                # save to cache
+                self.save_to_cache(
+                    name=f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_1_cache_name}_consensus',
+                    content=self.aggregate_consensus_1,
+                )
+                self.save_to_cache(
+                    name=f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_2_cache_name}_consensus',
+                    content=self.aggregate_consensus_2,
                 )
 
             # display the result
@@ -7236,7 +7324,144 @@ class UI_MainWindow(QWidget):
             return aggregate_consensus
 
         elif self.mode == 'piv':
-            raise NotImplementedError
+
+            # initalize final consensus
+            aggregate_consensus = torch.zeros(
+                (
+                    self.num_transformations,
+                    len(self.all_images_1_paths),
+                    self.image_size,
+                    self.image_size,
+                    2,
+                )
+            )
+
+            # untransformed consensus
+            original_aggregate_consensus = torch.mean(model_outputs, dim=0)
+
+            time_reverses = [0, 1]
+
+            # go through each transformation type to prepare consensus for each transformation
+            for is_time_reversed in time_reverses:
+                for transformation_index in range(8):
+                    print(f'Transformation {is_time_reversed*8+transformation_index}')
+
+                    # each images pair
+                    for i in range(len(self.all_images_1_paths)):
+
+                        # load the ground truth flow field
+                        cur_consensus = original_aggregate_consensus[i]
+
+                        # dummy images (should've refactored the transformation code)
+                        cur_image_1_pil = Image.open(self.all_images_1_paths[i]).convert('RGB')
+                        cur_image_2_pil = Image.open(self.all_images_2_paths[i]).convert('RGB')
+                        # convert to torch tensor
+                        cur_d4_image_1_pt = torch.from_numpy(np.asarray(cur_image_1_pil))
+                        cur_d4_image_2_pt = torch.from_numpy(np.asarray(cur_image_2_pil))
+
+                        # modify the data
+                        if is_time_reversed:
+                            (_, _, cur_consensus) = nero_transform.time_reverse_piv_data(
+                                cur_d4_image_1_pt, cur_d4_image_2_pt, cur_consensus
+                            )
+
+                        # 0: no transformation (original)
+                        if transformation_index == 0:
+                            aggregate_consensus[
+                                is_time_reversed * 8 + transformation_index, i
+                            ] = cur_consensus.clone()
+
+                        # 1: right diagonal flip (/)
+                        elif transformation_index == 1:
+                            (
+                                _,
+                                _,
+                                aggregate_consensus[
+                                    is_time_reversed * 8 + transformation_index, i
+                                ],
+                            ) = nero_transform.flip_piv_data(
+                                cur_d4_image_1_pt,
+                                cur_d4_image_2_pt,
+                                cur_consensus,
+                                flip_type='right-diagonal',
+                            )
+                        # 2: counter-clockwise 90 rotation
+                        elif transformation_index == 2:
+                            (
+                                _,
+                                _,
+                                aggregate_consensus[
+                                    is_time_reversed * 8 + transformation_index, i
+                                ],
+                            ) = nero_transform.rotate_piv_data(
+                                cur_d4_image_1_pt, cur_d4_image_2_pt, cur_consensus, 90
+                            )
+                        # 3: horizontal flip (by y axis)
+                        elif transformation_index == 3:
+                            (
+                                _,
+                                _,
+                                aggregate_consensus[
+                                    is_time_reversed * 8 + transformation_index, i
+                                ],
+                            ) = nero_transform.flip_piv_data(
+                                cur_d4_image_1_pt,
+                                cur_d4_image_2_pt,
+                                cur_consensus,
+                                flip_type='horizontal',
+                            )
+                        # 4: counter-clockwise 180 rotation
+                        elif transformation_index == 4:
+                            (
+                                _,
+                                _,
+                                aggregate_consensus[
+                                    is_time_reversed * 8 + transformation_index, i
+                                ],
+                            ) = nero_transform.rotate_piv_data(
+                                cur_d4_image_1_pt, cur_d4_image_2_pt, cur_consensus, 180
+                            )
+                        # 5: \ diagnal flip
+                        elif transformation_index == 5:
+                            (
+                                _,
+                                _,
+                                aggregate_consensus[
+                                    is_time_reversed * 8 + transformation_index, i
+                                ],
+                            ) = nero_transform.flip_piv_data(
+                                cur_d4_image_1_pt,
+                                cur_d4_image_2_pt,
+                                cur_consensus,
+                                flip_type='left-diagonal',
+                            )
+                        # 6: counter-clockwise 270 rotation
+                        elif transformation_index == 6:
+                            (
+                                _,
+                                _,
+                                aggregate_consensus[
+                                    is_time_reversed * 8 + transformation_index, i
+                                ],
+                            ) = nero_transform.rotate_piv_data(
+                                cur_d4_image_1_pt, cur_d4_image_2_pt, cur_consensus, 270
+                            )
+                        # 7: vertical flip (by x axis)
+                        elif transformation_index == 7:
+                            (
+                                _,
+                                _,
+                                aggregate_consensus[
+                                    is_time_reversed * 8 + transformation_index, i
+                                ],
+                            ) = nero_transform.flip_piv_data(
+                                cur_d4_image_1_pt,
+                                cur_d4_image_2_pt,
+                                cur_consensus,
+                                flip_type='vertical',
+                            )
+
+            return aggregate_consensus
 
     def compute_consensus_losses(self, model_outputs, consensus):
 
@@ -7753,36 +7978,76 @@ class UI_MainWindow(QWidget):
         # draw the heatmap
         self.draw_coco_nero(mode='single')
 
-    # display COCO aggregate result
-    def display_piv_aggregate_result(self):
-        if not self.demo:
-            # move the model menu on top of the each aggregate NERO plot
-            self.aggregate_result_layout.addWidget(
-                self.model_1_menu, 0, 1, 1, 1, QtCore.Qt.AlignCenter
+    # helper function on compute, normalize the loss and display quantity
+    def compute_nero_plot_quantity(self):
+        print('Compute PIV nero plot quantity')
+        # compute loss using torch loss module
+        if self.quantity_name == 'RMSE':
+            self.loss_module = nero_utilities.RMSELoss()
+        elif self.quantity_name == 'MSE':
+            self.loss_module = torch.nn.MSELoss()
+        elif self.quantity_name == 'MAE':
+            self.loss_module = torch.nn.L1Loss()
+        elif self.quantity_name == 'AEE':
+            self.loss_module = nero_utilities.AEELoss()
+
+        if self.use_consensus:
+            # try loading from cache
+            cur_losses_1 = self.load_from_cache(
+                f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_1_cache_name}_{self.class_selection}_consensus_{self.quantity_name}_aggregate_1'
             )
-            self.aggregate_result_layout.addWidget(
-                self.model_2_menu, 0, 2, 1, 1, QtCore.Qt.AlignCenter
+            cur_losses_2 = self.load_from_cache(
+                f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_1_cache_name}_{self.class_selection}_consensus_{self.quantity_name}_aggregate_2'
             )
+            if not self.load_successfully:
+                # keep the same dimension
+                cur_losses_1 = np.zeros(
+                    (
+                        self.num_transformations,
+                        len(self.aggregate_outputs_1[0]),
+                        self.image_size,
+                        self.image_size,
+                    )
+                )
+                cur_losses_2 = np.zeros(
+                    (
+                        self.num_transformations,
+                        len(self.aggregate_outputs_1[0]),
+                        self.image_size,
+                        self.image_size,
+                    )
+                )
+                for i in range(self.num_transformations):
+                    for j in range(len(self.aggregate_outputs_1[i])):
+                        cur_losses_1[i, j] = (
+                            self.loss_module(
+                                self.aggregate_consensus_1[i, j],
+                                self.aggregate_outputs_1[i, j],
+                                reduction='none',
+                            )
+                            .numpy()
+                            .mean(axis=2)
+                        )
+                        cur_losses_2[i, j] = (
+                            self.loss_module(
+                                self.aggregate_consensus_2[i, j],
+                                self.aggregate_outputs_2[i, j],
+                                reduction='none',
+                            )
+                            .numpy()
+                            .mean(axis=2)
+                        )
 
-            # move run button in the first column (after aggregate heatmap control)
-            self.aggregate_plot_control_layout.addWidget(self.run_button, 4, 0)
-            self.aggregate_plot_control_layout.addWidget(self.use_cache_checkbox, 5, 0)
-
-        self.aggregate_result_existed = True
-
-        # helper function on compute, normalize the loss and display quantity
-        def compute_nero_plot_quantity():
-            print('Compute PIV nero plot quantity')
-            # compute loss using torch loss module
-            if self.quantity_name == 'RMSE':
-                self.loss_module = nero_utilities.RMSELoss()
-            elif self.quantity_name == 'MSE':
-                self.loss_module = torch.nn.MSELoss()
-            elif self.quantity_name == 'MAE':
-                self.loss_module = torch.nn.L1Loss()
-            elif self.quantity_name == 'AEE':
-                self.loss_module = nero_utilities.AEELoss()
-
+                # save to cache
+                self.save_to_cache(
+                    f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_1_cache_name}_{self.class_selection}_consensus_{self.quantity_name}_aggregate_1',
+                    cur_losses_1,
+                )
+                self.save_to_cache(
+                    f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_1_cache_name}_{self.class_selection}_consensus_{self.quantity_name}_aggregate_2',
+                    cur_losses_2,
+                )
+        else:
             # try loading from cache
             cur_losses_1 = self.load_from_cache(
                 f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_1_cache_name}_{self.class_selection}_{self.quantity_name}_aggregate_1'
@@ -7839,66 +8104,83 @@ class UI_MainWindow(QWidget):
                     cur_losses_2,
                 )
 
-            # get the 0 and 80 percentile as the threshold for colormap
-            all_losses = np.concatenate([cur_losses_1.flatten(), cur_losses_2.flatten()])
-            self.loss_low_bound = np.percentile(all_losses, 0)
-            self.loss_high_bound = np.percentile(all_losses, 80)
-            print('Aggregate loss 0 and 80 percentile', self.loss_low_bound, self.loss_high_bound)
+        # get the 0 and 80 percentile as the threshold for colormap
+        all_losses = np.concatenate([cur_losses_1.flatten(), cur_losses_2.flatten()])
+        self.loss_low_bound = np.percentile(all_losses, 0)
+        self.loss_high_bound = np.percentile(all_losses, 80)
+        print('Aggregate loss 0 and 80 percentile', self.loss_low_bound, self.loss_high_bound)
 
-            # plot quantity is the average among all samples
-            self.cur_aggregate_plot_quantity_1 = cur_losses_1.mean(axis=1)
-            self.cur_aggregate_plot_quantity_2 = cur_losses_2.mean(axis=1)
+        # plot quantity is the average among all samples
+        self.cur_aggregate_plot_quantity_1 = cur_losses_1.mean(axis=1)
+        self.cur_aggregate_plot_quantity_2 = cur_losses_2.mean(axis=1)
 
-            # compute single result if needed as well
-            if self.single_result_existed:
-                # try loading from cache
-                cur_losses_1 = self.load_from_cache(
-                    f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_1_cache_name}_{self.class_selection}_{self.quantity_name}_single_1'
+        # compute single result if needed as well
+        if self.single_result_existed:
+            # try loading from cache
+            cur_losses_1 = self.load_from_cache(
+                f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_1_cache_name}_{self.class_selection}_{self.quantity_name}_single_1'
+            )
+            cur_losses_2 = self.load_from_cache(
+                f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_1_cache_name}_{self.class_selection}_{self.quantity_name}_single_2'
+            )
+            if not self.load_successfully:
+                # keep the same dimension
+                cur_losses_1 = np.zeros(
+                    (self.num_transformations, self.image_size, self.image_size)
                 )
-                cur_losses_2 = self.load_from_cache(
-                    f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_1_cache_name}_{self.class_selection}_{self.quantity_name}_single_2'
+                cur_losses_2 = np.zeros(
+                    (self.num_transformations, self.image_size, self.image_size)
                 )
-                if not self.load_successfully:
-                    # keep the same dimension
-                    cur_losses_1 = np.zeros(
-                        (self.num_transformations, self.image_size, self.image_size)
-                    )
-                    cur_losses_2 = np.zeros(
-                        (self.num_transformations, self.image_size, self.image_size)
-                    )
-                    for i in range(self.num_transformations):
-                        cur_losses_1[i] = (
-                            self.loss_module(
-                                self.all_ground_truths[i],
-                                self.all_quantities_1[i],
-                                reduction='none',
-                            )
-                            .numpy()
-                            .mean(axis=2)
+                for i in range(self.num_transformations):
+                    cur_losses_1[i] = (
+                        self.loss_module(
+                            self.all_ground_truths[i],
+                            self.all_quantities_1[i],
+                            reduction='none',
                         )
-                        cur_losses_2[i] = (
-                            self.loss_module(
-                                self.all_ground_truths[i],
-                                self.all_quantities_2[i],
-                                reduction='none',
-                            )
-                            .numpy()
-                            .mean(axis=2)
-                        )
-
-                    # save to cache
-                    self.save_to_cache(
-                        f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_1_cache_name}_{self.class_selection}_{self.quantity_name}_single_1',
-                        cur_losses_1,
+                        .numpy()
+                        .mean(axis=2)
                     )
-                    self.save_to_cache(
-                        f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_1_cache_name}_{self.class_selection}_{self.quantity_name}_single_2',
-                        cur_losses_2,
+                    cur_losses_2[i] = (
+                        self.loss_module(
+                            self.all_ground_truths[i],
+                            self.all_quantities_2[i],
+                            reduction='none',
+                        )
+                        .numpy()
+                        .mean(axis=2)
                     )
 
-                # average element-wise loss to scalar and normalize between 0 and 1
-                self.cur_single_plot_quantity_1 = cur_losses_1
-                self.cur_single_plot_quantity_2 = cur_losses_2
+                # save to cache
+                self.save_to_cache(
+                    f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_1_cache_name}_{self.class_selection}_{self.quantity_name}_single_1',
+                    cur_losses_1,
+                )
+                self.save_to_cache(
+                    f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_1_cache_name}_{self.class_selection}_{self.quantity_name}_single_2',
+                    cur_losses_2,
+                )
+
+            # average element-wise loss to scalar and normalize between 0 and 1
+            self.cur_single_plot_quantity_1 = cur_losses_1
+            self.cur_single_plot_quantity_2 = cur_losses_2
+
+    # display COCO aggregate result
+    def display_piv_aggregate_result(self):
+        if not self.demo:
+            # move the model menu on top of the each aggregate NERO plot
+            self.aggregate_result_layout.addWidget(
+                self.model_1_menu, 0, 1, 1, 1, QtCore.Qt.AlignCenter
+            )
+            self.aggregate_result_layout.addWidget(
+                self.model_2_menu, 0, 2, 1, 1, QtCore.Qt.AlignCenter
+            )
+
+            # move run button in the first column (after aggregate heatmap control)
+            self.aggregate_plot_control_layout.addWidget(self.run_button, 4, 0)
+            self.aggregate_plot_control_layout.addWidget(self.use_cache_checkbox, 5, 0)
+
+        self.aggregate_result_existed = True
 
         @QtCore.Slot()
         def piv_nero_quantity_changed(text):
@@ -7915,7 +8197,7 @@ class UI_MainWindow(QWidget):
                 self.quantity_name = text
 
             # compute the quantity to plot
-            compute_nero_plot_quantity()
+            self.compute_nero_plot_quantity()
 
             # re-display the heatmap
             self.draw_piv_nero(mode='aggregate')
@@ -7971,7 +8253,7 @@ class UI_MainWindow(QWidget):
         self.aggregate_loss_module = nero_utilities.RMSELoss()
 
         # compute aggregate plot quantity
-        compute_nero_plot_quantity()
+        self.compute_nero_plot_quantity()
 
         # draw the aggregate NERO plot
         self.draw_piv_nero(mode='aggregate')
