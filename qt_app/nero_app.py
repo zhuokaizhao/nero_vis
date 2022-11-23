@@ -1925,7 +1925,7 @@ class UI_MainWindow(QWidget):
 
             elif self.mode == 'piv':
                 # compute aggregate plot quantity
-                self.compute_nero_plot_quantity()
+                self.compute_aggregate_nero_plot_quantity()
 
                 # draw the aggregate NERO plot
                 self.draw_piv_nero(mode='aggregate')
@@ -2004,20 +2004,34 @@ class UI_MainWindow(QWidget):
             # add all digits as items
             for i in range(10):
                 self.class_selection_menu.addItem(f'Digit {i}')
+
+            # set default to 'all', which means the average one
+            self.class_selection = 'all'
+            self.class_selection_menu.setCurrentIndex(0)
         elif self.mode == 'object_detection':
             self.class_selection_menu.addItem(f'All objects')
             # add all classes as items
             for cur_class in self.coco_classes:
                 self.class_selection_menu.addItem(f'{cur_class}')
+
+            # set default to 'all', which means the average one
+            self.class_selection = 'all'
+            self.class_selection_menu.setCurrentIndex(0)
         elif self.mode == 'piv':
             self.class_selection_menu.addItem(f'All types')
             # add all classes as items
             for cur_type in self.flow_types:
                 self.class_selection_menu.addItem(f'{cur_type}')
 
-        # set default to 'all', which means the average one
-        self.class_selection = 'all'
-        self.class_selection_menu.setCurrentIndex(0)
+            # set default to 'all', which means the average one
+            # self.class_selection = 'Uniform'
+            # self.class_selection = 'Cylinder'
+            # self.class_selection_menu.setCurrentIndex(
+            #     int(self.flow_types.index(self.class_selection))
+            # )
+            self.class_selection = 'all'
+            self.class_selection_menu.setCurrentIndex(0)
+
         # connect the drop down menu with actions
         self.class_selection_menu.currentTextChanged.connect(aggregate_class_selection_changed)
         self.class_selection_menu.setEditable(True)
@@ -2407,9 +2421,14 @@ class UI_MainWindow(QWidget):
                 print(f'Selected image 2 at {self.image_2_path}')
 
                 # single case model outputs
-                self.all_quantities_1 = self.aggregate_outputs_1[:, self.image_index]
-                self.all_quantities_2 = self.aggregate_outputs_2[:, self.image_index]
-                self.all_ground_truths = self.aggregate_ground_truths[:, self.image_index]
+                # self.all_quantities_1 = self.aggregate_outputs_1[:, self.image_index]
+                # self.all_quantities_2 = self.aggregate_outputs_2[:, self.image_index]
+                # self.all_ground_truths = self.aggregate_ground_truths[:, self.image_index]
+                self.single_outputs_1 = self.aggregate_outputs_1[:, self.image_index]
+                self.single_outputs_2 = self.aggregate_outputs_2[:, self.image_index]
+                self.single_ground_truths = self.aggregate_ground_truths[:, self.image_index]
+                self.single_consensus_1 = self.aggregate_consensus_1[:, self.image_index]
+                self.single_consensus_2 = self.aggregate_consensus_2[:, self.image_index]
 
             # load the image
             self.load_single_image()
@@ -3919,12 +3938,16 @@ class UI_MainWindow(QWidget):
                 )
 
             # load consensus
-            self.aggregate_consensus_1 = self.load_from_cache(
-                f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_1_cache_name}_consensus'
+            self.aggregate_consensus_1 = torch.from_numpy(
+                self.load_from_cache(
+                    f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_1_cache_name}_consensus'
+                )
             )
 
-            self.aggregate_consensus_2 = self.load_from_cache(
-                f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_2_cache_name}_consensus'
+            self.aggregate_consensus_2 = torch.from_numpy(
+                self.load_from_cache(
+                    f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_2_cache_name}_consensus'
+                )
             )
 
             if not self.load_successfully:
@@ -5563,7 +5586,7 @@ class UI_MainWindow(QWidget):
             # plot_size should be bigger than the display_size, so that some margins exist
             self.image_label.setFixedSize(self.plot_size * 1.3, self.plot_size * 1.3)
             image_gif = QtGui.QMovie(self.gif_path)
-            gif_size = QtCore.QSize(self.plot_size * 1.2, self.plot_size * 1.2)
+            gif_size = QtCore.QSize(self.plot_size * 1.1, self.plot_size * 1.1)
             image_gif.setScaledSize(gif_size)
             # add to the label
             self.image_label.setMovie(image_gif)
@@ -6907,17 +6930,17 @@ class UI_MainWindow(QWidget):
         detail_rect_y_local = int(self.detail_rect_y)
 
         # vector field around the selected center
-        detail_ground_truth = self.all_ground_truths[self.rectangle_index][
+        detail_ground_truth = self.single_ground_truths[self.rectangle_index][
             detail_rect_y_local - 4 : detail_rect_y_local + 4,
             detail_rect_x_local - 4 : detail_rect_x_local + 4,
         ]
 
-        detail_vectors_1 = self.all_quantities_1[self.rectangle_index][
+        detail_vectors_1 = self.single_outputs_1[self.rectangle_index][
             detail_rect_y_local - 4 : detail_rect_y_local + 4,
             detail_rect_x_local - 4 : detail_rect_x_local + 4,
         ]
 
-        detail_vectors_2 = self.all_quantities_2[self.rectangle_index][
+        detail_vectors_2 = self.single_outputs_2[self.rectangle_index][
             detail_rect_y_local - 4 : detail_rect_y_local + 4,
             detail_rect_x_local - 4 : detail_rect_x_local + 4,
         ]
@@ -7979,7 +8002,7 @@ class UI_MainWindow(QWidget):
         self.draw_coco_nero(mode='single')
 
     # helper function on compute, normalize the loss and display quantity
-    def compute_nero_plot_quantity(self):
+    def compute_aggregate_nero_plot_quantity(self):
         print('Compute PIV nero plot quantity')
         # compute loss using torch loss module
         if self.quantity_name == 'RMSE':
@@ -7993,45 +8016,60 @@ class UI_MainWindow(QWidget):
 
         if self.use_consensus:
             # try loading from cache
-            cur_losses_1 = self.load_from_cache(
-                f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_1_cache_name}_{self.class_selection}_consensus_{self.quantity_name}_aggregate_1'
+            self.cur_losses_1 = self.load_from_cache(
+                f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_1_cache_name}_{self.class_selection}_aggregate_consensus_{self.quantity_name}'
             )
-            cur_losses_2 = self.load_from_cache(
-                f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_1_cache_name}_{self.class_selection}_consensus_{self.quantity_name}_aggregate_2'
+            self.cur_losses_2 = self.load_from_cache(
+                f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_2_cache_name}_{self.class_selection}_aggregate_consensus_{self.quantity_name}'
             )
+
             if not self.load_successfully:
+                # get results of selected class(es)
+                if self.class_selection == 'all':
+                    cur_class_images_indices = list(range(len(self.loaded_images_labels)))
+                else:
+                    cur_class_images_indices = []
+                    for i in range(len(self.loaded_images_labels)):
+                        if self.class_selection == self.loaded_images_labels[i]:
+                            cur_class_images_indices.append(i)
+
+                cur_consensus_1 = self.aggregate_consensus_1[:, cur_class_images_indices]
+                cur_consensus_2 = self.aggregate_consensus_2[:, cur_class_images_indices]
+                cur_outputs_1 = self.aggregate_outputs_1[:, cur_class_images_indices]
+                cur_outputs_2 = self.aggregate_outputs_2[:, cur_class_images_indices]
+
                 # keep the same dimension
-                cur_losses_1 = np.zeros(
+                self.cur_losses_1 = np.zeros(
                     (
                         self.num_transformations,
-                        len(self.aggregate_outputs_1[0]),
+                        len(cur_outputs_1[0]),
                         self.image_size,
                         self.image_size,
                     )
                 )
-                cur_losses_2 = np.zeros(
+                self.cur_losses_2 = np.zeros(
                     (
                         self.num_transformations,
-                        len(self.aggregate_outputs_1[0]),
+                        len(cur_outputs_2[0]),
                         self.image_size,
                         self.image_size,
                     )
                 )
                 for i in range(self.num_transformations):
-                    for j in range(len(self.aggregate_outputs_1[i])):
-                        cur_losses_1[i, j] = (
+                    for j in range(len(cur_outputs_1[i])):
+                        self.cur_losses_1[i, j] = (
                             self.loss_module(
-                                self.aggregate_consensus_1[i, j],
-                                self.aggregate_outputs_1[i, j],
+                                cur_consensus_1[i, j],
+                                cur_outputs_1[i, j],
                                 reduction='none',
                             )
                             .numpy()
                             .mean(axis=2)
                         )
-                        cur_losses_2[i, j] = (
+                        self.cur_losses_2[i, j] = (
                             self.loss_module(
-                                self.aggregate_consensus_2[i, j],
-                                self.aggregate_outputs_2[i, j],
+                                cur_consensus_2[i, j],
+                                cur_outputs_2[i, j],
                                 reduction='none',
                             )
                             .numpy()
@@ -8040,54 +8078,69 @@ class UI_MainWindow(QWidget):
 
                 # save to cache
                 self.save_to_cache(
-                    f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_1_cache_name}_{self.class_selection}_consensus_{self.quantity_name}_aggregate_1',
-                    cur_losses_1,
+                    f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_1_cache_name}_{self.class_selection}_aggregate_consensus_{self.quantity_name}',
+                    self.cur_losses_1,
                 )
                 self.save_to_cache(
-                    f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_1_cache_name}_{self.class_selection}_consensus_{self.quantity_name}_aggregate_2',
-                    cur_losses_2,
+                    f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_2_cache_name}_{self.class_selection}_aggregate_consensus_{self.quantity_name}',
+                    self.cur_losses_2,
                 )
         else:
             # try loading from cache
-            cur_losses_1 = self.load_from_cache(
-                f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_1_cache_name}_{self.class_selection}_{self.quantity_name}_aggregate_1'
+            self.cur_losses_1 = self.load_from_cache(
+                f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_1_cache_name}_{self.class_selection}_aggregate_{self.quantity_name}'
             )
-            cur_losses_2 = self.load_from_cache(
-                f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_1_cache_name}_{self.class_selection}_{self.quantity_name}_aggregate_2'
+            self.cur_losses_2 = self.load_from_cache(
+                f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_2_cache_name}_{self.class_selection}_aggregate_{self.quantity_name}'
             )
+
             if not self.load_successfully:
+                # if True:
+                # get results of selected class(es)
+                if self.class_selection == 'all':
+                    cur_class_images_indices = list(range(len(self.loaded_images_labels)))
+                else:
+                    cur_class_images_indices = []
+                    for i in range(len(self.loaded_images_labels)):
+                        if self.class_selection == self.loaded_images_labels[i]:
+                            cur_class_images_indices.append(i)
+
+                cur_ground_truths = self.aggregate_ground_truths[:, cur_class_images_indices]
+                cur_outputs_1 = self.aggregate_outputs_1[:, cur_class_images_indices]
+                cur_outputs_2 = self.aggregate_outputs_2[:, cur_class_images_indices]
+
                 # keep the same dimension
-                cur_losses_1 = np.zeros(
+                self.cur_losses_1 = np.zeros(
                     (
                         self.num_transformations,
-                        len(self.aggregate_outputs_1[0]),
+                        len(cur_outputs_1[0]),
                         self.image_size,
                         self.image_size,
                     )
                 )
-                cur_losses_2 = np.zeros(
+                self.cur_losses_2 = np.zeros(
                     (
                         self.num_transformations,
-                        len(self.aggregate_outputs_1[0]),
+                        len(cur_outputs_2[0]),
                         self.image_size,
                         self.image_size,
                     )
                 )
                 for i in range(self.num_transformations):
-                    for j in range(len(self.aggregate_outputs_1[i])):
-                        cur_losses_1[i, j] = (
+                    for j in range(len(cur_outputs_1[i])):
+                        self.cur_losses_1[i, j] = (
                             self.loss_module(
-                                self.aggregate_ground_truths[i, j],
-                                self.aggregate_outputs_1[i, j],
+                                cur_ground_truths[i, j],
+                                cur_outputs_1[i, j],
                                 reduction='none',
                             )
                             .numpy()
                             .mean(axis=2)
                         )
-                        cur_losses_2[i, j] = (
+                        self.cur_losses_2[i, j] = (
                             self.loss_module(
-                                self.aggregate_ground_truths[i, j],
-                                self.aggregate_outputs_2[i, j],
+                                cur_ground_truths[i, j],
+                                cur_outputs_2[i, j],
                                 reduction='none',
                             )
                             .numpy()
@@ -8096,74 +8149,23 @@ class UI_MainWindow(QWidget):
 
                 # save to cache
                 self.save_to_cache(
-                    f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_1_cache_name}_{self.class_selection}_{self.quantity_name}_aggregate_1',
-                    cur_losses_1,
+                    f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_1_cache_name}_{self.class_selection}_aggregate_{self.quantity_name}',
+                    self.cur_losses_1,
                 )
                 self.save_to_cache(
-                    f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_1_cache_name}_{self.class_selection}_{self.quantity_name}_aggregate_2',
-                    cur_losses_2,
+                    f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_2_cache_name}_{self.class_selection}_aggregate_{self.quantity_name}',
+                    self.cur_losses_2,
                 )
 
         # get the 0 and 80 percentile as the threshold for colormap
-        all_losses = np.concatenate([cur_losses_1.flatten(), cur_losses_2.flatten()])
+        all_losses = np.concatenate([self.cur_losses_1.flatten(), self.cur_losses_2.flatten()])
         self.loss_low_bound = np.percentile(all_losses, 0)
         self.loss_high_bound = np.percentile(all_losses, 80)
         print('Aggregate loss 0 and 80 percentile', self.loss_low_bound, self.loss_high_bound)
 
-        # plot quantity is the average among all samples
-        self.cur_aggregate_plot_quantity_1 = cur_losses_1.mean(axis=1)
-        self.cur_aggregate_plot_quantity_2 = cur_losses_2.mean(axis=1)
-
-        # compute single result if needed as well
-        if self.single_result_existed:
-            # try loading from cache
-            cur_losses_1 = self.load_from_cache(
-                f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_1_cache_name}_{self.class_selection}_{self.quantity_name}_single_1'
-            )
-            cur_losses_2 = self.load_from_cache(
-                f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_1_cache_name}_{self.class_selection}_{self.quantity_name}_single_2'
-            )
-            if not self.load_successfully:
-                # keep the same dimension
-                cur_losses_1 = np.zeros(
-                    (self.num_transformations, self.image_size, self.image_size)
-                )
-                cur_losses_2 = np.zeros(
-                    (self.num_transformations, self.image_size, self.image_size)
-                )
-                for i in range(self.num_transformations):
-                    cur_losses_1[i] = (
-                        self.loss_module(
-                            self.all_ground_truths[i],
-                            self.all_quantities_1[i],
-                            reduction='none',
-                        )
-                        .numpy()
-                        .mean(axis=2)
-                    )
-                    cur_losses_2[i] = (
-                        self.loss_module(
-                            self.all_ground_truths[i],
-                            self.all_quantities_2[i],
-                            reduction='none',
-                        )
-                        .numpy()
-                        .mean(axis=2)
-                    )
-
-                # save to cache
-                self.save_to_cache(
-                    f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_1_cache_name}_{self.class_selection}_{self.quantity_name}_single_1',
-                    cur_losses_1,
-                )
-                self.save_to_cache(
-                    f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_1_cache_name}_{self.class_selection}_{self.quantity_name}_single_2',
-                    cur_losses_2,
-                )
-
-            # average element-wise loss to scalar and normalize between 0 and 1
-            self.cur_single_plot_quantity_1 = cur_losses_1
-            self.cur_single_plot_quantity_2 = cur_losses_2
+        # plot quantity is the average among selected samples
+        self.cur_aggregate_plot_quantity_1 = self.cur_losses_1.mean(axis=1)
+        self.cur_aggregate_plot_quantity_2 = self.cur_losses_2.mean(axis=1)
 
     # display COCO aggregate result
     def display_piv_aggregate_result(self):
@@ -8197,7 +8199,7 @@ class UI_MainWindow(QWidget):
                 self.quantity_name = text
 
             # compute the quantity to plot
-            self.compute_nero_plot_quantity()
+            self.compute_aggregate_nero_plot_quantity()
 
             # re-display the heatmap
             self.draw_piv_nero(mode='aggregate')
@@ -8253,10 +8255,78 @@ class UI_MainWindow(QWidget):
         self.aggregate_loss_module = nero_utilities.RMSELoss()
 
         # compute aggregate plot quantity
-        self.compute_nero_plot_quantity()
+        self.compute_aggregate_nero_plot_quantity()
 
         # draw the aggregate NERO plot
         self.draw_piv_nero(mode='aggregate')
+
+    # helper function on compute, normalize the loss and display quantity
+    def compute_single_nero_plot_quantity(self):
+        # compute loss using torch loss module
+        if self.quantity_name == 'RMSE':
+            self.loss_module = nero_utilities.RMSELoss()
+        elif self.quantity_name == 'MSE':
+            self.loss_module = torch.nn.MSELoss()
+        elif self.quantity_name == 'MAE':
+            self.loss_module = torch.nn.L1Loss()
+        elif self.quantity_name == 'AEE':
+            self.loss_module = nero_utilities.AEELoss()
+
+        # keep the same dimension
+        cur_losses_1 = np.zeros((self.num_transformations, self.image_size, self.image_size))
+        cur_losses_2 = np.zeros((self.num_transformations, self.image_size, self.image_size))
+        for i in range(self.num_transformations):
+            if self.use_consensus:
+                cur_losses_1[i] = (
+                    self.loss_module(
+                        self.single_consensus_1[i], self.single_outputs_1[i], reduction='none'
+                    )
+                    .numpy()
+                    .mean(axis=2)
+                )
+                cur_losses_2[i] = (
+                    self.loss_module(
+                        self.single_consensus_2[i], self.single_outputs_2[i], reduction='none'
+                    )
+                    .numpy()
+                    .mean(axis=2)
+                )
+            else:
+                cur_losses_1[i] = (
+                    self.loss_module(
+                        self.single_ground_truths[i], self.single_outputs_1[i], reduction='none'
+                    )
+                    .numpy()
+                    .mean(axis=2)
+                )
+                cur_losses_2[i] = (
+                    self.loss_module(
+                        self.single_ground_truths[i], self.single_outputs_2[i], reduction='none'
+                    )
+                    .numpy()
+                    .mean(axis=2)
+                )
+
+        # get the 0 and 80 percentile as the threshold for colormap
+        # when in aggregate mode, continue using aggregate range
+        if self.data_mode == 'single':
+            all_losses = np.concatenate([cur_losses_1.flatten(), cur_losses_2.flatten()])
+            self.loss_low_bound = np.percentile(all_losses, 0)
+            self.loss_high_bound = np.percentile(all_losses, 80)
+            # print(self.loss_low_bound, self.loss_high_bound)
+
+        # average element-wise loss to scalar and normalize between 0 and 1
+        self.cur_single_plot_quantity_1 = cur_losses_1
+        self.cur_single_plot_quantity_2 = cur_losses_2
+
+        # get selected index from dimension reduction plot
+        # print(len(self.cur_losses_1))
+        # self.cur_single_plot_quantity_1 = self.cur_losses_1[
+        #     self.cur_class_indices.index(self.image_index)
+        # ]
+        # self.cur_single_plot_quantity_2 = self.cur_losses_2[
+        #     self.cur_class_indices.index(self.image_index)
+        # ]
 
     # display PIV single results
     def display_piv_single_result(self):
@@ -8274,78 +8344,21 @@ class UI_MainWindow(QWidget):
             self.single_result_layout.addWidget(self.run_button, 3, 0)
             self.single_result_layout.addWidget(self.use_cache_checkbox, 4, 0)
 
-        # helper function on compute, normalize the loss and display quantity
-        def compute_single_nero_plot_quantity():
-            # compute loss using torch loss module
-            if self.quantity_name == 'RMSE':
-                self.loss_module = nero_utilities.RMSELoss()
-            elif self.quantity_name == 'MSE':
-                self.loss_module = torch.nn.MSELoss()
-            elif self.quantity_name == 'MAE':
-                self.loss_module = torch.nn.L1Loss()
-            elif self.quantity_name == 'AEE':
-                self.loss_module = nero_utilities.AEELoss()
-
-            # try loading from cache
-            cur_losses_1 = self.load_from_cache(
-                f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_1_cache_name}_{self.class_selection}_{self.quantity_name}_single_1'
-            )
-            cur_losses_2 = self.load_from_cache(
-                f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_1_cache_name}_{self.class_selection}_{self.quantity_name}_single_2'
-            )
-            if not self.load_successfully:
-                # keep the same dimension
-                cur_losses_1 = np.zeros(
-                    (self.num_transformations, self.image_size, self.image_size)
-                )
-                cur_losses_2 = np.zeros(
-                    (self.num_transformations, self.image_size, self.image_size)
-                )
-                for i in range(self.num_transformations):
-                    cur_losses_1[i] = (
-                        self.loss_module(
-                            self.all_ground_truths[i], self.all_quantities_1[i], reduction='none'
-                        )
-                        .numpy()
-                        .mean(axis=2)
-                    )
-                    cur_losses_2[i] = (
-                        self.loss_module(
-                            self.all_ground_truths[i], self.all_quantities_2[i], reduction='none'
-                        )
-                        .numpy()
-                        .mean(axis=2)
-                    )
-
-                # save to cache
-                self.save_to_cache(
-                    f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_1_cache_name}_{self.class_selection}_{self.quantity_name}_single_1',
-                    cur_losses_1,
-                )
-                self.save_to_cache(
-                    f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_1_cache_name}_{self.class_selection}_{self.quantity_name}_single_2',
-                    cur_losses_2,
-                )
-
-            # get the 0 and 80 percentile as the threshold for colormap
-            # when in aggregate mode, continue using aggregate range
-            if self.data_mode == 'single':
-                all_losses = np.concatenate([cur_losses_1.flatten(), cur_losses_2.flatten()])
-                self.loss_low_bound = np.percentile(all_losses, 0)
-                self.loss_high_bound = np.percentile(all_losses, 80)
-                # print(self.loss_low_bound, self.loss_high_bound)
-
-            # average element-wise loss to scalar and normalize between 0 and 1
-            self.cur_single_plot_quantity_1 = cur_losses_1
-            self.cur_single_plot_quantity_2 = cur_losses_2
-
         @QtCore.Slot()
         def piv_nero_quantity_changed(text):
             print('Plotting:', text, 'on detailed PIV plots')
             self.quantity_name = text
 
             # compute the quantity needed to plot individual NERO plot
-            compute_single_nero_plot_quantity()
+            self.compute_aggregate_nero_plot_quantity()
+
+            # compute the quantity needed to plot individual NERO plot
+            self.compute_single_nero_plot_quantity()
+
+            # plot/update aggregate NERO plot
+            self.draw_piv_nero(mode='aggregate')
+
+            self.run_dimension_reduction()
 
             # plot/update the individual NERO plot
             self.draw_piv_nero(mode='single')
@@ -8389,7 +8402,7 @@ class UI_MainWindow(QWidget):
             self.cur_single_plot_quantity_2 = np.zeros(
                 (self.num_transformations, self.image_size, self.image_size)
             )
-            compute_single_nero_plot_quantity()
+            self.compute_single_nero_plot_quantity()
 
         # when in three level view
         elif self.data_mode == 'aggregate':
@@ -8400,7 +8413,7 @@ class UI_MainWindow(QWidget):
             self.cur_single_plot_quantity_2 = np.zeros(
                 (self.num_transformations, self.image_size, self.image_size)
             )
-            compute_single_nero_plot_quantity()
+            self.compute_single_nero_plot_quantity()
 
         # visualize the individual NERO plot of the current input
         self.draw_piv_nero(mode='single')
