@@ -19,21 +19,28 @@ import load_data
 import model
 import plot
 
-os.environ['CUDA_VISIBLE_DEVICES']='1'
+os.environ['CUDA_VISIBLE_DEVICES'] = '0'
 
 print('\n\nPython VERSION:', sys.version)
 print('PyTorch VERSION:', torch.__version__)
 from subprocess import call
+
 # call(["nvcc", "--version"]) does not work
 # ! nvcc --version
 print('CUDNN VERSION:', torch.backends.cudnn.version())
 print('Number CUDA Devices:', torch.cuda.device_count())
 print('Devices')
-call(['nvidia-smi', '--format=csv', '--query-gpu=index,name,driver_version,memory.total,memory.used,memory.free'])
+call(
+    [
+        'nvidia-smi',
+        '--format=csv',
+        '--query-gpu=index,name,driver_version,memory.total,memory.used,memory.free',
+    ]
+)
 print('Active CUDA Device: GPU', torch.cuda.current_device())
 
-print ('Available devices ', torch.cuda.device_count())
-print ('Current cuda device ', torch.cuda.current_device())
+print('Available devices ', torch.cuda.device_count())
+print('Current cuda device ', torch.cuda.current_device())
 
 # perform some system checks
 def check_system():
@@ -45,7 +52,9 @@ def check_system():
 
 
 # Print iterations progress
-def print_progress_bar (iteration, total, prefix = '', suffix = '', decimals = 1, length = 100, fill = '█', printEnd = "\r"):
+def print_progress_bar(
+    iteration, total, prefix='', suffix='', decimals=1, length=100, fill='█', printEnd='\r'
+):
     """
     Call in a loop to create terminal progress bar
     @params:
@@ -58,15 +67,15 @@ def print_progress_bar (iteration, total, prefix = '', suffix = '', decimals = 1
         fill        - Optional  : bar fill character (Str)
         printEnd    - Optional  : end character (e.g. "\r", "\r\n") (Str)
     """
-    percent = ("{0:." + str(decimals) + "f}").format(100 * (iteration / float(total)))
+    percent = ('{0:.' + str(decimals) + 'f}').format(100 * (iteration / float(total)))
     filledLength = int(length * iteration // total)
     bar = fill * filledLength + '-' * (length - filledLength)
-    print('\r%s |%s| %s%% %s' % (prefix, bar, percent, suffix), end = printEnd)
+    print('\r%s |%s| %s%% %s' % (prefix, bar, percent, suffix), end=printEnd)
 
 
 def main():
 
-	# input arguments
+    # input arguments
     parser = argparse.ArgumentParser()
     # mode (data, train, or test mode)
     parser.add_argument('--mode', required=True, action='store', nargs=1, dest='mode')
@@ -109,7 +118,7 @@ def main():
             print('\n', torch.cuda.device_count(), 'GPUs available')
             device = torch.device('cuda')
         else:
-            device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+            device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
         if verbose:
             print(f'\nmode: {mode}')
@@ -141,21 +150,23 @@ def main():
         # make sure the model_dir is valid
         if not os.path.exists(model_dir):
             os.mkdir(model_dir)
-            print(f"model_dir {model_dir} did not exist, but has been created")
+            print(f'model_dir {model_dir} did not exist, but has been created')
 
         # load the data
         print(f'\nLoading datasets')
         # Read data
-        train_img1_name_list, train_img2_name_list, train_gt_name_list = load_data.read_all(train_dir)
+        train_img1_name_list, train_img2_name_list, train_gt_name_list = load_data.read_all(
+            train_dir
+        )
         val_img1_name_list, val_img2_name_list, val_gt_name_list = load_data.read_all(val_dir)
         # construct dataset
-        train_data, train_labels = load_data.construct_dataset(train_img1_name_list,
-                                                            train_img2_name_list,
-                                                            train_gt_name_list)
+        train_data, train_labels = load_data.construct_dataset(
+            train_img1_name_list, train_img2_name_list, train_gt_name_list
+        )
 
-        val_data, val_labels = load_data.construct_dataset(val_img1_name_list,
-                                                        val_img2_name_list,
-                                                        val_gt_name_list)
+        val_data, val_labels = load_data.construct_dataset(
+            val_img1_name_list, val_img2_name_list, val_gt_name_list
+        )
 
         num_channels = train_data.shape[1] // 2
 
@@ -175,7 +186,6 @@ def main():
             print(f'val_data has shape: {val_data.shape}')
             print(f'val_labels has shape: {val_labels.shape}')
             print(f'output model save freq: {save_freq} epoch')
-
 
         # model
         # piv_lfn_en = model.PIV_LiteFlowNet_en()
@@ -204,7 +214,7 @@ def main():
         # train/val losses for all the epochs
         all_epoch_train_losses = []
         all_epoch_val_losses = []
-        for i in range(starting_epoch, starting_epoch+num_epoch):
+        for i in range(starting_epoch, starting_epoch + num_epoch):
             print(f'\n Starting epoch {i+1}/{starting_epoch+num_epoch}')
             epoch_start_time = time.time()
 
@@ -227,18 +237,16 @@ def main():
                 # dataloader randomly loads a batch_size number of image pairs
                 if phase == 'train':
                     data = torch.utils.data.TensorDataset(train_data, train_labels)
-                    dataloader = torch.utils.data.DataLoader(data,
-                                                            batch_size=batch_size,
-                                                            shuffle=True,
-                                                            num_workers=4)
+                    dataloader = torch.utils.data.DataLoader(
+                        data, batch_size=batch_size, shuffle=True, num_workers=4
+                    )
                     # number for batches used to plot progress bar
                     num_batch = int(np.ceil(len(train_data) / batch_size))
                 elif phase == 'val':
                     data = torch.utils.data.TensorDataset(val_data, val_labels)
-                    dataloader = torch.utils.data.DataLoader(data,
-                                                            batch_size=batch_size,
-                                                            shuffle=True,
-                                                            num_workers=4)
+                    dataloader = torch.utils.data.DataLoader(
+                        data, batch_size=batch_size, shuffle=True, num_workers=4
+                    )
                     # number for batches used to plot progress bar
                     num_batch = int(np.ceil(len(val_data) / batch_size))
 
@@ -253,7 +261,9 @@ def main():
                         piv_lfn_en.train()
                         # train/validate
                         # cur_label_pred = piv_lfn_en(batch_data)
-                        cur_label_pred = piv_lfn_en(batch_data[:, 0:3, :, :], batch_data[:, 3:, :, :])[-1][-1]
+                        cur_label_pred = piv_lfn_en(
+                            batch_data[:, 0:3, :, :], batch_data[:, 3:, :, :]
+                        )[-1][-1]
 
                         # compute loss
                         train_loss = loss_module(cur_label_pred, batch_labels)
@@ -278,11 +288,14 @@ def main():
                         batch_time_cost = batch_end_time - batch_start_time
 
                         # show mini-batch progress
-                        print_progress_bar(iteration=j+1,
-                                            total=num_batch,
-                                            prefix=f'Batch {j+1}/{num_batch},',
-                                            suffix='%s loss: %.3f, time: %.2f' % (phase+' '+loss, all_batch_train_losses[-1], batch_time_cost),
-                                            length=50)
+                        print_progress_bar(
+                            iteration=j + 1,
+                            total=num_batch,
+                            prefix=f'Batch {j+1}/{num_batch},',
+                            suffix='%s loss: %.3f, time: %.2f'
+                            % (phase + ' ' + loss, all_batch_train_losses[-1], batch_time_cost),
+                            length=50,
+                        )
 
                     elif phase == 'val':
                         piv_lfn_en.eval()
@@ -291,7 +304,9 @@ def main():
 
                             # train/validate
                             # cur_label_pred = piv_lfn_en(batch_data)
-                            cur_label_pred = piv_lfn_en(batch_data[:, 0:3, :, :], batch_data[:, 3:, :, :])
+                            cur_label_pred = piv_lfn_en(
+                                batch_data[:, 0:3, :, :], batch_data[:, 3:, :, :]
+                            )
 
                             # compute loss
                             val_loss = loss_module(cur_label_pred, batch_labels)
@@ -306,11 +321,14 @@ def main():
                         batch_time_cost = batch_end_time - batch_start_time
 
                         # show mini-batch progress
-                        print_progress_bar(iteration=j+1,
-                                            total=num_batch,
-                                            prefix=f'Batch {j+1}/{num_batch},',
-                                            suffix='%s loss: %.3f, time: %.2f' % (phase+' '+loss, all_batch_val_losses[-1], batch_time_cost),
-                                            length=50)
+                        print_progress_bar(
+                            iteration=j + 1,
+                            total=num_batch,
+                            prefix=f'Batch {j+1}/{num_batch},',
+                            suffix='%s loss: %.3f, time: %.2f'
+                            % (phase + ' ' + loss, all_batch_val_losses[-1], batch_time_cost),
+                            length=50,
+                        )
 
                 print('\n')
 
@@ -319,10 +337,17 @@ def main():
             batch_avg_val_loss = np.mean(all_batch_val_losses)
             all_epoch_train_losses.append(batch_avg_train_loss)
             all_epoch_val_losses.append(batch_avg_val_loss)
-            print('\nEpoch %d completed in %.3f seconds, avg train loss: %.3f, avg val loss: %.3f'
-                        % ((i+1), (epoch_end_time-epoch_start_time), all_epoch_train_losses[-1], all_epoch_val_losses[-1]))
+            print(
+                '\nEpoch %d completed in %.3f seconds, avg train loss: %.3f, avg val loss: %.3f'
+                % (
+                    (i + 1),
+                    (epoch_end_time - epoch_start_time),
+                    all_epoch_train_losses[-1],
+                    all_epoch_val_losses[-1],
+                )
+            )
 
-            if (i+1) % save_freq == 0:
+            if (i + 1) % save_freq == 0:
                 # save loss graph
                 if checkpoint_path != None:
                     prev_train_losses = checkpoint['train_loss']
@@ -345,33 +370,33 @@ def main():
                 # if trained on multiple GPU's, store model.module.state_dict()
                 if torch.cuda.device_count() > 1:
                     model_checkpoint = {
-                                            'epoch': i+1,
-                                            'state_dict': piv_lfn_en.module.state_dict(),
-                                            'optimizer': optimizer.state_dict(),
-                                            'train_loss': all_epoch_train_losses,
-                                            'val_loss': all_epoch_val_losses
-                                        }
+                        'epoch': i + 1,
+                        'state_dict': piv_lfn_en.module.state_dict(),
+                        'optimizer': optimizer.state_dict(),
+                        'train_loss': all_epoch_train_losses,
+                        'val_loss': all_epoch_val_losses,
+                    }
                 else:
                     model_checkpoint = {
-                                            'epoch': i+1,
-                                            'state_dict': piv_lfn_en.state_dict(),
-                                            'optimizer': optimizer.state_dict(),
-                                            'train_loss': all_epoch_train_losses,
-                                            'val_loss': all_epoch_val_losses
-                                        }
+                        'epoch': i + 1,
+                        'state_dict': piv_lfn_en.state_dict(),
+                        'optimizer': optimizer.state_dict(),
+                        'train_loss': all_epoch_train_losses,
+                        'val_loss': all_epoch_val_losses,
+                    }
 
                 torch.save(model_checkpoint, model_path)
                 print(f'\nTrained model/checkpoint has been saved to {model_path}\n')
 
         train_end_time = time.time()
-        print('\nTraining completed in %.3f seconds' % (train_end_time-train_start_time))
+        print('\nTraining completed in %.3f seconds' % (train_end_time - train_start_time))
 
     if mode == 'test':
         if torch.cuda.device_count() > 1:
             print('\n', torch.cuda.device_count(), 'GPUs available')
             device = torch.device('cuda')
         else:
-            device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+            device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
         test_dir = args.test_dir[0]
         model_dir = args.model_dir[0]
@@ -386,7 +411,9 @@ def main():
         # Read data
         img1_name_list, img2_name_list, gt_name_list = load_data.read_all(test_dir)
         # construct dataset
-        test_data, test_labels = load_data.construct_dataset(img1_name_list, img2_name_list, gt_name_list)
+        test_data, test_labels = load_data.construct_dataset(
+            img1_name_list, img2_name_list, gt_name_list
+        )
         # parameters loaded from input data
         num_channels = test_data.shape[1] // 2
 
@@ -414,8 +441,10 @@ def main():
             # check if input parameters are valid
             if start_t < 0:
                 raise Exception('Invalid start_index')
-            elif end_t > test_data.shape[0]-1:
-                raise Exception(f'Invalid end_index > total number of image pair {test_data.shape[0]}')
+            elif end_t > test_data.shape[0] - 1:
+                raise Exception(
+                    f'Invalid end_index > total number of image pair {test_data.shape[0]}'
+                )
 
             # define the loss
             if loss == 'MSE' or loss == 'RMSE':
@@ -436,8 +465,8 @@ def main():
             min_loss_index = 0
             all_losses = []
 
-            for k in range(start_t, end_t+1):
-                cur_image_pair = test_data[k:k+1].to(device)
+            for k in range(start_t, end_t + 1):
+                cur_image_pair = test_data[k : k + 1].to(device)
                 cur_label_true = test_labels[k].permute(1, 2, 0).numpy() / final_size
                 # get prediction from loaded model
                 prediction = piv_lfn_en(cur_image_pair)
@@ -453,13 +482,17 @@ def main():
                     result_dir = os.path.join(output_dir, 'lfn_vel_field')
                     os.makedirs(result_dir, exist_ok=True)
                     result_path = os.path.join(result_dir, f'lfn_velocity_{k}.npz')
-                    np.savez(result_path,
-                            velocity=cur_label_pred)
+                    np.savez(result_path, velocity=cur_label_pred)
                     print(f'LFN velocity has been saved to {result_path}')
 
                 # compute loss
                 if loss == 'RMSE' or loss == 'AEE':
-                    cur_loss = loss_module(torch.from_numpy(cur_label_pred), torch.from_numpy(cur_label_true)) / final_size
+                    cur_loss = (
+                        loss_module(
+                            torch.from_numpy(cur_label_pred), torch.from_numpy(cur_label_true)
+                        )
+                        / final_size
+                    )
                     if loss == 'RMSE':
                         cur_loss = torch.sqrt(cur_loss)
                     elif loss == 'AEE':
@@ -468,11 +501,11 @@ def main():
                             for j in range(final_size):
                                 cur_pred = cur_label_pred[i, j]
                                 cur_true = cur_label_true[i, j]
-                                cur_endpoint_error = np.linalg.norm(cur_pred-cur_true)
+                                cur_endpoint_error = np.linalg.norm(cur_pred - cur_true)
                                 sum_endpoint_error += cur_endpoint_error
 
                         # compute the average endpoint error
-                        aee = sum_endpoint_error / (final_size*final_size)
+                        aee = sum_endpoint_error / (final_size * final_size)
                         # convert to per 100 pixels for comparison purpose
                         cur_loss = aee / final_size
                 # customized metric that converts into polar coordinates and compare
@@ -481,10 +514,16 @@ def main():
                     cur_label_true_polar = plot.cart2pol(cur_label_true)
                     cur_label_pred_polar = plot.cart2pol(cur_label_pred)
                     # absolute magnitude difference and angle difference
-                    r_diff_mean = np.abs(cur_label_true_polar[:, :, 0]-cur_label_pred_polar[:, :, 0]).mean()
-                    theta_diff = np.abs(cur_label_true_polar[:, :, 1]-cur_label_pred_polar[:, :, 1])
+                    r_diff_mean = np.abs(
+                        cur_label_true_polar[:, :, 0] - cur_label_pred_polar[:, :, 0]
+                    ).mean()
+                    theta_diff = np.abs(
+                        cur_label_true_polar[:, :, 1] - cur_label_pred_polar[:, :, 1]
+                    )
                     # wrap around for angles larger than pi
-                    theta_diff[theta_diff>2*np.pi] = 2*np.pi - theta_diff[theta_diff>2*np.pi]
+                    theta_diff[theta_diff > 2 * np.pi] = (
+                        2 * np.pi - theta_diff[theta_diff > 2 * np.pi]
+                    )
                     # compute the mean of angle difference
                     theta_diff_mean = theta_diff.mean()
                     # take the sum as single scalar loss
@@ -515,19 +554,21 @@ def main():
 
                     # superimpose quiver plot on color-coded images
                     # ground truth
-                    x = np.linspace(0, final_size-1, final_size)
-                    y = np.linspace(0, final_size-1, final_size)
+                    x = np.linspace(0, final_size - 1, final_size)
+                    y = np.linspace(0, final_size - 1, final_size)
                     y_pos, x_pos = np.meshgrid(x, y)
                     skip = 8
                     plt.figure()
                     plt.imshow(cur_flow_true)
                     # quiver plot with normalized vectors and fixed scale
-                    Q = plt.quiver(y_pos[::skip, ::skip],
-                                    x_pos[::skip, ::skip],
-                                    cur_label_true[::skip, ::skip, 0]/max_vel,
-                                    -cur_label_true[::skip, ::skip, 1]/max_vel,
-                                    scale=4.0,
-                                    scale_units='inches')
+                    Q = plt.quiver(
+                        y_pos[::skip, ::skip],
+                        x_pos[::skip, ::skip],
+                        cur_label_true[::skip, ::skip, 0] / max_vel,
+                        -cur_label_true[::skip, ::skip, 1] / max_vel,
+                        scale=4.0,
+                        scale_units='inches',
+                    )
                     Q._init()
                     assert isinstance(Q.scale, float)
                     print(f'\nQuiver plot scale is {Q.scale}')
@@ -540,28 +581,49 @@ def main():
                     # prediction
                     plt.figure()
                     plt.imshow(cur_flow_pred)
-                    plt.quiver(y_pos[::skip, ::skip],
-                                x_pos[::skip, ::skip],
-                                cur_label_pred[::skip, ::skip, 0]/max_vel,
-                                -cur_label_pred[::skip, ::skip, 1]/max_vel,
-                                scale=Q.scale,
-                                scale_units='inches')
+                    plt.quiver(
+                        y_pos[::skip, ::skip],
+                        x_pos[::skip, ::skip],
+                        cur_label_pred[::skip, ::skip, 0] / max_vel,
+                        -cur_label_pred[::skip, ::skip, 1] / max_vel,
+                        scale=Q.scale,
+                        scale_units='inches',
+                    )
                     plt.axis('off')
                     # annotate error
                     if loss == 'polar':
-                        plt.annotate(f'Magnitude MAE: ' + '{:.3f}'.format(r_diff_mean), (5, 10), color='white', fontsize='medium')
-                        plt.annotate(f'Angle MAE: ' + '{:.3f}'.format(theta_diff_mean), (5, 20), color='white', fontsize='medium')
+                        plt.annotate(
+                            f'Magnitude MAE: ' + '{:.3f}'.format(r_diff_mean),
+                            (5, 10),
+                            color='white',
+                            fontsize='medium',
+                        )
+                        plt.annotate(
+                            f'Angle MAE: ' + '{:.3f}'.format(theta_diff_mean),
+                            (5, 20),
+                            color='white',
+                            fontsize='medium',
+                        )
                     else:
-                        plt.annotate(f'{loss}: ' + '{:.3f}'.format(cur_loss), (5, 10), color='white', fontsize='large')
+                        plt.annotate(
+                            f'{loss}: ' + '{:.3f}'.format(cur_loss),
+                            (5, 10),
+                            color='white',
+                            fontsize='large',
+                        )
                     pred_quiver_path = os.path.join(output_dir, f'piv-lfn-en_{k}_pred.svg')
                     plt.savefig(pred_quiver_path, bbox_inches='tight', dpi=1200)
                     print(f'prediction quiver plot has been saved to {pred_quiver_path}')
 
                     # visualize and save the error magnitude
-                    pred_error = np.sqrt((cur_label_pred[:,:,0]-cur_label_true[:,:,0])**2 \
-                                        + (cur_label_pred[:,:,1]-cur_label_true[:,:,1])**2)
+                    pred_error = np.sqrt(
+                        (cur_label_pred[:, :, 0] - cur_label_true[:, :, 0]) ** 2
+                        + (cur_label_pred[:, :, 1] - cur_label_true[:, :, 1]) ** 2
+                    )
                     plt.figure()
-                    plt.imshow(pred_error, cmap='PuBuGn', interpolation='nearest', vmin=0.0,  vmax=0.2)
+                    plt.imshow(
+                        pred_error, cmap='PuBuGn', interpolation='nearest', vmin=0.0, vmax=0.2
+                    )
                     error_path = os.path.join(output_dir, f'piv-lfn-en_{k}_error.svg')
                     plt.axis('off')
                     cbar = plt.colorbar()
@@ -577,7 +639,7 @@ def main():
         loss_path = os.path.join(output_dir, f'piv-lfn-en_{start_t}_{end_t}_all_losses.npy')
         np.save(loss_path, all_losses)
         # generate loss curve plot
-        t = np.arange(start_t, end_t+1)
+        t = np.arange(start_t, end_t + 1)
         fig, ax = plt.subplots()
         ax.plot(t, all_losses)
         ax.set(xlabel='timestamp', ylabel=f'{loss}')
@@ -586,5 +648,5 @@ def main():
         fig.savefig(loss_curve_path, bbox_inches='tight')
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()
