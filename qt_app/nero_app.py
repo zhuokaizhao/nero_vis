@@ -3927,8 +3927,8 @@ class UI_MainWindow(QWidget):
                 f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_2_cache_name}_consensus'
             )
 
-            # if not self.load_successfully:
-            if True:
+            if not self.load_successfully:
+                # if True:
                 print(f'Computing consensus from model outputs')
                 # compute untransformed consensus from model outputs
                 self.aggregate_consensus_1 = self.compute_consensus(self.aggregate_outputs_1)
