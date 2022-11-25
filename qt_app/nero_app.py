@@ -5824,6 +5824,7 @@ class UI_MainWindow(QWidget):
                 view_box.addItem(heatmap)
                 view_box.disableAutoRange()
                 heatmap_plot = pg.PlotItem(viewBox=view_box, title=title)
+                heatmap.setOpts(axisOrder='row-major')
 
                 # draw lines that distinguish between different transformations
                 # line color is the average of all plot color
@@ -6818,12 +6819,8 @@ class UI_MainWindow(QWidget):
             self.aggregate_heatmap_view_2.setFixedSize(self.plot_size * 1.2, self.plot_size * 1.2)
             # color map is flipped so that low error is bright
             self.cm_range = (self.loss_high_bound, self.loss_low_bound)
-            self.aggregate_heatmap_plot_1 = self.draw_individual_heatmap(
-                'aggregate', self.data_1.transpose()
-            )
-            self.aggregate_heatmap_plot_2 = self.draw_individual_heatmap(
-                'aggregate', self.data_2.transpose()
-            )
+            self.aggregate_heatmap_plot_1 = self.draw_individual_heatmap('aggregate', self.data_1)
+            self.aggregate_heatmap_plot_2 = self.draw_individual_heatmap('aggregate', self.data_2)
 
             # add to view
             self.aggregate_heatmap_view_1.addItem(self.aggregate_heatmap_plot_1)
