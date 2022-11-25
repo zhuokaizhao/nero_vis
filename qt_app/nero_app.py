@@ -25,8 +25,8 @@ import nero_run_model
 
 import warnings
 
-import teem
-import qiv
+# import teem
+# import qiv
 
 warnings.filterwarnings('ignore')
 
@@ -1963,8 +1963,7 @@ class UI_MainWindow(QWidget):
             self.dr_result_existed = False
 
             # re-run dimension reduction and show result
-            if self.dr_result_existed:
-                self.run_dimension_reduction()
+            self.run_dimension_reduction()
 
         # layout that controls the plotting items
         self.aggregate_plot_control_layout = QtWidgets.QGridLayout()
@@ -2025,7 +2024,7 @@ class UI_MainWindow(QWidget):
 
             # set default to 'all', which means the average one
             # self.class_selection = 'Uniform'
-            # self.class_selection = 'Cylinder'
+            # # self.class_selection = 'Cylinder'
             # self.class_selection_menu.setCurrentIndex(
             #     int(self.flow_types.index(self.class_selection))
             # )
@@ -3229,7 +3228,10 @@ class UI_MainWindow(QWidget):
                 # selected_image_index = 0
             elif self.mode == 'piv':
                 # take the worst-performing one by default
-                selected_image_index = 0
+                selected_image_1 = '/home/zhuokai/Desktop/UChicago/Research/nero_vis/qt_app/example_data/piv/JHTDB/SQG_00012_img1.tif'
+                # selected_image_1 = '/home/zhuokai/Desktop/UChicago/Research/nero_vis/qt_app/example_data/piv/JHTDB/Uniform_00019_img1.tif'
+                selected_image_index = self.all_images_1_paths.index(selected_image_1)
+                # selected_image_index = 0
 
             self.image_index = self.cur_class_indices[selected_image_index]
 
@@ -3954,7 +3956,7 @@ class UI_MainWindow(QWidget):
                 # if True:
                 print(f'Computing consensus from model outputs')
                 # compute untransformed consensus from model outputs
-                self.aggregate_consensus_1 = self.compute_consensus(self.aggregate_outputs_1)
+                # self.aggregate_consensus_1 = self.compute_consensus(self.aggregate_outputs_1)
                 self.aggregate_consensus_2 = self.compute_consensus(self.aggregate_outputs_2)
 
                 # save to cache
@@ -5778,11 +5780,14 @@ class UI_MainWindow(QWidget):
 
                 # draw lines that distinguish between different transformations
                 # line color is the average of all plot color
-                scatter_lut = self.color_map.getLookupTable(
-                    start=self.cm_range[1], stop=self.cm_range[0], nPts=500, alpha=False
-                )
+                # scatter_lut = self.color_map.getLookupTable(
+                #     start=self.cm_range[1], stop=self.cm_range[0], nPts=500, alpha=False
+                # )
                 line_color = QtGui.QColor(
-                    scatter_lut[249][0], scatter_lut[249][1], scatter_lut[249][2]
+                    # scatter_lut[249][0], scatter_lut[249][1], scatter_lut[249][2]
+                    0,
+                    0,
+                    0,
                 )
                 for i in range(1, 4):
                     # horizontal
@@ -5822,11 +5827,14 @@ class UI_MainWindow(QWidget):
 
                 # draw lines that distinguish between different transformations
                 # line color is the average of all plot color
-                scatter_lut = self.color_map.getLookupTable(
-                    start=self.cm_range[1], stop=self.cm_range[0], nPts=500, alpha=False
-                )
+                # scatter_lut = self.color_map.getLookupTable(
+                #     start=self.cm_range[1], stop=self.cm_range[0], nPts=500, alpha=False
+                # )
                 line_color = QtGui.QColor(
-                    scatter_lut[249][0], scatter_lut[249][1], scatter_lut[249][2]
+                    # scatter_lut[249][0], scatter_lut[249][1], scatter_lut[249][2]
+                    0,
+                    0,
+                    0,
                 )
                 for i in range(1, 4):
                     # horizontal
@@ -6810,8 +6818,12 @@ class UI_MainWindow(QWidget):
             self.aggregate_heatmap_view_2.setFixedSize(self.plot_size * 1.2, self.plot_size * 1.2)
             # color map is flipped so that low error is bright
             self.cm_range = (self.loss_high_bound, self.loss_low_bound)
-            self.aggregate_heatmap_plot_1 = self.draw_individual_heatmap('aggregate', self.data_1)
-            self.aggregate_heatmap_plot_2 = self.draw_individual_heatmap('aggregate', self.data_2)
+            self.aggregate_heatmap_plot_1 = self.draw_individual_heatmap(
+                'aggregate', self.data_1.transpose()
+            )
+            self.aggregate_heatmap_plot_2 = self.draw_individual_heatmap(
+                'aggregate', self.data_2.transpose()
+            )
 
             # add to view
             self.aggregate_heatmap_view_1.addItem(self.aggregate_heatmap_plot_1)
@@ -6930,10 +6942,20 @@ class UI_MainWindow(QWidget):
         detail_rect_y_local = int(self.detail_rect_y)
 
         # vector field around the selected center
-        detail_ground_truth = self.single_ground_truths[self.rectangle_index][
-            detail_rect_y_local - 4 : detail_rect_y_local + 4,
-            detail_rect_x_local - 4 : detail_rect_x_local + 4,
-        ]
+        if self.use_consensus:
+            detail_consensus_1 = self.single_consensus_1[self.rectangle_index][
+                detail_rect_y_local - 4 : detail_rect_y_local + 4,
+                detail_rect_x_local - 4 : detail_rect_x_local + 4,
+            ]
+            detail_consensus_2 = self.single_consensus_2[self.rectangle_index][
+                detail_rect_y_local - 4 : detail_rect_y_local + 4,
+                detail_rect_x_local - 4 : detail_rect_x_local + 4,
+            ]
+        else:
+            detail_ground_truth = self.single_ground_truths[self.rectangle_index][
+                detail_rect_y_local - 4 : detail_rect_y_local + 4,
+                detail_rect_x_local - 4 : detail_rect_x_local + 4,
+            ]
 
         detail_vectors_1 = self.single_outputs_1[self.rectangle_index][
             detail_rect_y_local - 4 : detail_rect_y_local + 4,
@@ -6976,13 +6998,22 @@ class UI_MainWindow(QWidget):
         model_1_color.setAlpha(128)
         model_2_color = QtGui.QColor('magenta')
         model_2_color.setAlpha(128)
-        self.piv_detail_plot_1 = self.draw_quiver_plot(
-            detail_ground_truth, detail_vectors_1, gt_color, model_1_color
-        )
+        if self.use_consensus:
+            self.piv_detail_plot_1 = self.draw_quiver_plot(
+                detail_consensus_1, detail_vectors_1, gt_color, model_1_color
+            )
 
-        self.piv_detail_plot_2 = self.draw_quiver_plot(
-            detail_ground_truth, detail_vectors_2, gt_color, model_2_color
-        )
+            self.piv_detail_plot_2 = self.draw_quiver_plot(
+                detail_consensus_2, detail_vectors_2, gt_color, model_2_color
+            )
+        else:
+            self.piv_detail_plot_1 = self.draw_quiver_plot(
+                detail_ground_truth, detail_vectors_1, gt_color, model_1_color
+            )
+
+            self.piv_detail_plot_2 = self.draw_quiver_plot(
+                detail_ground_truth, detail_vectors_2, gt_color, model_2_color
+            )
 
         # add to view
         self.piv_detail_view_1.addItem(self.piv_detail_plot_1)
@@ -7359,10 +7390,141 @@ class UI_MainWindow(QWidget):
                 )
             )
 
-            # untransformed consensus
-            original_aggregate_consensus = torch.mean(model_outputs, dim=0)
-
+            # untransformed all model outputs to create untransformed consensus
             time_reverses = [0, 1]
+            all_untransformed_outputs = torch.zeros(
+                (
+                    self.num_transformations,
+                    len(self.all_images_1_paths),
+                    self.image_size,
+                    self.image_size,
+                    2,
+                )
+            )
+
+            for is_time_reversed in time_reverses:
+                for transformation_index in range(8):
+                    print(f'Untransforming {is_time_reversed*8+transformation_index}')
+
+                    # each images pair
+                    for i in range(len(self.all_images_1_paths)):
+
+                        # load the ground truth flow field
+                        cur_model_output = model_outputs[
+                            is_time_reversed * 8 + transformation_index, i
+                        ]
+
+                        # dummy images (should've refactored the transformation code)
+                        cur_image_1_pil = Image.open(self.all_images_1_paths[i]).convert('RGB')
+                        cur_image_2_pil = Image.open(self.all_images_2_paths[i]).convert('RGB')
+                        # convert to torch tensor
+                        cur_d4_image_1_pt = torch.from_numpy(np.asarray(cur_image_1_pil))
+                        cur_d4_image_2_pt = torch.from_numpy(np.asarray(cur_image_2_pil))
+
+                        # modify the data
+                        if is_time_reversed:
+                            (_, _, cur_model_output) = nero_transform.time_reverse_piv_data(
+                                cur_d4_image_1_pt, cur_d4_image_2_pt, cur_model_output
+                            )
+
+                        # 0: no transformation (original)
+                        if transformation_index == 0:
+                            all_untransformed_outputs[
+                                is_time_reversed * 8 + transformation_index, i
+                            ] = cur_model_output.clone()
+
+                        # 1: right diagonal flip (/)
+                        elif transformation_index == 1:
+                            (
+                                _,
+                                _,
+                                all_untransformed_outputs[
+                                    is_time_reversed * 8 + transformation_index, i
+                                ],
+                            ) = nero_transform.flip_piv_data(
+                                cur_d4_image_1_pt,
+                                cur_d4_image_2_pt,
+                                cur_model_output,
+                                flip_type='right-diagonal',
+                            )
+                        # 2: counter-clockwise 90 rotation
+                        elif transformation_index == 2:
+                            (
+                                _,
+                                _,
+                                all_untransformed_outputs[
+                                    is_time_reversed * 8 + transformation_index, i
+                                ],
+                            ) = nero_transform.rotate_piv_data(
+                                cur_d4_image_1_pt, cur_d4_image_2_pt, cur_model_output, -90
+                            )
+                        # 3: horizontal flip (by y axis)
+                        elif transformation_index == 3:
+                            (
+                                _,
+                                _,
+                                all_untransformed_outputs[
+                                    is_time_reversed * 8 + transformation_index, i
+                                ],
+                            ) = nero_transform.flip_piv_data(
+                                cur_d4_image_1_pt,
+                                cur_d4_image_2_pt,
+                                cur_model_output,
+                                flip_type='horizontal',
+                            )
+                        # 4: counter-clockwise 180 rotation
+                        elif transformation_index == 4:
+                            (
+                                _,
+                                _,
+                                all_untransformed_outputs[
+                                    is_time_reversed * 8 + transformation_index, i
+                                ],
+                            ) = nero_transform.rotate_piv_data(
+                                cur_d4_image_1_pt, cur_d4_image_2_pt, cur_model_output, -180
+                            )
+                        # 5: \ diagnal flip
+                        elif transformation_index == 5:
+                            (
+                                _,
+                                _,
+                                all_untransformed_outputs[
+                                    is_time_reversed * 8 + transformation_index, i
+                                ],
+                            ) = nero_transform.flip_piv_data(
+                                cur_d4_image_1_pt,
+                                cur_d4_image_2_pt,
+                                cur_model_output,
+                                flip_type='left-diagonal',
+                            )
+                        # 6: counter-clockwise 270 rotation
+                        elif transformation_index == 6:
+                            (
+                                _,
+                                _,
+                                all_untransformed_outputs[
+                                    is_time_reversed * 8 + transformation_index, i
+                                ],
+                            ) = nero_transform.rotate_piv_data(
+                                cur_d4_image_1_pt, cur_d4_image_2_pt, cur_model_output, -270
+                            )
+                        # 7: vertical flip (by x axis)
+                        elif transformation_index == 7:
+                            (
+                                _,
+                                _,
+                                all_untransformed_outputs[
+                                    is_time_reversed * 8 + transformation_index, i
+                                ],
+                            ) = nero_transform.flip_piv_data(
+                                cur_d4_image_1_pt,
+                                cur_d4_image_2_pt,
+                                cur_model_output,
+                                flip_type='vertical',
+                            )
+
+            model_outputs_sum = torch.sum(all_untransformed_outputs, dim=0)
+            original_aggregate_consensus = model_outputs_sum / self.num_transformations
 
             # go through each transformation type to prepare consensus for each transformation
             for is_time_reversed in time_reverses:
