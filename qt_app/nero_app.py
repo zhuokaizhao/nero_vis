@@ -2501,7 +2501,7 @@ class UI_MainWindow(QWidget):
             # if self.mode == 'digit_recognition':
             # digit recognition does not have color defined elsewhere like others since it never uses heatmaps
             self.color_map = pg.colormap.get('viridis')
-            if self.mode == 'object_detection':
+            if self.mode == 'digit_recognition' or self.mode == 'object_detection':
                 self.cm_range = [0, 1.0]
                 scatter_lut = self.color_map.getLookupTable(
                     start=self.cm_range[0], stop=self.cm_range[1], nPts=500, alpha=False
