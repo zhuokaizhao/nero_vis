@@ -1196,17 +1196,17 @@ class UI_MainWindow(QWidget):
                     print('Model 2 path: Downloaded from PyTorch')
 
             elif self.mode == 'piv':
-                self.model_1_cache_name = self.model_1_name.split('-')[1]
+                self.model_2_cache_name = self.model_1_name.split('-')[1]
                 if text == 'PIV-LiteFlowNet-en':
-                    self.model_1_path = glob.glob(
+                    self.model_2_path = glob.glob(
                         os.path.join(
                             os.getcwd(), 'example_models', self.mode, 'PIV-LiteFlowNet-en', f'*.pt'
                         )
                     )[0]
-                    self.model_1 = nero_run_model.load_model(
-                        self.mode, self.model_1_name, self.model_1_path
+                    self.model_2 = nero_run_model.load_model(
+                        self.mode, self.model_1_name, self.model_2_path
                     )
-                    print('Model 1 path:', self.model_1_path)
+                    print('Model 2 path:', self.model_2_path)
 
                 elif text == 'Gunnar-Farneback':
                     # Gunnar-Farneback does not need model path
@@ -2005,8 +2005,10 @@ class UI_MainWindow(QWidget):
                 self.class_selection_menu.addItem(f'Digit {i}')
 
             # set default to 'all', which means the average one
-            self.class_selection = 'all'
-            self.class_selection_menu.setCurrentIndex(0)
+            # self.class_selection = 'all'
+            # self.class_selection_menu.setCurrentIndex(0)
+            self.class_selection = 4
+            self.class_selection_menu.setCurrentIndex(5)
         elif self.mode == 'object_detection':
             self.class_selection_menu.addItem(f'All objects')
             # add all classes as items
@@ -2781,7 +2783,7 @@ class UI_MainWindow(QWidget):
             if self.mode == 'digit_recognition':
                 if self.demo:
                     self.demo_layout.addWidget(self.low_dim_scatter_view_1, 2, 1, 2, 1)
-                    self.demo_layout.addWidget(self.low_dim_scatter_view_2, 4, 1, 2, 1)
+                    self.demo_layout.addWidget(self.low_dim_scatter_view_2, 5, 1, 1, 1)
                 else:
                     self.aggregate_result_layout.addWidget(self.low_dim_scatter_view_1, 1, 3)
                     self.aggregate_result_layout.addWidget(self.low_dim_scatter_view_2, 2, 3)
@@ -3218,9 +3220,11 @@ class UI_MainWindow(QWidget):
             # Note: this will create error when changing subset
             if self.mode == 'digit_recognition':
                 # digit 4, 6 and 9
-                selected_image = '/home/zhuokai/Desktop/UChicago/Research/nero_vis/qt_app/example_data/digit_recognition/MNIST_500/label_4_sample_6924.png'
-                selected_image_index = self.all_images_paths.index(selected_image)
-                # selected_image_index = 0
+                if self.class_selection == 'all':
+                    selected_image = '/home/zhuokai/Desktop/UChicago/Research/nero_vis/qt_app/example_data/digit_recognition/MNIST_500/label_4_sample_6924.png'
+                    selected_image_index = self.all_images_paths.index(selected_image)
+                else:
+                    selected_image_index = 0
             elif self.mode == 'object_detection':
                 # selected_image = '/home/zhuokai/Desktop/UChicago/Research/nero_vis/qt_app/example_data/object_detection/COCO_500/images/car_797_0.jpg'
                 selected_image = '/home/zhuokai/Desktop/UChicago/Research/nero_vis/qt_app/example_data/object_detection/COCO_500/images/car_3572_3.jpg'
@@ -3379,31 +3383,11 @@ class UI_MainWindow(QWidget):
                 f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_1_cache_name}_F_measure'
             )
 
-            self.aggregate_outputs_2 = self.load_from_cache(
-                f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_2_cache_name}_outputs'
-            )
-            self.aggregate_precision_2 = self.load_from_cache(
-                f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_2_cache_name}_precision'
-            )
-            self.aggregate_recall_2 = self.load_from_cache(
-                f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_2_cache_name}_recall'
-            )
-            self.aggregate_mAP_2 = self.load_from_cache(
-                f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_2_cache_name}_mAP'
-            )
-            self.aggregate_F_measure_2 = self.load_from_cache(
-                f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_2_cache_name}_F_measure'
-            )
-
             if not self.load_successfully:
                 # output of each sample for all translations, has shape (num_y_trans, num_x_trans, num_samples, num_samples, 7)
                 self.aggregate_outputs_1 = np.zeros(
                     (len(self.y_translation), len(self.x_translation)), dtype=np.ndarray
                 )
-                self.aggregate_outputs_2 = np.zeros(
-                    (len(self.y_translation), len(self.x_translation)), dtype=np.ndarray
-                )
-
                 # individual precision, recall, F measure and AP
                 self.aggregate_precision_1 = np.zeros(
                     (len(self.y_translation), len(self.x_translation)), dtype=np.ndarray
@@ -3416,18 +3400,6 @@ class UI_MainWindow(QWidget):
                 )
                 # mAP does not have individuals
                 self.aggregate_mAP_1 = np.zeros((len(self.y_translation), len(self.x_translation)))
-
-                self.aggregate_precision_2 = np.zeros(
-                    (len(self.y_translation), len(self.x_translation)), dtype=np.ndarray
-                )
-                self.aggregate_recall_2 = np.zeros(
-                    (len(self.y_translation), len(self.x_translation)), dtype=np.ndarray
-                )
-                self.aggregate_F_measure_2 = np.zeros(
-                    (len(self.y_translation), len(self.x_translation)), dtype=np.ndarray
-                )
-                # mAP does not have individuals
-                self.aggregate_mAP_2 = np.zeros((len(self.y_translation), len(self.x_translation)))
 
                 # for all the loaded images
                 for y, y_tran in enumerate(self.y_translation):
@@ -3461,7 +3433,66 @@ class UI_MainWindow(QWidget):
                             cur_recall_1, cur_precision_1
                         )
 
-                        # model 2 output
+                self.save_to_cache(
+                    name=f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_1_cache_name}_outputs',
+                    content=self.aggregate_outputs_1,
+                )
+                self.save_to_cache(
+                    name=f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_1_cache_name}_precision',
+                    content=self.aggregate_precision_1,
+                )
+                self.save_to_cache(
+                    name=f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_1_cache_name}_recall',
+                    content=self.aggregate_recall_1,
+                )
+                self.save_to_cache(
+                    name=f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_1_cache_name}_mAP',
+                    content=self.aggregate_mAP_1,
+                )
+                self.save_to_cache(
+                    name=f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_1_cache_name}_F_measure',
+                    content=self.aggregate_F_measure_1,
+                )
+
+            self.aggregate_outputs_2 = self.load_from_cache(
+                f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_2_cache_name}_outputs'
+            )
+            self.aggregate_precision_2 = self.load_from_cache(
+                f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_2_cache_name}_precision'
+            )
+            self.aggregate_recall_2 = self.load_from_cache(
+                f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_2_cache_name}_recall'
+            )
+            self.aggregate_mAP_2 = self.load_from_cache(
+                f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_2_cache_name}_mAP'
+            )
+            self.aggregate_F_measure_2 = self.load_from_cache(
+                f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_2_cache_name}_F_measure'
+            )
+
+            if not self.load_successfully:
+                # output of each sample for all translations, has shape (num_y_trans, num_x_trans, num_samples, num_samples, 7)
+                self.aggregate_outputs_2 = np.zeros(
+                    (len(self.y_translation), len(self.x_translation)), dtype=np.ndarray
+                )
+                # individual precision, recall, F measure and AP
+                self.aggregate_precision_2 = np.zeros(
+                    (len(self.y_translation), len(self.x_translation)), dtype=np.ndarray
+                )
+                self.aggregate_recall_2 = np.zeros(
+                    (len(self.y_translation), len(self.x_translation)), dtype=np.ndarray
+                )
+                self.aggregate_F_measure_2 = np.zeros(
+                    (len(self.y_translation), len(self.x_translation)), dtype=np.ndarray
+                )
+                # mAP does not have individuals
+                self.aggregate_mAP_2 = np.zeros((len(self.y_translation), len(self.x_translation)))
+
+                # for all the loaded images
+                for y, y_tran in enumerate(self.y_translation):
+                    for x, x_tran in enumerate(self.x_translation):
+                        print(f'y_tran = {y_tran}, x_tran = {x_tran}')
+
                         (
                             cur_qualified_output_2,
                             cur_precision_2,
@@ -3488,27 +3519,6 @@ class UI_MainWindow(QWidget):
                         self.aggregate_mAP_2[y, x] = nero_utilities.compute_ap(
                             cur_recall_2, cur_precision_2
                         )
-
-                self.save_to_cache(
-                    name=f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_1_cache_name}_outputs',
-                    content=self.aggregate_outputs_1,
-                )
-                self.save_to_cache(
-                    name=f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_1_cache_name}_precision',
-                    content=self.aggregate_precision_1,
-                )
-                self.save_to_cache(
-                    name=f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_1_cache_name}_recall',
-                    content=self.aggregate_recall_1,
-                )
-                self.save_to_cache(
-                    name=f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_1_cache_name}_mAP',
-                    content=self.aggregate_mAP_1,
-                )
-                self.save_to_cache(
-                    name=f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_1_cache_name}_F_measure',
-                    content=self.aggregate_F_measure_1,
-                )
 
                 self.save_to_cache(
                     name=f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_2_cache_name}_outputs',
