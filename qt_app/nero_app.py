@@ -2810,8 +2810,26 @@ class UI_MainWindow(QWidget):
             self.all_intensity_1 = np.mean(self.all_high_dim_points_1, axis=1)
             self.all_intensity_2 = np.mean(self.all_high_dim_points_2, axis=1)
 
+            # normalize to colormap range
+            intensity_min = min(np.min(self.all_intensity_1), np.min(self.all_intensity_2))
+            intensity_max = max(np.max(self.all_intensity_1), np.max(self.all_intensity_2))
+            self.all_intensity_1 = nero_utilities.lerp(
+                self.all_intensity_1,
+                intensity_min,
+                intensity_max,
+                self.cm_range[0],
+                self.cm_range[1],
+            )
+            self.all_intensity_2 = nero_utilities.lerp(
+                self.all_intensity_2,
+                intensity_min,
+                intensity_max,
+                self.cm_range[0],
+                self.cm_range[1],
+            )
+
             # re-display the scatter plot
-            display_dimension_reduction(compute_dr=False)
+            display_dimension_reduction(compute_dr=True)
 
         @QtCore.Slot()
         def variance_intensity_button_clicked():
@@ -2838,7 +2856,7 @@ class UI_MainWindow(QWidget):
             )
 
             # re-display the scatter plot
-            display_dimension_reduction(compute_dr=False)
+            display_dimension_reduction(compute_dr=True)
 
         @QtCore.Slot()
         def dr_result_selection_slider_1_changed():
