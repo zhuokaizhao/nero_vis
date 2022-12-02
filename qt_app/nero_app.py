@@ -7802,6 +7802,7 @@ class UI_MainWindow(QWidget):
 
             # re-run dimension reduction and show result
             if self.dr_result_existed:
+                self.dr_result_existed = False
                 self.run_dimension_reduction()
 
             # if available, update single NERO plot as well
