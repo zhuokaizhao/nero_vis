@@ -20,4 +20,7 @@ conda install -c conda-forge pillow -y
 conda install -c conda-forge argparse -y
 conda install -c conda-forge scikit-learn -y
 conda install -c conda-forge umap-learn -y
+conda install -c conda-forge einops -y
+conda install -c conda-forge hydra-core -y
+conda install -c conda-forge omegaconf -y
 pip install e2cnn
