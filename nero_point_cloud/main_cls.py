@@ -47,21 +47,12 @@ def main(args):
 
     # parameters
     os.environ["CUDA_VISIBLE_DEVICES"] = str(args.gpu)
-    log_path = os.path.join(
-        args.log_dir,
-        f'{args.model.name}_model_rot_{args.random_rotate}_e_{args.epoch}.log',
-    )
-    logging.basicConfig(
-        filename=log_path,
-        encoding='utf-8',
-        level=logging.DEBUG
-    )
     logger = logging.getLogger(__name__)
 
-    print(f'\nParameters:')
+    logger.info(f'\nParameters:')
     for key in args.keys():
-        print(f'{key}: {args[key]}')
-    print('\n')
+        logger.info(f'{key}: {args[key]}')
+    logger.info('\n')
 
     # load data
     logger.info('Loading dataset')
@@ -132,7 +123,7 @@ def main(args):
 
         # learning rate scheduler
         scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=50, gamma=0.3)
-        global_epoch = 0
+        cur_session_epoch = 0
         global_step = 0
         best_instance_acc = 0.0
         best_class_acc = 0.0
@@ -142,7 +133,7 @@ def main(args):
         # TRANING
         logger.info('Training starts')
         for epoch in range(start_epoch, args.epoch):
-            logger.info(f'Epoch {global_epoch+1} ({epoch+1}/{args.epoch}):')
+            logger.info(f'Epoch {cur_session_epoch+1} ({epoch+1}/{args.epoch}):')
             epoch_start = time.time()
 
             # turn on train before each epoch starts
@@ -189,7 +180,7 @@ def main(args):
 
             epoch_end = time.time()
             epoch_time = epoch_end - epoch_start
-            print(f'Epoch {epoch+1} completed in {epoch_time} seconds.')
+            logger.info(f'Epoch {epoch+1} completed in {epoch_time} seconds.')
 
             scheduler.step()
 
@@ -231,8 +222,7 @@ def main(args):
                     }
                     torch.save(state, save_path)
                     logger.info(f'Checkpoint model saved to {save_path}')
-                    print(f'Checkpoint model saved to {save_path}')
-                    global_epoch += 1
+                    cur_session_epoch += 1
 
         logger.info('End of training')
 

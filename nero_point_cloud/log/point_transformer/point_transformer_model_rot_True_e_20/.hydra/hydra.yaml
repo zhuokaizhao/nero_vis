@@ -1,8 +1,8 @@
 hydra:
   run:
-    dir: log/cls/${model.name}
+    dir: log/${model.name}/${model.name}_model_rot_${random_rotate}_e_${epoch}
   sweep:
-    dir: log/cls
+    dir: log/
     subdir: ${model.name}
   launcher:
     _target_: hydra._internal.core_plugins.basic_launcher.BasicLauncher
@@ -140,7 +140,7 @@ hydra:
     - path: ''
       schema: structured
       provider: schema
-    output_dir: /home/zhuokai/Desktop/UChicago/Research/nero_vis/nero_point_cloud/log/cls/point_transformer
+    output_dir: /home/zhuokai/Desktop/UChicago/Research/nero_vis/nero_point_cloud/log/point_transformer/point_transformer_model_rot_True_e_20
     choices:
       model: point_transformer
       hydra/env: default
