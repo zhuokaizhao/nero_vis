@@ -1,5 +1,0 @@
-name: Hengshuang
-nneighbor: 16
-nblocks: 4
-transformer_dim: 512
-checkpoint_path: models/Hengshuang/model.pth

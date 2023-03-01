@@ -1,0 +1,21 @@
+mode: train
+batch_size: 16
+epoch: 1
+learning_rate: 0.01
+gpu: 0
+num_point: 1024
+optimizer: SGD
+weight_decay: 0.0001
+momentum: 0.9
+normal: false
+random_rotate: true
+data_dir: data/modelnet40_normal_resampled/
+model_dir: models/point_transformer/
+log_dir: log/point_transformer/
+checkpoint_freq: 1
+model:
+  name: point_transformer
+  nneighbor: 16
+  nblocks: 4
+  transformer_dim: 512
+  checkpoint_path: models/point_transformer/point_transformer_model_rot_True_e_20.pth

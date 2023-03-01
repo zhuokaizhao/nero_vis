@@ -1,0 +1,5 @@
+name: point_transformer
+nneighbor: 16
+nblocks: 4
+transformer_dim: 512
+checkpoint_path: models/point_transformer/point_transformer_model_rot_True_e_20.pth

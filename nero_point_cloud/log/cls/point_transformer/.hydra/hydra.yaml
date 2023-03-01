@@ -113,7 +113,7 @@ hydra:
     - hydra.mode=RUN
     task: []
   job:
-    name: train_cls
+    name: main_cls
     chdir: null
     override_dirname: ''
     id: ???
@@ -140,9 +140,9 @@ hydra:
     - path: ''
       schema: structured
       provider: schema
-    output_dir: /home/zhuokai/Desktop/UChicago/Research/nero_vis/nero_point_cloud/log/cls/Hengshuang
+    output_dir: /home/zhuokai/Desktop/UChicago/Research/nero_vis/nero_point_cloud/log/cls/point_transformer
     choices:
-      model: Hengshuang
+      model: point_transformer
       hydra/env: default
       hydra/callbacks: null
       hydra/job_logging: default

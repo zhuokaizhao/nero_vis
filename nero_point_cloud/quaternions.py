@@ -1,13 +1,30 @@
 # rotation-related functions using quaternions
+import math
 import numpy as np
+
+
+def pick_random_axis(n):
+    '''
+    Pick a random unit vector in 3D
+    Algorithm from: https://towardsdatascience.com/the-best-way-to-pick-a-unit-vector-7bd0cc54f9b
+    Input:
+        n: number of random 3-vectors
+    Returns:
+        v: a list of random 3-vectors
+    '''
+    components = [np.random.normal() for i in range(n)]
+    r = math.sqrt(sum(x*x for x in components))
+    v = [x/r for x in components]
+
+    return v
 
 
 def axis_angle_to_quaternion(axis, theta, unit='degree'):
     '''
     Convert axis-angle representation to quaternion
     Inputs:
-        axis: numpy array, 3-vector as the rotation axis
-        theta: rotation angle, in degree or radian
+        axis: numpy array, 3-vector as the rotation axis, has shape (3,)
+        theta: integer, rotation angle, in degree or radian
         unit: indicate is theta is in degree or radian
     Returns:
         Quaternion components in scalar-first format [q_0, q_1, q_2, q_3]
@@ -104,6 +121,33 @@ def quaternion_multiply(quaternions):
         q1 = res
 
     return res
+
+
+def rotate(points, axis, theta):
+    '''
+    Rotate points (can be a list of list of points) by axis-angle representations
+    Inputs:
+        points: List of lists of points, in shape (B, N, 3)
+        axis: List of rotation axis, in shape (B, 3)
+        theta: List of rotation angles, in shape (B,)
+    Returns:
+        points_rotated: Input points after input rotations
+    '''
+
+    # make sure dimensions match
+    assert len(points) == len(axis) and len(points) == len(theta)
+
+    # initialize output
+    points_rotated = np.zeros(points.shape)
+
+    for i in range(len(points)):
+        # convert from axis-angle representation to quaternion
+        cur_q = axis_angle_to_quaternion(axis[i], theta[i], unit='degree')
+
+        # rotate the points
+        points_rotated[i] = quaternion_rotate(points[i], cur_q)
+
+    return points_rotated
 
 
 # # test case
