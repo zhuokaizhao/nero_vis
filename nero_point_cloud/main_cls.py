@@ -2,6 +2,7 @@
 Author: Benny
 Date: Nov 2019
 """
+import math
 from dataset import ModelNetDataLoader
 import numpy as np
 import os
@@ -18,25 +19,57 @@ import omegaconf
 import quaternions
 
 
-def test(model, loader, num_class=40):
+# run model testing with data and potential axis-angle rotation
+def test(model, loader, axis=None, angle=None, num_class=40):
     mean_correct = []
-    class_acc = np.zeros((num_class,3))
+    # classification accuracy per class
+    class_acc = np.zeros((num_class, 3))
+    # go through dataloader
     for _, data in tqdm(enumerate(loader), total=len(loader)):
         points, target = data
+        points = points.data.numpy()
         target = target[:, 0]
+        # rotate the points
+        if axis.all() != None and angle != None:
+            # all batches of points have the same axis-angle rotation
+            all_axis = np.zeros((len(points), 3))
+            all_angles = np.zeros(len(points))
+            for i in range(len(all_axis)):
+                all_axis[i] = axis
+                all_angles[i] = angle
+            # rotate
+            points[:, :, 0:3] = quaternions.rotate(points[:, :, 0:3], all_axis, all_angles)
+
+        # convert points data to tensor
+        points = torch.Tensor(points)
+        # convert to GPU
         points, target = points.cuda(), target.cuda()
+
+        # run the model
         classifier = model.eval()
         pred = classifier(points)
+        # get all the indices of max probability
         pred_choice = pred.data.max(1)[1]
+        # compare with ground truths based on categories
         for cat in np.unique(target.cpu()):
-            classacc = pred_choice[target==cat].eq(target[target==cat].long().data).cpu().sum()
-            class_acc[cat,0]+= classacc.item()/float(points[target==cat].size()[0])
-            class_acc[cat,1]+=1
+            # number of correct prediction
+            num_correct = pred_choice[target==cat].eq(target[target==cat].long().data).cpu().sum()
+            # class accuracy for current batch
+            class_acc[cat, 0] += num_correct.item() / float(points[target==cat].size()[0])
+            # counter
+            class_acc[cat, 1] += 1
+
+        # total number of correct
         correct = pred_choice.eq(target.long().data).cpu().sum()
-        mean_correct.append(correct.item()/float(points.size()[0]))
-    class_acc[:,2] =  class_acc[:,0]/ class_acc[:,1]
-    class_acc = np.mean(class_acc[:,2])
+        mean_correct.append(correct.item() / float(points.size()[0]))
+
+    # average class accuracy over the entire dataset
+    class_acc[:, 2] =  class_acc[:, 0] / class_acc[:, 1]
+    # average accuracy over all classes
+    class_acc = np.mean(class_acc[:, 2])
+    # average accuracy over all instances
     instance_acc = np.mean(mean_correct)
+
     return instance_acc, class_acc
 
 
@@ -54,31 +87,6 @@ def main(args):
         logger.info(f'{key}: {args[key]}')
     logger.info('\n')
 
-    # load data
-    logger.info('Loading dataset')
-    DATA_PATH = hydra.utils.to_absolute_path(args['data_dir'])
-    if args['mode'] == 'train':
-        TRAIN_DATASET = ModelNetDataLoader(
-            root=DATA_PATH, npoint=args.num_point, split='train', normal_channel=args.normal
-        )
-        TEST_DATASET = ModelNetDataLoader(
-            root=DATA_PATH, npoint=args.num_point, split='test', normal_channel=args.normal
-        )
-        train_data_oader = torch.utils.data.DataLoader(
-            TRAIN_DATASET, batch_size=args.batch_size, shuffle=True, num_workers=4
-        )
-        test_data_loader = torch.utils.data.DataLoader(
-            TEST_DATASET, batch_size=args.batch_size, shuffle=False, num_workers=4
-        )
-    elif args['mode'] == 'test':
-        TEST_DATASET = ModelNetDataLoader(
-            root=DATA_PATH, npoint=args.num_point, split='test', normal_channel=args.normal
-        )
-        testDataLoader = torch.utils.data.DataLoader(
-            TEST_DATASET, batch_size=args.batch_size, shuffle=False, num_workers=4
-        )
-
-
     # load model
     args.num_class = 40
     if args.normal:
@@ -93,7 +101,25 @@ def main(args):
         'PointTransformerCls',
     )(args).cuda()
     criterion = torch.nn.CrossEntropyLoss()
-    if args['mode'] == 'train':
+
+    # different modes
+    if args.mode == 'train':
+        # load data
+        logger.info('Loading dataset')
+        DATA_PATH = hydra.utils.to_absolute_path(args['data_dir'])
+        TRAIN_DATASET = ModelNetDataLoader(
+            root=DATA_PATH, npoint=args.num_point, split='train', normal_channel=args.normal
+        )
+        TEST_DATASET = ModelNetDataLoader(
+            root=DATA_PATH, npoint=args.num_point, split='test', normal_channel=args.normal
+        )
+        train_data_oader = torch.utils.data.DataLoader(
+            TRAIN_DATASET, batch_size=args.batch_size, shuffle=True, num_workers=4
+        )
+        test_data_loader = torch.utils.data.DataLoader(
+            TEST_DATASET, batch_size=args.batch_size, shuffle=False, num_workers=4
+        )
+
         # try loading the checkpoint model
         try:
             checkpoint = torch.load(f'{args.model.checkpoint_path}')
@@ -226,12 +252,132 @@ def main(args):
 
         logger.info('End of training')
 
-    # test mode
-    elif args['mode'] == 'test':
+    # aggregate test mode
+    elif args.mode == 'aggregate_test':
+        # load data
+        logger.info('Loading dataset')
+        DATA_PATH = hydra.utils.to_absolute_path(args['data_dir'])
+        TEST_DATASET = ModelNetDataLoader(
+            root=DATA_PATH, npoint=args.num_point, split='test', normal_channel=args.normal
+        )
+        test_data_loader = torch.utils.data.DataLoader(
+            TEST_DATASET, batch_size=args.batch_size, shuffle=False, num_workers=4
+        )
+
         # loading the checkpoint model is required
         checkpoint = torch.load(f'{args.model.checkpoint_path}')
         model.load_state_dict(checkpoint['model_state_dict'])
         logger.info(f'Testing with checkpoint model {args.model.checkpoint_path}')
+
+        # the tests are consist of an aggregation of rotations in axis-angle representations
+        # 1. pick an rotation axis (unit vector) in either
+        #   (a). xy plane (z is always 0), e.g., (1, 0, 0), (0, 1, 0), etc.
+        #   (b). xz plane (y is always 0), e.g., (1, 0, 0), (0, 0, 1), etc.
+        #   (c). yz plane (x is always 0), e.g., (0, 1, 0), (0, 0, 1), etc.
+        # 2. pick a rotation degree between -180 and 180
+        planes = ['xy', 'xz', 'yz']
+        angles = [theta for theta in range(-180, 180, 30)]
+
+        for cur_plane in planes:
+            # all rotation axis
+            all_axis = []
+            # collect axis based on different plane
+            if cur_plane == 'xy':
+                start_axis = np.matrix([[1], [0], [0]])
+                # rotate around z axis
+                for axis_angle in angles:
+                    axis_angle_rad = axis_angle / 180 * np.pi
+                    rot_matrix = np.matrix(
+                        [
+                            [math.cos(axis_angle_rad), -math.sin(axis_angle_rad), 0],
+                            [math.sin(axis_angle_rad), math.cos(axis_angle_rad) , 0],
+                            [0,                        0,                         1]
+                        ]
+                    )
+                    cur_axis = np.squeeze(np.array(rot_matrix * start_axis))
+                    all_axis.append(cur_axis)
+
+            elif cur_plane == 'xz':
+                start_axis = np.asarray([1, 0, 0])
+                # rotate around y axis
+                for axis_angle in angles:
+                    axis_angle_rad = axis_angle / 180 * np.pi
+                    rot_matrix = np.matrix(
+                        [
+                            [math.cos(axis_angle_rad),  0,  math.sin(axis_angle_rad)],
+                            [0,                         1,  0                       ],
+                            [-math.sin(axis_angle_rad), 0,  math.cos(axis_angle_rad)]
+                        ]
+                    )
+                    cur_axis = np.squeeze(np.array(rot_matrix * start_axis))
+                    all_axis.append(cur_axis)
+
+            elif cur_plane == 'yz':
+                start_axis = np.asarray([0, 1, 0])
+                # rotate around x axis
+                for axis_angle in angles:
+                    axis_angle_rad = axis_angle / 180 * np.pi
+                    rot_matrix = np.matrix(
+                        [
+                            [1,                        0,                          0],
+                            [0, math.cos(axis_angle_rad),  -math.sin(axis_angle_rad)],
+                            [0, math.sin(axis_angle_rad),   math.cos(axis_angle_rad)]
+                        ]
+                    )
+                    cur_axis = np.squeeze(np.array(rot_matrix * start_axis))
+                    all_axis.append(cur_axis)
+
+            # for each axis
+            for cur_axis in all_axis:
+                # pick a rotation angle
+                for cur_angle in angles:
+                    # now that we have the axis-angle representation, run the test
+                    with torch.no_grad():
+                        instance_acc, class_acc = test(
+                            model.eval(), test_data_loader, axis=cur_axis, angle=cur_angle
+                        )
+
+                        # use instance accuracy to determine best epoch
+                        if (instance_acc >= best_instance_acc):
+                            best_instance_acc = instance_acc
+                            best_epoch = epoch + 1
+                            logger.info(f'Best epoch is {best_epoch}')
+
+                        if (class_acc >= best_class_acc):
+                            best_class_acc = class_acc
+
+                        logger.info(
+                            f'Test Instance Accuracy: {instance_acc}, Class Accuracy: {class_acc}'
+                        )
+                        logger.info(
+                            f'Best Instance Accuracy: {best_instance_acc}, Class Accuracy: {best_class_acc}'
+                        )
+
+                        # save model
+                        save_path = os.path.join(
+                            args.model_dir,
+                            f'{args.model.name}_model_rot_{args.random_rotate}_e_{epoch+1}.pth'
+                        )
+                        state = {
+                            'epoch': epoch + 1,
+                            'instance_acc': instance_acc,
+                            'class_acc': class_acc,
+                            'model_state_dict': model.state_dict(),
+                            'optimizer_state_dict': optimizer.state_dict(),
+                        }
+                        torch.save(state, save_path)
+                        logger.info(f'Checkpoint model saved to {save_path}')
+                        cur_session_epoch += 1
+
+
+    # single test mode
+    elif args.mode == 'single_test':
+        # loading the checkpoint model is required
+        checkpoint = torch.load(f'{args.model.checkpoint_path}')
+        model.load_state_dict(checkpoint['model_state_dict'])
+        logger.info(f'Testing with checkpoint model {args.model.checkpoint_path}')
+    else:
+        raise Exception(f'Unrecognized mode {args.mode}.')
 
 
 
