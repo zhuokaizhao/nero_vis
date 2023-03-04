@@ -1,4 +1,4 @@
-mode: train
+mode: aggregate_test
 batch_size: 16
 epoch: 20
 learning_rate: 1e-2
@@ -8,11 +8,12 @@ optimizer: SGD
 weight_decay: 1e-4
 momentum: 0.9
 normal: False
-random_rotate: True
+random_rotate: False
 data_dir: data/modelnet40_normal_resampled/
 model_dir: models/point_transformer/
 log_dir: log/point_transformer/
 checkpoint_freq: 5
+output_dir: output/point_transformer/
 
 defaults:
   - _self_
@@ -20,8 +21,8 @@ defaults:
 
 hydra:
   run:
-    dir: log/${model.name}/${model.name}_model_rot_${random_rotate}_e_${epoch}
+    dir: log/${mode}_${model.name}/${model.name}_model_rot_${random_rotate}_e_${epoch}
 
   sweep:
     dir: log/
-    subdir: ${model.name}
+    subdir: ${mode}_${model.name}/${model.name}_model_rot_${random_rotate}_e_${epoch}

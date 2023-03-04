@@ -3,6 +3,7 @@ Author: Benny
 Date: Nov 2019
 """
 import math
+import pandas as pd
 from dataset import ModelNetDataLoader
 import numpy as np
 import os
@@ -15,6 +16,7 @@ import importlib
 import shutil
 import hydra
 import omegaconf
+from collections import defaultdict
 
 import quaternions
 
@@ -275,17 +277,25 @@ def main(args):
         #   (b). xz plane (y is always 0), e.g., (1, 0, 0), (0, 0, 1), etc.
         #   (c). yz plane (x is always 0), e.g., (0, 1, 0), (0, 0, 1), etc.
         # 2. pick a rotation degree between -180 and 180
-        planes = ['xy', 'xz', 'yz']
-        angles = [theta for theta in range(-180, 180, 30)]
+        # planes = ['xy', 'xz', 'yz']
+        planes = ['xy']
+        axis_increment = [theta for theta in range(-180, 180, 180)]
+        angle_increment = [theta for theta in range(-180, 180, 180)]
+        # all the results
+        all_instance_accuracies = np.zeros(
+            (len(planes), len(axis_increment), len(angle_increment))
+        )
+        all_class_accuracies = np.zeros((len(planes), len(axis_increment), len(angle_increment)))
 
-        for cur_plane in planes:
+        # each plane that contains rotation axis
+        for i, cur_plane in enumerate(planes):
             # all rotation axis
             all_axis = []
             # collect axis based on different plane
             if cur_plane == 'xy':
                 start_axis = np.matrix([[1], [0], [0]])
                 # rotate around z axis
-                for axis_angle in angles:
+                for axis_angle in axis_increment:
                     axis_angle_rad = axis_angle / 180 * np.pi
                     rot_matrix = np.matrix(
                         [
@@ -300,7 +310,7 @@ def main(args):
             elif cur_plane == 'xz':
                 start_axis = np.asarray([1, 0, 0])
                 # rotate around y axis
-                for axis_angle in angles:
+                for axis_angle in axis_increment:
                     axis_angle_rad = axis_angle / 180 * np.pi
                     rot_matrix = np.matrix(
                         [
@@ -315,7 +325,7 @@ def main(args):
             elif cur_plane == 'yz':
                 start_axis = np.asarray([0, 1, 0])
                 # rotate around x axis
-                for axis_angle in angles:
+                for axis_angle in axis_increment:
                     axis_angle_rad = axis_angle / 180 * np.pi
                     rot_matrix = np.matrix(
                         [
@@ -328,46 +338,36 @@ def main(args):
                     all_axis.append(cur_axis)
 
             # for each axis
-            for cur_axis in all_axis:
+            for j, cur_axis in enumerate(all_axis):
                 # pick a rotation angle
-                for cur_angle in angles:
+                for k, cur_angle in enumerate(angle_increment):
+                    logger.info(
+                        f'Plane {cur_plane}, Axis {np.round(cur_axis, 2)}, Angle {round(cur_angle, 2)}'
+                    )
                     # now that we have the axis-angle representation, run the test
                     with torch.no_grad():
-                        instance_acc, class_acc = test(
+                        cur_instance_accuracy, cur_class_accuracy = test(
                             model.eval(), test_data_loader, axis=cur_axis, angle=cur_angle
                         )
 
-                        # use instance accuracy to determine best epoch
-                        if (instance_acc >= best_instance_acc):
-                            best_instance_acc = instance_acc
-                            best_epoch = epoch + 1
-                            logger.info(f'Best epoch is {best_epoch}')
-
-                        if (class_acc >= best_class_acc):
-                            best_class_acc = class_acc
-
                         logger.info(
-                            f'Test Instance Accuracy: {instance_acc}, Class Accuracy: {class_acc}'
-                        )
-                        logger.info(
-                            f'Best Instance Accuracy: {best_instance_acc}, Class Accuracy: {best_class_acc}'
+                            f'Test Instance Accuracy: {round(cur_instance_accuracy, 4)}, Class Accuracy: {round(cur_class_accuracy, 4)}'
                         )
 
-                        # save model
-                        save_path = os.path.join(
-                            args.model_dir,
-                            f'{args.model.name}_model_rot_{args.random_rotate}_e_{epoch+1}.pth'
-                        )
-                        state = {
-                            'epoch': epoch + 1,
-                            'instance_acc': instance_acc,
-                            'class_acc': class_acc,
-                            'model_state_dict': model.state_dict(),
-                            'optimizer_state_dict': optimizer.state_dict(),
-                        }
-                        torch.save(state, save_path)
-                        logger.info(f'Checkpoint model saved to {save_path}')
-                        cur_session_epoch += 1
+                    all_instance_accuracies[i][j][k] = cur_instance_accuracy
+                    all_class_accuracies[i][j][k] = cur_class_accuracy
+
+        # save results as npz
+        output_path = os.path.join(
+            os.getcwd(), 'output', args.model.checkpoint_path.split('/')[-1].split('.')[0]+'.npz'
+        )
+        np.savez(output_path,
+                 all_planes=planes,
+                 all_axis=axis_increment,
+                 all_angles=angle_increment,
+                 instance_accuracies=all_instance_accuracies,
+                 class_accuracies=all_class_accuracies)
+        logger.info(f'Testing results have been saved to {output_path}')
 
 
     # single test mode
