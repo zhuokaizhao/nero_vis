@@ -16,7 +16,6 @@ import importlib
 import shutil
 import hydra
 import omegaconf
-from collections import defaultdict
 
 import quaternions
 
@@ -158,6 +157,11 @@ def main(args):
         best_epoch = 0
         mean_correct = []
 
+        # max_num_point_clouds = 10
+        # max_num_quats = 5000
+        # num_point_clouds = 0
+        # num_quats = 0
+        # all_quats = np.zeros((max_num_quats, 4))
         # TRANING
         logger.info('Training starts')
         for epoch in range(start_epoch, args.epoch):
@@ -183,9 +187,29 @@ def main(args):
                     # randomly pick a rotation axis and angle
                     # each batch of points shares the same rotation axis and angle
                     rot_axis = quaternions.pick_random_axis(len(points))
-                    rot_degrees = np.random.uniform(-180, 180, len(points))
+                    rot_degrees = np.random.uniform(0, 180, len(points))
+                    # # save the quaternion
+                    # if num_quats < max_num_quats:
+                    #     all_quats[num_quats] = quaternions.axis_angle_to_quaternion(rot_axis[0], rot_degrees[0], unit='degree')
+                    #     num_quats += 1
+                    # else:
+                    #     path = f'/home/zhuokai/Desktop/UChicago/Research/nero_vis/nero_point_cloud/output/quaternions.txt'
+                    #     np.savetxt(path, all_quats)
+                    #     exit()
+
                     # rotate the points
-                    points[:,:, 0:3] = quaternions.rotate(points[:, :, 0:3], rot_axis, rot_degrees)
+                    # if num_point_clouds < max_num_point_clouds:
+                    #     path = f'/home/zhuokai/Desktop/UChicago/Research/nero_vis/nero_point_cloud/output/original_point_cloud_{num_point_clouds}.txt'
+                    #     np.savetxt(path, points[0])
+
+                    points[:, :, 0:3] = quaternions.rotate(
+                        points[:, :, 0:3], rot_axis, rot_degrees
+                    )
+
+                    # if num_point_clouds < max_num_point_clouds:
+                    #     path = f'/home/zhuokai/Desktop/UChicago/Research/nero_vis/nero_point_cloud/output/rotated_point_cloud_{num_point_clouds}.txt'
+                    #     np.savetxt(path, points[0])
+                    #     num_point_clouds += 1
 
                 # convert points data to tensor
                 points = torch.Tensor(points)
@@ -250,7 +274,8 @@ def main(args):
                     }
                     torch.save(state, save_path)
                     logger.info(f'Checkpoint model saved to {save_path}')
-                    cur_session_epoch += 1
+
+            cur_session_epoch += 1
 
         logger.info('End of training')
 
@@ -277,10 +302,9 @@ def main(args):
         #   (b). xz plane (y is always 0), e.g., (1, 0, 0), (0, 0, 1), etc.
         #   (c). yz plane (x is always 0), e.g., (0, 1, 0), (0, 0, 1), etc.
         # 2. pick a rotation degree between -180 and 180
-        # planes = ['xy', 'xz', 'yz']
-        planes = ['xy']
-        axis_increment = [theta for theta in range(-180, 180, 180)]
-        angle_increment = [theta for theta in range(-180, 180, 180)]
+        planes = ['xy', 'xz', 'yz']
+        axis_increment = [theta for theta in range(-180, 180, 30)]
+        angle_increment = [theta for theta in range(0, 181, 30)]
         # all the results
         all_instance_accuracies = np.zeros(
             (len(planes), len(axis_increment), len(angle_increment))
@@ -294,7 +318,7 @@ def main(args):
             # collect axis based on different plane
             if cur_plane == 'xy':
                 start_axis = np.matrix([[1], [0], [0]])
-                # rotate around z axis
+                # selections of rotation axis rotate around z axis
                 for axis_angle in axis_increment:
                     axis_angle_rad = axis_angle / 180 * np.pi
                     rot_matrix = np.matrix(
@@ -308,8 +332,8 @@ def main(args):
                     all_axis.append(cur_axis)
 
             elif cur_plane == 'xz':
-                start_axis = np.asarray([1, 0, 0])
-                # rotate around y axis
+                start_axis = np.matrix([[1], [0], [0]])
+                # selections of rotation axis rotate around y axis
                 for axis_angle in axis_increment:
                     axis_angle_rad = axis_angle / 180 * np.pi
                     rot_matrix = np.matrix(
@@ -323,8 +347,8 @@ def main(args):
                     all_axis.append(cur_axis)
 
             elif cur_plane == 'yz':
-                start_axis = np.asarray([0, 1, 0])
-                # rotate around x axis
+                start_axis = np.matrix([[0], [1], [0]])
+                # selections of rotation axis rotate around x axis
                 for axis_angle in axis_increment:
                     axis_angle_rad = axis_angle / 180 * np.pi
                     rot_matrix = np.matrix(
