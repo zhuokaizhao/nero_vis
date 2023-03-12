@@ -5,18 +5,39 @@ import numpy as np
 
 def pick_random_axis(n):
     '''
-    Pick a random unit vector in 3D
+    Pick n random unit vectors in 3D
     Algorithm from: https://towardsdatascience.com/the-best-way-to-pick-a-unit-vector-7bd0cc54f9b
     Input:
         n: number of random 3-vectors
     Returns:
-        v: a list of random 3-vectors
+        all_axis: a list of random 3-vectors
     '''
-    components = [np.random.normal() for i in range(n)]
-    r = math.sqrt(sum(x*x for x in components))
-    v = [x/r for x in components]
+    all_axis =[]
+    for _ in range(n):
+        components = [np.random.normal() for _ in range(3)]
+        r = math.sqrt(sum(x*x for x in components))
+        cur_axis = [x/r for x in components]
+        all_axis.append(cur_axis)
 
-    return v
+    return all_axis
+
+
+def pick_random_quat(n):
+    '''
+    Pick n random unit quaternions
+    Input:
+        n: number of random quaternions
+    Returns:
+        all_quat: a list of random quaternions in scalar-first format [q_0, q_1, q_2, q_3]
+    '''
+    all_quat = []
+    for _ in range(n):
+        components = [np.random.normal() for _ in range(4)]
+        r = math.sqrt(sum(x*x for x in components))
+        cur_quat = [x/r for x in components]
+        all_quat.append(cur_quat)
+
+    return all_quat
 
 
 def axis_angle_to_quaternion(axis, theta, unit='degree'):
@@ -150,11 +171,11 @@ def rotate(points, axis, theta):
     return points_rotated
 
 
-# # test case
-# # counter-clockwise rotation of 90 degrees about the z-axis
+# test case
+# counter-clockwise rotation of 90 degrees about the z-axis
 # axis = [0, 0, 1]
-# q = axis_angle_to_quaternion(axis, 90)
-# # print(q)
+# q = axis_angle_to_quaternion(axis, 44)
+# print(q)
 # points = np.array([[1, 0, 0], [0, 1, 0]])
 # rotated_points = quaternion_rotate(points, q)
 # print(rotated_points)

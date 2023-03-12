@@ -31,7 +31,7 @@ def test(model, loader, axis=None, angle=None, num_class=40):
         points = points.data.numpy()
         target = target[:, 0]
         # rotate the points
-        if axis.all() != None and angle != None:
+        if angle != None:
             # all batches of points have the same axis-angle rotation
             all_axis = np.zeros((len(points), 3))
             all_angles = np.zeros(len(points))
@@ -184,28 +184,29 @@ def main(args):
                 points[:, :, 0:3] = provider.shift_point_cloud(points[:,:, 0:3])
                 # if requested, random rotate given percentage of 180 degrees
                 if args.random_rotate:
-                    # randomly pick a rotation axis and angle
-                    # each batch of points shares the same rotation axis and angle
-                    rot_axis = quaternions.pick_random_axis(len(points))
-                    rot_degrees = np.random.uniform(0, 180, len(points))
+                    # randomly pick quaternions for each point cloud in the current batch
+                    cur_batch_quat = quaternions.pick_random_quat(len(points))
                     # # save the quaternion
                     # if num_quats < max_num_quats:
-                    #     all_quats[num_quats] = quaternions.axis_angle_to_quaternion(rot_axis[0], rot_degrees[0], unit='degree')
+                    #     all_quats[num_quats] = cur_batch_quat[0]
                     #     num_quats += 1
                     # else:
                     #     path = f'/home/zhuokai/Desktop/UChicago/Research/nero_vis/nero_point_cloud/output/quaternions.txt'
                     #     np.savetxt(path, all_quats)
                     #     exit()
 
-                    # rotate the points
+                    # # save the original point clouds
                     # if num_point_clouds < max_num_point_clouds:
                     #     path = f'/home/zhuokai/Desktop/UChicago/Research/nero_vis/nero_point_cloud/output/original_point_cloud_{num_point_clouds}.txt'
                     #     np.savetxt(path, points[0])
 
-                    points[:, :, 0:3] = quaternions.rotate(
-                        points[:, :, 0:3], rot_axis, rot_degrees
-                    )
+                    # rotate the points
+                    for i in range(len(points)):
+                        points[i, :, 0:3] = quaternions.quaternion_rotate(
+                            points[i, :, 0:3], cur_batch_quat[i]
+                        )
 
+                    # # save the rotated point clouds
                     # if num_point_clouds < max_num_point_clouds:
                     #     path = f'/home/zhuokai/Desktop/UChicago/Research/nero_vis/nero_point_cloud/output/rotated_point_cloud_{num_point_clouds}.txt'
                     #     np.savetxt(path, points[0])
