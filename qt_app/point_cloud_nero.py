@@ -111,13 +111,13 @@ class UI_MainWindow(QWidget):
         # define dataset path
         self.data_dir = f'./example_data/{self.mode}/modelnet_normal_resampled'
 
-        # initialize and load data and models
-        # get data ready
+        # initialize data loading and associated interface
         self.init_point_cloud_data()
-        # load the data
-        self.load_point_cloud_data()
-        # get models ready
-        # self.init_point_cloud_models()
+        self.init_data_loading_interface()
+
+        # initialize data loading and associated interface
+        self.init_point_cloud_models()
+        self.init_model_loading_interface()
 
         # # prepare results, either load from cache, or run
         # self.run_aggregate_test()
@@ -147,6 +147,26 @@ class UI_MainWindow(QWidget):
         # individual NERO plots interface
 
 
+    ################## Data Loading Related ##################
+    def init_point_cloud_data(self):
+        # modelnet40 and modelnet10
+        # data samples paths
+        self.all_nums_classes = [40, 10]
+        self.all_data_paths = [
+            os.path.join(self.data_dir, f'modelnet{i}_test.txt') for i in self.all_nums_classes
+        ]
+        # classes names paths
+        self.all_names_paths = [
+            os.path.join(
+                self.data_dir, f'modelnet{i}_shape_names.txt'
+            ) for i in self.all_nums_classes
+        ]
+
+        # when initializing, take the first path (index 0 is the prompt)
+        # when changed, we should have dataset_index defined ready from interface
+        self.dataset_index = 1
+
+
     def init_data_loading_interface(self):
         # load aggregate dataset drop-down menu
         @QtCore.Slot()
@@ -156,18 +176,10 @@ class UI_MainWindow(QWidget):
                 return
 
             self.dataset_name = text
-            print('Loaded dataset:', self.dataset_name)
-            self.data_mode = 'aggregate'
-            # index 0 is the prompt
-            self.dataset_index = self.aggregate_image_menu.currentIndex() - 1
-            self.dataset_dir = self.aggregate_data_dirs[self.dataset_index]
-            print(f'Loaded data from {self.dataset_dir}')
+            self.dataset_index = self.aggregate_image_menu.currentIndex()
 
             # re-load the data
             self.load_point_cloud_data()
-
-            # check the data to be ready
-            self.data_existed = True
 
             # the models have default, just run
             self.run_button_clicked()
@@ -201,9 +213,12 @@ class UI_MainWindow(QWidget):
                 self.all_data_paths[i].split('/')[-1].split('.')[0]
             )
 
-        # set default to the first test dataset
-        self.aggregate_image_menu.setCurrentIndex(1)
+        # set default data selection
+        self.aggregate_image_menu.setCurrentIndex(self.dataset_index)
         self.dataset_name = self.aggregate_image_menu.currentText()
+
+        # load default dataset
+        self.load_point_cloud_data()
 
         # connect the drop down menu with actions
         self.aggregate_image_menu.currentTextChanged.connect(dataset_selection_changed)
@@ -216,6 +231,56 @@ class UI_MainWindow(QWidget):
         self.layout.addLayout(aggregate_image_menu_layout, 0, 0)
 
 
+    def load_point_cloud_data(self):
+
+        # get data and classes names path from selected 1-based index
+        self.cur_data_path = self.all_data_paths[self.dataset_index-1]
+        self.cur_name_path = self.all_names_paths[self.dataset_index-1]
+        print(f'\nLoading data from {self.cur_data_path}')
+        # load all the point cloud names
+        point_cloud_ids = [
+            line.rstrip() for line in open(self.cur_data_path)
+        ]
+        # point cloud ids have name_index format
+        point_cloud_names = ['_'.join(x.split('_')[0:-1]) for x in point_cloud_ids]
+        # all the point cloud samples paths of the current dataset
+        self.point_cloud_paths = [
+            (
+                point_cloud_names[i],
+                os.path.join(self.cur_data_path, point_cloud_names[i], point_cloud_ids[i]) + '.txt'
+            ) for i in range(len(point_cloud_ids))
+        ]
+
+        # load the name files
+        self.cur_classes_names = nero_utilities.load_modelnet_classes_file(
+            self.cur_name_path
+        )
+
+        self.cur_num_classes = len(self.cur_classes_names)
+
+        # dataset that can be converted to dataloader later
+        self.cur_dataset = datasets.ModelNetDataset(self.cur_data_path, self.point_cloud_paths)
+        self.data_existed = True
+        print(
+            f'Loaded {len(self.cur_dataset)} point cloud samples belonging to {self.cur_num_classes} classes'
+        )
+
+
+    ################## Models Loading Related ##################
+    # Initialize options for loading point cloud classification models.
+    # This must be called after init_point_cloud_data
+    def init_point_cloud_models(self):
+
+        # model args (for now this is only for point transformer model)
+        self.pt_model_cfg = {}
+        self.pt_model_cfg['num_classes'] = self.cur_num_classes
+        self.pt_model_cfg['num_blocks'] = 4
+        self.pt_model_cfg['num_points'] = 1024
+        self.pt_model_cfg['num_neighbors'] = 16
+        self.pt_model_cfg['input_dim'] = 3
+        self.pt_model_cfg['transformer_dim'] = 512
+
+
     def init_model_loading_interface(self):
 
         # two drop down menus that let user choose models
@@ -225,35 +290,17 @@ class UI_MainWindow(QWidget):
             self.model_1_name = text
             # Original or DA
             self.model_1_cache_name = self.model_1_name.split(' ')[0]
-            # load the mode
-            if text == 'Original model':
-                self.model_1_path = glob.glob(
-                    os.path.join(os.getcwd(), 'example_models', self.mode, 'non_eqv', '*.pth')
-                )[0]
-                # reload model
-                self.model_1 = nero_run_model.load_model(
-                    self.mode, 'non-eqv', self.model_1_path
-                )
-            elif text == 'Data Aug':
-                self.model_1_path = glob.glob(
-                    os.path.join(
-                        os.getcwd(), 'example_models', self.mode, 'rot_eqv', '*.pth'
-                    )
-                )[0]
-                # reload model
-                self.model_1 = nero_run_model.load_model(
-                    self.mode, 'aug-eqv', self.model_1_path
-                )
 
-            print('Model 1 path:', self.model_1_path)
+            # load the model
+            self.model_1 = self.load_point_cloud_model(self.model_1_name)
 
-            # when loaded data is available, just show the result without clicking the button
-            self.run_model_aggregated()
-            self.aggregate_result_existed = True
+            # # when loaded data is available, just show the result without clicking the button
+            # self.run_model_aggregated()
+            # self.aggregate_result_existed = True
 
-            # run dimension reduction if previously run
-            if self.dr_result_existed:
-                self.run_dimension_reduction()
+            # # run dimension reduction if previously run
+            # if self.dr_result_existed:
+            #     self.run_dimension_reduction()
 
         @QtCore.Slot()
         def model_2_selection_changed(text):
@@ -261,36 +308,17 @@ class UI_MainWindow(QWidget):
             self.model_2_name = text
             # Original or DA
             self.model_2_cache_name = self.model_2_name.split(' ')[0]
-            # load the mode
-            if text == 'Original model':
-                self.model_2_path = glob.glob(
-                    os.path.join(os.getcwd(), 'example_models', self.mode, 'non_eqv', '*.pth')
-                )[0]
-                # reload model
-                self.model_2 = nero_run_model.load_model(
-                    self.mode, 'non-eqv', self.model_2_path
-                )
-            elif text == 'Data Aug':
-                self.model_2_path = glob.glob(
-                    os.path.join(
-                        os.getcwd(), 'example_models', self.mode, 'rot_eqv', '*.pth'
-                    )
-                )[0]
-                # reload model
-                self.model_2 = nero_run_model.load_model(
-                    self.mode, 'aug-eqv', self.model_2_path
-                )
 
-            print('Model 2 path:', self.model_2_path)
+            # load the model
+            self.model_2 = self.load_point_cloud_model(self.model_2_name)
 
-            # when loaded data is available, just show the result without clicking the button
-            self.run_model_aggregated()
-            self.aggregate_result_existed = True
+            # # when loaded data is available, just show the result without clicking the button
+            # self.run_model_aggregated()
+            # self.aggregate_result_existed = True
 
-            # run dimension reduction if previously run
-            if self.dr_result_existed:
-                self.run_dimension_reduction()
-
+            # # run dimension reduction if previously run
+            # if self.dr_result_existed:
+            #     self.run_dimension_reduction()
 
         # load models interface
         # draw text
@@ -324,12 +352,16 @@ class UI_MainWindow(QWidget):
         self.model_1_menu.setFixedSize(QtCore.QSize(200, 50))
         self.model_1_menu.addItem(model_1_icon, 'Original')
         self.model_1_menu.addItem(model_1_icon, 'Data Aug')
-        self.model_1_menu.setCurrentText('Original model')
+        self.model_1_menu.setCurrentText('Original')
         # connect the drop down menu with actions
         self.model_1_menu.currentTextChanged.connect(model_1_selection_changed)
         self.model_1_menu.setEditable(True)
         self.model_1_menu.lineEdit().setReadOnly(True)
         self.model_1_menu.lineEdit().setAlignment(QtCore.Qt.AlignCenter)
+        # preload model 1
+        self.model_1_name = self.model_1_menu.currentText()
+        self.model_1_cache_name = self.model_1_name.split(' ')[0]
+        self.model_1 = self.load_point_cloud_model(self.model_1_name)
 
         # model 2
         # graphic representation
@@ -354,6 +386,10 @@ class UI_MainWindow(QWidget):
         self.model_2_menu.setEditable(True)
         self.model_2_menu.lineEdit().setReadOnly(True)
         self.model_2_menu.lineEdit().setAlignment(QtCore.Qt.AlignCenter)
+        # preload model 2
+        self.model_2_name = self.model_2_menu.currentText()
+        self.model_2_cache_name = self.model_2_name.split(' ')[0]
+        self.model_2 = self.load_point_cloud_model(self.model_2_name)
 
         # create model menu layout
         model_menus_layout = QtWidgets.QGridLayout()
@@ -364,104 +400,31 @@ class UI_MainWindow(QWidget):
         self.layout.addLayout(model_menus_layout, 2, 2)
 
 
-    # Initialize options for loading point cloud classification models.
-    # This must be called after init_point_cloud_data
-    def init_point_cloud_models(self):
+    def load_point_cloud_model(self, model_name):
+        # load the mode
+        if model_name == 'Original':
+            model_path = glob.glob(
+                os.path.join(os.getcwd(), 'example_models', self.mode, 'non_eqv', '*.pth')
+            )[0]
+            # load model
+            model = nero_run_model.load_model(
+                self.mode, 'non-eqv', model_path, self.pt_model_cfg
+            )
+        elif model_name == 'Data Aug':
+            model_path = glob.glob(
+                os.path.join(
+                    os.getcwd(), 'example_models', self.mode, 'rot_eqv', '*.pth'
+                )
+            )[0]
+            # load model
+            model = nero_run_model.load_model(
+                self.mode, 'aug-eqv', model_path, self.pt_model_cfg
+            )
 
-        print('Initializing point cloud classification models')
-        # model args
-        model_cfg = {}
-        model_cfg['num_classes'] = self.cur_num_classes
-        model_cfg['num_blocks'] = 4
-        model_cfg['num_points'] = 1024
-        model_cfg['num_neighbors'] = 16
-        model_cfg['input_dim'] = 3
-        model_cfg['transformer_dim'] = 512
-
-        # preload model 1
-        self.model_1_name = 'Original model'
-        self.model_1_cache_name = self.model_1_name.split(' ')[0]
-        self.model_1_path = glob.glob(
-            os.path.join(os.getcwd(), 'example_models', self.mode, 'non_eqv', '*.pth')
-        )[0]
-        self.model_1 = nero_run_model.load_model(
-            self.mode, 'non_eqv', self.model_1_path, model_cfg
-        )
-
-        # preload model 2
-        self.model_2_name = 'Data Aug'
-        self.model_2_cache_name = self.model_2_name.split(' ')[0]
-        self.model_2_path = glob.glob(
-            os.path.join(os.getcwd(), 'example_models', self.mode, 'rot_eqv', '*.pth')
-        )[0]
-        self.model_2 = nero_run_model.load_model(
-            self.mode, 'aug_eqv', self.model_2_path, model_cfg
-        )
-
-        # unique quantity of the result of current data
-        self.all_quantities_1 = []
-        self.all_quantities_2 = []
-
-        # when doing highlighting
-        self.last_clicked = None
-        self.cur_line = None
-
-        # since later needs some updates, thus initiated here
-        self.dr_result_sliders_existed = False
+        return model
 
 
-    def init_point_cloud_data(self):
-        # modelnet40 and modelnet10
-        # data samples paths
-        self.all_nums_classes = [40, 10]
-        self.all_data_paths = [
-            os.path.join(self.data_dir, f'modelnet{i}_test.txt') for i in self.all_nums_classes
-        ]
-        # classes names paths
-        self.all_names_paths = [
-            os.path.join(
-                self.data_dir, f'modelnet{i}_shape_names.txt'
-            ) for i in self.all_nums_classes
-        ]
-
-        # when initializing, take the first path (index 0 is the prompt)
-        # when changed, we should have dataset_index defined ready from interface
-        self.dataset_index = 1
-
-
-    def load_point_cloud_data(self):
-
-        # get data and classes names path from selected 1-based index
-        self.cur_data_path = self.all_data_paths[self.dataset_index-1]
-        self.cur_name_path = self.all_names_paths[self.dataset_index-1]
-        print(f'\nLoading data from {self.cur_data_path}')
-        # load all the point cloud names
-        point_cloud_ids = [
-            line.rstrip() for line in open(self.cur_data_path)
-        ]
-        # point cloud ids have name_index format
-        point_cloud_names = ['_'.join(x.split('_')[0:-1]) for x in point_cloud_ids]
-        # all the point cloud samples paths of the current dataset
-        self.point_cloud_paths = [
-            (
-                point_cloud_names[i],
-                os.path.join(self.cur_data_path, point_cloud_names[i], point_cloud_ids[i]) + '.txt'
-            ) for i in range(len(point_cloud_ids))
-        ]
-
-        # load the name files
-        self.cur_classes_names = nero_utilities.load_modelnet_classes_file(
-            self.cur_name_path
-        )
-
-        # dataset that can be converted to dataloader later
-        self.cur_dataset = datasets.ModelNetDataset(self.cur_data_path, self.point_cloud_paths)
-
-        print(
-            f'Loaded {len(self.cur_dataset)} point cloud samples belonging to {len(self.cur_classes_names)} classes'
-        )
-
-
+    ################## Aggregate NERO Plots ##################
     def run_aggregate_test(self):
         # all the rotation angles applied to the aggregated dataset
         self.all_axis_angles = list(range(0, 365, 60))
