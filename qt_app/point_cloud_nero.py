@@ -111,13 +111,13 @@ class UI_MainWindow(QWidget):
         # define dataset path
         self.data_dir = f'./example_data/{self.mode}/modelnet_normal_resampled'
 
-        # initialization on data, model and results
-        # get models ready
-        self.init_point_cloud_models()
+        # initialize and load data and models
         # get data ready
         self.init_point_cloud_data()
         # load the data
         self.load_point_cloud_data()
+        # get models ready
+        # self.init_point_cloud_models()
 
         # # prepare results, either load from cache, or run
         # self.run_aggregate_test()
@@ -196,9 +196,9 @@ class UI_MainWindow(QWidget):
         self.aggregate_image_menu.addItem('Input dataset')
 
         # load all images in the folder
-        for i in range(len(self.aggregate_data_paths)):
+        for i in range(len(self.all_data_paths)):
             self.aggregate_image_menu.addItem(
-                self.aggregate_data_paths[i].split('/')[-1].split('.')[0]
+                self.all_data_paths[i].split('/')[-1].split('.')[0]
             )
 
         # set default to the first test dataset
@@ -364,11 +364,14 @@ class UI_MainWindow(QWidget):
         self.layout.addLayout(model_menus_layout, 2, 2)
 
 
+    # Initialize options for loading point cloud classification models.
+    # This must be called after init_point_cloud_data
     def init_point_cloud_models(self):
-        print('Loading point cloud classification models')
+
+        print('Initializing point cloud classification models')
         # model args
         model_cfg = {}
-        model_cfg['num_classes'] = 40
+        model_cfg['num_classes'] = self.cur_num_classes
         model_cfg['num_blocks'] = 4
         model_cfg['num_points'] = 1024
         model_cfg['num_neighbors'] = 16
@@ -395,17 +398,6 @@ class UI_MainWindow(QWidget):
             self.mode, 'aug_eqv', self.model_2_path, model_cfg
         )
 
-        # different class names
-        self.modelnet_names_path = os.path.join(
-            os.getcwd(), 'example_data', self.mode,
-            'modelnet_normal_resampled', 'modelnet40_shape_names.txt'
-        )
-
-        # load the name files
-        self.modelnet_names = nero_utilities.load_modelnet_classes_file(
-            self.modelnet_names_path
-        )
-
         # unique quantity of the result of current data
         self.all_quantities_1 = []
         self.all_quantities_2 = []
@@ -420,37 +412,54 @@ class UI_MainWindow(QWidget):
 
     def init_point_cloud_data(self):
         # modelnet40 and modelnet10
-        self.aggregate_data_paths = [
-            os.path.join(self.data_dir, f'modelnet{i}_test.txt') for i in [40, 10]
+        # data samples paths
+        self.all_nums_classes = [40, 10]
+        self.all_data_paths = [
+            os.path.join(self.data_dir, f'modelnet{i}_test.txt') for i in self.all_nums_classes
+        ]
+        # classes names paths
+        self.all_names_paths = [
+            os.path.join(
+                self.data_dir, f'modelnet{i}_shape_names.txt'
+            ) for i in self.all_nums_classes
         ]
 
         # when initializing, take the first path (index 0 is the prompt)
-        # when changed, we should have dataset_index defined ready in interface
+        # when changed, we should have dataset_index defined ready from interface
         self.dataset_index = 1
-        self.dataset_path = self.aggregate_data_paths[self.dataset_index]
 
 
     def load_point_cloud_data(self):
 
-        self.dataset_path = self.aggregate_data_paths[self.dataset_index]
-        print(f'\nLoaded data from {self.dataset_path}')
+        # get data and classes names path from selected 1-based index
+        self.cur_data_path = self.all_data_paths[self.dataset_index-1]
+        self.cur_name_path = self.all_names_paths[self.dataset_index-1]
+        print(f'\nLoading data from {self.cur_data_path}')
         # load all the point cloud names
         point_cloud_ids = [
-            line.rstrip() for line in open(self.dataset_path)
+            line.rstrip() for line in open(self.cur_data_path)
         ]
         # point cloud ids have name_index format
         point_cloud_names = ['_'.join(x.split('_')[0:-1]) for x in point_cloud_ids]
-        # list of (shape_name, shape_txt_file_path) tuple
+        # all the point cloud samples paths of the current dataset
         self.point_cloud_paths = [
             (
                 point_cloud_names[i],
-                os.path.join(self.dataset_path, point_cloud_names[i], point_cloud_ids[i]) + '.txt'
+                os.path.join(self.cur_data_path, point_cloud_names[i], point_cloud_ids[i]) + '.txt'
             ) for i in range(len(point_cloud_ids))
         ]
-        print(f'The size of loaded data is {len(self.point_cloud_paths)}')
+
+        # load the name files
+        self.cur_classes_names = nero_utilities.load_modelnet_classes_file(
+            self.cur_name_path
+        )
 
         # dataset that can be converted to dataloader later
-        self.dataset = datasets.ModelNetDataset(self.dataset_path, self.point_cloud_paths)
+        self.cur_dataset = datasets.ModelNetDataset(self.cur_data_path, self.point_cloud_paths)
+
+        print(
+            f'Loaded {len(self.cur_dataset)} point cloud samples belonging to {len(self.cur_classes_names)} classes'
+        )
 
 
     def run_aggregate_test(self):
