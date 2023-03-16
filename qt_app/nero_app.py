@@ -46,12 +46,16 @@ class UI_MainWindow(QWidget):
         # window size
         if pre_selected_mode == 'digit_recognition':
             self.resize(1920, 1080)
+            title_name = 'Digit Recognition with MNIST'
         elif pre_selected_mode == 'object_detection':
             self.resize(2280, 1080)
+            title_name = 'Object Detection with COCO'
         elif pre_selected_mode == 'piv':
             self.resize(2280, 1080)
+            title_name = 'Particle Image Velocimetry'
+
         # set window title
-        self.setWindowTitle('Non-Equivariance Revealed on Orbits')
+        self.setWindowTitle(f'Non-Equivariance Revealed on Orbits: {title_name}')
         # white background color
         self.setStyleSheet('background-color: rgb(255, 255, 255);')
         # general layout
@@ -62,7 +66,6 @@ class UI_MainWindow(QWidget):
 
         # individual laytout for different widgets
         # mode selections
-        # self.mode = 'digit_recognition'
         self.mode = pre_selected_mode
         # save the previous mode selection for layout swap
         self.previous_mode = pre_selected_mode
@@ -87,9 +90,11 @@ class UI_MainWindow(QWidget):
         # load/initialize program cache
         self.use_cache = False
 
+        # when we have an input cache path
         if cache_path != None:
             self.cache_path = cache_path
             self.cache_dir = self.cache_path.removesuffix(self.cache_path.split('/')[-1])
+        # initialize a new cache
         else:
             self.cache_dir = os.path.join(os.getcwd(), 'cache')
             if not os.path.isdir(self.cache_dir):
@@ -100,6 +105,7 @@ class UI_MainWindow(QWidget):
             if not os.path.isfile(self.cache_path):
                 np.savez(self.cache_path)
 
+        # cache
         self.cache = dict(np.load(self.cache_path, allow_pickle=True))
 
         # if we are doing real-time inference when dragging the field of view

@@ -32,7 +32,7 @@ def resize(image, size):
 
 
 # digit recognition (mnist)
-def load_model(mode, network_model, model_dir):
+def load_model(mode, network_model, model_dir, cfg=None):
 
     # basic settings for pytorch
     if torch.cuda.is_available():
@@ -87,6 +87,13 @@ def load_model(mode, network_model, model_dir):
             loaded_model = torch.load(model_dir, map_location=device)
             model.load_state_dict(loaded_model)
             print(f'{network_model} loaded from {model_dir}')
+
+    elif mode == 'point_cloud_classification':
+        model = models.PointTransformerCls(cfg)
+        model.to(device)
+        loaded_model = torch.load(model_dir, map_location=device)
+        model.load_state_dict(loaded_model['model_state_dict'])
+        print(f'{network_model} model loaded from {model_dir}')
 
     else:
         raise Exception(f'Unrecognized mode {mode}')

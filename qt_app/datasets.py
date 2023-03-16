@@ -1,10 +1,12 @@
+import os
 import torch
 import warnings
 import numpy as np
 from PIL import Image
-from PIL import ImageFile
 import torch.nn.functional as F
 from torch.utils.data import Dataset
+
+from pointnet_util import farthest_point_sample, pc_normalize
 
 # MNIST dataset for running in aggregate mode
 class MnistDataset(torch.utils.data.Dataset):
@@ -113,3 +115,55 @@ class COCODataset(Dataset):
     def resize(self, image, size):
         image = F.interpolate(image.unsqueeze(0), size=size, mode="nearest").squeeze(0)
         return image
+
+
+# ModelNet dataset
+class ModelNetDataset(Dataset):
+    def __init__(
+        self,
+        catfile_path,
+        point_cloud_paths,
+        npoint=1024, uniform=False, normal_channel=False, cache_size=15000,
+    ):
+        self.npoints = npoint
+        self.uniform = uniform
+        self.catfile = catfile_path
+
+        self.cat = [line.rstrip() for line in open(self.catfile)]
+        self.classes = dict(zip(self.cat, range(len(self.cat))))
+        self.normal_channel = normal_channel
+        self.datapath = point_cloud_paths
+
+        # how many data points to cache in memory
+        self.cache_size = cache_size
+        # from index to (point_set, cls) tuple
+        self.cache = {}
+
+    def __len__(self):
+        return len(self.datapath)
+
+    def _get_item(self, index):
+        if index in self.cache:
+            point_set, cls = self.cache[index]
+        else:
+            fn = self.datapath[index]
+            cls = self.classes[self.datapath[index][0]]
+            cls = np.array([cls]).astype(np.int32)
+            point_set = np.loadtxt(fn[1], delimiter=',').astype(np.float32)
+            if self.uniform:
+                point_set = farthest_point_sample(point_set, self.npoints)
+            else:
+                point_set = point_set[0:self.npoints,:]
+
+            point_set[:, 0:3] = pc_normalize(point_set[:, 0:3])
+
+            if not self.normal_channel:
+                point_set = point_set[:, 0:3]
+
+            if len(self.cache) < self.cache_size:
+                self.cache[index] = (point_set, cls)
+
+        return point_set, cls
+
+    def __getitem__(self, index):
+        return self._get_item(index)

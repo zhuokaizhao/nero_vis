@@ -14,8 +14,10 @@ from correlation import FunctionCorrelation  # the custom cost volume layer
 from numpy import ma
 from scipy.fft import rfft2 as rfft2_, irfft2 as irfft2_, fftshift as fftshift_
 from numpy import log
+from pointnet_util import PointNetFeaturePropagation, PointNetSetAbstraction
+from transformer import TransformerBlock
 
-######################################## Digit Recognition (MNIST) ########################################
+################################# Digit Recognition (MNIST) #################################
 # non-rotation equivariant network
 class Non_Eqv_Net_MNIST(torch.nn.Module):
     def __init__(self, type, n_classes=10):
@@ -313,7 +315,7 @@ class Rot_Eqv_Net_MNIST(torch.nn.Module):
 
 
 
-######################################## Object Detection (COCO) ########################################
+################################## Object Detection (COCO) ##################################
 # Custom-trained model with different levels of jittering
 class Custom_Trained_FastRCNN(torch.nn.Module):
     def __init__(self, num_classes=5, image_size=128):
@@ -367,7 +369,8 @@ def backwarp(tensorInput, tensorFlow):
 # ----------- NETWORK DEFINITION -----------
 class LiteFlowNet(torch.nn.Module):
 	def __init__(self, starting_scale: int = 40, lowest_level: int = 2,
-				 rgb_mean: Union[Tuple[float, ...], List[float]] = (0.411618, 0.434631, 0.454253, 0.410782, 0.433645, 0.452793)
+				 rgb_mean: Union[Tuple[float, ...],
+		     	 List[float]] = (0.411618, 0.434631, 0.454253, 0.410782, 0.433645, 0.452793)
 				 ) -> None:
 		"""
 		LiteFlowNet network architecture by Hui, 2018.
@@ -1181,3 +1184,113 @@ def Lucas_Kanade(I1g, I2g, window_size=7, tau=1e-2):
                 v[i,j]=nu[1]
 
     return (u, v)
+
+
+################################## Point Cloud Classification ##################################
+class TransitionDown(torch.nn.Module):
+    def __init__(self, k, nneighbor, channels):
+        super().__init__()
+        self.sa = PointNetSetAbstraction(k, 0, nneighbor, channels[0], channels[1:], group_all=False, knn=True)
+
+    def forward(self, xyz, points):
+        return self.sa(xyz, points)
+
+
+class TransitionUp(torch.nn.Module):
+    def __init__(self, dim1, dim2, dim_out):
+        class SwapAxes(torch.nn.Module):
+            def __init__(self):
+                super().__init__()
+
+            def forward(self, x):
+                return x.transpose(1, 2)
+
+        super().__init__()
+        self.fc1 = torch.nn.Sequential(
+            torch.nn.Linear(dim1, dim_out),
+            SwapAxes(),
+            torch.nn.BatchNorm1d(dim_out),  # TODO
+            SwapAxes(),
+            torch.nn.ReLU(),
+        )
+        self.fc2 = torch.nn.Sequential(
+            torch.nn.Linear(dim2, dim_out),
+            SwapAxes(),
+            torch.nn.BatchNorm1d(dim_out),  # TODO
+            SwapAxes(),
+            torch.nn.ReLU(),
+        )
+        self.fp = PointNetFeaturePropagation(-1, [])
+
+    def forward(self, xyz1, points1, xyz2, points2):
+        feats1 = self.fc1(points1)
+        feats2 = self.fc2(points2)
+        feats1 = self.fp(xyz2.transpose(1, 2), xyz1.transpose(1, 2), None, feats1.transpose(1, 2)).transpose(1, 2)
+        return feats1 + feats2
+
+
+# backbone structure
+class Backbone(torch.nn.Module):
+    def __init__(self, cfg):
+        super().__init__()
+        num_points, num_blocks, num_neighbors, input_dim \
+            = cfg['num_points'], cfg['num_blocks'], cfg['num_neighbors'], cfg['input_dim']
+        # first mlp layer
+        self.fc1 = torch.nn.Sequential(
+            torch.nn.Linear(input_dim, 32),
+            torch.nn.ReLU(),
+            torch.nn.Linear(32, 32)
+        )
+        # first transformer layer
+        self.transformer1 = TransformerBlock(32, cfg['transformer_dim'], num_neighbors)
+        # later transition down and transformer layers
+        self.transition_downs = torch.nn.ModuleList()
+        self.transformers = torch.nn.ModuleList()
+        for i in range(num_blocks):
+            channel = 32 * 2 ** (i + 1)
+            self.transition_downs.append(
+                TransitionDown(
+		    		num_points//4**(i + 1), num_neighbors, [channel//2+3, channel, channel]
+				)
+            )
+            self.transformers.append(
+                TransformerBlock(channel, cfg['transformer_dim'], num_neighbors)
+            )
+        self.nblocks = num_blocks
+
+    def forward(self, x):
+        # get the positions
+        xyz = x[..., :3]
+        # first block of the network
+        points = self.transformer1(xyz, self.fc1(x))[0]
+        # later blocks
+        xyz_and_feats = [(xyz, points)]
+        for i in range(self.nblocks):
+            xyz, points = self.transition_downs[i](xyz, points)
+            points = self.transformers[i](xyz, points)[0]
+            xyz_and_feats.append((xyz, points))
+        return points, xyz_and_feats
+
+
+# Point transformer network for classification, as shown in Figure 3, bottom
+class PointTransformerCls(torch.nn.Module):
+    def __init__(self, cfg):
+        super().__init__()
+        # feature extraction
+        self.backbone = Backbone(cfg)
+        num_blocks, num_classes = cfg['num_blocks'], cfg['num_classes']
+        # last mlp layer
+        self.fc2 = torch.nn.Sequential(
+            torch.nn.Linear(32 * 2 ** num_blocks, 256),
+            torch.nn.ReLU(),
+            torch.nn.Linear(256, 64),
+            torch.nn.ReLU(),
+            torch.nn.Linear(64, num_classes)
+        )
+        self.nblocks = num_blocks
+
+    def forward(self, x):
+        points, _ = self.backbone(x)
+        # mlp on globally avg pooled features
+        res = self.fc2(points.mean(1))
+        return res

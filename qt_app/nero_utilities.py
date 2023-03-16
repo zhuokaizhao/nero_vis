@@ -14,6 +14,11 @@ def load_coco_classes_file(path):
     return names
 
 
+# load the class names from ModelNet class file
+def load_modelnet_classes_file(path):
+    return [line.rstrip() for line in open(path)]
+
+
 # some helper functions
 def qt_image_to_tensor(img, share_memory=False):
     """
