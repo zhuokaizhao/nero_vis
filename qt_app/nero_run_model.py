@@ -24,6 +24,7 @@ import models
 import datasets
 import nero_utilities
 import nero_transform
+import quaternions
 
 # helper function that resizes the image
 def resize(image, size):
@@ -712,3 +713,200 @@ def run_piv_once(mode, model_name, model, image_1, image_2):
             # print(f'Farneback average u {np.mean(u)}, average v {np.mean(v)}')
 
         return cur_labels_pred_pt
+
+
+# run model on either one point cloud or a batch of point clouds
+def run_point_cloud(
+    model,
+    num_classes,
+    class_name_path,
+    point_cloud_paths,
+    all_planes,
+    all_axis_angles,
+    all_rot_angles,
+):
+    # accuracy averaged by each instance under all rotations
+    all_avg_instance_accuracies = np.zeros(
+        (len(all_planes), len(all_axis_angles), len(all_rot_angles))
+    )
+    # accuracy averaged by each instance within each class under all rotations
+    all_avg_class_accuracies = np.zeros(
+        (len(all_planes), len(all_axis_angles), len(all_rot_angles))
+    )
+    # accuracy averaged for each class
+    all_avg_accuracies_per_class = np.zeros(
+        (
+            len(all_planes),
+            len(all_axis_angles),
+            len(all_rot_angles),
+            num_classes,
+        )
+    )
+    # output of each class's probablity of all samples
+    all_outputs = np.zeros(
+        (
+            len(all_planes),
+            len(all_axis_angles),
+            len(all_rot_angles),
+            len(point_cloud_paths),
+            num_classes,
+        )
+    )
+
+    # construct the dataset
+    dataset = datasets.ModelNetDataset(class_name_path, point_cloud_paths)
+
+    # when we only have a single datasample
+    if len(dataset) == 1:
+        test_data_loader = torch.utils.data.DataLoader(
+            dataset, batch_size=1, shuffle=False, num_workers=1
+        )
+    # when we have a set of point clouds
+    else:
+        test_data_loader = torch.utils.data.DataLoader(
+            dataset, batch_size=16, shuffle=False, num_workers=4
+        )
+        # each plane that contains rotation axis
+        for i, cur_plane in tqdm(
+            enumerate(all_planes),
+            position=0,
+            desc=f'Rotation Plane',
+            leave=False,
+            colour='green',
+            total=len(all_planes),
+        ):
+            all_axis = []
+            # start axis based on different plane
+            if cur_plane == 'xy':
+                start_axis = np.matrix([[1], [0], [0]])
+            elif cur_plane == 'xz':
+                start_axis = np.matrix([[1], [0], [0]])
+            elif cur_plane == 'yz':
+                start_axis = np.matrix([[0], [1], [0]])
+
+            # rotate the axis of rotations
+            for axis_angle in all_axis_angles:
+                rot_matrix = quaternions.get_rot_matrix(cur_plane, axis_angle)
+                cur_axis = np.squeeze(np.array(rot_matrix * start_axis))
+                all_axis.append(cur_axis)
+
+            # for each axis
+            for j, cur_axis in tqdm(
+                enumerate(all_axis),
+                position=1,
+                desc=f'Rotation Axis',
+                leave=False,
+                colour='red',
+                total=len(all_axis),
+            ):
+                # pick a rotation angle
+                for k, cur_angle in tqdm(
+                    enumerate(all_rot_angles),
+                    position=2,
+                    desc=f'Rotation Angle',
+                    leave=False,
+                    colour='blue',
+                    total=len(all_rot_angles),
+                ):
+                    # now that we have the axis-angle representation, run the test
+                    with torch.no_grad():
+                        (
+                            avg_instance_accuracy,
+                            avg_class_accuracy,
+                            avg_accuracies_per_class,
+                            outputs,
+                        ) = test(
+                            model.eval(),
+                            test_data_loader,
+                            len(dataset),
+                            num_classes,
+                            cur_axis,
+                            cur_angle,
+                        )
+
+                    all_avg_instance_accuracies[i][j][k] = avg_instance_accuracy
+                    all_avg_class_accuracies[i][j][k] = avg_class_accuracy
+                    all_avg_accuracies_per_class[i][j][k] = avg_accuracies_per_class
+                    all_outputs[i][j][k] = outputs
+
+        return (
+            all_avg_instance_accuracies,
+            all_avg_class_accuracies,
+            all_avg_accuracies_per_class,
+            all_outputs,
+        )
+
+
+# run model testing with data and potential axis-angle rotation
+def test(model, loader, num_samples, num_classes, axis, angle):
+
+    # average accuracy computed for each class separatedly
+    avg_accuracies_per_class = np.zeros(num_classes)
+    # model outputs contain each class's probablity of all samples
+    outputs = np.zeros((num_samples, num_classes))
+
+    mean_correct = []
+    class_acc = np.zeros((num_classes, 2))
+    # go through dataloader
+    counter = 0
+    # for _, data in tqdm(enumerate(loader), total=len(loader)):
+    for _, data in tqdm(
+        enumerate(loader),
+        position=3,
+        desc=f'Batch',
+        leave=False,
+        colour='yellow',
+        total=len(loader),
+    ):
+        # decompose data into point clouds and ground truths
+        points, target = data
+        points = points.data.numpy()
+        target = target[:, 0]
+        # rotate the points
+        if angle != None:
+            # all batches of points have the same axis-angle rotation
+            # therefore make the duplications
+            all_axis = np.zeros((len(points), 3))
+            all_angles = np.zeros(len(points))
+            for i in range(len(all_axis)):
+                all_axis[i] = axis
+                all_angles[i] = angle
+            # rotate
+            points = quaternions.rotate(points, all_axis, all_angles)
+
+        # convert points data to tensor
+        points = torch.Tensor(points)
+        # convert to GPU
+        points, target = points.cuda(), target.cuda()
+
+        # run the model
+        classifier = model.eval()
+        pred = classifier(points)
+        # probability for each class
+        outputs[counter : counter + len(points)] = pred.data.cpu()
+        counter += len(points)
+        # get all the indices of max probability
+        pred_choice = pred.data.max(1)[1]
+        # compare with ground truths based on categories
+        for cat in np.unique(target.cpu()):
+            # number of correct prediction
+            num_correct = (
+                pred_choice[target == cat].eq(target[target == cat].long().data).cpu().sum()
+            )
+            # class accuracy for current batch
+            class_acc[cat, 0] += num_correct.item() / float(points[target == cat].size()[0])
+            # counter
+            class_acc[cat, 1] += 1
+
+        # total number of correct
+        correct = pred_choice.eq(target.long().data).cpu().sum()
+        mean_correct.append(correct.item() / float(points.size()[0]))
+
+    # average class accuracy over the entire dataset
+    avg_accuracies_per_class = class_acc[:, 0] / class_acc[:, 1]
+    # average accuracy over all classes
+    avg_class_accuracy = np.mean(avg_accuracies_per_class)
+    # average accuracy over all instances
+    avg_instance_accuracy = np.mean(mean_correct)
+
+    return avg_instance_accuracy, avg_class_accuracy, avg_accuracies_per_class, outputs

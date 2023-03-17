@@ -10,7 +10,6 @@ from pointnet_util import farthest_point_sample, pc_normalize
 
 # MNIST dataset for running in aggregate mode
 class MnistDataset(torch.utils.data.Dataset):
-
     def __init__(self, images, labels, transform=None, vis=False):
 
         self.transform = transform
@@ -19,7 +18,6 @@ class MnistDataset(torch.utils.data.Dataset):
         self.labels = labels
 
         self.num_samples = len(self.labels)
-
 
     def __getitem__(self, index):
 
@@ -49,7 +47,6 @@ class COCODataset(Dataset):
         self.img_size = img_size
         self.transform = transform
 
-
     def __getitem__(self, index):
 
         # ---------
@@ -71,7 +68,7 @@ class COCODataset(Dataset):
 
             # Ignore warning if file is empty
             with warnings.catch_warnings():
-                warnings.simplefilter("ignore")
+                warnings.simplefilter('ignore')
                 # boxes = np.loadtxt(label_path).reshape(-1, 5)
                 boxes = np.load(label_path)
 
@@ -89,7 +86,6 @@ class COCODataset(Dataset):
 
         # return img_path, image_id, img, bb_targets
         return img_path, img, bb_targets
-
 
     def collate_fn(self, batch):
 
@@ -113,7 +109,7 @@ class COCODataset(Dataset):
 
     # helper function that resizes the image
     def resize(self, image, size):
-        image = F.interpolate(image.unsqueeze(0), size=size, mode="nearest").squeeze(0)
+        image = F.interpolate(image.unsqueeze(0), size=size, mode='nearest').squeeze(0)
         return image
 
 
@@ -123,7 +119,10 @@ class ModelNetDataset(Dataset):
         self,
         catfile_path,
         point_cloud_paths,
-        npoint=1024, uniform=False, normal_channel=False, cache_size=15000,
+        npoint=1024,
+        uniform=False,
+        normal_channel=False,
+        cache_size=15000,
     ):
         self.npoints = npoint
         self.uniform = uniform
@@ -153,7 +152,7 @@ class ModelNetDataset(Dataset):
             if self.uniform:
                 point_set = farthest_point_sample(point_set, self.npoints)
             else:
-                point_set = point_set[0:self.npoints,:]
+                point_set = point_set[0 : self.npoints, :]
 
             point_set[:, 0:3] = pc_normalize(point_set[:, 0:3])
 

@@ -1,7 +1,7 @@
-'''
+"""
 NERO interface for point cloud classification
 Author: Zhuokai Zhao
-'''
+"""
 
 from operator import truediv
 import os
@@ -70,11 +70,11 @@ class UI_MainWindow(QWidget):
         self.mode = 'point_cloud_classification'
 
         # initialize status of various contents in the interface
-        self.display_existed = False # point cloud to display
-        self.data_existed = False # inference data
-        self.aggregate_result_existed = False # result for aggregate NERO plots
-        self.single_result_existed = False # result for single NERO plots
-        self.dr_result_existed = False # result for DR plot
+        self.display_existed = False   # point cloud to display
+        self.data_existed = False   # inference data
+        self.aggregate_result_existed = False   # result for aggregate NERO plots
+        self.single_result_existed = False   # result for single NERO plots
+        self.dr_result_existed = False   # result for DR plot
 
         # image size that is used for display
         self.display_size = 320
@@ -119,16 +119,13 @@ class UI_MainWindow(QWidget):
         self.init_point_cloud_models()
         self.init_model_loading_interface()
 
-        # # prepare results, either load from cache, or run
-        # self.run_aggregate_test()
-
+        # prepare results NERO test results
+        self.prepare_aggregate_results()
 
         # # prepare the interface and isplay
         # self.init_point_cloud_interface()
 
-
         print(f'\nFinished rendering main layout')
-
 
     def init_point_cloud_interface(self):
 
@@ -146,7 +143,6 @@ class UI_MainWindow(QWidget):
 
         # individual NERO plots interface
 
-
     ################## Data Loading Related ##################
     def init_point_cloud_data(self):
         # modelnet40 and modelnet10
@@ -157,15 +153,13 @@ class UI_MainWindow(QWidget):
         ]
         # classes names paths
         self.all_names_paths = [
-            os.path.join(
-                self.data_dir, f'modelnet{i}_shape_names.txt'
-            ) for i in self.all_nums_classes
+            os.path.join(self.data_dir, f'modelnet{i}_shape_names.txt')
+            for i in self.all_nums_classes
         ]
 
         # when initializing, take the first path (index 0 is the prompt)
         # when changed, we should have dataset_index defined ready from interface
         self.dataset_index = 1
-
 
     def init_data_loading_interface(self):
         # load aggregate dataset drop-down menu
@@ -209,9 +203,7 @@ class UI_MainWindow(QWidget):
 
         # load all images in the folder
         for i in range(len(self.all_data_paths)):
-            self.aggregate_image_menu.addItem(
-                self.all_data_paths[i].split('/')[-1].split('.')[0]
-            )
+            self.aggregate_image_menu.addItem(self.all_data_paths[i].split('/')[-1].split('.')[0])
 
         # set default data selection
         self.aggregate_image_menu.setCurrentIndex(self.dataset_index)
@@ -230,41 +222,35 @@ class UI_MainWindow(QWidget):
         aggregate_image_menu_layout.addWidget(self.aggregate_image_menu)
         self.layout.addLayout(aggregate_image_menu_layout, 0, 0)
 
-
     def load_point_cloud_data(self):
 
         # get data and classes names path from selected 1-based index
-        self.cur_data_path = self.all_data_paths[self.dataset_index-1]
-        self.cur_name_path = self.all_names_paths[self.dataset_index-1]
+        self.cur_data_path = self.all_data_paths[self.dataset_index - 1]
+        self.cur_name_path = self.all_names_paths[self.dataset_index - 1]
         print(f'\nLoading data from {self.cur_data_path}')
         # load all the point cloud names
-        point_cloud_ids = [
-            line.rstrip() for line in open(self.cur_data_path)
-        ]
+        point_cloud_ids = [line.rstrip() for line in open(self.cur_data_path)]
         # point cloud ids have name_index format
         point_cloud_names = ['_'.join(x.split('_')[0:-1]) for x in point_cloud_ids]
         # all the point cloud samples paths of the current dataset
         self.point_cloud_paths = [
             (
                 point_cloud_names[i],
-                os.path.join(self.cur_data_path, point_cloud_names[i], point_cloud_ids[i]) + '.txt'
-            ) for i in range(len(point_cloud_ids))
+                os.path.join(self.data_dir, point_cloud_names[i], point_cloud_ids[i]) + '.txt',
+            )
+            for i in range(len(point_cloud_ids))
         ]
 
         # load the name files
-        self.cur_classes_names = nero_utilities.load_modelnet_classes_file(
-            self.cur_name_path
-        )
+        self.cur_classes_names = nero_utilities.load_modelnet_classes_file(self.cur_name_path)
 
         self.cur_num_classes = len(self.cur_classes_names)
 
         # dataset that can be converted to dataloader later
-        self.cur_dataset = datasets.ModelNetDataset(self.cur_data_path, self.point_cloud_paths)
         self.data_existed = True
         print(
-            f'Loaded {len(self.cur_dataset)} point cloud samples belonging to {self.cur_num_classes} classes'
+            f'Loaded {len(self.point_cloud_paths)} point cloud samples belonging to {self.cur_num_classes} classes'
         )
-
 
     ################## Models Loading Related ##################
     # Initialize options for loading point cloud classification models.
@@ -279,7 +265,6 @@ class UI_MainWindow(QWidget):
         self.pt_model_cfg['num_neighbors'] = 16
         self.pt_model_cfg['input_dim'] = 3
         self.pt_model_cfg['transformer_dim'] = 512
-
 
     def init_model_loading_interface(self):
 
@@ -399,7 +384,6 @@ class UI_MainWindow(QWidget):
         self.layout.addWidget(self.model_selection_label, 1, 2)
         self.layout.addLayout(model_menus_layout, 2, 2)
 
-
     def load_point_cloud_model(self, model_name):
         # load the mode
         if model_name == 'Original':
@@ -407,71 +391,147 @@ class UI_MainWindow(QWidget):
                 os.path.join(os.getcwd(), 'example_models', self.mode, 'non_eqv', '*.pth')
             )[0]
             # load model
-            model = nero_run_model.load_model(
-                self.mode, 'non-eqv', model_path, self.pt_model_cfg
-            )
+            model = nero_run_model.load_model(self.mode, 'non-eqv', model_path, self.pt_model_cfg)
         elif model_name == 'Data Aug':
             model_path = glob.glob(
-                os.path.join(
-                    os.getcwd(), 'example_models', self.mode, 'rot_eqv', '*.pth'
-                )
+                os.path.join(os.getcwd(), 'example_models', self.mode, 'rot_eqv', '*.pth')
             )[0]
             # load model
-            model = nero_run_model.load_model(
-                self.mode, 'aug-eqv', model_path, self.pt_model_cfg
-            )
+            model = nero_run_model.load_model(self.mode, 'aug-eqv', model_path, self.pt_model_cfg)
 
         return model
 
+    ################## Aggregate NERO Plots Related ##################
+    def prepare_aggregate_results(self):
+        # TODO: create user interface for selecting planes
+        self.all_planes = ['xy', 'xz', 'yz']
+        self.cur_plane = 'xy'
 
-    ################## Aggregate NERO Plots ##################
-    def run_aggregate_test(self):
-        # all the rotation angles applied to the aggregated dataset
-        self.all_axis_angles = list(range(0, 365, 60))
-        self.all_rotation_angles = list(range(0, 185, 60))
-
-        # load from cache if available
-        self.all_avg_instance_accuracy_1 = interface_util.load_from_cache(
-            f'{self.mode}_{self.dataset_name}_{self.model_1_cache_name}_avg_instance_accuracy'
+        # axis angles
+        self.all_axis_angles, successful = interface_util.load_from_cache(
+            'all_axis_angles', self.cache
         )
-        self.all_avg_class_accuracy_1 = interface_util.load_from_cache(
-            f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_1_cache_name}_avg_class_accuracy'
-        )
-        self.all_outputs_1 = interface_util.load_from_cache(
-            f'{self.mode}_{self.dataset_name}_{self.model_1_cache_name}_outputs'
-        )
-        # if model 1 does not load
-        if (
-            self.all_avg_instance_accuracy_1 == np.zeros(0)
-            or self.all_avg_class_accuracy_1 == np.zeros(0)
-            or self.all_outputs_1 == np.zeros(0)
-        ):
-             # average accuracies over all digits under all rotations, has shape (num_rotations, 1)
-            self.all_avg_accuracy_1 = np.zeros(len(self.all_aggregate_angles))
-            self.all_avg_accuracy_2 = np.zeros(len(self.all_aggregate_angles))
-            # average accuracies of each digit under all rotations, has shape (num_rotations, 10)
-            self.all_avg_accuracy_per_digit_1 = np.zeros((len(self.all_aggregate_angles), 10))
-            self.all_avg_accuracy_per_digit_2 = np.zeros((len(self.all_aggregate_angles), 10))
-            # output of each class's probablity of all samples, has shape (num_rotations, num_samples, 10)
-            self.all_outputs_1 = np.zeros(
-                (len(self.all_aggregate_angles), len(self.loaded_images_pt), 10)
-            )
-            self.all_outputs_2 = np.zeros(
-                (len(self.all_aggregate_angles), len(self.loaded_images_pt), 10)
+        if not successful:
+            self.all_axis_angles = list(range(-180, 181, 30))
+            interface_util.save_to_cache(
+                'all_axis_angles', self.all_axis_angles, self.cache, self.cache_path
             )
 
-
-        self.all_avg_instance_accuracy_2 = interface_util.load_from_cache(
-            f'{self.mode}_{self.dataset_name}_{self.model_2_cache_name}_avg_instance_accuracy'
+        # rotation angles
+        self.all_rot_angles, successful = interface_util.load_from_cache(
+            'all_rot_angles', self.cache
         )
-        self.all_avg_class_accuracy_2 = interface_util.load_from_cache(
-            f'{self.mode}_{self.data_mode}_{self.dataset_name}_{self.model_2_cache_name}_avg_class_accuracy'
+        if not successful:
+            self.all_rot_angles = list(range(0, 181, 30))
+            interface_util.save_to_cache(
+                'all_rot_angles', self.all_rot_angles, self.cache, self.cache_path
+            )
+
+        # aggregate test results for model 1
+        self.all_avg_instance_accuracies_1, successful = interface_util.load_from_cache(
+            f'{self.mode}_{self.dataset_name}_{self.model_1_cache_name}_avg_instance_accuracies',
+            self.cache,
         )
-        self.all_outputs_2 = interface_util.load_from_cache(
-            f'{self.mode}_{self.dataset_name}_{self.model_2_cache_name}_outputs'
+        self.all_avg_class_accuracies_1, successful = interface_util.load_from_cache(
+            f'{self.mode}_{self.dataset_name}_{self.model_1_cache_name}_avg_class_accuracies',
+            self.cache,
+        )
+        self.all_avg_accuracies_per_class_1, successful = interface_util.load_from_cache(
+            f'{self.mode}_{self.dataset_name}_{self.model_1_cache_name}_avg_accuracies_per_class',
+            self.cache,
+        )
+        self.all_outputs_1, successful = interface_util.load_from_cache(
+            f'{self.mode}_{self.dataset_name}_{self.model_1_cache_name}_outputs', self.cache
         )
 
+        # if any of the result for model 1 is missing, run aggregate test
+        if not successful:
+            print(f'\nRunning aggregate test for model 1')
+            (
+                self.all_avg_instance_accuracy_1,
+                self.all_avg_class_accuracies_1,
+                self.all_avg_accuracies_per_class_1,
+                self.all_outputs_1,
+            ) = nero_run_model.run_point_cloud(
+                self.model_1,
+                self.cur_num_classes,
+                self.cur_name_path,
+                self.point_cloud_paths,
+                self.all_planes,
+                self.all_axis_angles,
+                self.all_rot_angles,
+            )
 
+            # save to cache
+            interface_util.save_to_cache(
+                [
+                    f'{self.mode}_{self.dataset_name}_{self.model_1_cache_name}_avg_instance_accuracies',
+                    f'{self.mode}_{self.dataset_name}_{self.model_1_cache_name}_avg_class_accuracies',
+                    f'{self.mode}_{self.dataset_name}_{self.model_1_cache_name}_avg_accuracies_per_class',
+                    f'{self.mode}_{self.dataset_name}_{self.model_1_cache_name}_outputs',
+                ],
+                [
+                    self.all_avg_instance_accuracy_1,
+                    self.all_avg_class_accuracies_1,
+                    self.all_avg_accuracies_per_class_1,
+                    self.all_outputs_1,
+                ],
+                self.cache,
+                self.cache_path,
+            )
+
+        # aggregate test results for model 2
+        self.all_avg_instance_accuracies_2, successful = interface_util.load_from_cache(
+            f'{self.mode}_{self.dataset_name}_{self.model_2_cache_name}_avg_instance_accuracies',
+            self.cache,
+        )
+        self.all_avg_class_accuracies_2, successful = interface_util.load_from_cache(
+            f'{self.mode}_{self.dataset_name}_{self.model_2_cache_name}_avg_class_accuracies',
+            self.cache,
+        )
+        self.all_avg_accuracies_per_class_2, successful = interface_util.load_from_cache(
+            f'{self.mode}_{self.dataset_name}_{self.model_2_cache_name}_avg_accuracies_per_class',
+            self.cache,
+        )
+        self.all_outputs_2, successful = interface_util.load_from_cache(
+            f'{self.mode}_{self.dataset_name}_{self.model_2_cache_name}_outputs', self.cache
+        )
+
+        # if any of the result for model 1 is missing, run aggregate test
+        if not successful:
+            print(f'\nRunning aggregate test for model 2')
+            (
+                self.all_avg_instance_accuracy_2,
+                self.all_avg_class_accuracies_2,
+                self.all_avg_accuracies_per_class_2,
+                self.all_outputs_2,
+            ) = nero_run_model.run_point_cloud(
+                self.model_2,
+                self.cur_num_classes,
+                self.cur_name_path,
+                self.point_cloud_paths,
+                self.all_planes,
+                self.all_axis_angles,
+                self.all_rot_angles,
+            )
+
+            # save to cache
+            interface_util.save_to_cache(
+                [
+                    f'{self.mode}_{self.dataset_name}_{self.model_2_cache_name}_avg_instance_accuracies',
+                    f'{self.mode}_{self.dataset_name}_{self.model_2_cache_name}_avg_class_accuracies',
+                    f'{self.mode}_{self.dataset_name}_{self.model_2_cache_name}_avg_accuracies_per_class',
+                    f'{self.mode}_{self.dataset_name}_{self.model_2_cache_name}_outputs',
+                ],
+                [
+                    self.all_avg_instance_accuracy_2,
+                    self.all_avg_class_accuracies_2,
+                    self.all_avg_accuracies_per_class_2,
+                    self.all_outputs_2,
+                ],
+                self.cache,
+                self.cache_path,
+            )
 
 
 if __name__ == '__main__':

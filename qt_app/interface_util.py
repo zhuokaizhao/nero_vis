@@ -18,13 +18,20 @@ def draw_circle(painter, center_x, center_y, radius, color):
 def load_from_cache(name, cache):
     # if it exists
     if name in cache.keys():
-        return cache[name]
+        return cache[name], True
     else:
         print(f'No precomputed result named {name}')
-        return np.zeros(0)
+        return np.zeros(0), False
 
-def save_to_cache(name, content, cache, path):
-    # replace if exists
-    cache[name] = content
+
+def save_to_cache(names, contents, cache, path):
+    if type(names) == list:
+        assert type(contents) == list
+        assert len(names) == len(contents)
+        for i in range(len(names)):
+            cache[names[i]] = contents[i]
+    else:
+        # replace if exists
+        cache[names] = contents
+
     np.savez(path, **cache)
-
