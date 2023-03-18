@@ -883,7 +883,17 @@ def test(model, loader, num_samples, num_classes, axis, angle):
         classifier = model.eval()
         pred = classifier(points)
         # probability for each class
-        outputs[counter : counter + len(points)] = pred.data.cpu()
+        # do the normalization
+        normalized = np.zeros(pred.data.cpu().shape)
+        for i in range(len(points)):
+            normalized[i] = nero_utilities.lerp(
+                pred.data.cpu().numpy()[i],
+                min(pred.data.cpu().numpy()[i]),
+                max(pred.data.cpu().numpy()[i]),
+                0,
+                1,
+            )
+        outputs[counter : counter + len(points)] = normalized
         counter += len(points)
         # get all the indices of max probability
         pred_choice = pred.data.max(1)[1]

@@ -3,6 +3,11 @@ import numpy as np
 import pyqtgraph as pg
 from PySide6 import QtCore, QtGui
 from PySide6.QtGui import QPixmap, QFont
+from sklearn.decomposition import PCA
+from sklearn.decomposition import FastICA
+from sklearn import manifold
+from sklearn.manifold import TSNE
+import umap
 
 import quaternions
 
@@ -93,6 +98,28 @@ def process_point_cloud_result(accuracies, plane, all_axis_angles, all_rot_angle
     quaternion_np = np.kron(quaternion_np, np.ones((block_size, block_size)))
 
     return image_np, quaternion_np
+
+
+def dimension_reduce(method, high_dim, target_dim):
+
+    if method == 'PCA':
+        pca = PCA(n_components=target_dim, svd_solver='full')
+        low_dim = pca.fit_transform(high_dim)
+    elif method == 'ICA':
+        ica = FastICA(n_components=target_dim, random_state=12)
+        low_dim = ica.fit_transform(high_dim)
+    elif method == 'ISOMAP':
+        low_dim = manifold.Isomap(n_neighbors=5, n_components=target_dim, n_jobs=-1).fit_transform(
+            high_dim
+        )
+    elif method == 't-SNE':
+        low_dim = TSNE(n_components=target_dim, n_iter=250).fit_transform(high_dim)
+    elif method == 'UMAP':
+        low_dim = umap.UMAP(n_neighbors=5, min_dist=0.3, n_components=target_dim).fit_transform(
+            high_dim
+        )
+
+    return low_dim
 
 
 def draw_individual_heatmap(data, color_map_name='viridis', heatmap=None, title=None):

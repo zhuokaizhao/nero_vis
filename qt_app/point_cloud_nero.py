@@ -17,12 +17,7 @@ import pyqtgraph as pg
 from PySide6 import QtCore, QtGui, QtWidgets
 from PySide6.QtGui import QPixmap, QFont
 from PySide6.QtWidgets import QWidget, QLabel, QRadioButton
-
-from sklearn.decomposition import PCA
-from sklearn.decomposition import FastICA
-from sklearn import manifold
-from sklearn.manifold import TSNE
-import umap
+from collections import defaultdict
 
 import nero_transform
 import nero_utilities
@@ -66,7 +61,7 @@ class UI_MainWindow(QWidget):
         self.interface_layout.setHorizontalSpacing(0)
         self.interface_layout.setVerticalSpacing(0)
 
-        # use in some paths
+        # still define a mode parameter so we can have a unified cache for multiple application
         self.mode = 'point_cloud_classification'
 
         # initialize status of various contents in the interface
@@ -122,15 +117,19 @@ class UI_MainWindow(QWidget):
         # initialize general control panel
         self.init_general_control_interface()
 
-        # Plots section
-        # prepare results NERO test results
-        self.prepare_aggregate_results()
         # Aggregate NERO plot
+        self.prepare_aggregate_results()
         self.init_aggregate_plot_interface()
         self.draw_point_cloud_aggregate_nero()
+
         # DR plot
         self.prepare_dr_results()
         self.init_dr_plot_interface()
+        self.draw_dr_plot()
+
+        # Individual NERO plot
+
+        # Detailed plot
 
         print(f'\nFinished rendering main layout')
 
@@ -237,11 +236,11 @@ class UI_MainWindow(QWidget):
         self.cur_data_path = self.all_data_paths[self.dataset_index - 1]
         self.cur_name_path = self.all_names_paths[self.dataset_index - 1]
         print(f'\nLoading data from {self.cur_data_path}')
-        # load all the point cloud names
+        # load all the point cloud ids (such as airplane_0627)
         point_cloud_ids = [line.rstrip() for line in open(self.cur_data_path)]
-        # point cloud ids have name_index format
+        # point cloud ids have name_index format, load the names (such as airplane)
         point_cloud_names = ['_'.join(x.split('_')[0:-1]) for x in point_cloud_ids]
-        # all the point cloud samples paths of the current dataset
+        # point cloud ground truth label (name) and path pair
         self.point_cloud_paths = [
             (
                 point_cloud_names[i],
@@ -663,6 +662,26 @@ class UI_MainWindow(QWidget):
                 self.cache_path,
             )
 
+        # normalize all_outputs so that it matches more with confidence values
+        for i in range(len(self.all_planes)):
+            for j in range(len(self.all_axis_angles)):
+                for k in range(len(self.all_rot_angles)):
+                    for n in range(len(self.point_cloud_paths)):
+                        self.all_outputs_1[i, j, k, n] = nero_utilities.lerp(
+                            self.all_outputs_1[i, j, k, n],
+                            min(self.all_outputs_1[i, j, k, n]),
+                            max(self.all_outputs_1[i, j, k, n]),
+                            0,
+                            1,
+                        )
+                        self.all_outputs_2[i, j, k, n] = nero_utilities.lerp(
+                            self.all_outputs_2[i, j, k, n],
+                            min(self.all_outputs_2[i, j, k, n]),
+                            max(self.all_outputs_2[i, j, k, n]),
+                            0,
+                            1,
+                        )
+
     def init_aggregate_plot_interface(self):
         # aggregate class selection drop-down menu
         @QtCore.Slot()
@@ -886,16 +905,102 @@ class UI_MainWindow(QWidget):
 
     ################## DR Plots Related ##################
     def prepare_dr_results(self):
+        self.all_dr_results_1 = {}
+        self.all_dr_results_2 = {}
+        high_dim_points_constructed_1 = False
+        high_dim_points_constructed_2 = False
         self.all_dr_algorithms = ['PCA', 'ICA', 'ISOMAP', 't-SNE', 'UMAP']
-        # load dr results from each algorithm
-        self.all_axis_angles, successful = interface_util.load_from_cache(
-            'all_axis_angles', self.cache
-        )
-        if not successful:
-            self.all_axis_angles = list(range(-180, 181, 30))
-            interface_util.save_to_cache(
-                'all_axis_angles', self.all_axis_angles, self.cache, self.cache_path
+        # iteracte through each dr method
+        for cur_algo in self.all_dr_algorithms:
+            # for model 1
+            self.all_dr_results_1[cur_algo], successful = interface_util.load_from_cache(
+                f'{self.mode}_{self.dataset_name}_{self.model_1_cache_name}_{cur_algo}', self.cache
             )
+            # when we don't have in the cache
+            if not successful:
+                if not high_dim_points_constructed_1:
+                    # construct high dimension data first
+                    all_high_dim_points_1 = np.zeros(
+                        (
+                            len(self.point_cloud_paths),
+                            len(self.all_planes)
+                            * len(self.all_axis_angles)
+                            * len(self.all_rot_angles),
+                        )
+                    )
+                    # get the pred classification results under all rotations for each sample
+                    all_results_1 = self.all_outputs_1.reshape(
+                        (
+                            len(self.point_cloud_paths),
+                            len(self.all_planes)
+                            * len(self.all_axis_angles)
+                            * len(self.all_rot_angles),
+                            self.cur_num_classes,
+                        )
+                    )
+                    for i in range(len(self.point_cloud_paths)):
+                        cur_ground_truth_index = self.cur_classes_names.index(
+                            self.point_cloud_paths[i][0]
+                        )
+                        all_high_dim_points_1[i] = all_results_1[i, :, cur_ground_truth_index]
+
+                    high_dim_points_constructed_1 = True
+
+                # compute the dr results from model outputs
+                self.all_dr_results_1[cur_algo] = interface_util.dimension_reduce(
+                    cur_algo, all_high_dim_points_1, 2
+                )
+                interface_util.save_to_cache(
+                    f'{self.mode}_{self.dataset_name}_{self.model_1_cache_name}_{cur_algo}',
+                    self.all_dr_results_1[cur_algo],
+                    self.cache,
+                    self.cache_path,
+                )
+
+            # for model 2
+            self.all_dr_results_2[cur_algo], successful = interface_util.load_from_cache(
+                f'{self.mode}_{self.dataset_name}_{self.model_2_cache_name}_{cur_algo}', self.cache
+            )
+            # when we don't have in the cache
+            if not successful:
+                if not high_dim_points_constructed_2:
+                    # construct high dimension data first
+                    all_high_dim_points_2 = np.zeros(
+                        (
+                            len(self.point_cloud_paths),
+                            len(self.all_planes)
+                            * len(self.all_axis_angles)
+                            * len(self.all_rot_angles),
+                        )
+                    )
+                    # get the pred classification results under all rotations for each sample
+                    all_results_2 = self.all_outputs_2.reshape(
+                        (
+                            len(self.point_cloud_paths),
+                            len(self.all_planes)
+                            * len(self.all_axis_angles)
+                            * len(self.all_rot_angles),
+                            self.cur_num_classes,
+                        )
+                    )
+                    for i in range(len(self.point_cloud_paths)):
+                        cur_ground_truth_index = self.cur_classes_names.index(
+                            self.point_cloud_paths[i][0]
+                        )
+                        all_high_dim_points_2[i] = all_results_2[i, :, cur_ground_truth_index]
+
+                    high_dim_points_constructed_2 = True
+
+                # compute the dr results from model outputs
+                self.all_dr_results_2[cur_algo] = interface_util.dimension_reduce(
+                    cur_algo, all_high_dim_points_2, 2
+                )
+                interface_util.save_to_cache(
+                    f'{self.mode}_{self.dataset_name}_{self.model_2_cache_name}_{cur_algo}',
+                    self.all_dr_results_2[cur_algo],
+                    self.cache,
+                    self.cache_path,
+                )
 
     def init_dr_plot_interface(self):
         @QtCore.Slot()
