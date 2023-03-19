@@ -122,16 +122,7 @@ def dimension_reduce(method, high_dim, target_dim):
     return low_dim
 
 
-def draw_individual_heatmap(data, color_map_name='viridis', heatmap=None, title=None):
-    # color map
-    color_map = pg.colormap.get(color_map_name)
-    color_bar = pg.ColorBarItem(
-        values=(0, 1),
-        colorMap=color_map,
-        interactive=False,
-        orientation='horizontal',
-        width=30,
-    )
+def draw_individual_heatmap(data, color_bar, heatmap=None, title=None):
 
     # viewbox that contains the heatmap
     view_box = pg.ViewBox(invertY=True)
@@ -157,6 +148,16 @@ def draw_individual_heatmap(data, color_map_name='viridis', heatmap=None, title=
     color_bar.setImageItem(heatmap)
 
     return heatmap_plot
+
+
+# compute intensity values with either average or variance
+def compute_intensity(input_data, method):
+    if method == 'mean':
+        intensity = np.mean(input_data, axis=1)
+    elif method == 'variance':
+        intensity = np.var(input_data, axis=1)
+
+    return intensity
 
 
 # helper functions on managing the database

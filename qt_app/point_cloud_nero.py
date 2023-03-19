@@ -209,8 +209,8 @@ class UI_MainWindow(QWidget):
 
         # load all images in the folder
         for i in range(len(self.all_data_paths)):
-            cur_name = self.all_data_paths[i].split('/')[-1].split('.')[0]
-            # cur_name = self.all_data_paths[i].split('/')[-1].split('.')[0].split('_')[0]
+            # cur_name = self.all_data_paths[i].split('/')[-1].split('.')[0]
+            cur_name = self.all_data_paths[i].split('/')[-1].split('.')[0].split('_')[0]
             self.aggregate_image_menu.addItem(cur_name)
 
         # set default data selection
@@ -662,26 +662,6 @@ class UI_MainWindow(QWidget):
                 self.cache_path,
             )
 
-        # normalize all_outputs so that it matches more with confidence values
-        for i in range(len(self.all_planes)):
-            for j in range(len(self.all_axis_angles)):
-                for k in range(len(self.all_rot_angles)):
-                    for n in range(len(self.point_cloud_paths)):
-                        self.all_outputs_1[i, j, k, n] = nero_utilities.lerp(
-                            self.all_outputs_1[i, j, k, n],
-                            min(self.all_outputs_1[i, j, k, n]),
-                            max(self.all_outputs_1[i, j, k, n]),
-                            0,
-                            1,
-                        )
-                        self.all_outputs_2[i, j, k, n] = nero_utilities.lerp(
-                            self.all_outputs_2[i, j, k, n],
-                            min(self.all_outputs_2[i, j, k, n]),
-                            max(self.all_outputs_2[i, j, k, n]),
-                            0,
-                            1,
-                        )
-
     def init_aggregate_plot_interface(self):
         # aggregate class selection drop-down menu
         @QtCore.Slot()
@@ -890,11 +870,22 @@ class UI_MainWindow(QWidget):
         )  # left top right bottom
         self.aggregate_heatmap_view_2.setFixedSize(self.plot_size * 1.35, self.plot_size * 1.35)
         # draw the plot
+        # cm_range, color map and color bar will be shared with DR and individual NERO plot
+        self.cm_range = (0, 1)
+        self.color_map = pg.colormap.get('viridis')
+        self.color_bar = pg.ColorBarItem(
+            values=self.cm_range,
+            colorMap=self.color_map,
+            interactive=False,
+            orientation='horizontal',
+            width=30,
+        )
+        # draw the heatmap
         self.aggregate_heatmap_plot_1 = interface_util.draw_individual_heatmap(
-            self.processed_aggregate_quantity_1
+            self.processed_aggregate_quantity_1, self.color_bar
         )
         self.aggregate_heatmap_plot_2 = interface_util.draw_individual_heatmap(
-            self.processed_aggregate_quantity_2
+            self.processed_aggregate_quantity_2, self.color_bar
         )
         # add plot to view
         self.aggregate_heatmap_view_1.addItem(self.aggregate_heatmap_plot_1)
@@ -913,14 +904,19 @@ class UI_MainWindow(QWidget):
         # iteracte through each dr method
         for cur_algo in self.all_dr_algorithms:
             # for model 1
-            self.all_dr_results_1[cur_algo], successful = interface_util.load_from_cache(
-                f'{self.mode}_{self.dataset_name}_{self.model_1_cache_name}_{cur_algo}', self.cache
+            self.all_high_dim_points_1, successful_high = interface_util.load_from_cache(
+                f'{self.mode}_{self.dataset_name}_{self.model_1_cache_name}_high_dim',
+                self.cache,
+            )
+            self.all_dr_results_1[cur_algo], successful_low = interface_util.load_from_cache(
+                f'{self.mode}_{self.dataset_name}_{self.model_1_cache_name}_{cur_algo}_low_dim',
+                self.cache,
             )
             # when we don't have in the cache
-            if not successful:
+            if not successful_high or not successful_low:
                 if not high_dim_points_constructed_1:
                     # construct high dimension data first
-                    all_high_dim_points_1 = np.zeros(
+                    self.all_high_dim_points_1 = np.zeros(
                         (
                             len(self.point_cloud_paths),
                             len(self.all_planes)
@@ -942,30 +938,42 @@ class UI_MainWindow(QWidget):
                         cur_ground_truth_index = self.cur_classes_names.index(
                             self.point_cloud_paths[i][0]
                         )
-                        all_high_dim_points_1[i] = all_results_1[i, :, cur_ground_truth_index]
+                        self.all_high_dim_points_1[i] = all_results_1[i, :, cur_ground_truth_index]
 
                     high_dim_points_constructed_1 = True
+                    interface_util.save_to_cache(
+                        f'{self.mode}_{self.dataset_name}_{self.model_1_cache_name}_high_dim',
+                        self.all_high_dim_points_1,
+                        self.cache,
+                        self.cache_path,
+                    )
 
                 # compute the dr results from model outputs
                 self.all_dr_results_1[cur_algo] = interface_util.dimension_reduce(
-                    cur_algo, all_high_dim_points_1, 2
+                    cur_algo, self.all_high_dim_points_1, 2
                 )
                 interface_util.save_to_cache(
-                    f'{self.mode}_{self.dataset_name}_{self.model_1_cache_name}_{cur_algo}',
+                    f'{self.mode}_{self.dataset_name}_{self.model_1_cache_name}_{cur_algo}_low_dim',
                     self.all_dr_results_1[cur_algo],
                     self.cache,
                     self.cache_path,
                 )
 
             # for model 2
-            self.all_dr_results_2[cur_algo], successful = interface_util.load_from_cache(
-                f'{self.mode}_{self.dataset_name}_{self.model_2_cache_name}_{cur_algo}', self.cache
+            self.all_high_dim_points_2, successful_high = interface_util.load_from_cache(
+                f'{self.mode}_{self.dataset_name}_{self.model_2_cache_name}_high_dim',
+                self.cache,
             )
+            self.all_dr_results_2[cur_algo], successful_low = interface_util.load_from_cache(
+                f'{self.mode}_{self.dataset_name}_{self.model_2_cache_name}_{cur_algo}_low_dim',
+                self.cache,
+            )
+
             # when we don't have in the cache
-            if not successful:
+            if not successful_high or not successful_low:
                 if not high_dim_points_constructed_2:
                     # construct high dimension data first
-                    all_high_dim_points_2 = np.zeros(
+                    self.all_high_dim_points_2 = np.zeros(
                         (
                             len(self.point_cloud_paths),
                             len(self.all_planes)
@@ -987,16 +995,22 @@ class UI_MainWindow(QWidget):
                         cur_ground_truth_index = self.cur_classes_names.index(
                             self.point_cloud_paths[i][0]
                         )
-                        all_high_dim_points_2[i] = all_results_2[i, :, cur_ground_truth_index]
+                        self.all_high_dim_points_2[i] = all_results_2[i, :, cur_ground_truth_index]
 
                     high_dim_points_constructed_2 = True
+                    interface_util.save_to_cache(
+                        f'{self.mode}_{self.dataset_name}_{self.model_2_cache_name}_high_dim',
+                        self.all_high_dim_points_2,
+                        self.cache,
+                        self.cache_path,
+                    )
 
                 # compute the dr results from model outputs
                 self.all_dr_results_2[cur_algo] = interface_util.dimension_reduce(
-                    cur_algo, all_high_dim_points_2, 2
+                    cur_algo, self.all_high_dim_points_2, 2
                 )
                 interface_util.save_to_cache(
-                    f'{self.mode}_{self.dataset_name}_{self.model_2_cache_name}_{cur_algo}',
+                    f'{self.mode}_{self.dataset_name}_{self.model_2_cache_name}_{cur_algo}_low_dim',
                     self.all_dr_results_2[cur_algo],
                     self.cache,
                     self.cache_path,
@@ -1011,6 +1025,176 @@ class UI_MainWindow(QWidget):
 
             # re-display dr show result
             self.draw_dr_plot()
+
+        # radio buttons on choosing quantity used to compute intensity
+        @QtCore.Slot()
+        def mean_intensity_button_clicked():
+            self.intensity_method = 'mean'
+            print(f'DR plots color encoded based on {self.intensity_method}')
+            self.all_intensity_1 = np.mean(self.all_high_dim_points_1, axis=1)
+            self.all_intensity_2 = np.mean(self.all_high_dim_points_2, axis=1)
+
+            # normalize to colormap range
+            intensity_min = min(np.min(self.all_intensity_1), np.min(self.all_intensity_2))
+            intensity_max = max(np.max(self.all_intensity_1), np.max(self.all_intensity_2))
+            self.all_intensity_1 = nero_utilities.lerp(
+                self.all_intensity_1,
+                intensity_min,
+                intensity_max,
+                self.cm_range[0],
+                self.cm_range[1],
+            )
+            self.all_intensity_2 = nero_utilities.lerp(
+                self.all_intensity_2,
+                intensity_min,
+                intensity_max,
+                self.cm_range[0],
+                self.cm_range[1],
+            )
+
+            # re-display the scatter plot
+            self.draw_dr_plot()
+
+        @QtCore.Slot()
+        def variance_intensity_button_clicked():
+            self.intensity_method = 'variance'
+            print(f'DR plots color encoded based on {self.intensity_method}')
+            self.all_intensity_1 = np.var(self.all_high_dim_points_1, axis=1)
+            self.all_intensity_2 = np.var(self.all_high_dim_points_2, axis=1)
+
+            # normalize to colormap range
+            intensity_min = min(np.min(self.all_intensity_1), np.min(self.all_intensity_2))
+            intensity_max = max(np.max(self.all_intensity_1), np.max(self.all_intensity_2))
+            self.all_intensity_1 = nero_utilities.lerp(
+                self.all_intensity_1,
+                intensity_min,
+                intensity_max,
+                self.cm_range[0],
+                self.cm_range[1],
+            )
+            self.all_intensity_2 = nero_utilities.lerp(
+                self.all_intensity_2,
+                intensity_min,
+                intensity_max,
+                self.cm_range[0],
+                self.cm_range[1],
+            )
+
+            # re-display the scatter plot
+            self.draw_dr_plot()
+
+        # update the slider 1's text
+        @QtCore.Slot()
+        def update_slider_1_text():
+            slider_1_text_pixmap = QPixmap(150, 50)
+            slider_1_text_pixmap.fill(QtCore.Qt.white)
+            painter = QtGui.QPainter(slider_1_text_pixmap)
+            painter.setFont(QFont('Helvetica', 12))
+            painter.drawText(
+                0,
+                0,
+                150,
+                50,
+                QtGui.Qt.AlignCenter,
+                f'{self.dr_result_selection_slider_1.value()+1}/{len(self.cur_class_indices)}',
+            )
+            painter.end()
+            self.slider_1_text_label.setPixmap(slider_1_text_pixmap)
+
+        # update the slider 2's text
+        @QtCore.Slot()
+        def update_slider_2_text():
+            slider_2_text_pixmap = QPixmap(150, 50)
+            slider_2_text_pixmap.fill(QtCore.Qt.white)
+            painter = QtGui.QPainter(slider_2_text_pixmap)
+            painter.setFont(QFont('Helvetica', 12))
+            painter.drawText(
+                0,
+                0,
+                150,
+                50,
+                QtGui.Qt.AlignCenter,
+                f'{self.dr_result_selection_slider_2.value()+1}/{len(self.cur_class_indices)}',
+            )
+            painter.end()
+            self.slider_2_text_label.setPixmap(slider_2_text_pixmap)
+
+        # slider for dr plot 1
+        @QtCore.Slot()
+        def dr_result_selection_slider_1_changed():
+
+            # when the slider bar is changed directly by user, it is unlocked
+            # mimics that a point has been clicked
+            if not self.slider_1_locked:
+                # change the ranking in the other colorbar
+                self.slider_1_selected_index = self.dr_result_selection_slider_1.value()
+
+                # get the clicked scatter item's information
+                self.image_index = self.sorted_class_indices_1[self.slider_1_selected_index]
+                print(
+                    f'slider 1 image index {self.image_index}, ranked position {self.slider_1_selected_index}'
+                )
+                # update the text
+                update_slider_1_text()
+
+                # change the other slider's value
+                self.slider_2_locked = True
+                self.slider_2_selected_index = self.sorted_class_indices_2.index(self.image_index)
+                self.dr_result_selection_slider_2.setValue(self.slider_2_selected_index)
+                # update the text
+                update_slider_2_text()
+                self.slider_2_locked = False
+
+                # update the scatter plot without re-computing dimension reduction algorithm
+                self.draw_dr_plot()
+
+                # get the corresponding point cloud data path
+                if self.mode == 'digit_recognition' or self.mode == 'object_detection':
+                    self.cur_point_cloud_path = self.point_cloud_paths[self.image_index][1]
+                    print(f'Selected image at {self.image_path}')
+
+                # load the image
+                self.load_single_image()
+
+                # display individual view
+                if self.mode == 'digit_recognition':
+                    # convert to QImage for display purpose
+                    self.cur_display_image = nero_utilities.tensor_to_qt_image(
+                        self.cur_image_pt, self.display_image_size, revert_color=True
+                    )
+                    # prepare image tensor for model purpose
+                    self.cur_image_pt = nero_transform.prepare_mnist_image(self.cur_image_pt)
+
+                elif self.mode == 'object_detection':
+                    # convert to QImage for display purpose
+                    self.cur_display_image = nero_utilities.tensor_to_qt_image(
+                        self.cur_image_pt, self.display_image_size
+                    )
+
+                elif self.mode == 'piv':
+                    # create new GIF
+                    display_image_1_pil = Image.fromarray(self.cur_image_1_pt.numpy(), 'RGB')
+                    display_image_2_pil = Image.fromarray(self.cur_image_2_pt.numpy(), 'RGB')
+                    other_images_pil = [
+                        display_image_1_pil,
+                        display_image_2_pil,
+                        display_image_2_pil,
+                        self.blank_image_pil,
+                    ]
+                    self.gif_path = os.path.join(
+                        self.cache_dir, self.loaded_image_1_name.split('.')[0] + '.gif'
+                    )
+                    display_image_1_pil.save(
+                        fp=self.gif_path,
+                        format='GIF',
+                        append_images=other_images_pil,
+                        save_all=True,
+                        duration=300,
+                        loop=0,
+                    )
+
+                # run model all and display results (Individual NERO plot and detailed plot)
+                self.run_model_single()
 
         # drop down menu on choosing the dimension reduction method
         # QPixmap that contains the title text
@@ -1048,8 +1232,284 @@ class UI_MainWindow(QWidget):
         dr_selection_layout.addWidget(self.dr_selection_menu)
         self.interface_layout.addLayout(dr_selection_layout, 0, 1, 1, 1)
 
+        # radio buttons on using mean or variance for color-encoding
+        # Title on the two radio buttons
+        intensity_button_pixmap = QPixmap(300, 60)
+        intensity_button_pixmap.fill(QtCore.Qt.white)
+        painter = QtGui.QPainter(intensity_button_pixmap)
+        painter.drawText(0, 0, 300, 60, QtGui.Qt.AlignLeft, 'DR Sorting:')
+        painter.end()
+        # create label to contain the texts
+        intensity_button_label = QLabel(self)
+        intensity_button_label.setContentsMargins(0, 0, 0, 0)
+        intensity_button_label.setFixedSize(QtCore.QSize(350, 115))
+        intensity_button_label.setAlignment(QtCore.Qt.AlignLeft)
+        intensity_button_label.setWordWrap(True)
+        intensity_button_label.setTextFormat(QtGui.Qt.AutoText)
+        intensity_button_label.setPixmap(intensity_button_pixmap)
+        intensity_button_label.setContentsMargins(5, 60, 0, 0)
+        # add to the layout
+        self.scatterplot_sorting_layout = QtWidgets.QGridLayout()
+        # the title occupies two rows because we have two selections (mean and variance)
+        self.scatterplot_sorting_layout.addWidget(intensity_button_label, 0, 0, 2, 1)
+        # mean button
+        self.mean_intensity_button = QRadioButton('Mean')
+        self.mean_intensity_button.setFixedSize(QtCore.QSize(160, 50))
+        self.mean_intensity_button.setContentsMargins(0, 0, 0, 0)
+        self.mean_intensity_button.setStyleSheet(
+            'color: black; font-style: normal; font-family: Helvetica; font-size: 28px;'
+        )
+        self.mean_intensity_button.pressed.connect(mean_intensity_button_clicked)
+        self.scatterplot_sorting_layout.addWidget(self.mean_intensity_button, 1, 1, 1, 1)
+        # variance button
+        self.variance_intensity_button = QRadioButton('Variance')
+        self.variance_intensity_button.setFixedSize(QtCore.QSize(160, 50))
+        self.variance_intensity_button.setContentsMargins(0, 0, 0, 0)
+        self.variance_intensity_button.setStyleSheet(
+            'color: black; font-style: normal; font-family: Helvetica; font-size: 28px;'
+        )
+        self.variance_intensity_button.pressed.connect(variance_intensity_button_clicked)
+        self.scatterplot_sorting_layout.addWidget(self.variance_intensity_button, 2, 1, 1, 1)
+        # self.scatterplot_sorting_layout.setContentsMargins(0, 0, 30, 0)
+        self.interface_layout.addLayout(self.scatterplot_sorting_layout, 1, 1, 2, 1)
+
+        # by default the intensities are computed via mean
+        self.mean_intensity_button.setChecked(True)
+        self.intensity_method = 'mean'
+
+        # initialize all the views when the first time
+        # dr plot for model 1
+        self.low_dim_scatter_view_1 = pg.GraphicsLayoutWidget()
+        self.low_dim_scatter_view_1.setBackground('white')
+        self.low_dim_scatter_view_1.setFixedSize(self.plot_size * 1.3, self.plot_size * 1.3)
+        self.low_dim_scatter_view_1.ci.setContentsMargins(20, 0, 0, 0)
+        # add plot
+        self.low_dim_scatter_plot_1 = self.low_dim_scatter_view_1.addPlot()
+        self.low_dim_scatter_plot_1.setContentsMargins(0, 0, 0, 150)
+        self.low_dim_scatter_plot_1.hideAxis('left')
+        self.low_dim_scatter_plot_1.hideAxis('bottom')
+        # set axis range
+        self.low_dim_scatter_plot_1.setXRange(-1.2, 1.2, padding=0)
+        self.low_dim_scatter_plot_1.setYRange(-1.2, 1.2, padding=0)
+        # Not letting user zoom out past axis limit
+        self.low_dim_scatter_plot_1.vb.setLimits(xMin=-1.2, xMax=1.2, yMin=-1.2, yMax=1.2)
+        # No auto range when adding new item (red indicator)
+        self.low_dim_scatter_plot_1.vb.disableAutoRange(axis=pg.ViewBox.XYAxes)
+
+        # dr plot for model 2
+        self.low_dim_scatter_view_2 = pg.GraphicsLayoutWidget()
+        self.low_dim_scatter_view_2.setBackground('white')
+        self.low_dim_scatter_view_2.setFixedSize(self.plot_size * 1.25, self.plot_size * 1.25)
+        self.low_dim_scatter_view_2.ci.setContentsMargins(20, 0, 0, 0)
+        # add plot
+        self.low_dim_scatter_plot_2 = self.low_dim_scatter_view_2.addPlot()
+        self.low_dim_scatter_plot_2.hideAxis('left')
+        self.low_dim_scatter_plot_2.hideAxis('bottom')
+        # set axis range
+        self.low_dim_scatter_plot_2.setXRange(-1.2, 1.2, padding=0)
+        self.low_dim_scatter_plot_2.setYRange(-1.2, 1.2, padding=0)
+        # Not letting user zoom out past axis limit
+        self.low_dim_scatter_plot_2.vb.setLimits(xMin=-1.2, xMax=1.2, yMin=-1.2, yMax=1.2)
+
+        # scatter item size
+        self.scatter_item_size = 12
+        # so that next time we don't need to re-initialize
+        self.dr_result_existed = True
+
+    # scatter plot of low-dim points
     def draw_dr_plot(self):
-        pass
+        # plot all the scatter items with brush color reflecting the intensity
+        def plot_dr_scatter(
+            low_dim_scatter_plot,
+            low_dim,
+            sorted_intensity,
+            sorted_class_indices,
+            slider_selected_index,
+        ):
+            # same colorbar in dr plot as used in aggregate and individual NERO plot
+            scatter_lut = self.color_map.getLookupTable(
+                start=self.cm_range[0], stop=self.cm_range[1], nPts=500, alpha=False
+            )
+
+            self.color_bar = pg.ColorBarItem(
+                values=self.cm_range,
+                colorMap=self.color_map,
+                interactive=False,
+                orientation='horizontal',
+                width=30,
+            )
+            # add colorbar to a specific place if in demo mode
+            dummy_view = pg.GraphicsLayoutWidget()
+            dummy_plot = pg.PlotItem()
+            dummy_plot.layout.setContentsMargins(0, 0, 0, 0)
+            dummy_plot.setFixedHeight(0)
+            dummy_plot.setFixedWidth(self.plot_size * 1.2)
+            dummy_plot.hideAxis('bottom')
+            dummy_plot.hideAxis('left')
+            dummy_view.addItem(dummy_plot)
+            dummy_image = pg.ImageItem()
+            self.color_bar.setImageItem(dummy_image, insert_in=dummy_plot)
+            self.scatterplot_sorting_layout.addWidget(dummy_view, 3, 0, 1, 2)
+            dummy_plot.layout.setContentsMargins(50, 0, 0, 0)
+
+            # quantize all the intensity into color
+            color_indices = []
+            for i in range(len(sorted_intensity)):
+                lut_index = nero_utilities.lerp(
+                    sorted_intensity[i], self.cm_range[0], self.cm_range[1], 0, 499
+                )
+                if lut_index > 499:
+                    lut_index = 499
+                elif lut_index < 0:
+                    lut_index = 0
+
+                color_indices.append(scatter_lut[int(lut_index)])
+
+            # image index position in the current sorted class indices
+            if self.image_index != None:
+                sorted_selected_index = sorted_class_indices.index(self.image_index)
+            else:
+                sorted_selected_index = len(sorted_class_indices) - 1
+
+            for i, index in enumerate(sorted_class_indices):
+                # add the selected item's color at last to make sure that the current selected item is always on top (rendered last)
+                if i == sorted_selected_index:
+                    continue
+                # add individual items for getting the item's name later when clicking
+                # Set pxMode=True to have scatter items stay at the same screen size
+                low_dim_scatter_item = pg.ScatterPlotItem(pxMode=True, hoverable=True)
+                low_dim_scatter_item.opts[
+                    'hover_text'
+                ] = f'{self.intensity_method}: {round(sorted_intensity[i], 3)}'
+                low_dim_scatter_item.setSymbol('o')
+                low_dim_point = [
+                    {
+                        'pos': (low_dim[i, 0], low_dim[i, 1]),
+                        'size': self.scatter_item_size,
+                        'pen': QtGui.QColor(
+                            color_indices[i][0], color_indices[i][1], color_indices[i][2]
+                        ),
+                        'brush': QtGui.QColor(
+                            color_indices[i][0], color_indices[i][1], color_indices[i][2]
+                        ),
+                    }
+                ]
+
+                # add points to the item, the name are its original index within the ENTIRE dataset
+                low_dim_scatter_item.setData(low_dim_point, name=str(index))
+                # connect click events on scatter items
+                low_dim_scatter_item.sigClicked.connect(low_dim_scatter_clicked)
+                low_dim_scatter_item.sigHovered.connect(low_dim_scatter_hovered)
+                # add points to the plot
+                low_dim_scatter_plot.addItem(low_dim_scatter_item)
+
+            # add the current selected one
+            low_dim_scatter_item = pg.ScatterPlotItem(pxMode=True, hoverable=True)
+            low_dim_scatter_item.opts[
+                'hover_text'
+            ] = f'{self.intensity_method}: {round(sorted_intensity[sorted_selected_index], 3)}'
+            low_dim_scatter_item.setSymbol('o')
+            # set red pen indicator if slider selects
+            if slider_selected_index != None:
+                # smaller circles in accounting for the red ring
+                low_dim_point = [
+                    {
+                        'pos': (
+                            low_dim[sorted_selected_index, 0],
+                            low_dim[sorted_selected_index, 1],
+                        ),
+                        'size': self.scatter_item_size - 2.0001,
+                        'pen': {'color': 'red', 'width': 2},
+                        'brush': QtGui.QColor(
+                            color_indices[sorted_selected_index][0],
+                            color_indices[sorted_selected_index][1],
+                            color_indices[sorted_selected_index][2],
+                        ),
+                    }
+                ]
+            else:
+                low_dim_point = [
+                    {
+                        'pos': (
+                            low_dim[sorted_selected_index, 0],
+                            low_dim[sorted_selected_index, 1],
+                        ),
+                        'size': self.scatter_item_size,
+                        'pen': QtGui.QColor(
+                            color_indices[sorted_selected_index][0],
+                            color_indices[sorted_selected_index][1],
+                            color_indices[sorted_selected_index][2],
+                        ),
+                        'brush': QtGui.QColor(
+                            color_indices[sorted_selected_index][0],
+                            color_indices[sorted_selected_index][1],
+                            color_indices[sorted_selected_index][2],
+                        ),
+                    }
+                ]
+            # add points to the item
+            low_dim_scatter_item.setData(
+                low_dim_point, name=str(sorted_class_indices[sorted_selected_index])
+            )
+            # connect click events on scatter items
+            low_dim_scatter_item.sigClicked.connect(low_dim_scatter_clicked)
+            low_dim_scatter_item.sigHovered.connect(low_dim_scatter_hovered)
+            # add points to the plot
+            low_dim_scatter_plot.addItem(low_dim_scatter_item)
+
+        # get the data indices that we are plotting
+        self.cur_class_indices = []
+        if self.class_selection == 'all':
+            self.cur_class_indices = list(range(len(self.point_cloud_paths)))
+        else:
+            for i in range(len(self.point_cloud_paths)):
+                if self.point_cloud_paths[i][0] == self.class_selection:
+                    self.cur_class_indices.append(i)
+
+        # get the dimension reduced points
+        self.low_dim_1 = self.all_dr_results_1[self.cur_dr_algorithm]
+        self.low_dim_2 = self.all_dr_results_2[self.cur_dr_algorithm]
+
+        # use each sample's metric average or variance across all transformations as intensity
+        self.all_intensity_1 = interface_util.compute_intensity(
+            self.all_high_dim_points_1, self.intensity_method
+        )
+        self.all_intensity_2 = interface_util.compute_intensity(
+            self.all_high_dim_points_2, self.intensity_method
+        )
+
+        # plot both scatter plots
+        # rank the intensity values (small to large)
+        self.sorted_intensity_indices_1 = np.argsort(self.all_intensity_1)
+        self.sorted_intensity_1 = sorted(self.all_intensity_1)
+        self.sorted_class_indices_1 = [
+            self.cur_class_indices[idx] for idx in self.sorted_intensity_indices_1
+        ]
+        self.sorted_intensity_indices_2 = np.argsort(self.all_intensity_2)
+        self.sorted_intensity_2 = sorted(self.all_intensity_2)
+        self.sorted_class_indices_2 = [
+            self.cur_class_indices[idx] for idx in self.sorted_intensity_indices_2
+        ]
+
+        # sort the low dim points accordingly
+        self.low_dim_1 = self.low_dim_1[self.sorted_intensity_indices_1]
+        self.low_dim_2 = self.low_dim_2[self.sorted_intensity_indices_2]
+
+        plot_dr_scatter(
+            self.low_dim_scatter_plot_1,
+            self.low_dim_1,
+            self.sorted_intensity_1,
+            self.sorted_class_indices_1,
+            self.slider_1_selected_index,
+        )
+
+        plot_dr_scatter(
+            self.low_dim_scatter_plot_2,
+            self.low_dim_2,
+            self.sorted_intensity_2,
+            self.sorted_class_indices_2,
+            self.slider_2_selected_index,
+        )
 
 
 if __name__ == '__main__':
