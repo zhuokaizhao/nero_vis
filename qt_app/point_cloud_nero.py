@@ -1196,6 +1196,134 @@ class UI_MainWindow(QWidget):
                 # run model all and display results (Individual NERO plot and detailed plot)
                 self.run_model_single()
 
+        @QtCore.Slot()
+        def dr_result_selection_slider_2_changed():
+
+            # when the slider bar is changed directly by user, it is unlocked
+            # mimics that a point has been clicked
+            if not self.slider_2_locked:
+                # change the ranking in the other colorbar
+                self.slider_2_selected_index = self.dr_result_selection_slider_2.value()
+
+                # get the clicked scatter item's information
+                self.image_index = self.sorted_class_indices_2[self.slider_2_selected_index]
+                print(
+                    f'slider 2 image index {self.image_index}, ranked position {self.slider_2_selected_index}'
+                )
+                # update the text
+                update_slider_2_text()
+
+                # change the other slider's value
+                self.slider_1_locked = True
+                self.slider_1_selected_index = self.sorted_class_indices_1.index(self.image_index)
+                self.dr_result_selection_slider_1.setValue(self.slider_1_selected_index)
+                # update the text
+                update_slider_1_text()
+                self.slider_1_locked = False
+
+                # update the scatter plot
+                display_dimension_reduction(compute_dr=False)
+
+                # get the corresponding image path
+                if self.mode == 'digit_recognition' or self.mode == 'object_detection':
+                    self.image_path = self.all_images_paths[self.image_index]
+                    print(f'Selected image at {self.image_path}')
+                elif self.mode == 'piv':
+                    # single case images paths
+                    self.image_1_path = self.all_images_1_paths[self.image_index]
+                    self.image_2_path = self.all_images_2_paths[self.image_index]
+                    print(f'Selected image 1 at {self.image_1_path}')
+                    print(f'Selected image 2 at {self.image_2_path}')
+
+                    # single case model outputs
+                    self.all_quantities_1 = self.aggregate_outputs_1[:, self.image_index]
+                    self.all_quantities_2 = self.aggregate_outputs_2[:, self.image_index]
+                    self.all_ground_truths = self.aggregate_ground_truths[:, self.image_index]
+
+                # load the image
+                self.load_single_image()
+
+                # display individual view
+                if self.mode == 'digit_recognition':
+                    # convert to QImage for display purpose
+                    self.cur_display_image = nero_utilities.tensor_to_qt_image(
+                        self.cur_image_pt, self.display_image_size, revert_color=True
+                    )
+                    # prepare image tensor for model purpose
+                    self.cur_image_pt = nero_transform.prepare_mnist_image(self.cur_image_pt)
+
+                elif self.mode == 'object_detection':
+                    # convert to QImage for display purpose
+                    self.cur_display_image = nero_utilities.tensor_to_qt_image(
+                        self.cur_image_pt, self.display_image_size
+                    )
+
+                elif self.mode == 'piv':
+                    # create new GIF
+                    display_image_1_pil = Image.fromarray(self.cur_image_1_pt.numpy(), 'RGB')
+                    display_image_2_pil = Image.fromarray(self.cur_image_2_pt.numpy(), 'RGB')
+                    other_images_pil = [
+                        display_image_1_pil,
+                        display_image_2_pil,
+                        display_image_2_pil,
+                        self.blank_image_pil,
+                    ]
+                    self.gif_path = os.path.join(
+                        self.cache_dir, self.loaded_image_1_name.split('.')[0] + '.gif'
+                    )
+                    display_image_1_pil.save(
+                        fp=self.gif_path,
+                        format='GIF',
+                        append_images=other_images_pil,
+                        save_all=True,
+                        duration=300,
+                        loop=0,
+                    )
+
+                # run model all and display results (Individual NERO plot)
+                self.run_model_single()
+
+        @QtCore.Slot()
+        def slider_1_left_button_clicked():
+            self.dr_result_selection_slider_1.setValue(
+                self.dr_result_selection_slider_1.value() - 1
+            )
+            # update the text
+            update_slider_1_text()
+
+        @QtCore.Slot()
+        def slider_1_right_button_clicked():
+            self.dr_result_selection_slider_1.setValue(
+                self.dr_result_selection_slider_1.value() + 1
+            )
+            # update the text
+            update_slider_1_text()
+
+        @QtCore.Slot()
+        def slider_2_left_button_clicked():
+            self.dr_result_selection_slider_2.setValue(
+                self.dr_result_selection_slider_2.value() - 1
+            )
+            # update the text
+            update_slider_2_text()
+
+        @QtCore.Slot()
+        def slider_2_right_button_clicked():
+            self.dr_result_selection_slider_2.setValue(
+                self.dr_result_selection_slider_2.value() + 1
+            )
+            # update the text
+            update_slider_2_text()
+
+        # data indices that we are plotting
+        self.cur_class_indices = []
+        if self.class_selection == 'all':
+            self.cur_class_indices = list(range(len(self.point_cloud_paths)))
+        else:
+            for i in range(len(self.point_cloud_paths)):
+                if self.point_cloud_paths[i][0] == self.class_selection:
+                    self.cur_class_indices.append(i)
+
         # drop down menu on choosing the dimension reduction method
         # QPixmap that contains the title text
         dr_selection_pixmap = QPixmap(330, 60)
@@ -1278,6 +1406,8 @@ class UI_MainWindow(QWidget):
         self.intensity_method = 'mean'
 
         # initialize all the views when the first time
+        # scatter item size
+        self.scatter_item_size = 12
         # dr plot for model 1
         self.low_dim_scatter_view_1 = pg.GraphicsLayoutWidget()
         self.low_dim_scatter_view_1.setBackground('white')
@@ -1311,49 +1441,149 @@ class UI_MainWindow(QWidget):
         # Not letting user zoom out past axis limit
         self.low_dim_scatter_plot_2.vb.setLimits(xMin=-1.2, xMax=1.2, yMin=-1.2, yMax=1.2)
 
-        # scatter item size
-        self.scatter_item_size = 12
-        # so that next time we don't need to re-initialize
-        self.dr_result_existed = True
+        # same colorbar in dr plot as used in aggregate and individual NERO plot
+        color_bar_view = pg.GraphicsLayoutWidget()
+        color_bar_plot = pg.PlotItem()
+        color_bar_plot.layout.setContentsMargins(0, 0, 0, 0)
+        color_bar_plot.setFixedHeight(0)
+        color_bar_plot.setFixedWidth(self.plot_size * 1.2)
+        color_bar_plot.hideAxis('bottom')
+        color_bar_plot.hideAxis('left')
+        color_bar_view.addItem(color_bar_plot)
+        color_bar_image = pg.ImageItem()
+        self.color_bar.setImageItem(color_bar_image, insert_in=color_bar_plot)
+        self.scatterplot_sorting_layout.addWidget(color_bar_view, 3, 0, 1, 2)
+        color_bar_plot.layout.setContentsMargins(50, 0, 0, 0)
+
+        # sliders that rank the dimension reduction result and can select one of them
+        # slider 1
+        self.slider_1_layout = QtWidgets.QGridLayout()
+        self.slider_1_layout.setVerticalSpacing(0)
+        self.dr_result_selection_slider_1 = QtWidgets.QSlider(QtCore.Qt.Horizontal)
+        self.dr_result_selection_slider_1.setFixedSize(self.plot_size, 50)
+        self.dr_result_selection_slider_1.setMinimum(0)
+        self.dr_result_selection_slider_1.setMaximum(len(self.all_high_dim_points_1) - 1)
+        self.dr_result_selection_slider_1.setValue(0)
+        self.dr_result_selection_slider_1.setTickPosition(QtWidgets.QSlider.NoTicks)
+        self.dr_result_selection_slider_1.setTickInterval(1)
+        self.dr_result_selection_slider_1.valueChanged.connect(
+            dr_result_selection_slider_1_changed
+        )
+        self.slider_1_layout.addWidget(self.dr_result_selection_slider_1, 0, 0, 1, 3)
+        # left and right buttons to move the slider around, with number in the middle
+        # left button
+        self.slider_1_left_button = QtWidgets.QToolButton()
+        self.slider_1_left_button.setArrowType(QtCore.Qt.LeftArrow)
+        self.slider_1_left_button.clicked.connect(slider_1_left_button_clicked)
+        self.slider_1_left_button.setFixedSize(30, 30)
+        self.slider_1_left_button.setStyleSheet('color: black')
+        self.slider_1_layout.addWidget(self.slider_1_left_button, 1, 0, 1, 1)
+        # middle text
+        slider_1_text_pixmap = QPixmap(300, 50)
+        slider_1_text_pixmap.fill(QtCore.Qt.white)
+        painter = QtGui.QPainter(slider_1_text_pixmap)
+        painter.drawText(
+            0,
+            0,
+            300,
+            50,
+            QtGui.Qt.AlignCenter,
+            f'{self.dr_result_selection_slider_1.value()+1}/{len(self.cur_class_indices)}',
+        )
+        painter.setFont(QFont('Helvetica', 30))
+        painter.end()
+        # create label to contain the texts
+        self.slider_1_text_label = QLabel(self)
+        self.slider_1_text_label.setContentsMargins(0, 0, 0, 0)
+        self.slider_1_text_label.setFixedSize(QtCore.QSize(150, 50))
+        self.slider_1_text_label.setAlignment(QtCore.Qt.AlignCenter)
+        self.slider_1_text_label.setPixmap(slider_1_text_pixmap)
+        self.slider_1_layout.addWidget(self.slider_1_text_label, 1, 1, 1, 1)
+        # right button
+        self.slider_1_right_button = QtWidgets.QToolButton()
+        self.slider_1_right_button.setArrowType(QtCore.Qt.RightArrow)
+        self.slider_1_right_button.setFixedSize(30, 30)
+        self.slider_1_right_button.setStyleSheet('color: black')
+        self.slider_1_right_button.clicked.connect(slider_1_right_button_clicked)
+        self.slider_1_layout.addWidget(self.slider_1_right_button, 1, 2, 1, 1)
+        # initialize slider selection
+        self.slider_1_selected_index = None
+        # add slider 1 layout to the general layout
+        self.interface_layout.addLayout(self.slider_1_layout, 4, 1, 1, 1)
+        self.slider_1_layout.setContentsMargins(40, 0, 0, 0)
+
+        # slider 2
+        self.slider_2_layout = QtWidgets.QGridLayout()
+        self.slider_2_layout.setVerticalSpacing(0)
+        self.dr_result_selection_slider_2 = QtWidgets.QSlider(QtCore.Qt.Horizontal)
+        self.dr_result_selection_slider_2.setFixedSize(self.plot_size, 50)
+        self.dr_result_selection_slider_2.setMinimum(0)
+        self.dr_result_selection_slider_2.setMaximum(len(self.all_high_dim_points_2) - 1)
+        self.dr_result_selection_slider_2.setValue(0)
+        self.dr_result_selection_slider_2.setTickPosition(QtWidgets.QSlider.NoTicks)
+        self.dr_result_selection_slider_2.setTickInterval(1)
+        self.dr_result_selection_slider_2.valueChanged.connect(
+            dr_result_selection_slider_2_changed
+        )
+        self.slider_2_layout.addWidget(self.dr_result_selection_slider_2, 0, 0, 1, 3)
+        # left and right buttons to move the slider around, with number in the middle
+        # left button
+        self.slider_2_left_button = QtWidgets.QToolButton()
+        self.slider_2_left_button.setArrowType(QtCore.Qt.LeftArrow)
+        self.slider_2_left_button.setFixedSize(30, 30)
+        self.slider_2_left_button.setStyleSheet('color: black')
+        self.slider_2_left_button.clicked.connect(slider_2_left_button_clicked)
+        self.slider_2_layout.addWidget(self.slider_2_left_button, 1, 0, 1, 1)
+        # middle text
+        slider_2_text_pixmap = QPixmap(150, 30)
+        slider_2_text_pixmap.fill(QtCore.Qt.white)
+        painter = QtGui.QPainter(slider_2_text_pixmap)
+        painter.setFont(QFont('Helvetica', 12))
+        painter.drawText(
+            0,
+            0,
+            150,
+            30,
+            QtGui.Qt.AlignCenter,
+            f'{self.dr_result_selection_slider_2.value()+1}/{len(self.cur_class_indices)}',
+        )
+        painter.end()
+        # create label to contain the texts
+        self.slider_2_text_label = QLabel(self)
+        self.slider_2_text_label.setContentsMargins(0, 0, 0, 0)
+        self.slider_2_text_label.setFixedSize(QtCore.QSize(150, 50))
+        self.slider_2_text_label.setAlignment(QtCore.Qt.AlignCenter)
+        self.slider_2_text_label.setPixmap(slider_2_text_pixmap)
+        self.slider_2_layout.addWidget(self.slider_2_text_label, 1, 1, 1, 1)
+        # right button
+        self.slider_2_right_button = QtWidgets.QToolButton()
+        self.slider_2_right_button.setArrowType(QtCore.Qt.RightArrow)
+        self.slider_2_right_button.setFixedSize(30, 30)
+        self.slider_2_right_button.setStyleSheet('color: black')
+        self.slider_2_right_button.clicked.connect(slider_2_right_button_clicked)
+        self.slider_2_layout.addWidget(self.slider_2_right_button, 1, 2, 1, 1)
+        # initialize slider selection
+        self.slider_2_selected_index = None
+        # add slider 2 layout to the general layout
+        self.interface_layout.addLayout(self.slider_2_layout, 6, 1, 1, 1)
+        self.slider_2_layout.setContentsMargins(40, 0, 0, 0)
 
     # scatter plot of low-dim points
     def draw_dr_plot(self):
         # plot all the scatter items with brush color reflecting the intensity
-        def plot_dr_scatter(
+        def draw_scatter_plot(
             low_dim_scatter_plot,
             low_dim,
             sorted_intensity,
             sorted_class_indices,
             slider_selected_index,
         ):
-            # same colorbar in dr plot as used in aggregate and individual NERO plot
-            scatter_lut = self.color_map.getLookupTable(
-                start=self.cm_range[0], stop=self.cm_range[1], nPts=500, alpha=False
-            )
-
-            self.color_bar = pg.ColorBarItem(
-                values=self.cm_range,
-                colorMap=self.color_map,
-                interactive=False,
-                orientation='horizontal',
-                width=30,
-            )
-            # add colorbar to a specific place if in demo mode
-            dummy_view = pg.GraphicsLayoutWidget()
-            dummy_plot = pg.PlotItem()
-            dummy_plot.layout.setContentsMargins(0, 0, 0, 0)
-            dummy_plot.setFixedHeight(0)
-            dummy_plot.setFixedWidth(self.plot_size * 1.2)
-            dummy_plot.hideAxis('bottom')
-            dummy_plot.hideAxis('left')
-            dummy_view.addItem(dummy_plot)
-            dummy_image = pg.ImageItem()
-            self.color_bar.setImageItem(dummy_image, insert_in=dummy_plot)
-            self.scatterplot_sorting_layout.addWidget(dummy_view, 3, 0, 1, 2)
-            dummy_plot.layout.setContentsMargins(50, 0, 0, 0)
 
             # quantize all the intensity into color
             color_indices = []
+            scatter_lut = self.color_map.getLookupTable(
+                start=self.cm_range[0], stop=self.cm_range[1], nPts=500, alpha=False
+            )
             for i in range(len(sorted_intensity)):
                 lut_index = nero_utilities.lerp(
                     sorted_intensity[i], self.cm_range[0], self.cm_range[1], 0, 499
@@ -1457,7 +1687,91 @@ class UI_MainWindow(QWidget):
             # add points to the plot
             low_dim_scatter_plot.addItem(low_dim_scatter_item)
 
-        # get the data indices that we are plotting
+        # update the slider 1's text
+        @QtCore.Slot()
+        def update_slider_1_text():
+            slider_1_text_pixmap = QPixmap(150, 50)
+            slider_1_text_pixmap.fill(QtCore.Qt.white)
+            painter = QtGui.QPainter(slider_1_text_pixmap)
+            painter.setFont(QFont('Helvetica', 12))
+            painter.drawText(
+                0,
+                0,
+                150,
+                50,
+                QtGui.Qt.AlignCenter,
+                f'{self.dr_result_selection_slider_1.value()+1}/{len(self.cur_class_indices)}',
+            )
+            painter.end()
+            self.slider_1_text_label.setPixmap(slider_1_text_pixmap)
+
+        # update the slider 2's text
+        @QtCore.Slot()
+        def update_slider_2_text():
+            slider_2_text_pixmap = QPixmap(150, 50)
+            slider_2_text_pixmap.fill(QtCore.Qt.white)
+            painter = QtGui.QPainter(slider_2_text_pixmap)
+            painter.setFont(QFont('Helvetica', 12))
+            painter.drawText(
+                0,
+                0,
+                150,
+                50,
+                QtGui.Qt.AlignCenter,
+                f'{self.dr_result_selection_slider_2.value()+1}/{len(self.cur_class_indices)}',
+            )
+            painter.end()
+            self.slider_2_text_label.setPixmap(slider_2_text_pixmap)
+
+        # when clicked on the scatter plot item
+        @QtCore.Slot()
+        def low_dim_scatter_clicked(item=None, points=None):
+            # get the clicked scatter item's information
+            # when item is not none, it is from real click
+            if item != None:
+                self.point_cloud_index = int(item.opts['name'])
+                print(f'clicked image index {self.point_cloud_index}')
+            # when the input is empty, it is called automatically
+            else:
+                # image index should be defined
+                if self.point_cloud_index == None:
+                    raise Exception(
+                        'point_cloud_index should be defined prior to calling run_dimension_reduction'
+                    )
+
+            # get the ranking in each colorbar and change its value while locking both sliders
+            # slider 1
+            self.slider_1_locked = True
+            self.slider_2_locked = True
+            self.slider_1_selected_index = self.sorted_class_indices_1.index(self.image_index)
+            self.dr_result_selection_slider_1.setValue(self.slider_1_selected_index)
+            # update the text
+            update_slider_1_text()
+            # slider 2
+            self.slider_2_selected_index = self.sorted_class_indices_2.index(self.image_index)
+            self.dr_result_selection_slider_2.setValue(self.slider_2_selected_index)
+            # update the text
+            update_slider_2_text()
+            # update the indicator of current selected item
+            self.draw_dr_plot()
+            # unlock after changing the values
+            self.slider_1_locked = False
+            self.slider_2_locked = False
+
+            # get the corresponding point cloud path
+            self.point_cloud_path = self.point_cloud_paths[self.point_cloud_index]
+            print(f'Selected point cloud at {self.point_cloud_path}')
+
+            # load the image
+            # self.load_single_image()
+
+            # display individual view
+            # TODO: visualize point cloud input
+
+            # TODO: update Individual NERO plot
+            # self.run_model_single()
+
+        # get the latest data indices that we are plotting
         self.cur_class_indices = []
         if self.class_selection == 'all':
             self.cur_class_indices = list(range(len(self.point_cloud_paths)))
@@ -1495,7 +1809,7 @@ class UI_MainWindow(QWidget):
         self.low_dim_1 = self.low_dim_1[self.sorted_intensity_indices_1]
         self.low_dim_2 = self.low_dim_2[self.sorted_intensity_indices_2]
 
-        plot_dr_scatter(
+        draw_scatter_plot(
             self.low_dim_scatter_plot_1,
             self.low_dim_1,
             self.sorted_intensity_1,
@@ -1503,7 +1817,7 @@ class UI_MainWindow(QWidget):
             self.slider_1_selected_index,
         )
 
-        plot_dr_scatter(
+        draw_scatter_plot(
             self.low_dim_scatter_plot_2,
             self.low_dim_2,
             self.sorted_intensity_2,
