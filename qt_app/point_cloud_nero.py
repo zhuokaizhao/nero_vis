@@ -829,8 +829,7 @@ class UI_MainWindow(QWidget):
                     self.cache_path,
                 )
 
-    def init_dr_plot_interface(self):
-        # data indices that we are plotting
+        # data sample indices that we are plotting
         self.cur_class_indices = []
         if self.class_selection == 'all':
             self.cur_class_indices = list(range(len(self.point_cloud_paths)))
@@ -839,6 +838,7 @@ class UI_MainWindow(QWidget):
                 if self.point_cloud_paths[i][0] == self.class_selection:
                     self.cur_class_indices.append(i)
 
+    def init_dr_plot_interface(self):
         # drop down menu on choosing the dimension reduction method
         # QPixmap that contains the title text
         dr_selection_pixmap = QPixmap(330, 60)
@@ -915,14 +915,16 @@ class UI_MainWindow(QWidget):
         self.scatterplot_sorting_layout.addWidget(self.variance_intensity_button, 2, 1, 1, 1)
         # self.scatterplot_sorting_layout.setContentsMargins(0, 0, 30, 0)
         self.interface_layout.addLayout(self.scatterplot_sorting_layout, 1, 1, 2, 1)
-
         # by default the intensities are computed via mean
         self.mean_intensity_button.setChecked(True)
         self.intensity_method = 'mean'
 
-        # initialize all the views when the first time
-        # scatter item size
+        # scatter item size for both dr plots
         self.scatter_item_size = 12
+
+        # initialize selected index
+        self.point_cloud_index = None
+
         # dr plot for model 1
         self.low_dim_scatter_view_1 = pg.GraphicsLayoutWidget()
         self.low_dim_scatter_view_1.setBackground('white')
@@ -955,6 +957,8 @@ class UI_MainWindow(QWidget):
         self.low_dim_scatter_plot_2.setYRange(-1.2, 1.2, padding=0)
         # Not letting user zoom out past axis limit
         self.low_dim_scatter_plot_2.vb.setLimits(xMin=-1.2, xMax=1.2, yMin=-1.2, yMax=1.2)
+        # No auto range when adding new item (red indicator)
+        self.low_dim_scatter_plot_2.vb.disableAutoRange(axis=pg.ViewBox.XYAxes)
 
         # same colorbar in dr plot as used in aggregate and individual NERO plot
         color_bar_view = pg.GraphicsLayoutWidget()
@@ -977,7 +981,7 @@ class UI_MainWindow(QWidget):
         self.dr_result_selection_slider_1 = QtWidgets.QSlider(QtCore.Qt.Horizontal)
         self.dr_result_selection_slider_1.setFixedSize(self.plot_size, 50)
         self.dr_result_selection_slider_1.setMinimum(0)
-        self.dr_result_selection_slider_1.setMaximum(len(self.all_high_dim_points_1) - 1)
+        self.dr_result_selection_slider_1.setMaximum(len(self.cur_class_indices) - 1)
         self.dr_result_selection_slider_1.setValue(0)
         self.dr_result_selection_slider_1.setTickPosition(QtWidgets.QSlider.NoTicks)
         self.dr_result_selection_slider_1.setTickInterval(1)
@@ -1033,7 +1037,7 @@ class UI_MainWindow(QWidget):
         self.dr_result_selection_slider_2 = QtWidgets.QSlider(QtCore.Qt.Horizontal)
         self.dr_result_selection_slider_2.setFixedSize(self.plot_size, 50)
         self.dr_result_selection_slider_2.setMinimum(0)
-        self.dr_result_selection_slider_2.setMaximum(len(self.all_high_dim_points_2) - 1)
+        self.dr_result_selection_slider_2.setMaximum(len(self.cur_class_indices) - 1)
         self.dr_result_selection_slider_2.setValue(0)
         self.dr_result_selection_slider_2.setTickPosition(QtWidgets.QSlider.NoTicks)
         self.dr_result_selection_slider_2.setTickInterval(1)
@@ -1084,19 +1088,23 @@ class UI_MainWindow(QWidget):
         self.slider_2_layout.setContentsMargins(40, 0, 0, 0)
 
     def draw_dr_plot(self):
-
+        # high dimensional points of the current class
+        self.cur_class_high_dim_1 = self.all_high_dim_points_1[self.cur_class_indices]
+        self.cur_class_high_dim_2 = self.all_high_dim_points_2[self.cur_class_indices]
         # get the dimension reduced points
-        self.low_dim_1 = self.all_dr_results_1[self.cur_dr_algorithm]
-        self.low_dim_2 = self.all_dr_results_2[self.cur_dr_algorithm]
-
+        self.cur_class_low_dim_1 = self.all_dr_results_1[self.cur_dr_algorithm][
+            self.cur_class_indices
+        ]
+        self.cur_class_low_dim_2 = self.all_dr_results_2[self.cur_dr_algorithm][
+            self.cur_class_indices
+        ]
         # use each sample's metric average or variance across all transformations as intensity
         self.all_intensity_1 = interface_util.compute_intensity(
-            self.all_high_dim_points_1, self.intensity_method
+            self.cur_class_high_dim_1, self.intensity_method
         )
         self.all_intensity_2 = interface_util.compute_intensity(
-            self.all_high_dim_points_2, self.intensity_method
+            self.cur_class_high_dim_2, self.intensity_method
         )
-
         # plot both scatter plots
         # rank the intensity values (small to large)
         self.sorted_intensity_indices_1 = np.argsort(self.all_intensity_1)
@@ -1109,22 +1117,21 @@ class UI_MainWindow(QWidget):
         self.sorted_class_indices_2 = [
             self.cur_class_indices[idx] for idx in self.sorted_intensity_indices_2
         ]
-
         # sort the low dim points accordingly
-        self.low_dim_1 = self.low_dim_1[self.sorted_intensity_indices_1]
-        self.low_dim_2 = self.low_dim_2[self.sorted_intensity_indices_2]
-
+        self.cur_class_low_dim_1 = self.cur_class_low_dim_1[self.sorted_intensity_indices_1]
+        self.cur_class_low_dim_2 = self.cur_class_low_dim_2[self.sorted_intensity_indices_2]
+        # scatter plot 1
         self._draw_scatter_plot(
             self.low_dim_scatter_plot_1,
-            self.low_dim_1,
+            self.cur_class_low_dim_1,
             self.sorted_intensity_1,
             self.sorted_class_indices_1,
             self.slider_1_selected_index,
         )
-
+        # scatter plot 2
         self._draw_scatter_plot(
             self.low_dim_scatter_plot_2,
-            self.low_dim_2,
+            self.cur_class_low_dim_2,
             self.sorted_intensity_2,
             self.sorted_class_indices_2,
             self.slider_2_selected_index,
@@ -1134,7 +1141,7 @@ class UI_MainWindow(QWidget):
 
     ################## Detail Plot Related ##################
 
-    ################## All closed functions ##################
+    ################## All private functions ##################
     # dataset drop-down menu
     @QtCore.Slot()
     def _dataset_selection_changed(self, text):
@@ -1368,16 +1375,18 @@ class UI_MainWindow(QWidget):
             self.slider_1_selected_index = self.dr_result_selection_slider_1.value()
 
             # get the clicked scatter item's information
-            self.image_index = self.sorted_class_indices_1[self.slider_1_selected_index]
+            self.point_cloud_index = self.sorted_class_indices_1[self.slider_1_selected_index]
             print(
-                f'slider 1 image index {self.image_index}, ranked position {self.slider_1_selected_index}'
+                f'slider 1 image index {self.point_cloud_index}, ranked position {self.slider_1_selected_index}'
             )
             # update the text
             self._update_slider_1_text()
 
             # change the other slider's value
             self.slider_2_locked = True
-            self.slider_2_selected_index = self.sorted_class_indices_2.index(self.image_index)
+            self.slider_2_selected_index = self.sorted_class_indices_2.index(
+                self.point_cloud_index
+            )
             self.dr_result_selection_slider_2.setValue(self.slider_2_selected_index)
             # update the text
             self._update_slider_2_text()
@@ -1387,9 +1396,8 @@ class UI_MainWindow(QWidget):
             self.draw_dr_plot()
 
             # get the corresponding point cloud data path
-            if self.mode == 'digit_recognition' or self.mode == 'object_detection':
-                self.cur_point_cloud_path = self.point_cloud_paths[self.image_index][1]
-                print(f'Selected image at {self.image_path}')
+            self.point_cloud_path = self.point_cloud_paths[self.point_cloud_index][1]
+            print(f'Selected point cloud at {self.point_cloud_path}')
 
             # load the image
             self.load_single_image()
@@ -1445,16 +1453,18 @@ class UI_MainWindow(QWidget):
             self.slider_2_selected_index = self.dr_result_selection_slider_2.value()
 
             # get the clicked scatter item's information
-            self.image_index = self.sorted_class_indices_2[self.slider_2_selected_index]
+            self.point_cloud_index = self.sorted_class_indices_2[self.slider_2_selected_index]
             print(
-                f'slider 2 image index {self.image_index}, ranked position {self.slider_2_selected_index}'
+                f'slider 2 image index {self.point_cloud_index}, ranked position {self.slider_2_selected_index}'
             )
             # update the text
             self._update_slider_2_text()
 
             # change the other slider's value
             self.slider_1_locked = True
-            self.slider_1_selected_index = self.sorted_class_indices_1.index(self.image_index)
+            self.slider_1_selected_index = self.sorted_class_indices_1.index(
+                self.point_cloud_index
+            )
             self.dr_result_selection_slider_1.setValue(self.slider_1_selected_index)
             # update the text
             self._update_slider_1_text()
@@ -1463,21 +1473,9 @@ class UI_MainWindow(QWidget):
             # update the scatter plot
             self.draw_dr_plot()
 
-            # get the corresponding image path
-            if self.mode == 'digit_recognition' or self.mode == 'object_detection':
-                self.image_path = self.all_images_paths[self.image_index]
-                print(f'Selected image at {self.image_path}')
-            elif self.mode == 'piv':
-                # single case images paths
-                self.image_1_path = self.all_images_1_paths[self.image_index]
-                self.image_2_path = self.all_images_2_paths[self.image_index]
-                print(f'Selected image 1 at {self.image_1_path}')
-                print(f'Selected image 2 at {self.image_2_path}')
-
-                # single case model outputs
-                self.all_quantities_1 = self.aggregate_outputs_1[:, self.image_index]
-                self.all_quantities_2 = self.aggregate_outputs_2[:, self.image_index]
-                self.all_ground_truths = self.aggregate_ground_truths[:, self.image_index]
+            # get the corresponding point cloud data path
+            self.point_cloud_path = self.point_cloud_paths[self.point_cloud_index][1]
+            print(f'Selected image at {self.point_cloud_path}')
 
             # load the image
             self.load_single_image()
@@ -1573,8 +1571,8 @@ class UI_MainWindow(QWidget):
             color_indices.append(scatter_lut[int(lut_index)])
 
         # image index position in the current sorted class indices
-        if self.image_index != None:
-            sorted_selected_index = sorted_class_indices.index(self.image_index)
+        if self.point_cloud_index != None:
+            sorted_selected_index = sorted_class_indices.index(self.point_cloud_index)
         else:
             sorted_selected_index = len(sorted_class_indices) - 1
 
@@ -1684,12 +1682,12 @@ class UI_MainWindow(QWidget):
         # slider 1
         self.slider_1_locked = True
         self.slider_2_locked = True
-        self.slider_1_selected_index = self.sorted_class_indices_1.index(self.image_index)
+        self.slider_1_selected_index = self.sorted_class_indices_1.index(self.point_cloud_index)
         self.dr_result_selection_slider_1.setValue(self.slider_1_selected_index)
         # update the text
         self._update_slider_1_text()
         # slider 2
-        self.slider_2_selected_index = self.sorted_class_indices_2.index(self.image_index)
+        self.slider_2_selected_index = self.sorted_class_indices_2.index(self.point_cloud_index)
         self.dr_result_selection_slider_2.setValue(self.slider_2_selected_index)
         # update the text
         self._update_slider_2_text()
@@ -1700,7 +1698,7 @@ class UI_MainWindow(QWidget):
         self.slider_2_locked = False
 
         # get the corresponding point cloud path
-        self.point_cloud_path = self.point_cloud_paths[self.point_cloud_index]
+        self.point_cloud_path = self.point_cloud_paths[self.point_cloud_index][1]
         print(f'Selected point cloud at {self.point_cloud_path}')
 
         # load the image
