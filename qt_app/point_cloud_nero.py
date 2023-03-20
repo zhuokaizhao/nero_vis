@@ -17,7 +17,6 @@ import pyqtgraph as pg
 from PySide6 import QtCore, QtGui, QtWidgets
 from PySide6.QtGui import QPixmap, QFont
 from PySide6.QtWidgets import QWidget, QLabel, QRadioButton
-from collections import defaultdict
 
 import nero_transform
 import nero_utilities
@@ -1149,14 +1148,17 @@ class UI_MainWindow(QWidget):
         if text == 'Input dataset':
             return
 
+        # udpate dataset selection
         self.dataset_name = text
         self.dataset_index = self.aggregate_image_menu.currentIndex()
-
         # re-load the data
         self.load_point_cloud_data()
-
-        # the models have default, just run
-        self.run_button_clicked()
+        # update aggregate nero plot
+        self.draw_point_cloud_aggregate_nero()
+        # update dr plot
+        self.draw_dr_plot()
+        # TODO: individiaul NERO plot
+        # TODO: detail plot
 
     # dataset class selection drop-down menu
     @QtCore.Slot()
@@ -1164,13 +1166,10 @@ class UI_MainWindow(QWidget):
         # re-initialize the scatter plot
         self.dr_result_existed = False
 
-        # for object detection (COCO)
-        if text.split(' ')[0] == 'All':
-            self.class_selection = 'all'
-        else:
-            self.class_selection = text
+        # udpate class selection
+        self.class_selection = text.lower()
 
-        # get the data indices that the user selects
+        # update the data indices according to class selection
         self.cur_class_indices = []
         if self.class_selection == 'all':
             self.cur_class_indices = list(range(len(self.point_cloud_paths)))
@@ -1179,50 +1178,44 @@ class UI_MainWindow(QWidget):
                 if self.point_cloud_paths[i][0] == self.class_selection:
                     self.cur_class_indices.append(i)
 
-        # display the plot
+        # update aggregate nero plot
         self.draw_point_cloud_aggregate_nero()
-
-        # # after change class, run new dimension reduction if previously run
-        # if self.demo or self.dr_result_existed:
-        #     self.run_dimension_reduction()
+        # update dr plot
+        self.draw_dr_plot()
+        # TODO: individiaul NERO plot
+        # TODO: detail plot
 
     # drop down menu that let user select model 1
     @QtCore.Slot()
     def _model_1_selection_changed(self, text):
         print('Model 1:', text)
         self.model_1_name = text
-        # Original or DA
+        # Original or Data
         self.model_1_cache_name = self.model_1_name.split(' ')[0]
-
         # load the model
         self.model_1 = self.load_point_cloud_model(self.model_1_name)
-
-        # # when loaded data is available, just show the result without clicking the button
-        # self.run_model_aggregated()
-        # self.aggregate_result_existed = True
-
-        # # run dimension reduction if previously run
-        # if self.dr_result_existed:
-        #     self.run_dimension_reduction()
+        # update aggregate nero plot
+        self.draw_point_cloud_aggregate_nero()
+        # update dr plot
+        self.draw_dr_plot()
+        # TODO: individiaul NERO plot
+        # TODO: detail plot
 
     # drop down menu that lets user select model 2
     @QtCore.Slot()
     def _model_2_selection_changed(self, text):
         print('Model 2:', text)
         self.model_2_name = text
-        # Original or DA
+        # Original or Data
         self.model_2_cache_name = self.model_2_name.split(' ')[0]
-
         # load the model
         self.model_2 = self.load_point_cloud_model(self.model_2_name)
-
-        # # when loaded data is available, just show the result without clicking the button
-        # self.run_model_aggregated()
-        # self.aggregate_result_existed = True
-
-        # # run dimension reduction if previously run
-        # if self.dr_result_existed:
-        #     self.run_dimension_reduction()
+        # update aggregate nero plot
+        self.draw_point_cloud_aggregate_nero()
+        # update dr plot
+        self.draw_dr_plot()
+        # TODO: individiaul NERO plot
+        # TODO: detail plot
 
     # drop down menu that lets user select NERO metric
     @QtCore.Slot()
@@ -1230,45 +1223,52 @@ class UI_MainWindow(QWidget):
         print(f'\nNERO metric changed to {text}')
         # save the selection
         self.cur_metric = text
-        # plot
+        # update aggregate nero plot
         self.draw_point_cloud_aggregate_nero()
-        # re-display DR plot
+        # update dr plot
         self.draw_dr_plot()
+        # TODO: individiaul NERO plot
+        # TODO: detail plot
 
     @QtCore.Slot()
     def _xy_plane_selected(self):
         print(f'xy plane')
         self.cur_plane = 'xy'
-        # re-draw aggregate nero plot
+        # update aggregate nero plot
         self.draw_point_cloud_aggregate_nero()
-        # re-display DR plot
+        # update dr plot
         self.draw_dr_plot()
+        # TODO: individiaul NERO plot
+        # TODO: detail plot
 
     @QtCore.Slot()
     def _xz_plane_selected(self):
         print(f'xz plane')
         self.cur_plane = 'xz'
-        # re-draw aggregate nero plot
+        # update aggregate nero plot
         self.draw_point_cloud_aggregate_nero()
-        # re-display DR plot
+        # update dr plot
         self.draw_dr_plot()
+        # TODO: individiaul NERO plot
+        # TODO: detail plot
 
     @QtCore.Slot()
     def _yz_plane_selected(self):
         print(f'yz plane')
         self.cur_plane = 'yz'
-        # re-draw aggregate nero plot
+        # update aggregate nero plot
         self.draw_point_cloud_aggregate_nero()
-        # re-display DR plot
+        # update dr plot
         self.draw_dr_plot()
+        # TODO: individiaul NERO plot
+        # TODO: detail plot
 
     @QtCore.Slot()
     # change different dimension reduction algorithms
     def _dr_selection_changed(self, text):
         # update dimension reduction algorithm
         self.cur_dr_algorithm = text
-
-        # re-display dr show result
+        # update dr plot
         self.draw_dr_plot()
 
     # radio buttons on choosing quantity used to compute intensity
@@ -1276,59 +1276,17 @@ class UI_MainWindow(QWidget):
     def _mean_intensity_button_clicked(self):
         self.intensity_method = 'mean'
         print(f'DR plots color encoded based on {self.intensity_method}')
-        self.all_intensity_1 = np.mean(self.all_high_dim_points_1, axis=1)
-        self.all_intensity_2 = np.mean(self.all_high_dim_points_2, axis=1)
-
-        # normalize to colormap range
-        intensity_min = min(np.min(self.all_intensity_1), np.min(self.all_intensity_2))
-        intensity_max = max(np.max(self.all_intensity_1), np.max(self.all_intensity_2))
-        self.all_intensity_1 = nero_utilities.lerp(
-            self.all_intensity_1,
-            intensity_min,
-            intensity_max,
-            self.cm_range[0],
-            self.cm_range[1],
-        )
-        self.all_intensity_2 = nero_utilities.lerp(
-            self.all_intensity_2,
-            intensity_min,
-            intensity_max,
-            self.cm_range[0],
-            self.cm_range[1],
-        )
-
-        # re-display the scatter plot
+        # update dr plot
         self.draw_dr_plot()
 
     @QtCore.Slot()
     def _variance_intensity_button_clicked(self):
         self.intensity_method = 'variance'
         print(f'DR plots color encoded based on {self.intensity_method}')
-        self.all_intensity_1 = np.var(self.all_high_dim_points_1, axis=1)
-        self.all_intensity_2 = np.var(self.all_high_dim_points_2, axis=1)
-
-        # normalize to colormap range
-        intensity_min = min(np.min(self.all_intensity_1), np.min(self.all_intensity_2))
-        intensity_max = max(np.max(self.all_intensity_1), np.max(self.all_intensity_2))
-        self.all_intensity_1 = nero_utilities.lerp(
-            self.all_intensity_1,
-            intensity_min,
-            intensity_max,
-            self.cm_range[0],
-            self.cm_range[1],
-        )
-        self.all_intensity_2 = nero_utilities.lerp(
-            self.all_intensity_2,
-            intensity_min,
-            intensity_max,
-            self.cm_range[0],
-            self.cm_range[1],
-        )
-
-        # re-display the scatter plot
+        # update dr plot
         self.draw_dr_plot()
 
-    # update the slider 1's text
+    # update slider 1 text
     @QtCore.Slot()
     def _update_slider_1_text(self):
         slider_1_text_pixmap = QPixmap(150, 50)
@@ -1346,7 +1304,7 @@ class UI_MainWindow(QWidget):
         painter.end()
         self.slider_1_text_label.setPixmap(slider_1_text_pixmap)
 
-    # update the slider 2's text
+    # update slider 2 text
     @QtCore.Slot()
     def _update_slider_2_text(self):
         slider_2_text_pixmap = QPixmap(150, 50)
@@ -1367,13 +1325,11 @@ class UI_MainWindow(QWidget):
     # slider for dr plot 1
     @QtCore.Slot()
     def _dr_result_selection_slider_1_changed(self):
-
         # when the slider bar is changed directly by user, it is unlocked
         # mimics that a point has been clicked
         if not self.slider_1_locked:
-            # change the ranking in the other colorbar
+            # current index from slider
             self.slider_1_selected_index = self.dr_result_selection_slider_1.value()
-
             # get the clicked scatter item's information
             self.point_cloud_index = self.sorted_class_indices_1[self.slider_1_selected_index]
             print(
@@ -1383,6 +1339,8 @@ class UI_MainWindow(QWidget):
             self._update_slider_1_text()
 
             # change the other slider's value
+            # the other slider should be locked so that
+            # _dr_result_selection_slider_2_changed is not triggered
             self.slider_2_locked = True
             self.slider_2_selected_index = self.sorted_class_indices_2.index(
                 self.point_cloud_index
@@ -1392,66 +1350,25 @@ class UI_MainWindow(QWidget):
             self._update_slider_2_text()
             self.slider_2_locked = False
 
-            # update the scatter plot without re-computing dimension reduction algorithm
+            # update dr plot because the highlight is changed
             self.draw_dr_plot()
 
             # get the corresponding point cloud data path
             self.point_cloud_path = self.point_cloud_paths[self.point_cloud_index][1]
             print(f'Selected point cloud at {self.point_cloud_path}')
 
-            # load the image
-            self.load_single_image()
-
-            # display individual view
-            if self.mode == 'digit_recognition':
-                # convert to QImage for display purpose
-                self.cur_display_image = nero_utilities.tensor_to_qt_image(
-                    self.cur_image_pt, self.display_image_size, revert_color=True
-                )
-                # prepare image tensor for model purpose
-                self.cur_image_pt = nero_transform.prepare_mnist_image(self.cur_image_pt)
-
-            elif self.mode == 'object_detection':
-                # convert to QImage for display purpose
-                self.cur_display_image = nero_utilities.tensor_to_qt_image(
-                    self.cur_image_pt, self.display_image_size
-                )
-
-            elif self.mode == 'piv':
-                # create new GIF
-                display_image_1_pil = Image.fromarray(self.cur_image_1_pt.numpy(), 'RGB')
-                display_image_2_pil = Image.fromarray(self.cur_image_2_pt.numpy(), 'RGB')
-                other_images_pil = [
-                    display_image_1_pil,
-                    display_image_2_pil,
-                    display_image_2_pil,
-                    self.blank_image_pil,
-                ]
-                self.gif_path = os.path.join(
-                    self.cache_dir, self.loaded_image_1_name.split('.')[0] + '.gif'
-                )
-                display_image_1_pil.save(
-                    fp=self.gif_path,
-                    format='GIF',
-                    append_images=other_images_pil,
-                    save_all=True,
-                    duration=300,
-                    loop=0,
-                )
-
-            # run model all and display results (Individual NERO plot and detailed plot)
-            self.run_model_single()
+            # TODO: visualize point cloud
+            # TODO: individiaul NERO plot
+            # TODO: detail plot
 
     # slider for dr plot 2
     @QtCore.Slot()
     def _dr_result_selection_slider_2_changed(self):
-
         # when the slider bar is changed directly by user, it is unlocked
         # mimics that a point has been clicked
         if not self.slider_2_locked:
             # change the ranking in the other colorbar
             self.slider_2_selected_index = self.dr_result_selection_slider_2.value()
-
             # get the clicked scatter item's information
             self.point_cloud_index = self.sorted_class_indices_2[self.slider_2_selected_index]
             print(
@@ -1461,6 +1378,8 @@ class UI_MainWindow(QWidget):
             self._update_slider_2_text()
 
             # change the other slider's value
+            # the other slider should be locked so that
+            # _dr_result_selection_slider_1_changed is not triggered
             self.slider_1_locked = True
             self.slider_1_selected_index = self.sorted_class_indices_1.index(
                 self.point_cloud_index
@@ -1470,55 +1389,16 @@ class UI_MainWindow(QWidget):
             self._update_slider_1_text()
             self.slider_1_locked = False
 
-            # update the scatter plot
+            # update dr plot because the highlight is changed
             self.draw_dr_plot()
 
             # get the corresponding point cloud data path
             self.point_cloud_path = self.point_cloud_paths[self.point_cloud_index][1]
             print(f'Selected image at {self.point_cloud_path}')
 
-            # load the image
-            self.load_single_image()
-
-            # display individual view
-            if self.mode == 'digit_recognition':
-                # convert to QImage for display purpose
-                self.cur_display_image = nero_utilities.tensor_to_qt_image(
-                    self.cur_image_pt, self.display_image_size, revert_color=True
-                )
-                # prepare image tensor for model purpose
-                self.cur_image_pt = nero_transform.prepare_mnist_image(self.cur_image_pt)
-
-            elif self.mode == 'object_detection':
-                # convert to QImage for display purpose
-                self.cur_display_image = nero_utilities.tensor_to_qt_image(
-                    self.cur_image_pt, self.display_image_size
-                )
-
-            elif self.mode == 'piv':
-                # create new GIF
-                display_image_1_pil = Image.fromarray(self.cur_image_1_pt.numpy(), 'RGB')
-                display_image_2_pil = Image.fromarray(self.cur_image_2_pt.numpy(), 'RGB')
-                other_images_pil = [
-                    display_image_1_pil,
-                    display_image_2_pil,
-                    display_image_2_pil,
-                    self.blank_image_pil,
-                ]
-                self.gif_path = os.path.join(
-                    self.cache_dir, self.loaded_image_1_name.split('.')[0] + '.gif'
-                )
-                display_image_1_pil.save(
-                    fp=self.gif_path,
-                    format='GIF',
-                    append_images=other_images_pil,
-                    save_all=True,
-                    duration=300,
-                    loop=0,
-                )
-
-            # run model all and display results (Individual NERO plot)
-            self.run_model_single()
+            # TODO: visualize point cloud
+            # TODO: individiaul NERO plot
+            # TODO: detail plot
 
     @QtCore.Slot()
     def _slider_1_left_button_clicked(self):
@@ -1543,6 +1423,54 @@ class UI_MainWindow(QWidget):
         self.dr_result_selection_slider_2.setValue(self.dr_result_selection_slider_2.value() + 1)
         # update the text
         self._update_slider_2_text()
+
+    # when clicked on the scatter plot item
+    @QtCore.Slot()
+    def _low_dim_scatter_clicked(self, item=None, points=None):
+        # get the clicked scatter item's information
+        # when item is not none, it is from real click
+        if item != None:
+            self.point_cloud_index = int(item.opts['name'])
+            print(f'clicked image index {self.point_cloud_index}')
+        # when the input is empty, it is called automatically
+        else:
+            # image index should be defined
+            if self.point_cloud_index == None:
+                raise Exception(
+                    'point_cloud_index should be defined prior to calling run_dimension_reduction'
+                )
+
+        # get the ranking in each colorbar and change its value while locking both sliders
+        # slider 1
+        self.slider_1_locked = True
+        self.slider_2_locked = True
+        self.slider_1_selected_index = self.sorted_class_indices_1.index(self.point_cloud_index)
+        self.dr_result_selection_slider_1.setValue(self.slider_1_selected_index)
+        # update the text
+        self._update_slider_1_text()
+        # slider 2
+        self.slider_2_selected_index = self.sorted_class_indices_2.index(self.point_cloud_index)
+        self.dr_result_selection_slider_2.setValue(self.slider_2_selected_index)
+        # update the text
+        self._update_slider_2_text()
+        # update the indicator of current selected item
+        self.draw_dr_plot()
+        # unlock after changing the values
+        self.slider_1_locked = False
+        self.slider_2_locked = False
+
+        # get the corresponding point cloud path
+        self.point_cloud_path = self.point_cloud_paths[self.point_cloud_index][1]
+        print(f'Selected point cloud at {self.point_cloud_path}')
+
+        # TODO: visualize point cloud
+        # TODO: individiaul NERO plot
+        # TODO: detail plot
+
+    # when hovered on the scatter plot item
+    @QtCore.Slot()
+    def _low_dim_scatter_hovered(self, item, points):
+        item.setToolTip(item.opts['hover_text'])
 
     # plot all the scatter items with brush color reflecting the intensity
     def _draw_scatter_plot(
@@ -1661,58 +1589,6 @@ class UI_MainWindow(QWidget):
         low_dim_scatter_item.sigHovered.connect(self._low_dim_scatter_hovered)
         # add points to the plot
         low_dim_scatter_plot.addItem(low_dim_scatter_item)
-
-    # when clicked on the scatter plot item
-    @QtCore.Slot()
-    def _low_dim_scatter_clicked(self, item=None, points=None):
-        # get the clicked scatter item's information
-        # when item is not none, it is from real click
-        if item != None:
-            self.point_cloud_index = int(item.opts['name'])
-            print(f'clicked image index {self.point_cloud_index}')
-        # when the input is empty, it is called automatically
-        else:
-            # image index should be defined
-            if self.point_cloud_index == None:
-                raise Exception(
-                    'point_cloud_index should be defined prior to calling run_dimension_reduction'
-                )
-
-        # get the ranking in each colorbar and change its value while locking both sliders
-        # slider 1
-        self.slider_1_locked = True
-        self.slider_2_locked = True
-        self.slider_1_selected_index = self.sorted_class_indices_1.index(self.point_cloud_index)
-        self.dr_result_selection_slider_1.setValue(self.slider_1_selected_index)
-        # update the text
-        self._update_slider_1_text()
-        # slider 2
-        self.slider_2_selected_index = self.sorted_class_indices_2.index(self.point_cloud_index)
-        self.dr_result_selection_slider_2.setValue(self.slider_2_selected_index)
-        # update the text
-        self._update_slider_2_text()
-        # update the indicator of current selected item
-        self.draw_dr_plot()
-        # unlock after changing the values
-        self.slider_1_locked = False
-        self.slider_2_locked = False
-
-        # get the corresponding point cloud path
-        self.point_cloud_path = self.point_cloud_paths[self.point_cloud_index][1]
-        print(f'Selected point cloud at {self.point_cloud_path}')
-
-        # load the image
-        # self.load_single_image()
-
-        # display individual view
-        # TODO: visualize point cloud input
-
-        # TODO: update Individual NERO plot
-        # self.run_model_single()
-
-    # when hovered on the scatter plot item
-    def _low_dim_scatter_hovered(self, item, points):
-        item.setToolTip(item.opts['hover_text'])
 
 
 if __name__ == '__main__':
