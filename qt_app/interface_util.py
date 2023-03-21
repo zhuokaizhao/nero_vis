@@ -122,34 +122,6 @@ def dimension_reduce(method, high_dim, target_dim):
     return low_dim
 
 
-def draw_individual_heatmap(data, color_bar, heatmap=None, title=None):
-
-    # viewbox that contains the heatmap
-    view_box = pg.ViewBox(invertY=True)
-    view_box.setAspectLocked(lock=True)
-
-    if not heatmap:
-        heatmap = pg.ImageItem()
-    heatmap.setImage(data)
-    view_box.addItem(heatmap)
-    heatmap_plot = pg.PlotItem(viewBox=view_box, title=title)
-
-    x_label_style = {'color': 'white'}   # white so it is not visible
-    heatmap_plot.getAxis('bottom').setLabel(**x_label_style)
-    heatmap_plot.getAxis('bottom').setStyle(tickLength=0, showValues=False)
-
-    y_label_style = {'color': 'white'}   # white so it is not visible
-    heatmap_plot.getAxis('left').setLabel(**y_label_style)
-    heatmap_plot.getAxis('left').setStyle(tickLength=0, showValues=False)
-
-    # disable being able to move plot around
-    heatmap_plot.setMouseEnabled(x=False, y=False)
-
-    color_bar.setImageItem(heatmap)
-
-    return heatmap_plot
-
-
 # compute intensity values with either average or variance
 def compute_intensity(input_data, method):
     if method == 'mean':

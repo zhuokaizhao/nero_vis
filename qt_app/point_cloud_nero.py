@@ -21,6 +21,7 @@ from PySide6.QtWidgets import QWidget, QLabel, QRadioButton
 import nero_transform
 import nero_utilities
 import nero_run_model
+import nero_custom_plots
 
 import warnings
 
@@ -52,13 +53,13 @@ class UI_MainWindow(QWidget):
         # white background color
         self.setStyleSheet('background-color: rgb(255, 255, 255);')
         # general layout
-        self.interface_layout = QtWidgets.QGridLayout(self)
-        self.interface_layout.setAlignment(QtCore.Qt.AlignCenter)
+        self.layout = QtWidgets.QGridLayout(self)
+        self.layout.setAlignment(QtCore.Qt.AlignCenter)
         # left, top, right, and bottom margins
-        self.interface_layout.setContentsMargins(10, 10, 10, 10)
+        self.layout.setContentsMargins(10, 10, 10, 10)
         # spacing
-        self.interface_layout.setHorizontalSpacing(0)
-        self.interface_layout.setVerticalSpacing(0)
+        self.layout.setHorizontalSpacing(20)
+        self.layout.setVerticalSpacing(20)
 
         # still define a mode parameter so we can have a unified cache for multiple application
         self.mode = 'point_cloud_classification'
@@ -126,11 +127,19 @@ class UI_MainWindow(QWidget):
         self.init_dr_plot_interface()
         self.draw_dr_plot()
 
-        # Individual NERO plot
+        # visualize point cloud sample selected from DR plot
+        self.init_point_cloud_vis_interface()
+        self.draw_point_cloud()
 
-        # Detailed plot
+        # # Individual NERO plot
+        # self.init_individual_plot_interface()
+        # self.draw_point_cloud_individual_nero()
 
-        print(f'\nFinished rendering main layout')
+        # # Detailed plot
+        # self.init_detail_plot_interface()
+        # self.draw_point_cloud_detail_plot()
+
+        print(f'\nNERO interface ready')
 
     ################## Data Loading Related ##################
     def init_point_cloud_data(self):
@@ -151,50 +160,47 @@ class UI_MainWindow(QWidget):
         self.dataset_index = 1
 
     def init_data_loading_interface(self):
+        # data loading interface layout
+        data_loading_layout = QtWidgets.QGridLayout()
+        data_loading_layout.setAlignment(QtCore.Qt.AlignLeft)
+        data_loading_layout.setHorizontalSpacing(0)
+        data_loading_layout.setVerticalSpacing(0)
 
-        # dataset selection
-        # text prompt
-        model_pixmap = QPixmap(350, 50)
-        model_pixmap.fill(QtCore.Qt.white)
-        painter = QtGui.QPainter(model_pixmap)
+        # dataset selection text prompt
+        dataset_selection_pixmap = QPixmap(350, 50)
+        dataset_selection_pixmap.fill(QtCore.Qt.white)
+        painter = QtGui.QPainter(dataset_selection_pixmap)
         painter.setFont(QFont('Helvetica', 30))
         painter.drawText(0, 0, 350, 50, QtGui.Qt.AlignLeft, 'Data Set:')
         painter.end()
         # create label to contain the texts
-        self.model_label = QLabel(self)
-        self.model_label.setFixedSize(QtCore.QSize(300, 50))
-        self.model_label.setPixmap(model_pixmap)
-        # add to the layout
-        self.interface_layout.addWidget(self.model_label, 0, 0)
-        # drop down menu
-        self.aggregate_image_menu = QtWidgets.QComboBox()
-        self.aggregate_image_menu.setFixedSize(QtCore.QSize(220, 50))
-        self.aggregate_image_menu.setStyleSheet(
+        dataset_selection_label = QLabel(self)
+        dataset_selection_label.setFixedSize(QtCore.QSize(300, 50))
+        dataset_selection_label.setPixmap(dataset_selection_pixmap)
+
+        # dataset selection drop down menu
+        self.dataset_selection_menu = QtWidgets.QComboBox()
+        self.dataset_selection_menu.setFixedSize(QtCore.QSize(220, 50))
+        self.dataset_selection_menu.setStyleSheet(
             'color: black; font-size: 34px; font-family: Helvetica; font-style: normal;'
         )
         # prompt in drop down menu
-        self.aggregate_image_menu.addItem('Input dataset')
+        self.dataset_selection_menu.addItem('Input dataset')
         # load all dataset names from the data paths
         for i in range(len(self.all_data_paths)):
-            # cur_name = self.all_data_paths[i].split('/')[-1].split('.')[0]
             cur_name = self.all_data_paths[i].split('/')[-1].split('.')[0].split('_')[0]
-            self.aggregate_image_menu.addItem(cur_name)
+            self.dataset_selection_menu.addItem(cur_name)
         # set default data selection
-        self.aggregate_image_menu.setCurrentIndex(self.dataset_index)
-        self.dataset_name = self.aggregate_image_menu.currentText()
+        self.dataset_selection_menu.setCurrentIndex(self.dataset_index)
+        self.dataset_name = self.dataset_selection_menu.currentText()
 
         # connect the drop down menu with actions
-        self.aggregate_image_menu.currentTextChanged.connect(self._dataset_selection_changed)
-        self.aggregate_image_menu.setEditable(True)
-        self.aggregate_image_menu.lineEdit().setReadOnly(True)
-        self.aggregate_image_menu.lineEdit().setAlignment(QtCore.Qt.AlignCenter)
-        aggregate_image_menu_layout = QtWidgets.QHBoxLayout()
-        aggregate_image_menu_layout.setContentsMargins(150, 0, 0, 0)
-        aggregate_image_menu_layout.addWidget(self.aggregate_image_menu)
-        self.interface_layout.addLayout(aggregate_image_menu_layout, 0, 0)
+        self.dataset_selection_menu.currentTextChanged.connect(self._dataset_selection_changed)
+        self.dataset_selection_menu.setEditable(True)
+        self.dataset_selection_menu.lineEdit().setReadOnly(True)
+        self.dataset_selection_menu.lineEdit().setAlignment(QtCore.Qt.AlignCenter)
 
-        # drop down menu on choosing the class within the dataset
-        # QPixmap that contains the title text
+        # class selection text prompt
         class_selection_pixmap = QPixmap(300, 50)
         class_selection_pixmap.fill(QtCore.Qt.white)
         painter = QtGui.QPainter(class_selection_pixmap)
@@ -202,12 +208,11 @@ class UI_MainWindow(QWidget):
         painter.drawText(0, 0, 350, 50, QtGui.Qt.AlignLeft, 'Subset: ')
         painter.end()
         # QLabel that contains the QPixmap
-        self.class_selection_label = QLabel(self)
-        self.class_selection_label.setFixedSize(QtCore.QSize(400, 50))
-        self.class_selection_label.setPixmap(class_selection_pixmap)
-        # add QLabel to the layout
-        self.interface_layout.addWidget(self.class_selection_label, 1, 0)
-        # create the drop down menu
+        class_selection_label = QLabel(self)
+        class_selection_label.setFixedSize(QtCore.QSize(400, 50))
+        class_selection_label.setPixmap(class_selection_pixmap)
+
+        # class selection drop down menu
         self.class_selection_menu = QtWidgets.QComboBox()
         self.class_selection_menu.setFixedSize(QtCore.QSize(220, 50))
         self.class_selection_menu.setStyleSheet(
@@ -219,7 +224,6 @@ class UI_MainWindow(QWidget):
         self.class_selection_menu.setCurrentIndex(0)
         # need to load data here otherwise we don't have cur_classes_names
         self.load_point_cloud_data()
-
         # add all classes as items
         for cur_class in self.cur_classes_names:
             self.class_selection_menu.addItem(f'{cur_class}')
@@ -228,12 +232,13 @@ class UI_MainWindow(QWidget):
         self.class_selection_menu.setEditable(True)
         self.class_selection_menu.lineEdit().setReadOnly(True)
         self.class_selection_menu.lineEdit().setAlignment(QtCore.Qt.AlignCenter)
-        # local layout that contains the drop down menu
-        class_selection_menu_layout = QtWidgets.QHBoxLayout()
-        class_selection_menu_layout.setContentsMargins(150, 0, 0, 0)
-        class_selection_menu_layout.addWidget(self.class_selection_menu)
-        # add the general layout
-        self.interface_layout.addLayout(class_selection_menu_layout, 1, 0)
+
+        # add components to layout
+        data_loading_layout.addWidget(dataset_selection_label, 0, 0)
+        data_loading_layout.addWidget(self.dataset_selection_menu, 0, 1)
+        data_loading_layout.addWidget(class_selection_label, 1, 0)
+        data_loading_layout.addWidget(self.class_selection_menu, 1, 1)
+        self.layout.addLayout(data_loading_layout, 0, 0, 2, 1)
 
     def load_point_cloud_data(self):
 
@@ -287,8 +292,13 @@ class UI_MainWindow(QWidget):
         self.pt_model_cfg['transformer_dim'] = 512
 
     def init_model_loading_interface(self):
-        # load models interface
-        # draw text
+        # model loading interface layout
+        model_loading_layout = QtWidgets.QGridLayout()
+        model_loading_layout.setAlignment(QtCore.Qt.AlignLeft)
+        model_loading_layout.setHorizontalSpacing(0)
+        model_loading_layout.setVerticalSpacing(0)
+
+        # models selection text prompt
         model_selection_pixmap = QPixmap(450, 50)
         model_selection_pixmap.fill(QtCore.Qt.white)
         painter = QtGui.QPainter(model_selection_pixmap)
@@ -296,26 +306,25 @@ class UI_MainWindow(QWidget):
         painter.drawText(0, 0, 450, 50, QtGui.Qt.AlignLeft, 'Models in Comparisons: ')
         painter.end()
         # create label to contain the texts
-        self.model_selection_label = QLabel(self)
-        self.model_selection_label.setFixedSize(QtCore.QSize(500, 50))
-        self.model_selection_label.setPixmap(model_selection_pixmap)
-        self.model_selection_label.setContentsMargins(20, 0, 0, 0)
+        model_selection_label = QLabel(self)
+        model_selection_label.setFixedSize(QtCore.QSize(500, 50))
+        model_selection_label.setPixmap(model_selection_pixmap)
+        model_selection_label.setContentsMargins(0, 0, 0, 0)
 
-        # model 1
-        # graphic representation
+        # model 1 icon (used to add to model selection drop down menu)
         self.model_1_label = QLabel(self)
         self.model_1_label.setContentsMargins(0, 0, 0, 0)
         self.model_1_label.setAlignment(QtCore.Qt.AlignCenter)
         model_1_icon = QPixmap(25, 25)
         model_1_icon.fill(QtCore.Qt.white)
-        # draw model representation
         painter = QtGui.QPainter(model_1_icon)
         interface_util.draw_circle(painter, 12, 12, 10, 'blue')
+
+        # model 1 selection drop down menu
         self.model_1_menu = QtWidgets.QComboBox()
         self.model_1_menu.setStyleSheet(
             'color: black; font-size: 34px; font-family: Helvetica; font-style: normal;'
         )
-        # model 1 names
         self.model_1_menu.setFixedSize(QtCore.QSize(200, 50))
         self.model_1_menu.addItem(model_1_icon, 'Original')
         self.model_1_menu.addItem(model_1_icon, 'Data Aug')
@@ -330,16 +339,16 @@ class UI_MainWindow(QWidget):
         self.model_1_cache_name = self.model_1_name.split(' ')[0]
         self.model_1 = self.load_point_cloud_model(self.model_1_name)
 
-        # model 2
-        # graphic representation
+        # model 2 icon (used to add to model selection drop down menu)
         self.model_2_label = QLabel(self)
         self.model_2_label.setContentsMargins(0, 0, 0, 0)
         self.model_2_label.setAlignment(QtCore.Qt.AlignCenter)
         model_2_icon = QPixmap(25, 25)
         model_2_icon.fill(QtCore.Qt.white)
-        # draw model representation
         painter = QtGui.QPainter(model_2_icon)
         interface_util.draw_circle(painter, 12, 12, 10, 'magenta')
+
+        # model 1 selection drop down menu
         self.model_2_menu = QtWidgets.QComboBox()
         self.model_2_menu.setStyleSheet(
             'color: black; font-size: 34px; font-family: Helvetica; font-style: normal;'
@@ -359,12 +368,10 @@ class UI_MainWindow(QWidget):
         self.model_2 = self.load_point_cloud_model(self.model_2_name)
 
         # create model menu layout
-        model_menus_layout = QtWidgets.QGridLayout()
-        model_menus_layout.addWidget(self.model_1_menu, 0, 0)
-        model_menus_layout.addWidget(self.model_2_menu, 0, 1)
-        # add to demo layout
-        self.interface_layout.addWidget(self.model_selection_label, 1, 2)
-        self.interface_layout.addLayout(model_menus_layout, 2, 2)
+        model_loading_layout.addWidget(model_selection_label, 0, 0, 1, 2)
+        model_loading_layout.addWidget(self.model_1_menu, 1, 0, 1, 1)
+        model_loading_layout.addWidget(self.model_2_menu, 1, 1, 1, 1)
+        self.layout.addLayout(model_loading_layout, 1, 2, 2, 1)
 
     def load_point_cloud_model(self, model_name):
         # load the mode
@@ -385,22 +392,23 @@ class UI_MainWindow(QWidget):
 
     ################## General NERO Plots Settings Related ##################
     def init_general_control_interface(self):
-        # drop down menu on selection which quantity to plot
-        self.metric_layout = QtWidgets.QHBoxLayout()
-        self.metric_layout.setContentsMargins(20, 0, 0, 0)
-        # QPixmap that contains the title text
+        # metric selection interface layout
+        metric_selection_layout = QtWidgets.QGridLayout()
+        metric_selection_layout.setAlignment(QtCore.Qt.AlignLeft)
+        metric_selection_layout.setHorizontalSpacing(0)
+        metric_selection_layout.setVerticalSpacing(0)
+        # NERO metric text prompt
         metric_pixmap = QPixmap(300, 50)
         metric_pixmap.fill(QtCore.Qt.white)
         painter = QtGui.QPainter(metric_pixmap)
         painter.setFont(QFont('Helvetica', 30))
-        painter.drawText(0, 0, 300, 50, QtGui.Qt.AlignLeft, 'NERO Metric: ')
+        painter.drawText(0, 0, 300, 50, QtGui.Qt.AlignLeft, 'Metric: ')
         painter.end()
-        # QLabel that contains the QPixmap
-        self.metric_label = QLabel(self)
-        self.metric_label.setFixedSize(QtCore.QSize(300, 50))
-        self.metric_label.setPixmap(metric_pixmap)
-        self.metric_label.setContentsMargins(0, 0, 0, 0)
-        # create the drop down menu
+        metric_label = QLabel(self)
+        metric_label.setFixedSize(QtCore.QSize(300, 50))
+        metric_label.setPixmap(metric_pixmap)
+        metric_label.setContentsMargins(0, 0, 0, 0)
+        # NERO metric drop down menu
         self.metric_menu = QtWidgets.QComboBox()
         self.metric_menu.setFixedSize(QtCore.QSize(220, 50))
         self.metric_menu.setStyleSheet(
@@ -416,61 +424,181 @@ class UI_MainWindow(QWidget):
         self.cur_metric = self.metric_menu.currentText()
         # connect the drop down menu with actions
         self.metric_menu.currentTextChanged.connect(self._nero_metric_changed)
-        # add both text and drop down menu to the layout
-        self.metric_layout.addWidget(self.metric_label)
-        self.metric_layout.addWidget(self.metric_menu)
-        # add layout to the interface
-        self.interface_layout.addLayout(self.metric_layout, 0, 2)
+        # add components to the layout
+        metric_selection_layout.addWidget(metric_label, 0, 0)
+        metric_selection_layout.addWidget(self.metric_menu, 0, 1)
+        self.layout.addLayout(metric_selection_layout, 0, 2)
 
         # radio buttons on which plane we are rotating in
-        self.plane_layout = QtWidgets.QHBoxLayout()
-        self.plane_layout.setContentsMargins(0, 0, 0, 0)
-        # QPixmap that contains the title text
-        plane_pixmap = QPixmap(300, 50)
-        plane_pixmap.fill(QtCore.Qt.white)
-        painter = QtGui.QPainter(plane_pixmap)
+        plane_selection_layout = QtWidgets.QGridLayout()
+        plane_selection_layout.setAlignment(QtCore.Qt.AlignLeft)
+        plane_selection_layout.setHorizontalSpacing(0)
+        plane_selection_layout.setVerticalSpacing(0)
+        # plane selection text prompt
+        plane_selection_pixmap = QPixmap(300, 50)
+        plane_selection_pixmap.fill(QtCore.Qt.white)
+        painter = QtGui.QPainter(plane_selection_pixmap)
         painter.setFont(QFont('Helvetica', 30))
-        painter.drawText(0, 0, 300, 50, QtGui.Qt.AlignLeft, 'Slice Plane: ')
+        painter.drawText(0, 0, 300, 50, QtGui.Qt.AlignLeft, 'Plane: ')
         painter.end()
         # QLabel that contains the QPixmap
-        self.plane_label = QLabel(self)
-        self.plane_label.setFixedSize(QtCore.QSize(300, 50))
-        self.plane_label.setPixmap(plane_pixmap)
-        self.plane_label.setContentsMargins(0, 0, 0, 0)
-        # radio buttons
+        plane_selection_label = QLabel(self)
+        plane_selection_label.setFixedSize(QtCore.QSize(300, 50))
+        plane_selection_label.setPixmap(plane_selection_pixmap)
+        plane_selection_label.setContentsMargins(0, 0, 0, 0)
+        # plane selection radio buttons
         # xy button
-        self.xy_radio = QRadioButton('xy')
-        self.xy_radio.setFixedSize(QtCore.QSize(160, 50))
-        self.xy_radio.setContentsMargins(0, 0, 0, 0)
-        self.xy_radio.setStyleSheet(
+        self.xy_plane_button = QRadioButton('xy')
+        self.xy_plane_button.setFixedSize(QtCore.QSize(160, 50))
+        self.xy_plane_button.setContentsMargins(0, 0, 0, 0)
+        self.xy_plane_button.setStyleSheet(
             'color: black; font-style: normal; font-family: Helvetica; font-size: 28px;'
         )
-        self.xy_radio.pressed.connect(self._xy_plane_selected)
+        self.xy_plane_button.pressed.connect(self._xy_plane_selected)
         # xz button
-        self.xz_radio = QRadioButton('xz')
-        self.xz_radio.setFixedSize(QtCore.QSize(160, 50))
-        self.xz_radio.setContentsMargins(0, 0, 0, 0)
-        self.xz_radio.setStyleSheet(
+        self.xz_plane_button = QRadioButton('xz')
+        self.xz_plane_button.setFixedSize(QtCore.QSize(160, 50))
+        self.xz_plane_button.setContentsMargins(0, 0, 0, 0)
+        self.xz_plane_button.setStyleSheet(
             'color: black; font-style: normal; font-family: Helvetica; font-size: 28px;'
         )
-        self.xz_radio.pressed.connect(self._xz_plane_selected)
+        self.xz_plane_button.pressed.connect(self._xz_plane_selected)
         # yz button
-        self.yz_radio = QRadioButton('yz')
-        self.yz_radio.setFixedSize(QtCore.QSize(160, 50))
-        self.yz_radio.setContentsMargins(0, 0, 0, 0)
-        self.yz_radio.setStyleSheet(
+        self.yz_plane_button = QRadioButton('yz')
+        self.yz_plane_button.setFixedSize(QtCore.QSize(160, 50))
+        self.yz_plane_button.setContentsMargins(0, 0, 0, 0)
+        self.yz_plane_button.setStyleSheet(
             'color: black; font-style: normal; font-family: Helvetica; font-size: 28px;'
         )
-        self.yz_radio.pressed.connect(self._yz_plane_selected)
-        # set xy selected by default
-        self.xy_radio.setChecked(True)
+        self.yz_plane_button.pressed.connect(self._yz_plane_selected)
+        # set xy plane selected by default
+        self.xy_plane_button.setChecked(True)
         self.cur_plane = 'xy'
         # add both text and drop down menu to the layout
-        self.plane_layout.addWidget(self.plane_label)
-        self.plane_layout.addWidget(self.xy_radio)
-        self.plane_layout.addWidget(self.xz_radio)
-        self.plane_layout.addWidget(self.yz_radio)
-        self.interface_layout.addLayout(self.plane_layout, 2, 0)
+        plane_selection_layout.addWidget(plane_selection_label, 0, 0, 1, 3)
+        plane_selection_layout.addWidget(self.xy_plane_button, 0, 3)
+        plane_selection_layout.addWidget(self.xz_plane_button, 0, 4)
+        plane_selection_layout.addWidget(self.yz_plane_button, 0, 5)
+        self.layout.addLayout(plane_selection_layout, 2, 0, 1, 1)
+
+        # controls for dimension reduction algorithm selection
+        dr_selection_layout = QtWidgets.QGridLayout()
+        dr_selection_layout.setAlignment(QtCore.Qt.AlignLeft)
+        dr_selection_layout.setHorizontalSpacing(0)
+        dr_selection_layout.setVerticalSpacing(0)
+        # dr selection text prompt
+        dr_selection_pixmap = QPixmap(330, 60)
+        dr_selection_pixmap.fill(QtCore.Qt.white)
+        painter = QtGui.QPainter(dr_selection_pixmap)
+        painter.setFont(QFont('Helvetica', 30))
+        painter.drawText(0, 0, 330, 60, QtGui.Qt.AlignLeft, 'DR Plot:')
+        painter.end()
+        # QLabel that contains the QPixmap
+        dr_selection_label = QLabel(self)
+        dr_selection_label.setFixedSize(QtCore.QSize(330, 60))
+        dr_selection_label.setPixmap(dr_selection_pixmap)
+        # create the drop down menu
+        self.dr_selection_menu = QtWidgets.QComboBox()
+        self.dr_selection_menu.setFixedSize(QtCore.QSize(150, 50))
+        self.dr_selection_menu.setContentsMargins(0, 0, 0, 0)
+        self.dr_selection_menu.setStyleSheet(
+            'color: black; font-family: Helvetica; font-style: normal; font-size: 34px'
+        )
+        self.all_dr_algorithms = ['PCA', 'ICA', 'ISOMAP', 't-SNE', 'UMAP']
+        for cur_algo in self.all_dr_algorithms:
+            self.dr_selection_menu.addItem(f'{cur_algo}')
+        # set default to digit 0, which means PCA
+        self.dr_selection_menu.setCurrentIndex(0)
+        self.cur_dr_algorithm = self.dr_selection_menu.currentText()
+        # connect the drop down menu with actions
+        self.dr_selection_menu.currentTextChanged.connect(self._dr_selection_changed)
+        self.dr_selection_menu.setEditable(True)
+        self.dr_selection_menu.lineEdit().setReadOnly(True)
+        self.dr_selection_menu.lineEdit().setAlignment(QtCore.Qt.AlignRight)
+
+        # radio buttons on using mean or variance for color-encoding
+        # color-encoding text prompt
+        intensity_button_pixmap = QPixmap(300, 60)
+        intensity_button_pixmap.fill(QtCore.Qt.white)
+        painter = QtGui.QPainter(intensity_button_pixmap)
+        painter.setFont(QFont('Helvetica', 30))
+        painter.drawText(0, 0, 300, 60, QtGui.Qt.AlignLeft, 'DR:')
+        painter.end()
+        # create label to contain the texts
+        intensity_button_label = QLabel(self)
+        intensity_button_label.setContentsMargins(0, 0, 0, 0)
+        intensity_button_label.setFixedSize(QtCore.QSize(350, 115))
+        intensity_button_label.setAlignment(QtCore.Qt.AlignLeft)
+        intensity_button_label.setWordWrap(True)
+        intensity_button_label.setTextFormat(QtGui.Qt.AutoText)
+        intensity_button_label.setPixmap(intensity_button_pixmap)
+        intensity_button_label.setContentsMargins(5, 60, 0, 0)
+        # mean button
+        self.mean_intensity_button = QRadioButton('Mean')
+        self.mean_intensity_button.setFixedSize(QtCore.QSize(160, 50))
+        self.mean_intensity_button.setContentsMargins(0, 0, 0, 0)
+        self.mean_intensity_button.setStyleSheet(
+            'color: black; font-style: normal; font-family: Helvetica; font-size: 28px;'
+        )
+        self.mean_intensity_button.pressed.connect(self._mean_intensity_button_clicked)
+        # variance button
+        self.variance_intensity_button = QRadioButton('Variance')
+        self.variance_intensity_button.setFixedSize(QtCore.QSize(160, 50))
+        self.variance_intensity_button.setContentsMargins(0, 0, 0, 0)
+        self.variance_intensity_button.setStyleSheet(
+            'color: black; font-style: normal; font-family: Helvetica; font-size: 28px;'
+        )
+        self.variance_intensity_button.pressed.connect(self._variance_intensity_button_clicked)
+        # by default the intensities are computed via mean
+        self.mean_intensity_button.setChecked(True)
+        self.intensity_method = 'mean'
+        # same colorbar in dr plot as used in aggregate and individual NERO plot
+        color_bar_view = pg.GraphicsLayoutWidget()
+        color_bar_plot = pg.PlotItem()
+        color_bar_plot.layout.setContentsMargins(0, 0, 0, 0)
+        color_bar_plot.setFixedHeight(0)
+        color_bar_plot.setFixedWidth(self.plot_size * 1.2)
+        color_bar_plot.hideAxis('bottom')
+        color_bar_plot.hideAxis('left')
+        color_bar_view.addItem(color_bar_plot)
+        color_bar_image = pg.ImageItem()
+        # cm_range, color map and color bar will be shared with DR and individual NERO plot
+        self.cm_range = (0, 1)
+        self.color_map = pg.colormap.get('viridis')
+        self.color_bar = pg.ColorBarItem(
+            values=self.cm_range,
+            colorMap=self.color_map,
+            interactive=False,
+            orientation='horizontal',
+            width=30,
+        )
+        self.color_bar.setImageItem(color_bar_image, insert_in=color_bar_plot)
+        color_bar_plot.layout.setContentsMargins(50, 0, 0, 0)
+        # add dr related control to layout
+        dr_selection_layout.addWidget(dr_selection_label, 0, 0, 1, 2)
+        dr_selection_layout.addWidget(self.dr_selection_menu, 0, 1, 1, 2)
+        dr_selection_layout.addWidget(intensity_button_label, 1, 0, 2, 1)
+        dr_selection_layout.addWidget(self.mean_intensity_button, 1, 1, 1, 1)
+        dr_selection_layout.addWidget(self.variance_intensity_button, 2, 1, 1, 1)
+        dr_selection_layout.addWidget(color_bar_view, 3, 0, 1, 2)
+        self.layout.addLayout(dr_selection_layout, 0, 1, 3, 1)
+
+        # checkbox on if doing real-time inference
+        self.realtime_inference_checkbox = QtWidgets.QCheckBox('Realtime inference when dragging')
+        self.realtime_inference_checkbox.setStyleSheet(
+            'color: black; font-family: Helvetica; font-style: normal; font-size: 18px; background-color: white;'
+        )
+        self.realtime_inference_checkbox.setFixedSize(QtCore.QSize(300, 30))
+        self.realtime_inference_checkbox.setContentsMargins(0, 0, 0, 0)
+        self.realtime_inference_checkbox.stateChanged.connect(
+            self._realtime_inference_checkbox_clicked
+        )
+        if self.realtime_inference:
+            self.realtime_inference_checkbox.setChecked(True)
+        else:
+            self.realtime_inference_checkbox.setChecked(False)
+        # layout that controls the plotting items
+        self.layout.addWidget(self.realtime_inference_checkbox, 0, 3)
 
     ################## Aggregate NERO Plots Related ##################
     def prepare_aggregate_results(self):
@@ -608,34 +736,29 @@ class UI_MainWindow(QWidget):
             )
 
     def init_aggregate_plot_interface(self):
+        # general control interface layout
+        aggregate_nero_layout = QtWidgets.QGridLayout()
+        aggregate_nero_layout.setAlignment(QtCore.Qt.AlignLeft)
+        aggregate_nero_layout.setHorizontalSpacing(0)
+        aggregate_nero_layout.setVerticalSpacing(0)
+
         # display in heatmap
-        # heatmap view
-        self.aggregate_heatmap_view_1 = pg.GraphicsLayoutWidget()
-        self.aggregate_heatmap_view_1.ci.layout.setContentsMargins(
-            0, 0, 0, 0
-        )  # left top right bottom
-        self.aggregate_heatmap_view_1.setFixedSize(self.plot_size * 1.35, self.plot_size * 1.35)
-
-        self.aggregate_heatmap_view_2 = pg.GraphicsLayoutWidget()
-        self.aggregate_heatmap_view_2.ci.layout.setContentsMargins(
-            0, 0, 0, 0
-        )  # left top right bottom
-        self.aggregate_heatmap_view_2.setFixedSize(self.plot_size * 1.35, self.plot_size * 1.35)
-        # draw the plot
-        # cm_range, color map and color bar will be shared with DR and individual NERO plot
-        self.cm_range = (0, 1)
-        self.color_map = pg.colormap.get('viridis')
-        self.color_bar = pg.ColorBarItem(
-            values=self.cm_range,
-            colorMap=self.color_map,
-            interactive=False,
-            orientation='horizontal',
-            width=30,
+        # heatmap view for model 1
+        self.aggregate_nero_view_1 = pg.GraphicsLayoutWidget()
+        self.aggregate_nero_view_1.ci.layout.setContentsMargins(
+            0, 0, 0, 0  # left top right bottom
         )
-
+        self.aggregate_nero_view_1.setFixedSize(self.plot_size * 1.35, self.plot_size * 1.35)
+        # heatmap view for model 2
+        self.aggregate_nero_view_2 = pg.GraphicsLayoutWidget()
+        self.aggregate_nero_view_2.ci.layout.setContentsMargins(
+            0, 0, 0, 0  # left top right bottom
+        )
+        self.aggregate_nero_view_2.setFixedSize(self.plot_size * 1.35, self.plot_size * 1.35)
         # add view to layout
-        self.interface_layout.addWidget(self.aggregate_heatmap_view_1, 3, 0, 3, 1)
-        self.interface_layout.addWidget(self.aggregate_heatmap_view_2, 5, 0, 3, 1)
+        aggregate_nero_layout.addWidget(self.aggregate_nero_view_1, 0, 0)
+        aggregate_nero_layout.addWidget(self.aggregate_nero_view_2, 1, 0)
+        self.layout.addLayout(aggregate_nero_layout, 3, 0)
 
     def draw_point_cloud_aggregate_nero(self):
         # determine the plane index
@@ -693,18 +816,21 @@ class UI_MainWindow(QWidget):
             self.all_rot_angles,
             block_size=self.block_size,
         )
+        # initialize plot
+        self.aggregate_nero_1 = nero_custom_plots.NEROHeatmap(self, 'aggregate', 1)
+        self.aggregate_nero_2 = nero_custom_plots.NEROHeatmap(self, 'aggregate', 2)
         # draw the heatmap
-        self.aggregate_heatmap_plot_1 = interface_util.draw_individual_heatmap(
-            self.processed_aggregate_quantity_1, self.color_bar
+        self.aggregate_heatmap_plot_1 = self._draw_individual_heatmap(
+            self.processed_aggregate_quantity_1, self.aggregate_nero_1
         )
-        self.aggregate_heatmap_plot_2 = interface_util.draw_individual_heatmap(
-            self.processed_aggregate_quantity_2, self.color_bar
+        self.aggregate_heatmap_plot_2 = self._draw_individual_heatmap(
+            self.processed_aggregate_quantity_2, self.aggregate_nero_2
         )
         # add plot to view
-        self.aggregate_heatmap_view_1.clear()
-        self.aggregate_heatmap_view_1.addItem(self.aggregate_heatmap_plot_1)
-        self.aggregate_heatmap_view_2.clear()
-        self.aggregate_heatmap_view_2.addItem(self.aggregate_heatmap_plot_2)
+        self.aggregate_nero_view_1.clear()
+        self.aggregate_nero_view_1.addItem(self.aggregate_heatmap_plot_1)
+        self.aggregate_nero_view_2.clear()
+        self.aggregate_nero_view_2.addItem(self.aggregate_heatmap_plot_2)
 
     ################## DR Plots Related ##################
     def prepare_dr_results(self):
@@ -712,7 +838,6 @@ class UI_MainWindow(QWidget):
         self.all_dr_results_2 = {}
         high_dim_points_constructed_1 = False
         high_dim_points_constructed_2 = False
-        self.all_dr_algorithms = ['PCA', 'ICA', 'ISOMAP', 't-SNE', 'UMAP']
         # iteracte through each dr method
         for cur_algo in self.all_dr_algorithms:
             # for model 1
@@ -737,7 +862,7 @@ class UI_MainWindow(QWidget):
                         )
                     )
                     # get the pred classification results under all rotations for each sample
-                    all_results_1 = self.all_outputs_1.reshape(
+                    all_outputs_reshaped_1 = self.all_outputs_1.reshape(
                         (
                             len(self.point_cloud_paths),
                             len(self.all_planes)
@@ -750,7 +875,9 @@ class UI_MainWindow(QWidget):
                         cur_ground_truth_index = self.cur_classes_names.index(
                             self.point_cloud_paths[i][0]
                         )
-                        self.all_high_dim_points_1[i] = all_results_1[i, :, cur_ground_truth_index]
+                        self.all_high_dim_points_1[i] = all_outputs_reshaped_1[
+                            i, :, cur_ground_truth_index
+                        ]
 
                     high_dim_points_constructed_1 = True
                     interface_util.save_to_cache(
@@ -794,7 +921,7 @@ class UI_MainWindow(QWidget):
                         )
                     )
                     # get the pred classification results under all rotations for each sample
-                    all_results_2 = self.all_outputs_2.reshape(
+                    all_outputs_reshaped_2 = self.all_outputs_2.reshape(
                         (
                             len(self.point_cloud_paths),
                             len(self.all_planes)
@@ -807,7 +934,9 @@ class UI_MainWindow(QWidget):
                         cur_ground_truth_index = self.cur_classes_names.index(
                             self.point_cloud_paths[i][0]
                         )
-                        self.all_high_dim_points_2[i] = all_results_2[i, :, cur_ground_truth_index]
+                        self.all_high_dim_points_2[i] = all_outputs_reshaped_2[
+                            i, :, cur_ground_truth_index
+                        ]
 
                     high_dim_points_constructed_2 = True
                     interface_util.save_to_cache(
@@ -838,97 +967,23 @@ class UI_MainWindow(QWidget):
                     self.cur_class_indices.append(i)
 
     def init_dr_plot_interface(self):
-        # drop down menu on choosing the dimension reduction method
-        # QPixmap that contains the title text
-        dr_selection_pixmap = QPixmap(330, 60)
-        dr_selection_pixmap.fill(QtCore.Qt.white)
-        painter = QtGui.QPainter(dr_selection_pixmap)
-        painter.setFont(QFont('Helvetica', 30))
-        painter.drawText(0, 0, 330, 60, QtGui.Qt.AlignLeft, 'DR Plot:')
-        painter.end()
-        # QLabel that contains the QPixmap
-        self.dr_selection_label = QLabel(self)
-        self.dr_selection_label.setFixedSize(QtCore.QSize(330, 60))
-        self.dr_selection_label.setPixmap(dr_selection_pixmap)
-        # add to the layout
-        dr_selection_layout = QtWidgets.QHBoxLayout()
-        dr_selection_layout.addWidget(self.dr_selection_label)
-        # create the drop down menu
-        self.dr_selection_menu = QtWidgets.QComboBox()
-        self.dr_selection_menu.setFixedSize(QtCore.QSize(150, 50))
-        self.dr_selection_menu.setContentsMargins(0, 0, 0, 0)
-        self.dr_selection_menu.setStyleSheet(
-            'color: black; font-family: Helvetica; font-style: normal; font-size: 34px'
-        )
-        for cur_algo in self.all_dr_algorithms:
-            self.dr_selection_menu.addItem(f'{cur_algo}')
-        # set default to digit 0, which means PCA
-        self.dr_selection_menu.setCurrentIndex(0)
-        self.cur_dr_algorithm = self.dr_selection_menu.currentText()
-        # connect the drop down menu with actions
-        self.dr_selection_menu.currentTextChanged.connect(self._dr_selection_changed)
-        self.dr_selection_menu.setEditable(True)
-        self.dr_selection_menu.lineEdit().setReadOnly(True)
-        self.dr_selection_menu.lineEdit().setAlignment(QtCore.Qt.AlignRight)
-        # add to local layout
-        dr_selection_layout.addWidget(self.dr_selection_menu)
-        self.interface_layout.addLayout(dr_selection_layout, 0, 1, 1, 1)
-
-        # radio buttons on using mean or variance for color-encoding
-        # Title on the two radio buttons
-        intensity_button_pixmap = QPixmap(300, 60)
-        intensity_button_pixmap.fill(QtCore.Qt.white)
-        painter = QtGui.QPainter(intensity_button_pixmap)
-        painter.drawText(0, 0, 300, 60, QtGui.Qt.AlignLeft, 'DR Sorting:')
-        painter.end()
-        # create label to contain the texts
-        intensity_button_label = QLabel(self)
-        intensity_button_label.setContentsMargins(0, 0, 0, 0)
-        intensity_button_label.setFixedSize(QtCore.QSize(350, 115))
-        intensity_button_label.setAlignment(QtCore.Qt.AlignLeft)
-        intensity_button_label.setWordWrap(True)
-        intensity_button_label.setTextFormat(QtGui.Qt.AutoText)
-        intensity_button_label.setPixmap(intensity_button_pixmap)
-        intensity_button_label.setContentsMargins(5, 60, 0, 0)
-        # add to the layout
-        self.scatterplot_sorting_layout = QtWidgets.QGridLayout()
-        # the title occupies two rows because we have two selections (mean and variance)
-        self.scatterplot_sorting_layout.addWidget(intensity_button_label, 0, 0, 2, 1)
-        # mean button
-        self.mean_intensity_button = QRadioButton('Mean')
-        self.mean_intensity_button.setFixedSize(QtCore.QSize(160, 50))
-        self.mean_intensity_button.setContentsMargins(0, 0, 0, 0)
-        self.mean_intensity_button.setStyleSheet(
-            'color: black; font-style: normal; font-family: Helvetica; font-size: 28px;'
-        )
-        self.mean_intensity_button.pressed.connect(self._mean_intensity_button_clicked)
-        self.scatterplot_sorting_layout.addWidget(self.mean_intensity_button, 1, 1, 1, 1)
-        # variance button
-        self.variance_intensity_button = QRadioButton('Variance')
-        self.variance_intensity_button.setFixedSize(QtCore.QSize(160, 50))
-        self.variance_intensity_button.setContentsMargins(0, 0, 0, 0)
-        self.variance_intensity_button.setStyleSheet(
-            'color: black; font-style: normal; font-family: Helvetica; font-size: 28px;'
-        )
-        self.variance_intensity_button.pressed.connect(self._variance_intensity_button_clicked)
-        self.scatterplot_sorting_layout.addWidget(self.variance_intensity_button, 2, 1, 1, 1)
-        # self.scatterplot_sorting_layout.setContentsMargins(0, 0, 30, 0)
-        self.interface_layout.addLayout(self.scatterplot_sorting_layout, 1, 1, 2, 1)
-        # by default the intensities are computed via mean
-        self.mean_intensity_button.setChecked(True)
-        self.intensity_method = 'mean'
+        # dr plot interface layout
+        dr_plots_layout = QtWidgets.QGridLayout()
+        dr_plots_layout.setAlignment(QtCore.Qt.AlignLeft)
+        dr_plots_layout.setHorizontalSpacing(0)
+        dr_plots_layout.setVerticalSpacing(0)
 
         # scatter item size for both dr plots
         self.scatter_item_size = 12
-
         # initialize selected index
-        self.point_cloud_index = None
+        self.point_cloud_index = 0
 
         # dr plot for model 1
         self.low_dim_scatter_view_1 = pg.GraphicsLayoutWidget()
         self.low_dim_scatter_view_1.setBackground('white')
         self.low_dim_scatter_view_1.setFixedSize(self.plot_size * 1.3, self.plot_size * 1.3)
         self.low_dim_scatter_view_1.ci.setContentsMargins(20, 0, 0, 0)
+        # self.layout.addWidget(self.low_dim_scatter_view_1, 2, 1, 3, 1)
         # add plot
         self.low_dim_scatter_plot_1 = self.low_dim_scatter_view_1.addPlot()
         self.low_dim_scatter_plot_1.setContentsMargins(0, 0, 0, 150)
@@ -947,6 +1002,7 @@ class UI_MainWindow(QWidget):
         self.low_dim_scatter_view_2.setBackground('white')
         self.low_dim_scatter_view_2.setFixedSize(self.plot_size * 1.25, self.plot_size * 1.25)
         self.low_dim_scatter_view_2.ci.setContentsMargins(20, 0, 0, 0)
+        # self.layout.addWidget(self.low_dim_scatter_view_2, 4, 1, 3, 1)
         # add plot
         self.low_dim_scatter_plot_2 = self.low_dim_scatter_view_2.addPlot()
         self.low_dim_scatter_plot_2.hideAxis('left')
@@ -959,26 +1015,12 @@ class UI_MainWindow(QWidget):
         # No auto range when adding new item (red indicator)
         self.low_dim_scatter_plot_2.vb.disableAutoRange(axis=pg.ViewBox.XYAxes)
 
-        # same colorbar in dr plot as used in aggregate and individual NERO plot
-        color_bar_view = pg.GraphicsLayoutWidget()
-        color_bar_plot = pg.PlotItem()
-        color_bar_plot.layout.setContentsMargins(0, 0, 0, 0)
-        color_bar_plot.setFixedHeight(0)
-        color_bar_plot.setFixedWidth(self.plot_size * 1.2)
-        color_bar_plot.hideAxis('bottom')
-        color_bar_plot.hideAxis('left')
-        color_bar_view.addItem(color_bar_plot)
-        color_bar_image = pg.ImageItem()
-        self.color_bar.setImageItem(color_bar_image, insert_in=color_bar_plot)
-        self.scatterplot_sorting_layout.addWidget(color_bar_view, 3, 0, 1, 2)
-        color_bar_plot.layout.setContentsMargins(50, 0, 0, 0)
-
         # sliders that rank the dimension reduction result and can select one of them
         # slider 1
-        self.slider_1_layout = QtWidgets.QGridLayout()
-        self.slider_1_layout.setVerticalSpacing(0)
+        slider_1_layout = QtWidgets.QGridLayout()
+        slider_1_layout.setVerticalSpacing(0)
         self.dr_result_selection_slider_1 = QtWidgets.QSlider(QtCore.Qt.Horizontal)
-        self.dr_result_selection_slider_1.setFixedSize(self.plot_size, 50)
+        self.dr_result_selection_slider_1.setFixedSize(self.plot_size + 30, 50)
         self.dr_result_selection_slider_1.setMinimum(0)
         self.dr_result_selection_slider_1.setMaximum(len(self.cur_class_indices) - 1)
         self.dr_result_selection_slider_1.setValue(0)
@@ -987,7 +1029,7 @@ class UI_MainWindow(QWidget):
         self.dr_result_selection_slider_1.valueChanged.connect(
             self._dr_result_selection_slider_1_changed
         )
-        self.slider_1_layout.addWidget(self.dr_result_selection_slider_1, 0, 0, 1, 3)
+        slider_1_layout.addWidget(self.dr_result_selection_slider_1, 0, 0, 1, 3)
         # left and right buttons to move the slider around, with number in the middle
         # left button
         self.slider_1_left_button = QtWidgets.QToolButton()
@@ -995,7 +1037,7 @@ class UI_MainWindow(QWidget):
         self.slider_1_left_button.clicked.connect(self._slider_1_left_button_clicked)
         self.slider_1_left_button.setFixedSize(30, 30)
         self.slider_1_left_button.setStyleSheet('color: black')
-        self.slider_1_layout.addWidget(self.slider_1_left_button, 1, 0, 1, 1)
+        slider_1_layout.addWidget(self.slider_1_left_button, 1, 0, 1, 1)
         # middle text
         slider_1_text_pixmap = QPixmap(300, 50)
         slider_1_text_pixmap.fill(QtCore.Qt.white)
@@ -1016,25 +1058,24 @@ class UI_MainWindow(QWidget):
         self.slider_1_text_label.setFixedSize(QtCore.QSize(150, 50))
         self.slider_1_text_label.setAlignment(QtCore.Qt.AlignCenter)
         self.slider_1_text_label.setPixmap(slider_1_text_pixmap)
-        self.slider_1_layout.addWidget(self.slider_1_text_label, 1, 1, 1, 1)
+        slider_1_layout.addWidget(self.slider_1_text_label, 1, 1, 1, 1)
         # right button
         self.slider_1_right_button = QtWidgets.QToolButton()
         self.slider_1_right_button.setArrowType(QtCore.Qt.RightArrow)
         self.slider_1_right_button.setFixedSize(30, 30)
         self.slider_1_right_button.setStyleSheet('color: black')
         self.slider_1_right_button.clicked.connect(self._slider_1_right_button_clicked)
-        self.slider_1_layout.addWidget(self.slider_1_right_button, 1, 2, 1, 1)
+        slider_1_layout.addWidget(self.slider_1_right_button, 1, 2, 1, 1)
         # initialize slider selection
         self.slider_1_selected_index = None
-        # add slider 1 layout to the general layout
-        self.interface_layout.addLayout(self.slider_1_layout, 4, 1, 1, 1)
-        self.slider_1_layout.setContentsMargins(40, 0, 0, 0)
+        self.slider_1_locked = False
+        slider_1_layout.setContentsMargins(0, 0, 0, 0)
 
         # slider 2
-        self.slider_2_layout = QtWidgets.QGridLayout()
-        self.slider_2_layout.setVerticalSpacing(0)
+        slider_2_layout = QtWidgets.QGridLayout()
+        slider_2_layout.setVerticalSpacing(0)
         self.dr_result_selection_slider_2 = QtWidgets.QSlider(QtCore.Qt.Horizontal)
-        self.dr_result_selection_slider_2.setFixedSize(self.plot_size, 50)
+        self.dr_result_selection_slider_2.setFixedSize(self.plot_size + 30, 50)
         self.dr_result_selection_slider_2.setMinimum(0)
         self.dr_result_selection_slider_2.setMaximum(len(self.cur_class_indices) - 1)
         self.dr_result_selection_slider_2.setValue(0)
@@ -1043,7 +1084,7 @@ class UI_MainWindow(QWidget):
         self.dr_result_selection_slider_2.valueChanged.connect(
             self._dr_result_selection_slider_2_changed
         )
-        self.slider_2_layout.addWidget(self.dr_result_selection_slider_2, 0, 0, 1, 3)
+        slider_2_layout.addWidget(self.dr_result_selection_slider_2, 0, 0, 1, 3)
         # left and right buttons to move the slider around, with number in the middle
         # left button
         self.slider_2_left_button = QtWidgets.QToolButton()
@@ -1051,7 +1092,7 @@ class UI_MainWindow(QWidget):
         self.slider_2_left_button.setFixedSize(30, 30)
         self.slider_2_left_button.setStyleSheet('color: black')
         self.slider_2_left_button.clicked.connect(self._slider_2_left_button_clicked)
-        self.slider_2_layout.addWidget(self.slider_2_left_button, 1, 0, 1, 1)
+        slider_2_layout.addWidget(self.slider_2_left_button, 1, 0, 1, 1)
         # middle text
         slider_2_text_pixmap = QPixmap(150, 30)
         slider_2_text_pixmap.fill(QtCore.Qt.white)
@@ -1072,19 +1113,25 @@ class UI_MainWindow(QWidget):
         self.slider_2_text_label.setFixedSize(QtCore.QSize(150, 50))
         self.slider_2_text_label.setAlignment(QtCore.Qt.AlignCenter)
         self.slider_2_text_label.setPixmap(slider_2_text_pixmap)
-        self.slider_2_layout.addWidget(self.slider_2_text_label, 1, 1, 1, 1)
+        slider_2_layout.addWidget(self.slider_2_text_label, 1, 1, 1, 1)
         # right button
         self.slider_2_right_button = QtWidgets.QToolButton()
         self.slider_2_right_button.setArrowType(QtCore.Qt.RightArrow)
         self.slider_2_right_button.setFixedSize(30, 30)
         self.slider_2_right_button.setStyleSheet('color: black')
         self.slider_2_right_button.clicked.connect(self._slider_2_right_button_clicked)
-        self.slider_2_layout.addWidget(self.slider_2_right_button, 1, 2, 1, 1)
+        slider_2_layout.addWidget(self.slider_2_right_button, 1, 2, 1, 1)
         # initialize slider selection
         self.slider_2_selected_index = None
-        # add slider 2 layout to the general layout
-        self.interface_layout.addLayout(self.slider_2_layout, 6, 1, 1, 1)
-        self.slider_2_layout.setContentsMargins(40, 0, 0, 0)
+        self.slider_2_locked = False
+        slider_2_layout.setContentsMargins(0, 0, 0, 0)
+
+        # add components to layout
+        dr_plots_layout.addWidget(self.low_dim_scatter_view_1, 0, 0)
+        dr_plots_layout.addLayout(slider_1_layout, 1, 0)
+        dr_plots_layout.addWidget(self.low_dim_scatter_view_2, 2, 0)
+        dr_plots_layout.addLayout(slider_2_layout, 3, 0)
+        self.layout.addLayout(dr_plots_layout, 3, 1)
 
     def draw_dr_plot(self):
         # high dimensional points of the current class
@@ -1136,9 +1183,93 @@ class UI_MainWindow(QWidget):
             self.slider_2_selected_index,
         )
 
+    ################## Point Cloud Sample Visualization Related ##################
+    def init_point_cloud_vis_interface(self):
+        pass
+
+    def draw_point_cloud(self):
+        pass
+
     ################## Individual NERO Plot Related ##################
+    def init_individual_plot_interface(self):
+        # heatmap view for model 1
+        self.individual_nero_view_1 = pg.GraphicsLayoutWidget()
+        self.individual_nero_view_1.ci.layout.setContentsMargins(
+            0, 0, 0, 0  # left top right bottom
+        )
+        self.individual_nero_view_1.setFixedSize(self.plot_size * 1.2, self.plot_size * 1.2)
+        # heatmap view for model 2
+        self.individual_nero_view_2 = pg.GraphicsLayoutWidget()
+        self.individual_nero_view_2.ci.layout.setContentsMargins(
+            0, 0, 0, 0  # left top right bottom
+        )
+        self.individual_nero_view_2.setFixedSize(self.plot_size * 1.2, self.plot_size * 1.2)
+        # add view to layout
+        self.layout.addWidget(self.individual_nero_view_1, 3, 2, 1, 1)
+        self.layout.addWidget(self.individual_nero_view_2, 5, 2, 1, 1)
+
+        # initialize highlighters on individual NERO plots
+        self.highlighter_1 = pg.ScatterPlotItem(pxMode=False)
+        self.highlighter_1.setSymbol('s')
+        self.highlighter_2 = pg.ScatterPlotItem(pxMode=False)
+        self.highlighter_2.setSymbol('s')
+
+    def draw_point_cloud_individual_nero(self):
+        # get the results from aggregate results with respect to user selected sample
+        self.ground_truth_index = self.cur_classes_names.index(
+            self.point_cloud_paths[self.point_cloud_index][0]
+        )
+        self.cur_individual_plot_quantity_1 = self.all_outputs_1[
+            self.cur_plane_index, :, :, self.point_cloud_index, self.ground_truth_index
+        ]
+        self.cur_individual_plot_quantity_2 = self.all_outputs_2[
+            self.cur_plane_index, :, :, self.point_cloud_index, self.ground_truth_index
+        ]
+        # convert the result to polar plot data fit in rectangular array
+        # model 1 results
+        (
+            self.processed_individual_quantity_1,
+            self.processed_individual_quaternion_1,
+        ) = interface_util.process_point_cloud_result(
+            self.cur_individual_plot_quantity_1,
+            self.cur_plane,
+            self.all_axis_angles,
+            self.all_rot_angles,
+            block_size=self.block_size,
+        )
+        # model 2 results
+        (
+            self.processed_individual_quantity_2,
+            self.processed_individual_quaternion_2,
+        ) = interface_util.process_point_cloud_result(
+            self.cur_individual_plot_quantity_2,
+            self.cur_plane,
+            self.all_axis_angles,
+            self.all_rot_angles,
+            block_size=self.block_size,
+        )
+        # initialize plot
+        self.individual_nero_1 = nero_custom_plots.NEROHeatmap(self, 'individual', 1)
+        self.individual_nero_2 = nero_custom_plots.NEROHeatmap(self, 'individual', 2)
+        # draw the heatmap
+        self.individual_heatmap_plot_1 = self._draw_individual_heatmap(
+            self.processed_individual_quantity_1, self.individual_nero_1
+        )
+        self.individual_heatmap_plot_2 = self._draw_individual_heatmap(
+            self.processed_individual_quantity_2, self.individual_nero_2
+        )
+        # add plot to view
+        self.individual_nero_view_1.clear()
+        self.individual_nero_view_1.addItem(self.aggregate_heatmap_plot_1)
+        self.individual_nero_view_2.clear()
+        self.individual_nero_view_2.addItem(self.aggregate_heatmap_plot_2)
 
     ################## Detail Plot Related ##################
+    def init_detail_plot_interface(self):
+        pass
+
+    def draw_point_cloud_detail_plot(self):
+        pass
 
     ################## All private functions ##################
     # dataset drop-down menu
@@ -1157,18 +1288,20 @@ class UI_MainWindow(QWidget):
         self.draw_point_cloud_aggregate_nero()
         # update dr plot
         self.draw_dr_plot()
-        # TODO: individiaul NERO plot
-        # TODO: detail plot
+        # update visualization of selected point cloud
+        self.draw_point_cloud()
+        # update individiaul NERO plot
+        self.draw_point_cloud_individual_nero()
+        # update detail plot
+        self.draw_point_cloud_detail_plot()
 
     # dataset class selection drop-down menu
     @QtCore.Slot()
     def _class_selection_changed(self, text):
         # re-initialize the scatter plot
         self.dr_result_existed = False
-
         # udpate class selection
         self.class_selection = text.lower()
-
         # update the data indices according to class selection
         self.cur_class_indices = []
         if self.class_selection == 'all':
@@ -1182,8 +1315,12 @@ class UI_MainWindow(QWidget):
         self.draw_point_cloud_aggregate_nero()
         # update dr plot
         self.draw_dr_plot()
-        # TODO: individiaul NERO plot
-        # TODO: detail plot
+        # update visualization of selected point cloud
+        self.draw_point_cloud()
+        # update individiaul NERO plot
+        self.draw_point_cloud_individual_nero()
+        # update detail plot
+        self.draw_point_cloud_detail_plot()
 
     # drop down menu that let user select model 1
     @QtCore.Slot()
@@ -1198,8 +1335,12 @@ class UI_MainWindow(QWidget):
         self.draw_point_cloud_aggregate_nero()
         # update dr plot
         self.draw_dr_plot()
-        # TODO: individiaul NERO plot
-        # TODO: detail plot
+        # update visualization of selected point cloud
+        self.draw_point_cloud()
+        # update individiaul NERO plot
+        self.draw_point_cloud_individual_nero()
+        # update detail plot
+        self.draw_point_cloud_detail_plot()
 
     # drop down menu that lets user select model 2
     @QtCore.Slot()
@@ -1214,8 +1355,12 @@ class UI_MainWindow(QWidget):
         self.draw_point_cloud_aggregate_nero()
         # update dr plot
         self.draw_dr_plot()
-        # TODO: individiaul NERO plot
-        # TODO: detail plot
+        # update visualization of selected point cloud
+        self.draw_point_cloud()
+        # update individiaul NERO plot
+        self.draw_point_cloud_individual_nero()
+        # update detail plot
+        self.draw_point_cloud_detail_plot()
 
     # drop down menu that lets user select NERO metric
     @QtCore.Slot()
@@ -1227,8 +1372,12 @@ class UI_MainWindow(QWidget):
         self.draw_point_cloud_aggregate_nero()
         # update dr plot
         self.draw_dr_plot()
-        # TODO: individiaul NERO plot
-        # TODO: detail plot
+        # update visualization of selected point cloud
+        self.draw_point_cloud()
+        # update individiaul NERO plot
+        self.draw_point_cloud_individual_nero()
+        # update detail plot
+        self.draw_point_cloud_detail_plot()
 
     @QtCore.Slot()
     def _xy_plane_selected(self):
@@ -1238,8 +1387,12 @@ class UI_MainWindow(QWidget):
         self.draw_point_cloud_aggregate_nero()
         # update dr plot
         self.draw_dr_plot()
-        # TODO: individiaul NERO plot
-        # TODO: detail plot
+        # update visualization of selected point cloud
+        self.draw_point_cloud()
+        # update individiaul NERO plot
+        self.draw_point_cloud_individual_nero()
+        # update detail plot
+        self.draw_point_cloud_detail_plot()
 
     @QtCore.Slot()
     def _xz_plane_selected(self):
@@ -1249,8 +1402,12 @@ class UI_MainWindow(QWidget):
         self.draw_point_cloud_aggregate_nero()
         # update dr plot
         self.draw_dr_plot()
-        # TODO: individiaul NERO plot
-        # TODO: detail plot
+        # update visualization of selected point cloud
+        self.draw_point_cloud()
+        # update individiaul NERO plot
+        self.draw_point_cloud_individual_nero()
+        # update detail plot
+        self.draw_point_cloud_detail_plot()
 
     @QtCore.Slot()
     def _yz_plane_selected(self):
@@ -1260,8 +1417,19 @@ class UI_MainWindow(QWidget):
         self.draw_point_cloud_aggregate_nero()
         # update dr plot
         self.draw_dr_plot()
-        # TODO: individiaul NERO plot
-        # TODO: detail plot
+        # update visualization of selected point cloud
+        self.draw_point_cloud()
+        # update individiaul NERO plot
+        self.draw_point_cloud_individual_nero()
+        # update detail plot
+        self.draw_point_cloud_detail_plot()
+
+    @QtCore.Slot()
+    def _realtime_inference_checkbox_clicked(self):
+        if self.realtime_inference_checkbox.isChecked():
+            self.realtime_inference = True
+        else:
+            self.realtime_inference = False
 
     @QtCore.Slot()
     # change different dimension reduction algorithms
@@ -1429,16 +1597,16 @@ class UI_MainWindow(QWidget):
     def _low_dim_scatter_clicked(self, item=None, points=None):
         # get the clicked scatter item's information
         # when item is not none, it is from real click
-        if item != None:
-            self.point_cloud_index = int(item.opts['name'])
-            print(f'clicked image index {self.point_cloud_index}')
-        # when the input is empty, it is called automatically
-        else:
-            # image index should be defined
-            if self.point_cloud_index == None:
-                raise Exception(
-                    'point_cloud_index should be defined prior to calling run_dimension_reduction'
-                )
+        # if item != None:
+        self.point_cloud_index = int(item.opts['name'])
+        print(f'clicked image index {self.point_cloud_index}')
+        # # when the input is empty, it is called automatically
+        # else:
+        #     # image index should be defined
+        #     if self.point_cloud_index == None:
+        #         raise Exception(
+        #             'point_cloud_index should be defined prior to calling run_dimension_reduction'
+        #         )
 
         # get the ranking in each colorbar and change its value while locking both sliders
         # slider 1
@@ -1463,9 +1631,12 @@ class UI_MainWindow(QWidget):
         self.point_cloud_path = self.point_cloud_paths[self.point_cloud_index][1]
         print(f'Selected point cloud at {self.point_cloud_path}')
 
-        # TODO: visualize point cloud
-        # TODO: individiaul NERO plot
-        # TODO: detail plot
+        # visualize point cloud
+        self.draw_point_cloud()
+        # individiaul NERO plot
+        self.draw_point_cloud_individual_nero()
+        # detail plot
+        self.draw_point_cloud_detail_plot()
 
     # when hovered on the scatter plot item
     @QtCore.Slot()
@@ -1499,10 +1670,10 @@ class UI_MainWindow(QWidget):
             color_indices.append(scatter_lut[int(lut_index)])
 
         # image index position in the current sorted class indices
-        if self.point_cloud_index != None:
-            sorted_selected_index = sorted_class_indices.index(self.point_cloud_index)
-        else:
-            sorted_selected_index = len(sorted_class_indices) - 1
+        # if self.point_cloud_index != None:
+        sorted_selected_index = sorted_class_indices.index(self.point_cloud_index)
+        # else:
+        #     sorted_selected_index = len(sorted_class_indices) - 1
 
         for i, index in enumerate(sorted_class_indices):
             # add the selected item's color at last to make sure that the current selected item is always on top (rendered last)
@@ -1588,7 +1759,54 @@ class UI_MainWindow(QWidget):
         low_dim_scatter_item.sigClicked.connect(self._low_dim_scatter_clicked)
         low_dim_scatter_item.sigHovered.connect(self._low_dim_scatter_hovered)
         # add points to the plot
+        low_dim_scatter_plot.clear()
         low_dim_scatter_plot.addItem(low_dim_scatter_item)
+
+    def _draw_individual_heatmap(self, data, heatmap=None, highlighter=None, title=None):
+
+        # viewbox that contains the heatmap
+        view_box = pg.ViewBox(invertY=True)
+        view_box.setAspectLocked(lock=True)
+        # set up heatmap plot, image and viewbox
+        heatmap.setImage(data)
+        heatmap.setOpts(axisOrder='row-major')
+        # connnect colorbar
+        self.color_bar.setImageItem(heatmap)
+        # add image to the viewbox
+        view_box.addItem(heatmap)
+        # so that displaying highlighter at the boundary does not jitter the plot
+        view_box.disableAutoRange()
+        # plot item that contains viewbox
+        heatmap_plot = pg.PlotItem(viewBox=view_box, title=title)
+        # disable being able to move plot around
+        heatmap_plot.setMouseEnabled(x=False, y=False)
+        # display arguments
+        x_label_style = {'color': 'white'}   # white so it is not visible
+        heatmap_plot.getAxis('bottom').setLabel(**x_label_style)
+        heatmap_plot.getAxis('bottom').setStyle(tickLength=0, showValues=False)
+        y_label_style = {'color': 'white'}   # white so it is not visible
+        heatmap_plot.getAxis('left').setLabel(**y_label_style)
+        heatmap_plot.getAxis('left').setStyle(tickLength=0, showValues=False)
+
+        # when we are adding highlighter to the heatmap
+        if highlighter:
+            # small highlighter showing where the transformation is at the nero plot
+            scatter_point = [
+                {
+                    'pos': (
+                        self.cur_x_tran + self.translation_step_single // 2,
+                        self.cur_y_tran + self.translation_step_single // 2,
+                    ),
+                    'size': self.translation_step_single,
+                    'pen': {'color': 'red', 'width': 3},
+                    'brush': (0, 0, 0, 0),
+                }
+            ]
+            # add highlighter to the plot
+            highlighter.setData(scatter_point)
+            heatmap_plot.addItem(highlighter)
+
+        return heatmap_plot
 
 
 if __name__ == '__main__':
