@@ -10,6 +10,22 @@ from sklearn.manifold import TSNE
 import umap
 
 import quaternions
+import nero_utilities
+
+
+# helper function on normalizing low dimension points within [-1, 1] sqaure
+def normalize_low_dim_result(low_dim):
+    # to preserve shape, largest bound are taken from either axis
+    all_min = np.min(low_dim)
+    all_max = np.max(low_dim)
+
+    # lerp each point's x and y into [-1, 1]
+    new_low_dim = np.zeros(low_dim.shape)
+    new_low_dim[:, 0] = nero_utilities.lerp(low_dim[:, 0], all_min, all_max, -1, 1)
+    new_low_dim[:, 1] = nero_utilities.lerp(low_dim[:, 1], all_min, all_max, -1, 1)
+
+    return new_low_dim
+
 
 # function used as model icon
 def draw_circle(painter, center_x, center_y, radius, color):

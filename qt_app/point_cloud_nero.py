@@ -28,7 +28,7 @@ import warnings
 # import teem
 # import qiv
 import datasets
-import interface_util
+import qt_app.nero_interface_util as nero_interface_util
 
 warnings.filterwarnings('ignore')
 
@@ -165,19 +165,17 @@ class UI_MainWindow(QWidget):
         data_loading_layout.setAlignment(QtCore.Qt.AlignLeft)
         data_loading_layout.setHorizontalSpacing(0)
         data_loading_layout.setVerticalSpacing(0)
-
         # dataset selection text prompt
-        dataset_selection_pixmap = QPixmap(350, 50)
+        dataset_selection_pixmap = QPixmap(300, 50)
         dataset_selection_pixmap.fill(QtCore.Qt.white)
         painter = QtGui.QPainter(dataset_selection_pixmap)
         painter.setFont(QFont('Helvetica', 30))
-        painter.drawText(0, 0, 350, 50, QtGui.Qt.AlignLeft, 'Data Set:')
+        painter.drawText(0, 0, 300, 50, QtGui.Qt.AlignLeft, 'Data Set:')
         painter.end()
         # create label to contain the texts
         dataset_selection_label = QLabel(self)
-        dataset_selection_label.setFixedSize(QtCore.QSize(300, 50))
+        dataset_selection_label.setFixedSize(QtCore.QSize(350, 50))
         dataset_selection_label.setPixmap(dataset_selection_pixmap)
-
         # dataset selection drop down menu
         self.dataset_selection_menu = QtWidgets.QComboBox()
         self.dataset_selection_menu.setFixedSize(QtCore.QSize(220, 50))
@@ -193,23 +191,31 @@ class UI_MainWindow(QWidget):
         # set default data selection
         self.dataset_selection_menu.setCurrentIndex(self.dataset_index)
         self.dataset_name = self.dataset_selection_menu.currentText()
-
         # connect the drop down menu with actions
         self.dataset_selection_menu.currentTextChanged.connect(self._dataset_selection_changed)
         self.dataset_selection_menu.setEditable(True)
         self.dataset_selection_menu.lineEdit().setReadOnly(True)
         self.dataset_selection_menu.lineEdit().setAlignment(QtCore.Qt.AlignCenter)
+        # add components to layout
+        data_loading_layout.addWidget(dataset_selection_label, 0, 0)
+        data_loading_layout.addWidget(self.dataset_selection_menu, 0, 1)
+        self.layout.addLayout(data_loading_layout, 0, 0, 1, 1)
 
+        # class loading interface layout
+        class_loading_layout = QtWidgets.QGridLayout()
+        class_loading_layout.setAlignment(QtCore.Qt.AlignLeft)
+        class_loading_layout.setHorizontalSpacing(0)
+        class_loading_layout.setVerticalSpacing(0)
         # class selection text prompt
         class_selection_pixmap = QPixmap(300, 50)
         class_selection_pixmap.fill(QtCore.Qt.white)
         painter = QtGui.QPainter(class_selection_pixmap)
         painter.setFont(QFont('Helvetica', 30))
-        painter.drawText(0, 0, 350, 50, QtGui.Qt.AlignLeft, 'Subset: ')
+        painter.drawText(0, 0, 300, 50, QtGui.Qt.AlignLeft, 'Subset: ')
         painter.end()
         # QLabel that contains the QPixmap
         class_selection_label = QLabel(self)
-        class_selection_label.setFixedSize(QtCore.QSize(400, 50))
+        class_selection_label.setFixedSize(QtCore.QSize(350, 50))
         class_selection_label.setPixmap(class_selection_pixmap)
 
         # class selection drop down menu
@@ -232,13 +238,10 @@ class UI_MainWindow(QWidget):
         self.class_selection_menu.setEditable(True)
         self.class_selection_menu.lineEdit().setReadOnly(True)
         self.class_selection_menu.lineEdit().setAlignment(QtCore.Qt.AlignCenter)
-
         # add components to layout
-        data_loading_layout.addWidget(dataset_selection_label, 0, 0)
-        data_loading_layout.addWidget(self.dataset_selection_menu, 0, 1)
-        data_loading_layout.addWidget(class_selection_label, 1, 0)
-        data_loading_layout.addWidget(self.class_selection_menu, 1, 1)
-        self.layout.addLayout(data_loading_layout, 0, 0, 2, 1)
+        class_loading_layout.addWidget(class_selection_label, 0, 0)
+        class_loading_layout.addWidget(self.class_selection_menu, 0, 1)
+        self.layout.addLayout(class_loading_layout, 1, 0, 1, 1)
 
     def load_point_cloud_data(self):
 
@@ -318,7 +321,7 @@ class UI_MainWindow(QWidget):
         model_1_icon = QPixmap(25, 25)
         model_1_icon.fill(QtCore.Qt.white)
         painter = QtGui.QPainter(model_1_icon)
-        interface_util.draw_circle(painter, 12, 12, 10, 'blue')
+        nero_interface_util.draw_circle(painter, 12, 12, 10, 'blue')
 
         # model 1 selection drop down menu
         self.model_1_menu = QtWidgets.QComboBox()
@@ -346,7 +349,7 @@ class UI_MainWindow(QWidget):
         model_2_icon = QPixmap(25, 25)
         model_2_icon.fill(QtCore.Qt.white)
         painter = QtGui.QPainter(model_2_icon)
-        interface_util.draw_circle(painter, 12, 12, 10, 'magenta')
+        nero_interface_util.draw_circle(painter, 12, 12, 10, 'magenta')
 
         # model 1 selection drop down menu
         self.model_2_menu = QtWidgets.QComboBox()
@@ -434,52 +437,40 @@ class UI_MainWindow(QWidget):
         plane_selection_layout.setAlignment(QtCore.Qt.AlignLeft)
         plane_selection_layout.setHorizontalSpacing(0)
         plane_selection_layout.setVerticalSpacing(0)
+        # plane_selection_layout.setColumnStretch(0, 2)
         # plane selection text prompt
         plane_selection_pixmap = QPixmap(300, 50)
         plane_selection_pixmap.fill(QtCore.Qt.white)
         painter = QtGui.QPainter(plane_selection_pixmap)
         painter.setFont(QFont('Helvetica', 30))
-        painter.drawText(0, 0, 300, 50, QtGui.Qt.AlignLeft, 'Plane: ')
+        painter.drawText(0, 0, 300, 50, QtGui.Qt.AlignLeft, 'View Plane: ')
         painter.end()
         # QLabel that contains the QPixmap
         plane_selection_label = QLabel(self)
-        plane_selection_label.setFixedSize(QtCore.QSize(300, 50))
+        plane_selection_label.setFixedSize(QtCore.QSize(350, 50))
         plane_selection_label.setPixmap(plane_selection_pixmap)
         plane_selection_label.setContentsMargins(0, 0, 0, 0)
-        # plane selection radio buttons
-        # xy button
-        self.xy_plane_button = QRadioButton('xy')
-        self.xy_plane_button.setFixedSize(QtCore.QSize(160, 50))
-        self.xy_plane_button.setContentsMargins(0, 0, 0, 0)
-        self.xy_plane_button.setStyleSheet(
-            'color: black; font-style: normal; font-family: Helvetica; font-size: 28px;'
+        # NERO metric drop down menu
+        self.plane_selection_menu = QtWidgets.QComboBox()
+        self.plane_selection_menu.setFixedSize(QtCore.QSize(220, 50))
+        self.plane_selection_menu.setStyleSheet(
+            'color: black; font-family: Helvetica; font-style: normal; font-size: 34px'
         )
-        self.xy_plane_button.pressed.connect(self._xy_plane_selected)
-        # xz button
-        self.xz_plane_button = QRadioButton('xz')
-        self.xz_plane_button.setFixedSize(QtCore.QSize(160, 50))
-        self.xz_plane_button.setContentsMargins(0, 0, 0, 0)
-        self.xz_plane_button.setStyleSheet(
-            'color: black; font-style: normal; font-family: Helvetica; font-size: 28px;'
-        )
-        self.xz_plane_button.pressed.connect(self._xz_plane_selected)
-        # yz button
-        self.yz_plane_button = QRadioButton('yz')
-        self.yz_plane_button.setFixedSize(QtCore.QSize(160, 50))
-        self.yz_plane_button.setContentsMargins(0, 0, 0, 0)
-        self.yz_plane_button.setStyleSheet(
-            'color: black; font-style: normal; font-family: Helvetica; font-size: 28px;'
-        )
-        self.yz_plane_button.pressed.connect(self._yz_plane_selected)
-        # set xy plane selected by default
-        self.xy_plane_button.setChecked(True)
-        self.cur_plane = 'xy'
+        self.plane_selection_menu.setEditable(True)
+        self.plane_selection_menu.lineEdit().setReadOnly(True)
+        self.plane_selection_menu.lineEdit().setAlignment(QtCore.Qt.AlignCenter)
+        self.plane_selection_menu.addItem('xy')
+        self.plane_selection_menu.addItem('xz')
+        self.plane_selection_menu.addItem('yz')
+        # define default plotting quantity
+        self.plane_selection_menu.setCurrentIndex(0)
+        self.cur_plane = self.plane_selection_menu.currentText()
+        # connect the drop down menu with actions
+        self.plane_selection_menu.currentTextChanged.connect(self._view_plane_changed)
         # add both text and drop down menu to the layout
-        plane_selection_layout.addWidget(plane_selection_label, 0, 0, 1, 3)
-        plane_selection_layout.addWidget(self.xy_plane_button, 0, 3)
-        plane_selection_layout.addWidget(self.xz_plane_button, 0, 4)
-        plane_selection_layout.addWidget(self.yz_plane_button, 0, 5)
-        self.layout.addLayout(plane_selection_layout, 2, 0, 1, 1)
+        plane_selection_layout.addWidget(plane_selection_label, 0, 0)
+        plane_selection_layout.addWidget(self.plane_selection_menu, 0, 1)
+        self.layout.addLayout(plane_selection_layout, 2, 0)
 
         # controls for dimension reduction algorithm selection
         dr_selection_layout = QtWidgets.QGridLayout()
@@ -487,19 +478,19 @@ class UI_MainWindow(QWidget):
         dr_selection_layout.setHorizontalSpacing(0)
         dr_selection_layout.setVerticalSpacing(0)
         # dr selection text prompt
-        dr_selection_pixmap = QPixmap(330, 60)
+        dr_selection_pixmap = QPixmap(300, 50)
         dr_selection_pixmap.fill(QtCore.Qt.white)
         painter = QtGui.QPainter(dr_selection_pixmap)
         painter.setFont(QFont('Helvetica', 30))
-        painter.drawText(0, 0, 330, 60, QtGui.Qt.AlignLeft, 'DR Plot:')
+        painter.drawText(0, 0, 300, 50, QtGui.Qt.AlignLeft, 'DR Plot:')
         painter.end()
         # QLabel that contains the QPixmap
         dr_selection_label = QLabel(self)
-        dr_selection_label.setFixedSize(QtCore.QSize(330, 60))
+        dr_selection_label.setFixedSize(QtCore.QSize(350, 50))
         dr_selection_label.setPixmap(dr_selection_pixmap)
         # create the drop down menu
         self.dr_selection_menu = QtWidgets.QComboBox()
-        self.dr_selection_menu.setFixedSize(QtCore.QSize(150, 50))
+        self.dr_selection_menu.setFixedSize(QtCore.QSize(220, 50))
         self.dr_selection_menu.setContentsMargins(0, 0, 0, 0)
         self.dr_selection_menu.setStyleSheet(
             'color: black; font-family: Helvetica; font-style: normal; font-size: 34px'
@@ -515,54 +506,68 @@ class UI_MainWindow(QWidget):
         self.dr_selection_menu.setEditable(True)
         self.dr_selection_menu.lineEdit().setReadOnly(True)
         self.dr_selection_menu.lineEdit().setAlignment(QtCore.Qt.AlignRight)
+        # add components to layout
+        dr_selection_layout.addWidget(dr_selection_label, 0, 0)
+        dr_selection_layout.addWidget(self.dr_selection_menu, 0, 1)
+        self.layout.addLayout(dr_selection_layout, 0, 1, 1, 1)
 
         # radio buttons on using mean or variance for color-encoding
+        dr_encoding_layout = QtWidgets.QGridLayout()
+        dr_encoding_layout.setAlignment(QtCore.Qt.AlignLeft)
+        dr_encoding_layout.setHorizontalSpacing(0)
+        dr_encoding_layout.setVerticalSpacing(0)
+        dr_encoding_layout.setColumnStretch(0, 3)
+        dr_encoding_layout.setColumnStretch(1, 0)
+        dr_encoding_layout.setColumnStretch(2, 0)
         # color-encoding text prompt
-        intensity_button_pixmap = QPixmap(300, 60)
-        intensity_button_pixmap.fill(QtCore.Qt.white)
-        painter = QtGui.QPainter(intensity_button_pixmap)
+        encoding_button_pixmap = QPixmap(350, 50)
+        encoding_button_pixmap.fill(QtCore.Qt.white)
+        painter = QtGui.QPainter(encoding_button_pixmap)
         painter.setFont(QFont('Helvetica', 30))
-        painter.drawText(0, 0, 300, 60, QtGui.Qt.AlignLeft, 'DR:')
+        painter.drawText(0, 0, 350, 50, QtGui.Qt.AlignLeft, 'Color Encoding:')
         painter.end()
         # create label to contain the texts
-        intensity_button_label = QLabel(self)
-        intensity_button_label.setContentsMargins(0, 0, 0, 0)
-        intensity_button_label.setFixedSize(QtCore.QSize(350, 115))
-        intensity_button_label.setAlignment(QtCore.Qt.AlignLeft)
-        intensity_button_label.setWordWrap(True)
-        intensity_button_label.setTextFormat(QtGui.Qt.AutoText)
-        intensity_button_label.setPixmap(intensity_button_pixmap)
-        intensity_button_label.setContentsMargins(5, 60, 0, 0)
+        encoding_button_label = QLabel(self)
+        encoding_button_label.setContentsMargins(0, 0, 0, 0)
+        encoding_button_label.setFixedSize(QtCore.QSize(350, 50))
+        encoding_button_label.setAlignment(QtCore.Qt.AlignLeft)
+        encoding_button_label.setWordWrap(True)
+        encoding_button_label.setTextFormat(QtGui.Qt.AutoText)
+        encoding_button_label.setPixmap(encoding_button_pixmap)
+        encoding_button_label.setContentsMargins(8, 0, 0, 0)
         # mean button
-        self.mean_intensity_button = QRadioButton('Mean')
-        self.mean_intensity_button.setFixedSize(QtCore.QSize(160, 50))
-        self.mean_intensity_button.setContentsMargins(0, 0, 0, 0)
-        self.mean_intensity_button.setStyleSheet(
+        self.mean_encoding_button = QRadioButton('Mean')
+        self.mean_encoding_button.setFixedSize(QtCore.QSize(110, 50))
+        self.mean_encoding_button.setContentsMargins(0, 0, 0, 0)
+        self.mean_encoding_button.setStyleSheet(
             'color: black; font-style: normal; font-family: Helvetica; font-size: 28px;'
         )
-        self.mean_intensity_button.pressed.connect(self._mean_intensity_button_clicked)
-        # variance button
-        self.variance_intensity_button = QRadioButton('Variance')
-        self.variance_intensity_button.setFixedSize(QtCore.QSize(160, 50))
-        self.variance_intensity_button.setContentsMargins(0, 0, 0, 0)
-        self.variance_intensity_button.setStyleSheet(
-            'color: black; font-style: normal; font-family: Helvetica; font-size: 28px;'
-        )
-        self.variance_intensity_button.pressed.connect(self._variance_intensity_button_clicked)
         # by default the intensities are computed via mean
-        self.mean_intensity_button.setChecked(True)
+        self.mean_encoding_button.setChecked(True)
         self.intensity_method = 'mean'
-        # same colorbar in dr plot as used in aggregate and individual NERO plot
-        color_bar_view = pg.GraphicsLayoutWidget()
-        color_bar_plot = pg.PlotItem()
-        color_bar_plot.layout.setContentsMargins(0, 0, 0, 0)
-        color_bar_plot.setFixedHeight(0)
-        color_bar_plot.setFixedWidth(self.plot_size * 1.2)
-        color_bar_plot.hideAxis('bottom')
-        color_bar_plot.hideAxis('left')
-        color_bar_view.addItem(color_bar_plot)
-        color_bar_image = pg.ImageItem()
-        # cm_range, color map and color bar will be shared with DR and individual NERO plot
+        self.mean_encoding_button.pressed.connect(self._mean_encoding_button_clicked)
+        # variance button
+        self.variance_encoding_button = QRadioButton('Variance')
+        self.variance_encoding_button.setFixedSize(QtCore.QSize(130, 50))
+        self.variance_encoding_button.setContentsMargins(0, 0, 0, 0)
+        self.variance_encoding_button.setStyleSheet(
+            'color: black; font-style: normal; font-family: Helvetica; font-size: 28px;'
+        )
+        self.variance_encoding_button.pressed.connect(self._variance_encoding_button_clicked)
+        # add components to layout
+        button_layout = QtWidgets.QHBoxLayout()
+        button_layout.addWidget(self.mean_encoding_button)
+        button_layout.addWidget(self.variance_encoding_button)
+        dr_encoding_layout.addWidget(encoding_button_label, 0, 0)
+        dr_encoding_layout.addLayout(button_layout, 0, 1)
+        self.layout.addLayout(dr_encoding_layout, 1, 1)
+
+        # colorbar that will be shared in aggregate, dr and individual plot
+        colorbar_layout = QtWidgets.QGridLayout()
+        colorbar_layout.setAlignment(QtCore.Qt.AlignLeft)
+        colorbar_layout.setHorizontalSpacing(0)
+        colorbar_layout.setVerticalSpacing(0)
+        # create viridis color scheme
         self.cm_range = (0, 1)
         self.color_map = pg.colormap.get('viridis')
         self.color_bar = pg.ColorBarItem(
@@ -572,16 +577,19 @@ class UI_MainWindow(QWidget):
             orientation='horizontal',
             width=30,
         )
+        color_bar_view = pg.GraphicsLayoutWidget()
+        color_bar_plot = pg.PlotItem()
+        color_bar_plot.layout.setContentsMargins(0, 0, 0, 0)
+        color_bar_plot.setFixedHeight(0)
+        color_bar_plot.setFixedWidth(self.plot_size * 2)
+        color_bar_plot.hideAxis('bottom')
+        color_bar_plot.hideAxis('left')
+        color_bar_view.addItem(color_bar_plot)
+        color_bar_image = pg.ImageItem()
         self.color_bar.setImageItem(color_bar_image, insert_in=color_bar_plot)
-        color_bar_plot.layout.setContentsMargins(50, 0, 0, 0)
-        # add dr related control to layout
-        dr_selection_layout.addWidget(dr_selection_label, 0, 0, 1, 2)
-        dr_selection_layout.addWidget(self.dr_selection_menu, 0, 1, 1, 2)
-        dr_selection_layout.addWidget(intensity_button_label, 1, 0, 2, 1)
-        dr_selection_layout.addWidget(self.mean_intensity_button, 1, 1, 1, 1)
-        dr_selection_layout.addWidget(self.variance_intensity_button, 2, 1, 1, 1)
-        dr_selection_layout.addWidget(color_bar_view, 3, 0, 1, 2)
-        self.layout.addLayout(dr_selection_layout, 0, 1, 3, 1)
+        color_bar_plot.layout.setContentsMargins(90, 0, 0, 0)
+        # add components to layout
+        self.layout.addWidget(color_bar_view, 2, 1)
 
         # checkbox on if doing real-time inference
         self.realtime_inference_checkbox = QtWidgets.QCheckBox('Realtime inference when dragging')
@@ -605,39 +613,42 @@ class UI_MainWindow(QWidget):
         self.all_planes = ['xy', 'xz', 'yz']
 
         # axis angles
-        self.all_axis_angles, successful = interface_util.load_from_cache(
+        self.all_axis_angles, successful = nero_interface_util.load_from_cache(
             'all_axis_angles', self.cache
         )
         if not successful:
             self.all_axis_angles = list(range(-180, 181, 30))
-            interface_util.save_to_cache(
+            nero_interface_util.save_to_cache(
                 'all_axis_angles', self.all_axis_angles, self.cache, self.cache_path
             )
 
         # rotation angles
-        self.all_rot_angles, successful = interface_util.load_from_cache(
+        self.all_rot_angles, successful = nero_interface_util.load_from_cache(
             'all_rot_angles', self.cache
         )
         if not successful:
             self.all_rot_angles = list(range(0, 181, 30))
-            interface_util.save_to_cache(
+            nero_interface_util.save_to_cache(
                 'all_rot_angles', self.all_rot_angles, self.cache, self.cache_path
             )
 
         # aggregate test results for model 1
-        self.all_avg_instance_accuracies_1, successful_avg_ins = interface_util.load_from_cache(
+        (
+            self.all_avg_instance_accuracies_1,
+            successful_avg_ins,
+        ) = nero_interface_util.load_from_cache(
             f'{self.mode}_{self.dataset_name}_{self.model_1_cache_name}_avg_instance_accuracies',
             self.cache,
         )
-        self.all_avg_class_accuracies_1, successful_avg_cls = interface_util.load_from_cache(
+        self.all_avg_class_accuracies_1, successful_avg_cls = nero_interface_util.load_from_cache(
             f'{self.mode}_{self.dataset_name}_{self.model_1_cache_name}_avg_class_accuracies',
             self.cache,
         )
-        self.all_avg_accuracies_per_class_1, successful_cls = interface_util.load_from_cache(
+        self.all_avg_accuracies_per_class_1, successful_cls = nero_interface_util.load_from_cache(
             f'{self.mode}_{self.dataset_name}_{self.model_1_cache_name}_avg_accuracies_per_class',
             self.cache,
         )
-        self.all_outputs_1, successful_output = interface_util.load_from_cache(
+        self.all_outputs_1, successful_output = nero_interface_util.load_from_cache(
             f'{self.mode}_{self.dataset_name}_{self.model_1_cache_name}_outputs', self.cache
         )
 
@@ -665,7 +676,7 @@ class UI_MainWindow(QWidget):
             )
 
             # save to cache
-            interface_util.save_to_cache(
+            nero_interface_util.save_to_cache(
                 [
                     f'{self.mode}_{self.dataset_name}_{self.model_1_cache_name}_avg_instance_accuracies',
                     f'{self.mode}_{self.dataset_name}_{self.model_1_cache_name}_avg_class_accuracies',
@@ -683,19 +694,19 @@ class UI_MainWindow(QWidget):
             )
 
         # aggregate test results for model 2
-        self.all_avg_instance_accuracies_2, successful = interface_util.load_from_cache(
+        self.all_avg_instance_accuracies_2, successful = nero_interface_util.load_from_cache(
             f'{self.mode}_{self.dataset_name}_{self.model_2_cache_name}_avg_instance_accuracies',
             self.cache,
         )
-        self.all_avg_class_accuracies_2, successful = interface_util.load_from_cache(
+        self.all_avg_class_accuracies_2, successful = nero_interface_util.load_from_cache(
             f'{self.mode}_{self.dataset_name}_{self.model_2_cache_name}_avg_class_accuracies',
             self.cache,
         )
-        self.all_avg_accuracies_per_class_2, successful = interface_util.load_from_cache(
+        self.all_avg_accuracies_per_class_2, successful = nero_interface_util.load_from_cache(
             f'{self.mode}_{self.dataset_name}_{self.model_2_cache_name}_avg_accuracies_per_class',
             self.cache,
         )
-        self.all_outputs_2, successful = interface_util.load_from_cache(
+        self.all_outputs_2, successful = nero_interface_util.load_from_cache(
             f'{self.mode}_{self.dataset_name}_{self.model_2_cache_name}_outputs', self.cache
         )
 
@@ -718,7 +729,7 @@ class UI_MainWindow(QWidget):
             )
 
             # save to cache
-            interface_util.save_to_cache(
+            nero_interface_util.save_to_cache(
                 [
                     f'{self.mode}_{self.dataset_name}_{self.model_2_cache_name}_avg_instance_accuracies',
                     f'{self.mode}_{self.dataset_name}_{self.model_2_cache_name}_avg_class_accuracies',
@@ -736,12 +747,11 @@ class UI_MainWindow(QWidget):
             )
 
     def init_aggregate_plot_interface(self):
-        # general control interface layout
+        # aggregate NERO plots interface layout
         aggregate_nero_layout = QtWidgets.QGridLayout()
         aggregate_nero_layout.setAlignment(QtCore.Qt.AlignLeft)
         aggregate_nero_layout.setHorizontalSpacing(0)
         aggregate_nero_layout.setVerticalSpacing(0)
-
         # display in heatmap
         # heatmap view for model 1
         self.aggregate_nero_view_1 = pg.GraphicsLayoutWidget()
@@ -798,7 +808,7 @@ class UI_MainWindow(QWidget):
         (
             self.processed_aggregate_quantity_1,
             self.processed_aggregate_quaternion_1,
-        ) = interface_util.process_point_cloud_result(
+        ) = nero_interface_util.process_point_cloud_result(
             self.cur_aggregate_plot_quantity_1,
             self.cur_plane,
             self.all_axis_angles,
@@ -809,7 +819,7 @@ class UI_MainWindow(QWidget):
         (
             self.processed_aggregate_quantity_2,
             self.processed_aggregate_quaternion_2,
-        ) = interface_util.process_point_cloud_result(
+        ) = nero_interface_util.process_point_cloud_result(
             self.cur_aggregate_plot_quantity_2,
             self.cur_plane,
             self.all_axis_angles,
@@ -841,11 +851,11 @@ class UI_MainWindow(QWidget):
         # iteracte through each dr method
         for cur_algo in self.all_dr_algorithms:
             # for model 1
-            self.all_high_dim_points_1, successful_high = interface_util.load_from_cache(
+            self.all_high_dim_points_1, successful_high = nero_interface_util.load_from_cache(
                 f'{self.mode}_{self.dataset_name}_{self.model_1_cache_name}_high_dim',
                 self.cache,
             )
-            self.all_dr_results_1[cur_algo], successful_low = interface_util.load_from_cache(
+            self.all_dr_results_1[cur_algo], successful_low = nero_interface_util.load_from_cache(
                 f'{self.mode}_{self.dataset_name}_{self.model_1_cache_name}_{cur_algo}_low_dim',
                 self.cache,
             )
@@ -880,7 +890,7 @@ class UI_MainWindow(QWidget):
                         ]
 
                     high_dim_points_constructed_1 = True
-                    interface_util.save_to_cache(
+                    nero_interface_util.save_to_cache(
                         f'{self.mode}_{self.dataset_name}_{self.model_1_cache_name}_high_dim',
                         self.all_high_dim_points_1,
                         self.cache,
@@ -888,10 +898,10 @@ class UI_MainWindow(QWidget):
                     )
 
                 # compute the dr results from model outputs
-                self.all_dr_results_1[cur_algo] = interface_util.dimension_reduce(
+                self.all_dr_results_1[cur_algo] = nero_interface_util.dimension_reduce(
                     cur_algo, self.all_high_dim_points_1, 2
                 )
-                interface_util.save_to_cache(
+                nero_interface_util.save_to_cache(
                     f'{self.mode}_{self.dataset_name}_{self.model_1_cache_name}_{cur_algo}_low_dim',
                     self.all_dr_results_1[cur_algo],
                     self.cache,
@@ -899,11 +909,11 @@ class UI_MainWindow(QWidget):
                 )
 
             # for model 2
-            self.all_high_dim_points_2, successful_high = interface_util.load_from_cache(
+            self.all_high_dim_points_2, successful_high = nero_interface_util.load_from_cache(
                 f'{self.mode}_{self.dataset_name}_{self.model_2_cache_name}_high_dim',
                 self.cache,
             )
-            self.all_dr_results_2[cur_algo], successful_low = interface_util.load_from_cache(
+            self.all_dr_results_2[cur_algo], successful_low = nero_interface_util.load_from_cache(
                 f'{self.mode}_{self.dataset_name}_{self.model_2_cache_name}_{cur_algo}_low_dim',
                 self.cache,
             )
@@ -939,7 +949,7 @@ class UI_MainWindow(QWidget):
                         ]
 
                     high_dim_points_constructed_2 = True
-                    interface_util.save_to_cache(
+                    nero_interface_util.save_to_cache(
                         f'{self.mode}_{self.dataset_name}_{self.model_2_cache_name}_high_dim',
                         self.all_high_dim_points_2,
                         self.cache,
@@ -947,10 +957,10 @@ class UI_MainWindow(QWidget):
                     )
 
                 # compute the dr results from model outputs
-                self.all_dr_results_2[cur_algo] = interface_util.dimension_reduce(
+                self.all_dr_results_2[cur_algo] = nero_interface_util.dimension_reduce(
                     cur_algo, self.all_high_dim_points_2, 2
                 )
-                interface_util.save_to_cache(
+                nero_interface_util.save_to_cache(
                     f'{self.mode}_{self.dataset_name}_{self.model_2_cache_name}_{cur_algo}_low_dim',
                     self.all_dr_results_2[cur_algo],
                     self.cache,
@@ -1144,11 +1154,18 @@ class UI_MainWindow(QWidget):
         self.cur_class_low_dim_2 = self.all_dr_results_2[self.cur_dr_algorithm][
             self.cur_class_indices
         ]
+        # normalizing low dimension points within [-1, 1] sqaure
+        self.cur_class_low_dim_1 = nero_interface_util.normalize_low_dim_result(
+            self.cur_class_low_dim_1
+        )
+        self.cur_class_low_dim_2 = nero_interface_util.normalize_low_dim_result(
+            self.cur_class_low_dim_2
+        )
         # use each sample's metric average or variance across all transformations as intensity
-        self.all_intensity_1 = interface_util.compute_intensity(
+        self.all_intensity_1 = nero_interface_util.compute_intensity(
             self.cur_class_high_dim_1, self.intensity_method
         )
-        self.all_intensity_2 = interface_util.compute_intensity(
+        self.all_intensity_2 = nero_interface_util.compute_intensity(
             self.cur_class_high_dim_2, self.intensity_method
         )
         # plot both scatter plots
@@ -1166,6 +1183,8 @@ class UI_MainWindow(QWidget):
         # sort the low dim points accordingly
         self.cur_class_low_dim_1 = self.cur_class_low_dim_1[self.sorted_intensity_indices_1]
         self.cur_class_low_dim_2 = self.cur_class_low_dim_2[self.sorted_intensity_indices_2]
+        print(self.cur_class_low_dim_1)
+        exit()
         # scatter plot 1
         self._draw_scatter_plot(
             self.low_dim_scatter_plot_1,
@@ -1230,7 +1249,7 @@ class UI_MainWindow(QWidget):
         (
             self.processed_individual_quantity_1,
             self.processed_individual_quaternion_1,
-        ) = interface_util.process_point_cloud_result(
+        ) = nero_interface_util.process_point_cloud_result(
             self.cur_individual_plot_quantity_1,
             self.cur_plane,
             self.all_axis_angles,
@@ -1241,7 +1260,7 @@ class UI_MainWindow(QWidget):
         (
             self.processed_individual_quantity_2,
             self.processed_individual_quaternion_2,
-        ) = interface_util.process_point_cloud_result(
+        ) = nero_interface_util.process_point_cloud_result(
             self.cur_individual_plot_quantity_2,
             self.cur_plane,
             self.all_axis_angles,
@@ -1380,39 +1399,9 @@ class UI_MainWindow(QWidget):
         self.draw_point_cloud_detail_plot()
 
     @QtCore.Slot()
-    def _xy_plane_selected(self):
-        print(f'xy plane')
-        self.cur_plane = 'xy'
-        # update aggregate nero plot
-        self.draw_point_cloud_aggregate_nero()
-        # update dr plot
-        self.draw_dr_plot()
-        # update visualization of selected point cloud
-        self.draw_point_cloud()
-        # update individiaul NERO plot
-        self.draw_point_cloud_individual_nero()
-        # update detail plot
-        self.draw_point_cloud_detail_plot()
-
-    @QtCore.Slot()
-    def _xz_plane_selected(self):
-        print(f'xz plane')
-        self.cur_plane = 'xz'
-        # update aggregate nero plot
-        self.draw_point_cloud_aggregate_nero()
-        # update dr plot
-        self.draw_dr_plot()
-        # update visualization of selected point cloud
-        self.draw_point_cloud()
-        # update individiaul NERO plot
-        self.draw_point_cloud_individual_nero()
-        # update detail plot
-        self.draw_point_cloud_detail_plot()
-
-    @QtCore.Slot()
-    def _yz_plane_selected(self):
-        print(f'yz plane')
-        self.cur_plane = 'yz'
+    def _view_plane_changed(self, text):
+        print(f'\nViewing plane changed to {text}')
+        self.cur_plane = text
         # update aggregate nero plot
         self.draw_point_cloud_aggregate_nero()
         # update dr plot
@@ -1441,14 +1430,14 @@ class UI_MainWindow(QWidget):
 
     # radio buttons on choosing quantity used to compute intensity
     @QtCore.Slot()
-    def _mean_intensity_button_clicked(self):
+    def _mean_encoding_button_clicked(self):
         self.intensity_method = 'mean'
         print(f'DR plots color encoded based on {self.intensity_method}')
         # update dr plot
         self.draw_dr_plot()
 
     @QtCore.Slot()
-    def _variance_intensity_button_clicked(self):
+    def _variance_encoding_button_clicked(self):
         self.intensity_method = 'variance'
         print(f'DR plots color encoded based on {self.intensity_method}')
         # update dr plot
