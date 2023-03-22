@@ -132,8 +132,8 @@ class UI_MainWindow(QWidget):
         self.draw_point_cloud()
 
         # # Individual NERO plot
-        # self.init_individual_plot_interface()
-        # self.draw_point_cloud_individual_nero()
+        self.init_individual_plot_interface()
+        self.draw_point_cloud_individual_nero()
 
         # # Detailed plot
         # self.init_detail_plot_interface()
@@ -844,8 +844,8 @@ class UI_MainWindow(QWidget):
 
     ################## DR Plots Related ##################
     def prepare_dr_results(self):
-        self.all_dr_results_1 = {}
-        self.all_dr_results_2 = {}
+        self.all_low_dim_points_1 = {}
+        self.all_low_dim_points_2 = {}
         high_dim_points_constructed_1 = False
         high_dim_points_constructed_2 = False
         # iteracte through each dr method
@@ -855,7 +855,10 @@ class UI_MainWindow(QWidget):
                 f'{self.mode}_{self.dataset_name}_{self.model_1_cache_name}_high_dim',
                 self.cache,
             )
-            self.all_dr_results_1[cur_algo], successful_low = nero_interface_util.load_from_cache(
+            (
+                self.all_low_dim_points_1[cur_algo],
+                successful_low,
+            ) = nero_interface_util.load_from_cache(
                 f'{self.mode}_{self.dataset_name}_{self.model_1_cache_name}_{cur_algo}_low_dim',
                 self.cache,
             )
@@ -898,12 +901,16 @@ class UI_MainWindow(QWidget):
                     )
 
                 # compute the dr results from model outputs
-                self.all_dr_results_1[cur_algo] = nero_interface_util.dimension_reduce(
+                low_dim_1 = nero_interface_util.dimension_reduce(
                     cur_algo, self.all_high_dim_points_1, 2
+                )
+                # normalizing low dimension points within [-1, 1] sqaure
+                self.all_low_dim_points_1[cur_algo] = nero_interface_util.normalize_low_dim_result(
+                    low_dim_1
                 )
                 nero_interface_util.save_to_cache(
                     f'{self.mode}_{self.dataset_name}_{self.model_1_cache_name}_{cur_algo}_low_dim',
-                    self.all_dr_results_1[cur_algo],
+                    self.all_low_dim_points_1[cur_algo],
                     self.cache,
                     self.cache_path,
                 )
@@ -913,11 +920,13 @@ class UI_MainWindow(QWidget):
                 f'{self.mode}_{self.dataset_name}_{self.model_2_cache_name}_high_dim',
                 self.cache,
             )
-            self.all_dr_results_2[cur_algo], successful_low = nero_interface_util.load_from_cache(
+            (
+                self.all_low_dim_points_2[cur_algo],
+                successful_low,
+            ) = nero_interface_util.load_from_cache(
                 f'{self.mode}_{self.dataset_name}_{self.model_2_cache_name}_{cur_algo}_low_dim',
                 self.cache,
             )
-
             # when we don't have in the cache
             if not successful_high or not successful_low:
                 if not high_dim_points_constructed_2:
@@ -957,12 +966,16 @@ class UI_MainWindow(QWidget):
                     )
 
                 # compute the dr results from model outputs
-                self.all_dr_results_2[cur_algo] = nero_interface_util.dimension_reduce(
+                low_dim_2 = nero_interface_util.dimension_reduce(
                     cur_algo, self.all_high_dim_points_2, 2
+                )
+                # normalizing low dimension points within [-1, 1] sqaure
+                self.all_low_dim_points_2[cur_algo] = nero_interface_util.normalize_low_dim_result(
+                    low_dim_2
                 )
                 nero_interface_util.save_to_cache(
                     f'{self.mode}_{self.dataset_name}_{self.model_2_cache_name}_{cur_algo}_low_dim',
-                    self.all_dr_results_2[cur_algo],
+                    self.all_low_dim_points_2[cur_algo],
                     self.cache,
                     self.cache_path,
                 )
@@ -993,37 +1006,12 @@ class UI_MainWindow(QWidget):
         self.low_dim_scatter_view_1.setBackground('white')
         self.low_dim_scatter_view_1.setFixedSize(self.plot_size * 1.3, self.plot_size * 1.3)
         self.low_dim_scatter_view_1.ci.setContentsMargins(20, 0, 0, 0)
-        # self.layout.addWidget(self.low_dim_scatter_view_1, 2, 1, 3, 1)
-        # add plot
-        self.low_dim_scatter_plot_1 = self.low_dim_scatter_view_1.addPlot()
-        self.low_dim_scatter_plot_1.setContentsMargins(0, 0, 0, 150)
-        self.low_dim_scatter_plot_1.hideAxis('left')
-        self.low_dim_scatter_plot_1.hideAxis('bottom')
-        # set axis range
-        self.low_dim_scatter_plot_1.setXRange(-1.2, 1.2, padding=0)
-        self.low_dim_scatter_plot_1.setYRange(-1.2, 1.2, padding=0)
-        # Not letting user zoom out past axis limit
-        self.low_dim_scatter_plot_1.vb.setLimits(xMin=-1.2, xMax=1.2, yMin=-1.2, yMax=1.2)
-        # No auto range when adding new item (red indicator)
-        self.low_dim_scatter_plot_1.vb.disableAutoRange(axis=pg.ViewBox.XYAxes)
 
         # dr plot for model 2
         self.low_dim_scatter_view_2 = pg.GraphicsLayoutWidget()
         self.low_dim_scatter_view_2.setBackground('white')
         self.low_dim_scatter_view_2.setFixedSize(self.plot_size * 1.25, self.plot_size * 1.25)
         self.low_dim_scatter_view_2.ci.setContentsMargins(20, 0, 0, 0)
-        # self.layout.addWidget(self.low_dim_scatter_view_2, 4, 1, 3, 1)
-        # add plot
-        self.low_dim_scatter_plot_2 = self.low_dim_scatter_view_2.addPlot()
-        self.low_dim_scatter_plot_2.hideAxis('left')
-        self.low_dim_scatter_plot_2.hideAxis('bottom')
-        # set axis range
-        self.low_dim_scatter_plot_2.setXRange(-1.2, 1.2, padding=0)
-        self.low_dim_scatter_plot_2.setYRange(-1.2, 1.2, padding=0)
-        # Not letting user zoom out past axis limit
-        self.low_dim_scatter_plot_2.vb.setLimits(xMin=-1.2, xMax=1.2, yMin=-1.2, yMax=1.2)
-        # No auto range when adding new item (red indicator)
-        self.low_dim_scatter_plot_2.vb.disableAutoRange(axis=pg.ViewBox.XYAxes)
 
         # sliders that rank the dimension reduction result and can select one of them
         # slider 1
@@ -1141,6 +1129,10 @@ class UI_MainWindow(QWidget):
         dr_plots_layout.addLayout(slider_1_layout, 1, 0)
         dr_plots_layout.addWidget(self.low_dim_scatter_view_2, 2, 0)
         dr_plots_layout.addLayout(slider_2_layout, 3, 0)
+        dr_plots_layout.setRowStretch(0, 2)
+        dr_plots_layout.setRowStretch(1, 0)
+        dr_plots_layout.setRowStretch(2, 2)
+        dr_plots_layout.setRowStretch(3, 0)
         self.layout.addLayout(dr_plots_layout, 3, 1)
 
     def draw_dr_plot(self):
@@ -1148,19 +1140,12 @@ class UI_MainWindow(QWidget):
         self.cur_class_high_dim_1 = self.all_high_dim_points_1[self.cur_class_indices]
         self.cur_class_high_dim_2 = self.all_high_dim_points_2[self.cur_class_indices]
         # get the dimension reduced points
-        self.cur_class_low_dim_1 = self.all_dr_results_1[self.cur_dr_algorithm][
+        self.cur_class_low_dim_1 = self.all_low_dim_points_1[self.cur_dr_algorithm][
             self.cur_class_indices
         ]
-        self.cur_class_low_dim_2 = self.all_dr_results_2[self.cur_dr_algorithm][
+        self.cur_class_low_dim_2 = self.all_low_dim_points_2[self.cur_dr_algorithm][
             self.cur_class_indices
         ]
-        # normalizing low dimension points within [-1, 1] sqaure
-        self.cur_class_low_dim_1 = nero_interface_util.normalize_low_dim_result(
-            self.cur_class_low_dim_1
-        )
-        self.cur_class_low_dim_2 = nero_interface_util.normalize_low_dim_result(
-            self.cur_class_low_dim_2
-        )
         # use each sample's metric average or variance across all transformations as intensity
         self.all_intensity_1 = nero_interface_util.compute_intensity(
             self.cur_class_high_dim_1, self.intensity_method
@@ -1183,23 +1168,44 @@ class UI_MainWindow(QWidget):
         # sort the low dim points accordingly
         self.cur_class_low_dim_1 = self.cur_class_low_dim_1[self.sorted_intensity_indices_1]
         self.cur_class_low_dim_2 = self.cur_class_low_dim_2[self.sorted_intensity_indices_2]
-        print(self.cur_class_low_dim_1)
-        exit()
         # scatter plot 1
+        # initialize plot
+        self.low_dim_scatter_view_1.clear()
+        self.low_dim_scatter_plot_1 = self.low_dim_scatter_view_1.addPlot()
+        self.low_dim_scatter_plot_1.setContentsMargins(0, 0, 0, 150)
+        self.low_dim_scatter_plot_1.hideAxis('left')
+        self.low_dim_scatter_plot_1.hideAxis('bottom')
+        # set axis range
+        self.low_dim_scatter_plot_1.setXRange(-1.2, 1.2, padding=0)
+        self.low_dim_scatter_plot_1.setYRange(-1.2, 1.2, padding=0)
+        # Not letting user zoom out past axis limit
+        self.low_dim_scatter_plot_1.vb.setLimits(xMin=-1.2, xMax=1.2, yMin=-1.2, yMax=1.2)
+        # No auto range when adding new item (red indicator)
+        self.low_dim_scatter_plot_1.vb.disableAutoRange(axis=pg.ViewBox.XYAxes)
         self._draw_scatter_plot(
             self.low_dim_scatter_plot_1,
             self.cur_class_low_dim_1,
             self.sorted_intensity_1,
             self.sorted_class_indices_1,
-            self.slider_1_selected_index,
         )
         # scatter plot 2
+        # initialize plot
+        self.low_dim_scatter_view_2.clear()
+        self.low_dim_scatter_plot_2 = self.low_dim_scatter_view_2.addPlot()
+        self.low_dim_scatter_plot_2.hideAxis('left')
+        self.low_dim_scatter_plot_2.hideAxis('bottom')
+        # set axis range
+        self.low_dim_scatter_plot_2.setXRange(-1.2, 1.2, padding=0)
+        self.low_dim_scatter_plot_2.setYRange(-1.2, 1.2, padding=0)
+        # Not letting user zoom out past axis limit
+        self.low_dim_scatter_plot_2.vb.setLimits(xMin=-1.2, xMax=1.2, yMin=-1.2, yMax=1.2)
+        # No auto range when adding new item (red indicator)
+        self.low_dim_scatter_plot_2.vb.disableAutoRange(axis=pg.ViewBox.XYAxes)
         self._draw_scatter_plot(
             self.low_dim_scatter_plot_2,
             self.cur_class_low_dim_2,
             self.sorted_intensity_2,
             self.sorted_class_indices_2,
-            self.slider_2_selected_index,
         )
 
     ################## Point Cloud Sample Visualization Related ##################
@@ -1211,6 +1217,11 @@ class UI_MainWindow(QWidget):
 
     ################## Individual NERO Plot Related ##################
     def init_individual_plot_interface(self):
+        # individual NERO plots interface layout
+        individual_nero_layout = QtWidgets.QGridLayout()
+        individual_nero_layout.setAlignment(QtCore.Qt.AlignLeft)
+        individual_nero_layout.setHorizontalSpacing(0)
+        individual_nero_layout.setVerticalSpacing(0)
         # heatmap view for model 1
         self.individual_nero_view_1 = pg.GraphicsLayoutWidget()
         self.individual_nero_view_1.ci.layout.setContentsMargins(
@@ -1224,8 +1235,9 @@ class UI_MainWindow(QWidget):
         )
         self.individual_nero_view_2.setFixedSize(self.plot_size * 1.2, self.plot_size * 1.2)
         # add view to layout
-        self.layout.addWidget(self.individual_nero_view_1, 3, 2, 1, 1)
-        self.layout.addWidget(self.individual_nero_view_2, 5, 2, 1, 1)
+        individual_nero_layout.addWidget(self.individual_nero_view_1, 0, 0)
+        individual_nero_layout.addWidget(self.individual_nero_view_2, 1, 0)
+        self.layout.addLayout(individual_nero_layout, 3, 2)
 
         # initialize highlighters on individual NERO plots
         self.highlighter_1 = pg.ScatterPlotItem(pxMode=False)
@@ -1267,9 +1279,10 @@ class UI_MainWindow(QWidget):
             self.all_rot_angles,
             block_size=self.block_size,
         )
+
         # initialize plot
-        self.individual_nero_1 = nero_custom_plots.NEROHeatmap(self, 'individual', 1)
-        self.individual_nero_2 = nero_custom_plots.NEROHeatmap(self, 'individual', 2)
+        self.individual_nero_1 = nero_custom_plots.NEROHeatmap(self, 'aggregate', 1)
+        self.individual_nero_2 = nero_custom_plots.NEROHeatmap(self, 'aggregate', 2)
         # draw the heatmap
         self.individual_heatmap_plot_1 = self._draw_individual_heatmap(
             self.processed_individual_quantity_1, self.individual_nero_1
@@ -1279,9 +1292,9 @@ class UI_MainWindow(QWidget):
         )
         # add plot to view
         self.individual_nero_view_1.clear()
-        self.individual_nero_view_1.addItem(self.aggregate_heatmap_plot_1)
+        self.individual_nero_view_1.addItem(self.individual_heatmap_plot_1)
         self.individual_nero_view_2.clear()
-        self.individual_nero_view_2.addItem(self.aggregate_heatmap_plot_2)
+        self.individual_nero_view_2.addItem(self.individual_heatmap_plot_2)
 
     ################## Detail Plot Related ##################
     def init_detail_plot_interface(self):
@@ -1425,6 +1438,7 @@ class UI_MainWindow(QWidget):
     def _dr_selection_changed(self, text):
         # update dimension reduction algorithm
         self.cur_dr_algorithm = text
+        print(f'DR algorithm changed to {self.cur_dr_algorithm}')
         # update dr plot
         self.draw_dr_plot()
 
@@ -1514,9 +1528,12 @@ class UI_MainWindow(QWidget):
             self.point_cloud_path = self.point_cloud_paths[self.point_cloud_index][1]
             print(f'Selected point cloud at {self.point_cloud_path}')
 
-            # TODO: visualize point cloud
-            # TODO: individiaul NERO plot
-            # TODO: detail plot
+            # visualize point cloud
+            self.draw_point_cloud()
+            # individiaul NERO plot
+            self.draw_point_cloud_individual_nero()
+            # detail plot
+            self.draw_point_cloud_detail_plot()
 
     # slider for dr plot 2
     @QtCore.Slot()
@@ -1553,9 +1570,12 @@ class UI_MainWindow(QWidget):
             self.point_cloud_path = self.point_cloud_paths[self.point_cloud_index][1]
             print(f'Selected image at {self.point_cloud_path}')
 
-            # TODO: visualize point cloud
-            # TODO: individiaul NERO plot
-            # TODO: detail plot
+            # visualize point cloud
+            self.draw_point_cloud()
+            # individiaul NERO plot
+            self.draw_point_cloud_individual_nero()
+            # detail plot
+            self.draw_point_cloud_detail_plot()
 
     @QtCore.Slot()
     def _slider_1_left_button_clicked(self):
@@ -1639,7 +1659,6 @@ class UI_MainWindow(QWidget):
         low_dim,
         sorted_intensity,
         sorted_class_indices,
-        slider_selected_index,
     ):
 
         # quantize all the intensity into color
@@ -1703,43 +1722,22 @@ class UI_MainWindow(QWidget):
         ] = f'{self.intensity_method}: {round(sorted_intensity[sorted_selected_index], 3)}'
         low_dim_scatter_item.setSymbol('o')
         # set red pen indicator if slider selects
-        if slider_selected_index != None:
-            # smaller circles in accounting for the red ring
-            low_dim_point = [
-                {
-                    'pos': (
-                        low_dim[sorted_selected_index, 0],
-                        low_dim[sorted_selected_index, 1],
-                    ),
-                    'size': self.scatter_item_size - 2.0001,
-                    'pen': {'color': 'red', 'width': 2},
-                    'brush': QtGui.QColor(
-                        color_indices[sorted_selected_index][0],
-                        color_indices[sorted_selected_index][1],
-                        color_indices[sorted_selected_index][2],
-                    ),
-                }
-            ]
-        else:
-            low_dim_point = [
-                {
-                    'pos': (
-                        low_dim[sorted_selected_index, 0],
-                        low_dim[sorted_selected_index, 1],
-                    ),
-                    'size': self.scatter_item_size,
-                    'pen': QtGui.QColor(
-                        color_indices[sorted_selected_index][0],
-                        color_indices[sorted_selected_index][1],
-                        color_indices[sorted_selected_index][2],
-                    ),
-                    'brush': QtGui.QColor(
-                        color_indices[sorted_selected_index][0],
-                        color_indices[sorted_selected_index][1],
-                        color_indices[sorted_selected_index][2],
-                    ),
-                }
-            ]
+        # smaller circles in accounting for the red ring
+        low_dim_point = [
+            {
+                'pos': (
+                    low_dim[sorted_selected_index, 0],
+                    low_dim[sorted_selected_index, 1],
+                ),
+                'size': self.scatter_item_size - 2.0001,
+                'pen': {'color': 'red', 'width': 2},
+                'brush': QtGui.QColor(
+                    color_indices[sorted_selected_index][0],
+                    color_indices[sorted_selected_index][1],
+                    color_indices[sorted_selected_index][2],
+                ),
+            }
+        ]
         # add points to the item
         low_dim_scatter_item.setData(
             low_dim_point, name=str(sorted_class_indices[sorted_selected_index])
@@ -1751,8 +1749,7 @@ class UI_MainWindow(QWidget):
         low_dim_scatter_plot.clear()
         low_dim_scatter_plot.addItem(low_dim_scatter_item)
 
-    def _draw_individual_heatmap(self, data, heatmap=None, highlighter=None, title=None):
-
+    def _draw_individual_heatmap(self, data, heatmap, highlighter=None, title=None):
         # viewbox that contains the heatmap
         view_box = pg.ViewBox(invertY=True)
         view_box.setAspectLocked(lock=True)
