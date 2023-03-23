@@ -18,7 +18,7 @@ import quaternions
 
 
 # run model testing with data and potential axis-angle rotation
-def test(model, loader, axis=None, angle=None, num_class=40):
+def test(model, loader, num_class, axis=None, angle=None):
     mean_correct = []
     # classification accuracy per class
     class_acc = np.zeros((num_class, 3))
@@ -249,7 +249,7 @@ def main(args):
             # validate and save model every 5 epochs
             if (epoch + 1) % args.checkpoint_freq == 0:
                 with torch.no_grad():
-                    instance_acc, class_acc = test(model.eval(), test_data_loader)
+                    instance_acc, class_acc = test(model.eval(), test_data_loader, args.num_class)
 
                     # use instance accuracy to determine best epoch
                     if instance_acc >= best_instance_acc:
@@ -388,7 +388,11 @@ def main(args):
                     # now that we have the axis-angle representation, run the test
                     with torch.no_grad():
                         cur_instance_accuracy, cur_class_accuracy = test(
-                            model.eval(), test_data_loader, axis=cur_axis, angle=cur_angle
+                            model.eval(),
+                            test_data_loader,
+                            args.num_class,
+                            axis=cur_axis,
+                            angle=cur_angle,
                         )
 
                         logger.info(
