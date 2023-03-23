@@ -1,5 +1,7 @@
 import os
 import math
+import nrrd
+import quaternions
 import numpy as np
 from PIL import Image
 import matplotlib.pyplot as plt
@@ -10,13 +12,13 @@ def pol2cart(length, angle):
     y = int(length * math.sin(math.radians(angle)))
     return (x, y)
 
+
 # only work on square images (single img_size)
 def cart2img(cart, img_size):
     x_img = cart[0] + img_size // 2
     y_img = cart[1] + img_size // 2
 
     return (x_img, y_img)
-
 
 
 # create raster image that holds custom displacement of results
@@ -38,6 +40,8 @@ def get_raster_image(result, plane, type, size=(400, 400)):
     )
 
     image_np = np.zeros((len(all_rot_angles)*2, len(all_rot_angles)*2))
+    # outside place filled with NaN
+    quaternion_np = np.full((len(all_rot_angles)*2, len(all_rot_angles)*2, 4), np.nan)
 
     for i, cur_axis_angle in enumerate(all_axis_angles):
         for j, cur_rot_angle in enumerate(all_rot_angles):
@@ -47,11 +51,52 @@ def get_raster_image(result, plane, type, size=(400, 400)):
             image_coordinate = cart2img(cartesian_coordinate, len(image_np))
             image_np[image_coordinate] = accuracies[i, j]
 
+            # also save quaternion for each position
+            # get corresponding axis from plane information and axis angle
+            axis_angle_rad = cur_axis_angle / 180 * np.pi
+            start_axis = {
+                'xy': np.matrix([[1], [0], [0]]),
+                'xz': np.matrix([[1], [0], [0]]),
+                'yz': np.matrix([[0], [1], [0]]),
+            }
+            rot_matrix = {
+                'xy': np.matrix(
+                            [
+                                [math.cos(axis_angle_rad), -math.sin(axis_angle_rad), 0],
+                                [math.sin(axis_angle_rad), math.cos(axis_angle_rad) , 0],
+                                [0,                        0,                         1]
+                            ]
+                        ),
+                'xz': np.matrix(
+                            [
+                                [math.cos(axis_angle_rad),  0,  math.sin(axis_angle_rad)],
+                                [0,                         1,  0                       ],
+                                [-math.sin(axis_angle_rad), 0,  math.cos(axis_angle_rad)]
+                            ]
+                        ),
+                'yz': np.matrix(
+                            [
+                                [1,                        0,                          0],
+                                [0, math.cos(axis_angle_rad),  -math.sin(axis_angle_rad)],
+                                [0, math.sin(axis_angle_rad),   math.cos(axis_angle_rad)]
+                            ]
+                        ),
+            }
+            # rotate corresponding start axis by corresponding rotation matrix
+            cur_axis = np.squeeze(np.array(rot_matrix[plane] * start_axis[plane]))
+            # convert axis-angle rotation to quaternion and save
+            quaternion_np[image_coordinate] = quaternions.axis_angle_to_quaternion(
+                cur_axis, cur_rot_angle, unit='degree'
+            )
+
     # resize and convert to image
     image_np = np.kron(image_np, np.ones((50, 50)))
     image_pil = Image.fromarray(image_np*255).convert("L")
+    print(np.round(quaternion_np, 2))
+    # resize quaternion array accordingly
+    quaternion_np = np.kron(quaternion_np, np.ones((50, 50)))
 
-    return image_pil
+    return image_pil, quaternion_np
 
 
 result_dir = '/home/zhuokai/Desktop/UChicago/Research/nero_vis/nero_point_cloud/output/'
@@ -63,9 +108,11 @@ img_dir = '/home/zhuokai/Desktop/UChicago/Research/nero_vis/nero_point_cloud/out
 
 for i, cur_name in enumerate(result_names):
     result = np.load(os.path.join(result_dir, cur_name))
-    raster_img = get_raster_image(result, 'xy', 'instance')
+    raster_img, quaternion_np = get_raster_image(result, 'xy', 'instance')
     img_path = os.path.join(img_dir, f'{cur_name}.jpg')
     raster_img.save(img_path)
+    quaternion_path = os.path.join(img_dir, f'{cur_name}.nrrd')
+    nrrd.write(quaternion_path, quaternion_np)
 
 
 # plot_types = ['heatmap', 'polar_heatmap', 'voronoi']

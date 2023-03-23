@@ -4,44 +4,44 @@ import numpy as np
 
 
 def pick_random_axis(n):
-    '''
+    """
     Pick n random unit vectors in 3D
     Algorithm from: https://towardsdatascience.com/the-best-way-to-pick-a-unit-vector-7bd0cc54f9b
     Input:
         n: number of random 3-vectors
     Returns:
         all_axis: a list of random 3-vectors
-    '''
-    all_axis =[]
+    """
+    all_axis = []
     for _ in range(n):
         components = [np.random.normal() for _ in range(3)]
-        r = math.sqrt(sum(x*x for x in components))
-        cur_axis = [x/r for x in components]
+        r = math.sqrt(sum(x * x for x in components))
+        cur_axis = [x / r for x in components]
         all_axis.append(cur_axis)
 
     return all_axis
 
 
 def pick_random_quat(n):
-    '''
+    """
     Pick n random unit quaternions
     Input:
         n: number of random quaternions
     Returns:
         all_quat: a list of random quaternions in scalar-first format [q_0, q_1, q_2, q_3]
-    '''
+    """
     all_quat = []
     for _ in range(n):
         components = [np.random.normal() for _ in range(4)]
-        r = math.sqrt(sum(x*x for x in components))
-        cur_quat = [x/r for x in components]
+        r = math.sqrt(sum(x * x for x in components))
+        cur_quat = [x / r for x in components]
         all_quat.append(cur_quat)
 
     return all_quat
 
 
 def axis_angle_to_quaternion(axis, theta, unit='degree'):
-    '''
+    """
     Convert axis-angle representation to quaternion
     Inputs:
         axis: numpy array, 3-vector as the rotation axis, has shape (3,)
@@ -49,7 +49,7 @@ def axis_angle_to_quaternion(axis, theta, unit='degree'):
         unit: indicate is theta is in degree or radian
     Returns:
         Quaternion components in scalar-first format [q_0, q_1, q_2, q_3]
-    '''
+    """
 
     # convert theta to radian
     if unit == 'degree':
@@ -67,14 +67,14 @@ def axis_angle_to_quaternion(axis, theta, unit='degree'):
 
 
 def quaternion_rotate(in_vector, q):
-    '''
+    """
     Rotate single or a list of 3-vector by a quaternion.
     Inputs:
         in_vector: a single or list of 3-vectors with shape (N, 3) or (3,)
         q: quaternion in scaler-first format
     Returns:
         out_vector: a single or list of 3-vectors with shape (N, 3) or (3,)
-    '''
+    """
 
     # single input vector
     if len(in_vector.shape) == 1:
@@ -94,13 +94,13 @@ def quaternion_rotate(in_vector, q):
 
 
 def quaternion_conjugate(q):
-    '''
+    """
     Computes the quaternion conjugate.
     Input:
         q: a single quaternion in scaler-first format
     Returns:
         q_conj: single quaternion that is the conjugate of q
-    '''
+    """
     q_conj = np.zeros(4)
     q_conj[0] = q[0]
     q_conj[1] = -q[1]
@@ -111,13 +111,13 @@ def quaternion_conjugate(q):
 
 
 def quaternion_multiply(quaternions):
-    '''
+    """
     Multiply a list of quaternions.
     Inputs:
         quaternions: A list of quaternions in scaler-first format, has shape (N, 4)
     Returns:
         q: A single quaternion result, has shape (4,)
-    '''
+    """
 
     # initialize result
     res = np.zeros(4)
@@ -130,13 +130,13 @@ def quaternion_multiply(quaternions):
         w2, x2, y2, z2 = q2[0], q2[1], q2[2], q2[3]
 
         # scaler
-        res[0] = w1*w2 - x1*x2 - y1*y2 - z1*z2
+        res[0] = w1 * w2 - x1 * x2 - y1 * y2 - z1 * z2
         # i
-        res[1] = w1*x2 + x1*w2 + y1*z2 - z1*y2
+        res[1] = w1 * x2 + x1 * w2 + y1 * z2 - z1 * y2
         # j
-        res[2] = w1*y2 - x1*z2 + y1*w2 + z1*x2
+        res[2] = w1 * y2 - x1 * z2 + y1 * w2 + z1 * x2
         # k
-        res[3] = w1*z2 + x1*y2 - y1*x2 + z1*w2
+        res[3] = w1 * z2 + x1 * y2 - y1 * x2 + z1 * w2
 
         # update basis
         q1 = res
@@ -145,7 +145,7 @@ def quaternion_multiply(quaternions):
 
 
 def rotate(points, axis, theta):
-    '''
+    """
     Rotate points (can be a list of list of points) by axis-angle representations
     Inputs:
         points: List of lists of points, in shape (B, N, 3)
@@ -153,7 +153,7 @@ def rotate(points, axis, theta):
         theta: List of rotation angles, in shape (B,)
     Returns:
         points_rotated: Input points after input rotations
-    '''
+    """
 
     # make sure dimensions match
     assert len(points) == len(axis) and len(points) == len(theta)

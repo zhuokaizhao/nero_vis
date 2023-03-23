@@ -1,7 +1,4 @@
-"""
-Author: Benny
-Date: Nov 2019
-"""
+import nrrd
 import math
 import pandas as pd
 from dataset import ModelNetDataLoader
@@ -54,9 +51,11 @@ def test(model, loader, axis=None, angle=None, num_class=40):
         # compare with ground truths based on categories
         for cat in np.unique(target.cpu()):
             # number of correct prediction
-            num_correct = pred_choice[target==cat].eq(target[target==cat].long().data).cpu().sum()
+            num_correct = (
+                pred_choice[target == cat].eq(target[target == cat].long().data).cpu().sum()
+            )
             # class accuracy for current batch
-            class_acc[cat, 0] += num_correct.item() / float(points[target==cat].size()[0])
+            class_acc[cat, 0] += num_correct.item() / float(points[target == cat].size()[0])
             # counter
             class_acc[cat, 1] += 1
 
@@ -65,7 +64,7 @@ def test(model, loader, axis=None, angle=None, num_class=40):
         mean_correct.append(correct.item() / float(points.size()[0]))
 
     # average class accuracy over the entire dataset
-    class_acc[:, 2] =  class_acc[:, 0] / class_acc[:, 1]
+    class_acc[:, 2] = class_acc[:, 0] / class_acc[:, 1]
     # average accuracy over all classes
     class_acc = np.mean(class_acc[:, 2])
     # average accuracy over all instances
@@ -80,7 +79,7 @@ def main(args):
     omegaconf.OmegaConf.set_struct(args, False)
 
     # parameters
-    os.environ["CUDA_VISIBLE_DEVICES"] = str(args.gpu)
+    os.environ['CUDA_VISIBLE_DEVICES'] = str(args.gpu)
     logger = logging.getLogger(__name__)
 
     logger.info(f'\nParameters:')
@@ -88,8 +87,7 @@ def main(args):
         logger.info(f'{key}: {args[key]}')
     logger.info('\n')
 
-    # load model
-    args.num_class = 40
+    # load data
     if args.normal:
         args.input_dim = 6
     else:
@@ -109,10 +107,18 @@ def main(args):
         logger.info('Loading dataset')
         DATA_PATH = hydra.utils.to_absolute_path(args['data_dir'])
         TRAIN_DATASET = ModelNetDataLoader(
-            root=DATA_PATH, npoint=args.num_point, split='train', normal_channel=args.normal
+            root=DATA_PATH,
+            num_class=args.num_class,
+            npoint=args.num_point,
+            split='train',
+            normal_channel=args.normal,
         )
         TEST_DATASET = ModelNetDataLoader(
-            root=DATA_PATH, npoint=args.num_point, split='test', normal_channel=args.normal
+            root=DATA_PATH,
+            num_class=args.num_class,
+            npoint=args.num_point,
+            split='test',
+            normal_channel=args.normal,
         )
         train_data_oader = torch.utils.data.DataLoader(
             TRAIN_DATASET, batch_size=args.batch_size, shuffle=True, num_workers=4
@@ -138,7 +144,7 @@ def main(args):
                 lr=args.learning_rate,
                 betas=(0.9, 0.999),
                 eps=1e-08,
-                weight_decay=args.weight_decay
+                weight_decay=args.weight_decay,
             )
         else:
             optimizer = torch.optim.SGD(
@@ -179,9 +185,9 @@ def main(args):
                 # randomly replace a set of points with the first point
                 points = provider.random_point_dropout(points)
                 # randomly scale the points from 0.8 to 1.25
-                points[:, :, 0:3] = provider.random_scale_point_cloud(points[:,:, 0:3])
+                points[:, :, 0:3] = provider.random_scale_point_cloud(points[:, :, 0:3])
                 # Randomly shift point cloud
-                points[:, :, 0:3] = provider.shift_point_cloud(points[:,:, 0:3])
+                points[:, :, 0:3] = provider.shift_point_cloud(points[:, :, 0:3])
                 # if requested, random rotate given percentage of 180 degrees
                 if args.random_rotate:
                     # randomly pick quaternions for each point cloud in the current batch
@@ -246,12 +252,12 @@ def main(args):
                     instance_acc, class_acc = test(model.eval(), test_data_loader)
 
                     # use instance accuracy to determine best epoch
-                    if (instance_acc >= best_instance_acc):
+                    if instance_acc >= best_instance_acc:
                         best_instance_acc = instance_acc
                         best_epoch = epoch + 1
                         logger.info(f'Best epoch is {best_epoch}')
 
-                    if (class_acc >= best_class_acc):
+                    if class_acc >= best_class_acc:
                         best_class_acc = class_acc
 
                     logger.info(
@@ -264,7 +270,7 @@ def main(args):
                     # save model
                     save_path = os.path.join(
                         args.model_dir,
-                        f'{args.model.name}_model_rot_{args.random_rotate}_e_{epoch+1}.pth'
+                        f'{args.model.name}_{args.num_class}_classes_rot_{args.random_rotate}_e_{epoch+1}.pth',
                     )
                     state = {
                         'epoch': epoch + 1,
@@ -286,7 +292,11 @@ def main(args):
         logger.info('Loading dataset')
         DATA_PATH = hydra.utils.to_absolute_path(args['data_dir'])
         TEST_DATASET = ModelNetDataLoader(
-            root=DATA_PATH, npoint=args.num_point, split='test', normal_channel=args.normal
+            root=DATA_PATH,
+            num_class=args.num_class,
+            npoint=args.num_point,
+            split='test',
+            normal_channel=args.normal,
         )
         test_data_loader = torch.utils.data.DataLoader(
             TEST_DATASET, batch_size=args.batch_size, shuffle=False, num_workers=4
@@ -304,8 +314,8 @@ def main(args):
         #   (c). yz plane (x is always 0), e.g., (0, 1, 0), (0, 0, 1), etc.
         # 2. pick a rotation degree between -180 and 180
         planes = ['xy', 'xz', 'yz']
-        axis_increment = [theta for theta in range(-180, 180, 30)]
-        angle_increment = [theta for theta in range(0, 181, 30)]
+        axis_increment = [theta for theta in range(-180, 180, 10)]
+        angle_increment = [theta for theta in range(0, 181, 10)]
         # all the results
         all_instance_accuracies = np.zeros(
             (len(planes), len(axis_increment), len(angle_increment))
@@ -314,6 +324,8 @@ def main(args):
 
         # each plane that contains rotation axis
         for i, cur_plane in enumerate(planes):
+            # cur_nrrd_path = f'/home/zhuokai/Desktop/UChicago/Research/nero_vis/nero_point_cloud/output/{cur_plane}_plane_test_quaternions.nrrd'
+            # all_q = np.zeros((len(axis_increment)*len(angle_increment), 4))
             # all rotation axis
             all_axis = []
             # collect axis based on different plane
@@ -325,8 +337,8 @@ def main(args):
                     rot_matrix = np.matrix(
                         [
                             [math.cos(axis_angle_rad), -math.sin(axis_angle_rad), 0],
-                            [math.sin(axis_angle_rad), math.cos(axis_angle_rad) , 0],
-                            [0,                        0,                         1]
+                            [math.sin(axis_angle_rad), math.cos(axis_angle_rad), 0],
+                            [0, 0, 1],
                         ]
                     )
                     cur_axis = np.squeeze(np.array(rot_matrix * start_axis))
@@ -339,9 +351,9 @@ def main(args):
                     axis_angle_rad = axis_angle / 180 * np.pi
                     rot_matrix = np.matrix(
                         [
-                            [math.cos(axis_angle_rad),  0,  math.sin(axis_angle_rad)],
-                            [0,                         1,  0                       ],
-                            [-math.sin(axis_angle_rad), 0,  math.cos(axis_angle_rad)]
+                            [math.cos(axis_angle_rad), 0, math.sin(axis_angle_rad)],
+                            [0, 1, 0],
+                            [-math.sin(axis_angle_rad), 0, math.cos(axis_angle_rad)],
                         ]
                     )
                     cur_axis = np.squeeze(np.array(rot_matrix * start_axis))
@@ -354,9 +366,9 @@ def main(args):
                     axis_angle_rad = axis_angle / 180 * np.pi
                     rot_matrix = np.matrix(
                         [
-                            [1,                        0,                          0],
-                            [0, math.cos(axis_angle_rad),  -math.sin(axis_angle_rad)],
-                            [0, math.sin(axis_angle_rad),   math.cos(axis_angle_rad)]
+                            [1, 0, 0],
+                            [0, math.cos(axis_angle_rad), -math.sin(axis_angle_rad)],
+                            [0, math.sin(axis_angle_rad), math.cos(axis_angle_rad)],
                         ]
                     )
                     cur_axis = np.squeeze(np.array(rot_matrix * start_axis))
@@ -366,9 +378,13 @@ def main(args):
             for j, cur_axis in enumerate(all_axis):
                 # pick a rotation angle
                 for k, cur_angle in enumerate(angle_increment):
-                    logger.info(
-                        f'Plane {cur_plane}, Axis {np.round(cur_axis, 2)}, Angle {round(cur_angle, 2)}'
+                    cur_q = quaternions.axis_angle_to_quaternion(
+                        cur_axis, cur_angle, unit='degree'
                     )
+                    logger.info(
+                        f'Plane {cur_plane}, Axis {np.round(cur_axis, 2)}, Angle {round(cur_angle, 2)}, Quaternion {np.round(cur_q, 2)}'
+                    )
+                    # all_q[j*len(angle_increment)+k] = cur_q
                     # now that we have the axis-angle representation, run the test
                     with torch.no_grad():
                         cur_instance_accuracy, cur_class_accuracy = test(
@@ -382,18 +398,22 @@ def main(args):
                     all_instance_accuracies[i][j][k] = cur_instance_accuracy
                     all_class_accuracies[i][j][k] = cur_class_accuracy
 
+            # save all quaternions to nrrd
+            # nrrd.write(cur_nrrd_path, all_q)
+
         # save results as npz
         output_path = os.path.join(
-            os.getcwd(), 'output', args.model.checkpoint_path.split('/')[-1].split('.')[0]+'.npz'
+            os.getcwd(), 'output', args.model.checkpoint_path.split('/')[-1].split('.')[0] + '.npz'
         )
-        np.savez(output_path,
-                 all_planes=planes,
-                 all_axis=axis_increment,
-                 all_angles=angle_increment,
-                 instance_accuracies=all_instance_accuracies,
-                 class_accuracies=all_class_accuracies)
+        np.savez(
+            output_path,
+            all_planes=planes,
+            all_axis=axis_increment,
+            all_angles=angle_increment,
+            instance_accuracies=all_instance_accuracies,
+            class_accuracies=all_class_accuracies,
+        )
         logger.info(f'Testing results have been saved to {output_path}')
-
 
     # single test mode
     elif args.mode == 'single_test':
@@ -403,8 +423,6 @@ def main(args):
         logger.info(f'Testing with checkpoint model {args.model.checkpoint_path}')
     else:
         raise Exception(f'Unrecognized mode {args.mode}.')
-
-
 
 
 if __name__ == '__main__':
