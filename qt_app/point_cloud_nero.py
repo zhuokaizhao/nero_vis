@@ -2,35 +2,25 @@
 NERO interface for point cloud classification
 Author: Zhuokai Zhao
 """
-
-from operator import truediv
 import os
 import sys
 import glob
-import PySide6
 import torch
 import argparse
 import numpy as np
-import flowiz as fz
-from PIL import Image
 import pyqtgraph as pg
 from PySide6 import QtCore, QtGui, QtWidgets
 from PySide6.QtGui import QPixmap, QFont
 from PySide6.QtWidgets import QWidget, QLabel, QRadioButton
+import warnings
 
-import nero_transform
+warnings.filterwarnings('ignore')
+
 import nero_utilities
 import nero_run_model
 import nero_custom_plots
+import nero_interface_util
 
-import warnings
-
-# import teem
-# import qiv
-import datasets
-import qt_app.nero_interface_util as nero_interface_util
-
-warnings.filterwarnings('ignore')
 
 # globa configurations
 pg.setConfigOptions(antialias=True, background='w')
@@ -1380,10 +1370,17 @@ class UI_MainWindow(QWidget):
 
     def draw_point_cloud_detail_plot(self):
         # convert selected clicking point to indices in results
-        length, angle = nero_interface_util.cart2pol(self.click_array_x, self.click_array_y)
-        axis_angle_index = self.all_axis_angles.index(angle)
-        rot_angle_index = length
-        print(f'Index in result array: ({axis_angle_index}, {rot_angle_index})')
+        cart_x, cart_y = nero_interface_util.img2cart(
+            self.click_array_x, self.click_array_y, len(self.all_rot_angles) * 2
+        )
+        length, angle = nero_interface_util.cart2pol(cart_x, cart_y)
+        # print(length, angle)
+        # print(self.all_axis_angles)
+        axis_angle_index = np.where(self.all_axis_angles == angle)[0][0]
+        rot_angle_index = int(length)
+        # print(axis_angle_index, rot_angle_index)
+        # exit()
+        # print(f'Index in result array: ({axis_angle_index}, {rot_angle_index})')
         # all the probabilities of current selected sample
         self.cur_individual_plot_quantity_1 = self.all_outputs_1[
             self.cur_plane_index, axis_angle_index, rot_angle_index, self.point_cloud_index, :
@@ -1393,14 +1390,14 @@ class UI_MainWindow(QWidget):
         ]
         # make the bar plot
         graph_1 = pg.BarGraphItem(
-            x=np.arange(len(self.output_1)) - 0.2,
-            height=list(self.output_1),
+            x=np.arange(len(self.cur_individual_plot_quantity_1)) - 0.2,
+            height=list(self.cur_individual_plot_quantity_1),
             width=0.4,
             brush='blue',
         )
         graph_2 = pg.BarGraphItem(
-            x=np.arange(len(self.output_1)) + 0.2,
-            height=list(self.output_2),
+            x=np.arange(len(self.cur_individual_plot_quantity_2)) + 0.2,
+            height=list(self.cur_individual_plot_quantity_2),
             width=0.4,
             brush='magenta',
         )

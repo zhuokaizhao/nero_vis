@@ -58,6 +58,13 @@ def cart2img(cart, img_size):
     return (x_img, y_img)
 
 
+def img2cart(x_img, y_img, img_size):
+    x_cart = x_img - img_size // 2
+    y_cart = y_img - img_size // 2
+
+    return (x_cart, y_cart)
+
+
 # create raster image that holds custom displacement of results
 def process_point_cloud_result(accuracies, plane, all_axis_angles, all_rot_angles, block_size=1):
 
