@@ -136,8 +136,8 @@ class UI_MainWindow(QWidget):
         self.draw_point_cloud_individual_nero()
 
         # # Detailed plot
-        # self.init_detail_plot_interface()
-        # self.draw_point_cloud_detail_plot()
+        self.init_detail_plot_interface()
+        self.draw_point_cloud_detail_plot()
 
         print(f'\nNERO interface ready')
 
@@ -826,9 +826,13 @@ class UI_MainWindow(QWidget):
             self.all_rot_angles,
             block_size=self.block_size,
         )
-        # initialize plot
-        self.aggregate_nero_1 = nero_custom_plots.NEROHeatmap(self, 'aggregate', 1)
-        self.aggregate_nero_2 = nero_custom_plots.NEROHeatmap(self, 'aggregate', 2)
+        # initialize plot, we don't need interaction on aggregate plots
+        self.aggregate_nero_1 = nero_custom_plots.NEROHeatmap(
+            self, model_index=1, interaction=False
+        )
+        self.aggregate_nero_2 = nero_custom_plots.NEROHeatmap(
+            self, model_index=2, interaction=False
+        )
         # draw the heatmap
         self.aggregate_heatmap_plot_1 = self._draw_individual_heatmap(
             self.processed_aggregate_quantity_1, self.aggregate_nero_1
@@ -1245,52 +1249,88 @@ class UI_MainWindow(QWidget):
         self.highlighter_2 = pg.ScatterPlotItem(pxMode=False)
         self.highlighter_2.setSymbol('s')
 
-    def draw_point_cloud_individual_nero(self):
-        # get the results from aggregate results with respect to user selected sample
-        self.ground_truth_index = self.cur_classes_names.index(
-            self.point_cloud_paths[self.point_cloud_index][0]
-        )
-        self.cur_individual_plot_quantity_1 = self.all_outputs_1[
-            self.cur_plane_index, :, :, self.point_cloud_index, self.ground_truth_index
-        ]
-        self.cur_individual_plot_quantity_2 = self.all_outputs_2[
-            self.cur_plane_index, :, :, self.point_cloud_index, self.ground_truth_index
-        ]
-        # convert the result to polar plot data fit in rectangular array
-        # model 1 results
-        (
-            self.processed_individual_quantity_1,
-            self.processed_individual_quaternion_1,
-        ) = nero_interface_util.process_point_cloud_result(
-            self.cur_individual_plot_quantity_1,
-            self.cur_plane,
-            self.all_axis_angles,
-            self.all_rot_angles,
-            block_size=self.block_size,
-        )
-        # model 2 results
-        (
-            self.processed_individual_quantity_2,
-            self.processed_individual_quaternion_2,
-        ) = nero_interface_util.process_point_cloud_result(
-            self.cur_individual_plot_quantity_2,
-            self.cur_plane,
-            self.all_axis_angles,
-            self.all_rot_angles,
-            block_size=self.block_size,
-        )
+        # initialize current selected position
+        self.click_array_x = len(self.all_rot_angles)
+        self.click_array_y = len(self.all_rot_angles)
 
-        # initialize plot
-        self.individual_nero_1 = nero_custom_plots.NEROHeatmap(self, 'aggregate', 1)
-        self.individual_nero_2 = nero_custom_plots.NEROHeatmap(self, 'aggregate', 2)
-        # draw the heatmap
-        self.individual_heatmap_plot_1 = self._draw_individual_heatmap(
-            self.processed_individual_quantity_1, self.individual_nero_1
-        )
-        self.individual_heatmap_plot_2 = self._draw_individual_heatmap(
-            self.processed_individual_quantity_2, self.individual_nero_2
-        )
-        # add plot to view
+    def draw_point_cloud_individual_nero(self, highlighter_only=False):
+        if not highlighter_only:
+            # get the results from aggregate results with respect to user selected sample
+            self.ground_truth_index = self.cur_classes_names.index(
+                self.point_cloud_paths[self.point_cloud_index][0]
+            )
+            self.cur_individual_plot_quantity_1 = self.all_outputs_1[
+                self.cur_plane_index, :, :, self.point_cloud_index, self.ground_truth_index
+            ]
+            self.cur_individual_plot_quantity_2 = self.all_outputs_2[
+                self.cur_plane_index, :, :, self.point_cloud_index, self.ground_truth_index
+            ]
+            # convert the result to polar plot data fit in rectangular array
+            # model 1 results
+            (
+                self.processed_individual_quantity_1,
+                self.processed_individual_quaternion_1,
+            ) = nero_interface_util.process_point_cloud_result(
+                self.cur_individual_plot_quantity_1,
+                self.cur_plane,
+                self.all_axis_angles,
+                self.all_rot_angles,
+                block_size=self.block_size,
+            )
+            # model 2 results
+            (
+                self.processed_individual_quantity_2,
+                self.processed_individual_quaternion_2,
+            ) = nero_interface_util.process_point_cloud_result(
+                self.cur_individual_plot_quantity_2,
+                self.cur_plane,
+                self.all_axis_angles,
+                self.all_rot_angles,
+                block_size=self.block_size,
+            )
+
+            # initialize plot
+            self.individual_nero_1 = nero_custom_plots.NEROHeatmap(
+                self,
+                model_index=1,
+                interaction=True,
+                reaction_function=self._individual_nero_clicked,
+            )
+            self.individual_nero_2 = nero_custom_plots.NEROHeatmap(
+                self,
+                model_index=2,
+                interaction=True,
+                reaction_function=self._individual_nero_clicked,
+            )
+            # draw the heatmap
+            self.individual_heatmap_plot_1 = self._draw_individual_heatmap(
+                self.processed_individual_quantity_1, self.individual_nero_1
+            )
+            self.individual_heatmap_plot_2 = self._draw_individual_heatmap(
+                self.processed_individual_quantity_2, self.individual_nero_2
+            )
+        else:
+            self.individual_heatmap_plot_1.removeItem(self.highlighter_1)
+            self.individual_heatmap_plot_2.removeItem(self.highlighter_2)
+
+        # add default selection highlighters
+        rectangle_highlighter = [
+            {
+                'pos': (
+                    self.click_array_x * self.block_size + self.block_size // 2,  # center pos
+                    self.click_array_y * self.block_size + self.block_size // 2,  # center pos
+                ),
+                'size': self.block_size,
+                'pen': {'color': 'red', 'width': 3},
+                'brush': (0, 0, 0, 0),
+            }
+        ]
+        # add highlighters to plots
+        self.highlighter_1.setData(rectangle_highlighter)
+        self.individual_heatmap_plot_1.addItem(self.highlighter_1)
+        self.highlighter_2.setData(rectangle_highlighter)
+        self.individual_heatmap_plot_2.addItem(self.highlighter_2)
+        # add plots to views
         self.individual_nero_view_1.clear()
         self.individual_nero_view_1.addItem(self.individual_heatmap_plot_1)
         self.individual_nero_view_2.clear()
@@ -1298,10 +1338,77 @@ class UI_MainWindow(QWidget):
 
     ################## Detail Plot Related ##################
     def init_detail_plot_interface(self):
-        pass
+        # detail plots interface layout
+        detail_plot_layout = QtWidgets.QGridLayout()
+        detail_plot_layout.setAlignment(QtCore.Qt.AlignLeft)
+        detail_plot_layout.setHorizontalSpacing(0)
+        detail_plot_layout.setVerticalSpacing(0)
+        # label stype and font
+        tick_font = QFont('Helvetica', 16)
+        x_label_style = {'color': 'black', 'font-size': '16pt', 'text': 'Digit'}
+        y_label_style = {'color': 'black', 'font-size': '16pt', 'text': 'Confidence'}
+        # initialize plot 1
+        self.bar_plot_1 = pg.plot()
+        self.bar_plot_1.plotItem.vb.setLimits(xMin=-0.5, xMax=9.5, yMin=0, yMax=1.2)
+        self.bar_plot_1.setBackground('w')
+        self.bar_plot_1.setFixedSize(self.plot_size * 1.7, self.plot_size * 1.7)
+        self.bar_plot_1.setContentsMargins(0, 0, 0, 0)
+        self.bar_plot_1.getAxis('bottom').setLabel(**x_label_style)
+        self.bar_plot_1.getAxis('left').setLabel(**y_label_style)
+        self.bar_plot_1.getAxis('bottom').setTickFont(tick_font)
+        self.bar_plot_1.getAxis('left').setTickFont(tick_font)
+        self.bar_plot_1.getAxis('bottom').setTextPen('black')
+        self.bar_plot_1.getAxis('left').setTextPen('black')
+        self.bar_plot_1.setMouseEnabled(x=False, y=False)
+        # initialize plot 2
+        self.bar_plot_2 = pg.plot()
+        self.bar_plot_2.plotItem.vb.setLimits(xMin=-0.5, xMax=9.5, yMin=0, yMax=1.2)
+        self.bar_plot_2.setBackground('w')
+        self.bar_plot_2.setFixedSize(self.plot_size * 1.7, self.plot_size * 1.7)
+        self.bar_plot_2.setContentsMargins(0, 0, 0, 0)
+        self.bar_plot_2.getAxis('bottom').setLabel(**x_label_style)
+        self.bar_plot_2.getAxis('left').setLabel(**y_label_style)
+        self.bar_plot_2.getAxis('bottom').setTickFont(tick_font)
+        self.bar_plot_2.getAxis('left').setTickFont(tick_font)
+        self.bar_plot_2.getAxis('bottom').setTextPen('black')
+        self.bar_plot_2.getAxis('left').setTextPen('black')
+        self.bar_plot_2.setMouseEnabled(x=False, y=False)
+        # add plots to layout
+        detail_plot_layout.addWidget(self.bar_plot_1, 0, 0)
+        detail_plot_layout.addWidget(self.bar_plot_2, 1, 0)
+        self.layout.addLayout(detail_plot_layout, 3, 3)
 
     def draw_point_cloud_detail_plot(self):
-        pass
+        # convert selected clicking point to indices in results
+        length, angle = nero_interface_util.cart2pol(self.click_array_x, self.click_array_y)
+        axis_angle_index = self.all_axis_angles.index(angle)
+        rot_angle_index = length
+        print(f'Index in result array: ({axis_angle_index}, {rot_angle_index})')
+        # all the probabilities of current selected sample
+        self.cur_individual_plot_quantity_1 = self.all_outputs_1[
+            self.cur_plane_index, axis_angle_index, rot_angle_index, self.point_cloud_index, :
+        ]
+        self.cur_individual_plot_quantity_2 = self.all_outputs_2[
+            self.cur_plane_index, axis_angle_index, rot_angle_index, self.point_cloud_index, :
+        ]
+        # make the bar plot
+        graph_1 = pg.BarGraphItem(
+            x=np.arange(len(self.output_1)) - 0.2,
+            height=list(self.output_1),
+            width=0.4,
+            brush='blue',
+        )
+        graph_2 = pg.BarGraphItem(
+            x=np.arange(len(self.output_1)) + 0.2,
+            height=list(self.output_2),
+            width=0.4,
+            brush='magenta',
+        )
+        # add graph to plot
+        self.bar_plot_1.clear()
+        self.bar_plot_1.addItem(graph_1)
+        self.bar_plot_2.clear()
+        self.bar_plot_2.addItem(graph_2)
 
     ################## All private functions ##################
     # dataset drop-down menu
@@ -1609,13 +1716,6 @@ class UI_MainWindow(QWidget):
         # if item != None:
         self.point_cloud_index = int(item.opts['name'])
         print(f'clicked image index {self.point_cloud_index}')
-        # # when the input is empty, it is called automatically
-        # else:
-        #     # image index should be defined
-        #     if self.point_cloud_index == None:
-        #         raise Exception(
-        #             'point_cloud_index should be defined prior to calling run_dimension_reduction'
-        #         )
 
         # get the ranking in each colorbar and change its value while locking both sliders
         # slider 1
@@ -1749,7 +1849,7 @@ class UI_MainWindow(QWidget):
         low_dim_scatter_plot.clear()
         low_dim_scatter_plot.addItem(low_dim_scatter_item)
 
-    def _draw_individual_heatmap(self, data, heatmap, highlighter=None, title=None):
+    def _draw_individual_heatmap(self, data, heatmap, title=None):
         # viewbox that contains the heatmap
         view_box = pg.ViewBox(invertY=True)
         view_box.setAspectLocked(lock=True)
@@ -1774,25 +1874,17 @@ class UI_MainWindow(QWidget):
         heatmap_plot.getAxis('left').setLabel(**y_label_style)
         heatmap_plot.getAxis('left').setStyle(tickLength=0, showValues=False)
 
-        # when we are adding highlighter to the heatmap
-        if highlighter:
-            # small highlighter showing where the transformation is at the nero plot
-            scatter_point = [
-                {
-                    'pos': (
-                        self.cur_x_tran + self.translation_step_single // 2,
-                        self.cur_y_tran + self.translation_step_single // 2,
-                    ),
-                    'size': self.translation_step_single,
-                    'pen': {'color': 'red', 'width': 3},
-                    'brush': (0, 0, 0, 0),
-                }
-            ]
-            # add highlighter to the plot
-            highlighter.setData(scatter_point)
-            heatmap_plot.addItem(highlighter)
-
         return heatmap_plot
+
+    def _individual_nero_clicked(self):
+        # convert to data array position
+        self.click_array_x = self.click_pos_x // self.block_size
+        self.click_array_y = self.click_pos_y // self.block_size
+        print(f'Clicked on heatmap grid ({self.click_array_x}, {self.click_array_y})')
+        # update individual nero plot's highligher
+        self.draw_point_cloud_individual_nero(highlighter_only=True)
+        # plot detail plot
+        self.draw_point_cloud_detail_plot()
 
 
 if __name__ == '__main__':

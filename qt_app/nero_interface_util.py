@@ -39,6 +39,12 @@ def draw_circle(painter, center_x, center_y, radius, color):
     painter.end()
 
 
+def cart2pol(x, y):
+    length = np.sqrt(x**2 + y**2)
+    angle = np.arctan2(y, x)
+    return (length, angle)
+
+
 def pol2cart(length, angle):
     x = int(length * math.cos(math.radians(angle)))
     y = int(length * math.sin(math.radians(angle)))
