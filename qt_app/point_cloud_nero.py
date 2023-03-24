@@ -585,13 +585,13 @@ class UI_MainWindow(QWidget):
         color_bar_plot = pg.PlotItem()
         color_bar_plot.layout.setContentsMargins(0, 0, 0, 0)
         color_bar_plot.setFixedHeight(0)
-        color_bar_plot.setFixedWidth(self.plot_size * 2)
+        color_bar_plot.setFixedWidth(self.plot_size * 1.8)
         color_bar_plot.hideAxis('bottom')
         color_bar_plot.hideAxis('left')
         color_bar_view.addItem(color_bar_plot)
         color_bar_image = pg.ImageItem()
         self.color_bar.setImageItem(color_bar_image, insert_in=color_bar_plot)
-        color_bar_plot.layout.setContentsMargins(90, 0, 0, 0)
+        color_bar_plot.layout.setContentsMargins(0, 0, 0, 0)
         # add components to layout
         self.layout.addWidget(color_bar_view, 2, 1)
 
@@ -1014,13 +1014,13 @@ class UI_MainWindow(QWidget):
         # dr plot for model 1
         self.low_dim_scatter_view_1 = pg.GraphicsLayoutWidget()
         self.low_dim_scatter_view_1.setBackground('white')
-        self.low_dim_scatter_view_1.setFixedSize(self.plot_size * 1.3, self.plot_size * 1.3)
+        self.low_dim_scatter_view_1.setFixedSize(self.plot_size * 1.35, self.plot_size * 1.35)
         self.low_dim_scatter_view_1.ci.setContentsMargins(20, 0, 0, 0)
 
         # dr plot for model 2
         self.low_dim_scatter_view_2 = pg.GraphicsLayoutWidget()
         self.low_dim_scatter_view_2.setBackground('white')
-        self.low_dim_scatter_view_2.setFixedSize(self.plot_size * 1.25, self.plot_size * 1.25)
+        self.low_dim_scatter_view_2.setFixedSize(self.plot_size * 1.35, self.plot_size * 1.35)
         self.low_dim_scatter_view_2.ci.setContentsMargins(20, 0, 0, 0)
 
         # sliders that rank the dimension reduction result and can select one of them
@@ -1237,13 +1237,13 @@ class UI_MainWindow(QWidget):
         self.individual_nero_view_1.ci.layout.setContentsMargins(
             0, 0, 0, 0  # left top right bottom
         )
-        self.individual_nero_view_1.setFixedSize(self.plot_size * 1.2, self.plot_size * 1.2)
+        self.individual_nero_view_1.setFixedSize(self.plot_size * 1.35, self.plot_size * 1.35)
         # heatmap view for model 2
         self.individual_nero_view_2 = pg.GraphicsLayoutWidget()
         self.individual_nero_view_2.ci.layout.setContentsMargins(
             0, 0, 0, 0  # left top right bottom
         )
-        self.individual_nero_view_2.setFixedSize(self.plot_size * 1.2, self.plot_size * 1.2)
+        self.individual_nero_view_2.setFixedSize(self.plot_size * 1.35, self.plot_size * 1.35)
         # add view to layout
         individual_nero_layout.addWidget(self.individual_nero_view_1, 0, 0)
         individual_nero_layout.addWidget(self.individual_nero_view_2, 1, 0)
@@ -1350,10 +1350,14 @@ class UI_MainWindow(QWidget):
         detail_plot_layout.setHorizontalSpacing(0)
         detail_plot_layout.setVerticalSpacing(0)
         # label stype and font
-        tick_font = QFont('Helvetica', 16)
-        x_label_style = {'color': 'black', 'font-size': '16pt', 'text': 'Class'}
+        tick_font = QFont('Helvetica', 14)
+        x_label_style = {'color': 'black', 'font-size': '16pt', 'text': 'Object Classes'}
         y_label_style = {'color': 'black', 'font-size': '16pt', 'text': 'Confidence'}
-        self.detail_plot_bar_width = 1
+        self.detail_plot_bar_width = 0.5
+        # prepare ticks
+        ticks = []
+        for i, label in enumerate(self.cur_classes_names):
+            ticks.append((i + 1, label))
         # initialize plot 1
         self.bar_plot_1 = pg.plot()
         self.bar_plot_1.setBackground('w')
@@ -1363,8 +1367,8 @@ class UI_MainWindow(QWidget):
             yMin=0,
             yMax=1,
         )
-        self.bar_plot_1.setFixedSize(self.plot_size * 3, self.plot_size * 1.5)
-        self.bar_plot_1.setContentsMargins(0, 0, 0, 0)
+        self.bar_plot_1.setFixedSize(self.plot_size * 3, self.plot_size * 1.35)
+        self.bar_plot_1.setContentsMargins(0, 100, 0, 0)
         self.bar_plot_1.getAxis('bottom').setLabel(**x_label_style)
         self.bar_plot_1.getAxis('left').setLabel(**y_label_style)
         self.bar_plot_1.getAxis('bottom').setTickFont(tick_font)
@@ -1372,6 +1376,7 @@ class UI_MainWindow(QWidget):
         self.bar_plot_1.getAxis('bottom').setTextPen('black')
         self.bar_plot_1.getAxis('left').setTextPen('black')
         self.bar_plot_1.setMouseEnabled(x=False, y=False)
+        self.bar_plot_1.getAxis('bottom').setTicks([ticks])
         # initialize plot 2
         self.bar_plot_2 = pg.plot()
         self.bar_plot_2.setBackground('w')
@@ -1381,8 +1386,8 @@ class UI_MainWindow(QWidget):
             yMin=0,
             yMax=1,
         )
-        self.bar_plot_2.setFixedSize(self.plot_size * 3, self.plot_size * 1.5)
-        self.bar_plot_2.setContentsMargins(0, 0, 0, 0)
+        self.bar_plot_2.setFixedSize(self.plot_size * 3, self.plot_size * 1.35)
+        self.bar_plot_2.setContentsMargins(0, 100, 0, 0)
         self.bar_plot_2.getAxis('bottom').setLabel(**x_label_style)
         self.bar_plot_2.getAxis('left').setLabel(**y_label_style)
         self.bar_plot_2.getAxis('bottom').setTickFont(tick_font)
@@ -1390,6 +1395,7 @@ class UI_MainWindow(QWidget):
         self.bar_plot_2.getAxis('bottom').setTextPen('black')
         self.bar_plot_2.getAxis('left').setTextPen('black')
         self.bar_plot_2.setMouseEnabled(x=False, y=False)
+        self.bar_plot_2.getAxis('bottom').setTicks([ticks])
         # add plots to layout
         detail_plot_layout.addWidget(self.bar_plot_1, 0, 0)
         detail_plot_layout.addWidget(self.bar_plot_2, 1, 0)
@@ -1417,28 +1423,23 @@ class UI_MainWindow(QWidget):
         ]
         # make the bar plot
         graph_1 = pg.BarGraphItem(
-            x=np.arange(len(self.cur_individual_plot_quantity_1)),
+            x=np.arange(1, len(self.cur_individual_plot_quantity_1) + 1),
             height=list(self.cur_individual_plot_quantity_1),
             width=self.detail_plot_bar_width,
             brush='blue',
         )
         graph_2 = pg.BarGraphItem(
-            x=np.arange(len(self.cur_individual_plot_quantity_2)),
+            x=np.arange(1, len(self.cur_individual_plot_quantity_2) + 1),
             height=list(self.cur_individual_plot_quantity_2),
             width=self.detail_plot_bar_width,
             brush='magenta',
         )
-        # prepare ticks
-        ticks = []
-        for i, label in enumerate(self.cur_classes_names):
-            ticks.append((i, label))
+
         # add graph to plot
         self.bar_plot_1.clear()
         self.bar_plot_1.addItem(graph_1)
-        self.bar_plot_1.getAxis('bottom').setTicks([ticks])
         self.bar_plot_2.clear()
         self.bar_plot_2.addItem(graph_2)
-        self.bar_plot_2.getAxis('bottom').setTicks([ticks])
 
     ################## All private functions ##################
     # dataset drop-down menu
