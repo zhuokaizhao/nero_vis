@@ -621,7 +621,7 @@ class UI_MainWindow(QWidget):
             'all_axis_angles', self.cache
         )
         if not successful:
-            self.all_axis_angles = list(range(0, 361, 15))
+            self.all_axis_angles = list(range(0, 361, 5))
             nero_interface_util.save_to_cache(
                 'all_axis_angles', self.all_axis_angles, self.cache, self.cache_path
             )
@@ -641,19 +641,19 @@ class UI_MainWindow(QWidget):
             self.all_avg_instance_accuracies_1,
             successful_avg_ins,
         ) = nero_interface_util.load_from_cache(
-            f'{self.mode}_{self.dataset_name}_{self.model_1_cache_name}_{self.cur_num_classes}_classes_avg_instance_accuracies',
+            f'{self.mode}_{self.dataset_name}_{self.model_1_cache_name}_avg_instance_accuracies',
             self.cache,
         )
         self.all_avg_class_accuracies_1, successful_avg_cls = nero_interface_util.load_from_cache(
-            f'{self.mode}_{self.dataset_name}_{self.model_1_cache_name}_{self.cur_num_classes}_classes_avg_class_accuracies',
+            f'{self.mode}_{self.dataset_name}_{self.model_1_cache_name}_avg_class_accuracies',
             self.cache,
         )
         self.all_avg_accuracies_per_class_1, successful_cls = nero_interface_util.load_from_cache(
-            f'{self.mode}_{self.dataset_name}_{self.model_1_cache_name}_{self.cur_num_classes}_classes_avg_accuracies_per_class',
+            f'{self.mode}_{self.dataset_name}_{self.model_1_cache_name}_avg_accuracies_per_class',
             self.cache,
         )
         self.all_outputs_1, successful_output = nero_interface_util.load_from_cache(
-            f'{self.mode}_{self.dataset_name}_{self.model_1_cache_name}_{self.cur_num_classes}_classes_outputs',
+            f'{self.mode}_{self.dataset_name}_{self.model_1_cache_name}_outputs',
             self.cache,
         )
 
@@ -666,7 +666,7 @@ class UI_MainWindow(QWidget):
         ):
             print(f'\nRunning aggregate test for model 1')
             (
-                self.all_avg_instance_accuracy_1,
+                self.all_avg_instance_accuracies_1,
                 self.all_avg_class_accuracies_1,
                 self.all_avg_accuracies_per_class_1,
                 self.all_outputs_1,
@@ -689,7 +689,7 @@ class UI_MainWindow(QWidget):
                     f'{self.mode}_{self.dataset_name}_{self.model_1_cache_name}_outputs',
                 ],
                 [
-                    self.all_avg_instance_accuracy_1,
+                    self.all_avg_instance_accuracies_1,
                     self.all_avg_class_accuracies_1,
                     self.all_avg_accuracies_per_class_1,
                     self.all_outputs_1,
@@ -700,19 +700,19 @@ class UI_MainWindow(QWidget):
 
         # aggregate test results for model 2
         self.all_avg_instance_accuracies_2, successful = nero_interface_util.load_from_cache(
-            f'{self.mode}_{self.dataset_name}_{self.model_2_cache_name}_{self.cur_num_classes}_classes_avg_instance_accuracies',
+            f'{self.mode}_{self.dataset_name}_{self.model_2_cache_name}_avg_instance_accuracies',
             self.cache,
         )
         self.all_avg_class_accuracies_2, successful = nero_interface_util.load_from_cache(
-            f'{self.mode}_{self.dataset_name}_{self.model_2_cache_name}_{self.cur_num_classes}_classes_avg_class_accuracies',
+            f'{self.mode}_{self.dataset_name}_{self.model_2_cache_name}_avg_class_accuracies',
             self.cache,
         )
         self.all_avg_accuracies_per_class_2, successful = nero_interface_util.load_from_cache(
-            f'{self.mode}_{self.dataset_name}_{self.model_2_cache_name}_{self.cur_num_classes}_classes_avg_accuracies_per_class',
+            f'{self.mode}_{self.dataset_name}_{self.model_2_cache_name}_avg_accuracies_per_class',
             self.cache,
         )
         self.all_outputs_2, successful = nero_interface_util.load_from_cache(
-            f'{self.mode}_{self.dataset_name}_{self.model_2_cache_name}_{self.cur_num_classes}_classes_outputs',
+            f'{self.mode}_{self.dataset_name}_{self.model_2_cache_name}_outputs',
             self.cache,
         )
 
@@ -720,7 +720,7 @@ class UI_MainWindow(QWidget):
         if not successful:
             print(f'\nRunning aggregate test for model 2')
             (
-                self.all_avg_instance_accuracy_2,
+                self.all_avg_instance_accuracies_2,
                 self.all_avg_class_accuracies_2,
                 self.all_avg_accuracies_per_class_2,
                 self.all_outputs_2,
@@ -743,7 +743,7 @@ class UI_MainWindow(QWidget):
                     f'{self.mode}_{self.dataset_name}_{self.model_2_cache_name}_outputs',
                 ],
                 [
-                    self.all_avg_instance_accuracy_2,
+                    self.all_avg_instance_accuracies_2,
                     self.all_avg_class_accuracies_2,
                     self.all_avg_accuracies_per_class_2,
                     self.all_outputs_2,
@@ -862,14 +862,14 @@ class UI_MainWindow(QWidget):
         for cur_algo in self.all_dr_algorithms:
             # for model 1
             self.all_high_dim_points_1, successful_high = nero_interface_util.load_from_cache(
-                f'{self.mode}_{self.dataset_name}_{self.model_1_cache_name}_{self.cur_num_classes}_classes_high_dim',
+                f'{self.mode}_{self.dataset_name}_{self.model_1_cache_name}_high_dim',
                 self.cache,
             )
             (
                 self.all_low_dim_points_1[cur_algo],
                 successful_low,
             ) = nero_interface_util.load_from_cache(
-                f'{self.mode}_{self.dataset_name}_{self.model_1_cache_name}_{self.cur_num_classes}_classes_{cur_algo}_low_dim',
+                f'{self.mode}_{self.dataset_name}_{self.model_1_cache_name}_{cur_algo}_low_dim',
                 self.cache,
             )
             # when we don't have in the cache
@@ -927,14 +927,14 @@ class UI_MainWindow(QWidget):
 
             # for model 2
             self.all_high_dim_points_2, successful_high = nero_interface_util.load_from_cache(
-                f'{self.mode}_{self.dataset_name}_{self.model_2_cache_name}_{self.cur_num_classes}_classes_high_dim',
+                f'{self.mode}_{self.dataset_name}_{self.model_2_cache_name}_high_dim',
                 self.cache,
             )
             (
                 self.all_low_dim_points_2[cur_algo],
                 successful_low,
             ) = nero_interface_util.load_from_cache(
-                f'{self.mode}_{self.dataset_name}_{self.model_2_cache_name}_{self.cur_num_classes}_classes_{cur_algo}_low_dim',
+                f'{self.mode}_{self.dataset_name}_{self.model_2_cache_name}_{cur_algo}_low_dim',
                 self.cache,
             )
             # when we don't have in the cache
@@ -1453,6 +1453,10 @@ class UI_MainWindow(QWidget):
         self.dataset_index = self.aggregate_image_menu.currentIndex()
         # re-load the data
         self.load_point_cloud_data()
+        # re-load the model since different model correspond to different dataset
+        self.init_point_cloud_models()
+        self.model_1 = self.load_point_cloud_model(self.model_1_name)
+        self.model_2 = self.load_point_cloud_model(self.model_2_name)
         # update aggregate nero plot
         self.draw_point_cloud_aggregate_nero()
         # update dr plot
