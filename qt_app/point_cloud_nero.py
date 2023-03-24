@@ -135,7 +135,7 @@ class UI_MainWindow(QWidget):
     def init_point_cloud_data(self):
         # modelnet40 and modelnet10
         # data samples paths
-        self.all_nums_classes = [40, 10]
+        self.all_nums_classes = [10, 40]
         self.all_data_paths = [
             os.path.join(self.data_dir, f'modelnet{i}_test.txt') for i in self.all_nums_classes
         ]
@@ -370,13 +370,27 @@ class UI_MainWindow(QWidget):
         # load the mode
         if model_name == 'Original':
             model_path = glob.glob(
-                os.path.join(os.getcwd(), 'example_models', self.mode, 'non_eqv', '*.pth')
+                os.path.join(
+                    os.getcwd(),
+                    'example_models',
+                    self.mode,
+                    f'{self.cur_num_classes}_classes',
+                    'non_eqv',
+                    '*.pth',
+                )
             )[0]
             # load model
             model = nero_run_model.load_model(self.mode, 'non-eqv', model_path, self.pt_model_cfg)
         elif model_name == 'Data Aug':
             model_path = glob.glob(
-                os.path.join(os.getcwd(), 'example_models', self.mode, 'rot_eqv', '*.pth')
+                os.path.join(
+                    os.getcwd(),
+                    'example_models',
+                    self.mode,
+                    f'{self.cur_num_classes}_classes',
+                    'rot_eqv',
+                    '*.pth',
+                )
             )[0]
             # load model
             model = nero_run_model.load_model(self.mode, 'aug-eqv', model_path, self.pt_model_cfg)
@@ -607,7 +621,7 @@ class UI_MainWindow(QWidget):
             'all_axis_angles', self.cache
         )
         if not successful:
-            self.all_axis_angles = list(range(-180, 181, 30))
+            self.all_axis_angles = list(range(0, 361, 15))
             nero_interface_util.save_to_cache(
                 'all_axis_angles', self.all_axis_angles, self.cache, self.cache_path
             )
@@ -617,7 +631,7 @@ class UI_MainWindow(QWidget):
             'all_rot_angles', self.cache
         )
         if not successful:
-            self.all_rot_angles = list(range(0, 181, 30))
+            self.all_rot_angles = list(range(0, 181, 15))
             nero_interface_util.save_to_cache(
                 'all_rot_angles', self.all_rot_angles, self.cache, self.cache_path
             )
@@ -627,19 +641,20 @@ class UI_MainWindow(QWidget):
             self.all_avg_instance_accuracies_1,
             successful_avg_ins,
         ) = nero_interface_util.load_from_cache(
-            f'{self.mode}_{self.dataset_name}_{self.model_1_cache_name}_avg_instance_accuracies',
+            f'{self.mode}_{self.dataset_name}_{self.model_1_cache_name}_{self.cur_num_classes}_classes_avg_instance_accuracies',
             self.cache,
         )
         self.all_avg_class_accuracies_1, successful_avg_cls = nero_interface_util.load_from_cache(
-            f'{self.mode}_{self.dataset_name}_{self.model_1_cache_name}_avg_class_accuracies',
+            f'{self.mode}_{self.dataset_name}_{self.model_1_cache_name}_{self.cur_num_classes}_classes_avg_class_accuracies',
             self.cache,
         )
         self.all_avg_accuracies_per_class_1, successful_cls = nero_interface_util.load_from_cache(
-            f'{self.mode}_{self.dataset_name}_{self.model_1_cache_name}_avg_accuracies_per_class',
+            f'{self.mode}_{self.dataset_name}_{self.model_1_cache_name}_{self.cur_num_classes}_classes_avg_accuracies_per_class',
             self.cache,
         )
         self.all_outputs_1, successful_output = nero_interface_util.load_from_cache(
-            f'{self.mode}_{self.dataset_name}_{self.model_1_cache_name}_outputs', self.cache
+            f'{self.mode}_{self.dataset_name}_{self.model_1_cache_name}_{self.cur_num_classes}_classes_outputs',
+            self.cache,
         )
 
         # if any of the result for model 1 is missing, run aggregate test
@@ -685,19 +700,20 @@ class UI_MainWindow(QWidget):
 
         # aggregate test results for model 2
         self.all_avg_instance_accuracies_2, successful = nero_interface_util.load_from_cache(
-            f'{self.mode}_{self.dataset_name}_{self.model_2_cache_name}_avg_instance_accuracies',
+            f'{self.mode}_{self.dataset_name}_{self.model_2_cache_name}_{self.cur_num_classes}_classes_avg_instance_accuracies',
             self.cache,
         )
         self.all_avg_class_accuracies_2, successful = nero_interface_util.load_from_cache(
-            f'{self.mode}_{self.dataset_name}_{self.model_2_cache_name}_avg_class_accuracies',
+            f'{self.mode}_{self.dataset_name}_{self.model_2_cache_name}_{self.cur_num_classes}_classes_avg_class_accuracies',
             self.cache,
         )
         self.all_avg_accuracies_per_class_2, successful = nero_interface_util.load_from_cache(
-            f'{self.mode}_{self.dataset_name}_{self.model_2_cache_name}_avg_accuracies_per_class',
+            f'{self.mode}_{self.dataset_name}_{self.model_2_cache_name}_{self.cur_num_classes}_classes_avg_accuracies_per_class',
             self.cache,
         )
         self.all_outputs_2, successful = nero_interface_util.load_from_cache(
-            f'{self.mode}_{self.dataset_name}_{self.model_2_cache_name}_outputs', self.cache
+            f'{self.mode}_{self.dataset_name}_{self.model_2_cache_name}_{self.cur_num_classes}_classes_outputs',
+            self.cache,
         )
 
         # if any of the result for model 1 is missing, run aggregate test
@@ -846,14 +862,14 @@ class UI_MainWindow(QWidget):
         for cur_algo in self.all_dr_algorithms:
             # for model 1
             self.all_high_dim_points_1, successful_high = nero_interface_util.load_from_cache(
-                f'{self.mode}_{self.dataset_name}_{self.model_1_cache_name}_high_dim',
+                f'{self.mode}_{self.dataset_name}_{self.model_1_cache_name}_{self.cur_num_classes}_classes_high_dim',
                 self.cache,
             )
             (
                 self.all_low_dim_points_1[cur_algo],
                 successful_low,
             ) = nero_interface_util.load_from_cache(
-                f'{self.mode}_{self.dataset_name}_{self.model_1_cache_name}_{cur_algo}_low_dim',
+                f'{self.mode}_{self.dataset_name}_{self.model_1_cache_name}_{self.cur_num_classes}_classes_{cur_algo}_low_dim',
                 self.cache,
             )
             # when we don't have in the cache
@@ -911,14 +927,14 @@ class UI_MainWindow(QWidget):
 
             # for model 2
             self.all_high_dim_points_2, successful_high = nero_interface_util.load_from_cache(
-                f'{self.mode}_{self.dataset_name}_{self.model_2_cache_name}_high_dim',
+                f'{self.mode}_{self.dataset_name}_{self.model_2_cache_name}_{self.cur_num_classes}_classes_high_dim',
                 self.cache,
             )
             (
                 self.all_low_dim_points_2[cur_algo],
                 successful_low,
             ) = nero_interface_util.load_from_cache(
-                f'{self.mode}_{self.dataset_name}_{self.model_2_cache_name}_{cur_algo}_low_dim',
+                f'{self.mode}_{self.dataset_name}_{self.model_2_cache_name}_{self.cur_num_classes}_classes_{cur_algo}_low_dim',
                 self.cache,
             )
             # when we don't have in the cache
@@ -1335,13 +1351,19 @@ class UI_MainWindow(QWidget):
         detail_plot_layout.setVerticalSpacing(0)
         # label stype and font
         tick_font = QFont('Helvetica', 16)
-        x_label_style = {'color': 'black', 'font-size': '16pt', 'text': 'Digit'}
+        x_label_style = {'color': 'black', 'font-size': '16pt', 'text': 'Class'}
         y_label_style = {'color': 'black', 'font-size': '16pt', 'text': 'Confidence'}
+        self.detail_plot_bar_width = 1
         # initialize plot 1
         self.bar_plot_1 = pg.plot()
-        self.bar_plot_1.plotItem.vb.setLimits(xMin=-0.5, xMax=9.5, yMin=0, yMax=1.2)
         self.bar_plot_1.setBackground('w')
-        self.bar_plot_1.setFixedSize(self.plot_size * 1.7, self.plot_size * 1.7)
+        self.bar_plot_1.plotItem.vb.setLimits(
+            xMin=-self.detail_plot_bar_width / 2,
+            xMax=self.cur_num_classes + self.detail_plot_bar_width / 2,
+            yMin=0,
+            yMax=1,
+        )
+        self.bar_plot_1.setFixedSize(self.plot_size * 3, self.plot_size * 1.5)
         self.bar_plot_1.setContentsMargins(0, 0, 0, 0)
         self.bar_plot_1.getAxis('bottom').setLabel(**x_label_style)
         self.bar_plot_1.getAxis('left').setLabel(**y_label_style)
@@ -1352,9 +1374,14 @@ class UI_MainWindow(QWidget):
         self.bar_plot_1.setMouseEnabled(x=False, y=False)
         # initialize plot 2
         self.bar_plot_2 = pg.plot()
-        self.bar_plot_2.plotItem.vb.setLimits(xMin=-0.5, xMax=9.5, yMin=0, yMax=1.2)
         self.bar_plot_2.setBackground('w')
-        self.bar_plot_2.setFixedSize(self.plot_size * 1.7, self.plot_size * 1.7)
+        self.bar_plot_2.plotItem.vb.setLimits(
+            xMin=-self.detail_plot_bar_width / 2,
+            xMax=self.cur_num_classes + self.detail_plot_bar_width / 2,
+            yMin=0,
+            yMax=1,
+        )
+        self.bar_plot_2.setFixedSize(self.plot_size * 3, self.plot_size * 1.5)
         self.bar_plot_2.setContentsMargins(0, 0, 0, 0)
         self.bar_plot_2.getAxis('bottom').setLabel(**x_label_style)
         self.bar_plot_2.getAxis('left').setLabel(**y_label_style)
@@ -1390,22 +1417,28 @@ class UI_MainWindow(QWidget):
         ]
         # make the bar plot
         graph_1 = pg.BarGraphItem(
-            x=np.arange(len(self.cur_individual_plot_quantity_1)) - 0.2,
+            x=np.arange(len(self.cur_individual_plot_quantity_1)),
             height=list(self.cur_individual_plot_quantity_1),
-            width=0.4,
+            width=self.detail_plot_bar_width,
             brush='blue',
         )
         graph_2 = pg.BarGraphItem(
-            x=np.arange(len(self.cur_individual_plot_quantity_2)) + 0.2,
+            x=np.arange(len(self.cur_individual_plot_quantity_2)),
             height=list(self.cur_individual_plot_quantity_2),
-            width=0.4,
+            width=self.detail_plot_bar_width,
             brush='magenta',
         )
+        # prepare ticks
+        ticks = []
+        for i, label in enumerate(self.cur_classes_names):
+            ticks.append((i, label))
         # add graph to plot
         self.bar_plot_1.clear()
         self.bar_plot_1.addItem(graph_1)
+        self.bar_plot_1.getAxis('bottom').setTicks([ticks])
         self.bar_plot_2.clear()
         self.bar_plot_2.addItem(graph_2)
+        self.bar_plot_2.getAxis('bottom').setTicks([ticks])
 
     ################## All private functions ##################
     # dataset drop-down menu
