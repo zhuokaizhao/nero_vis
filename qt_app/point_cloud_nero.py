@@ -12,6 +12,7 @@ import pyqtgraph as pg
 from PySide6 import QtCore, QtGui, QtWidgets
 from PySide6.QtGui import QPixmap, QFont
 from PySide6.QtWidgets import QWidget, QLabel, QRadioButton
+import pyqtgraph.opengl as gl
 import warnings
 
 warnings.filterwarnings('ignore')
@@ -26,7 +27,7 @@ import nero_interface_util
 pg.setConfigOptions(antialias=True, background='w')
 # use pyside gpu acceleration if gpu detected
 if torch.cuda.is_available():
-    # pg.setConfigOption('useCupy', True)
+    pg.setConfigOption('useCupy', True)
     os.environ['CUDA_VISIBLE_DEVICES'] = '0'
 else:
     pg.setConfigOption('useCupy', False)
@@ -88,10 +89,10 @@ class UI_MainWindow(QWidget):
         self.cache = dict(np.load(self.cache_path, allow_pickle=True))
 
         # if we are doing real-time inference when dragging the field of view
-        if torch.cuda.is_available():
-            self.realtime_inference = True
-        else:
-            self.realtime_inference = False
+        # if torch.cuda.is_available():
+        #     self.realtime_inference = True
+        # else:
+        #     self.realtime_inference = False
 
         # define dataset path
         self.data_dir = f'./example_data/{self.mode}/modelnet_normal_resampled'
@@ -117,10 +118,6 @@ class UI_MainWindow(QWidget):
         self.init_dr_plot_interface()
         self.draw_dr_plot()
 
-        # visualize point cloud sample selected from DR plot
-        self.init_point_cloud_vis_interface()
-        self.draw_point_cloud()
-
         # # Individual NERO plot
         self.init_individual_plot_interface()
         self.draw_point_cloud_individual_nero()
@@ -128,6 +125,10 @@ class UI_MainWindow(QWidget):
         # # Detailed plot
         self.init_detail_plot_interface()
         self.draw_point_cloud_detail_plot()
+
+        # visualize point cloud sample selected from DR plot
+        self.init_point_cloud_vis_interface()
+        self.draw_point_cloud()
 
         print(f'\nNERO interface ready')
 
@@ -595,22 +596,22 @@ class UI_MainWindow(QWidget):
         # add components to layout
         self.layout.addWidget(color_bar_view, 2, 1)
 
-        # checkbox on if doing real-time inference
-        self.realtime_inference_checkbox = QtWidgets.QCheckBox('Realtime inference when dragging')
-        self.realtime_inference_checkbox.setStyleSheet(
-            'color: black; font-family: Helvetica; font-style: normal; font-size: 18px; background-color: white;'
-        )
-        self.realtime_inference_checkbox.setFixedSize(QtCore.QSize(300, 30))
-        self.realtime_inference_checkbox.setContentsMargins(0, 0, 0, 0)
-        self.realtime_inference_checkbox.stateChanged.connect(
-            self._realtime_inference_checkbox_clicked
-        )
-        if self.realtime_inference:
-            self.realtime_inference_checkbox.setChecked(True)
-        else:
-            self.realtime_inference_checkbox.setChecked(False)
-        # layout that controls the plotting items
-        self.layout.addWidget(self.realtime_inference_checkbox, 0, 3)
+        # # checkbox on if doing real-time inference
+        # self.realtime_inference_checkbox = QtWidgets.QCheckBox('Realtime inference when dragging')
+        # self.realtime_inference_checkbox.setStyleSheet(
+        #     'color: black; font-family: Helvetica; font-style: normal; font-size: 18px; background-color: white;'
+        # )
+        # self.realtime_inference_checkbox.setFixedSize(QtCore.QSize(300, 30))
+        # self.realtime_inference_checkbox.setContentsMargins(0, 0, 0, 0)
+        # self.realtime_inference_checkbox.stateChanged.connect(
+        #     self._realtime_inference_checkbox_clicked
+        # )
+        # if self.realtime_inference:
+        #     self.realtime_inference_checkbox.setChecked(True)
+        # else:
+        #     self.realtime_inference_checkbox.setChecked(False)
+        # # layout that controls the plotting items
+        # self.layout.addWidget(self.realtime_inference_checkbox, 0, 3)
 
     ################## Aggregate NERO Plots Related ##################
     def prepare_aggregate_results(self):
@@ -1008,8 +1009,10 @@ class UI_MainWindow(QWidget):
 
         # scatter item size for both dr plots
         self.scatter_item_size = 12
-        # initialize selected index
+        # initialize selected index and the corresponding point cloud path
         self.point_cloud_index = 0
+        self.point_cloud_path = self.point_cloud_paths[self.point_cloud_index][1]
+        print(f'Initialized selecting point cloud at {self.point_cloud_path}')
 
         # dr plot for model 1
         self.low_dim_scatter_view_1 = pg.GraphicsLayoutWidget()
@@ -1182,7 +1185,7 @@ class UI_MainWindow(QWidget):
         # initialize plot
         self.low_dim_scatter_view_1.clear()
         self.low_dim_scatter_plot_1 = self.low_dim_scatter_view_1.addPlot()
-        self.low_dim_scatter_plot_1.setContentsMargins(0, 0, 0, 150)
+        self.low_dim_scatter_plot_1.setContentsMargins(0, 0, 0, 0)
         self.low_dim_scatter_plot_1.hideAxis('left')
         self.low_dim_scatter_plot_1.hideAxis('bottom')
         # set axis range
@@ -1217,13 +1220,6 @@ class UI_MainWindow(QWidget):
             self.sorted_intensity_2,
             self.sorted_class_indices_2,
         )
-
-    ################## Point Cloud Sample Visualization Related ##################
-    def init_point_cloud_vis_interface(self):
-        pass
-
-    def draw_point_cloud(self):
-        pass
 
     ################## Individual NERO Plot Related ##################
     def init_individual_plot_interface(self):
@@ -1260,6 +1256,7 @@ class UI_MainWindow(QWidget):
         self.click_array_y = len(self.all_rot_angles)
 
     def draw_point_cloud_individual_nero(self, highlighter_only=False):
+        # highlighter_only is for when we only update the selection highlight
         if not highlighter_only:
             # get the results from aggregate results with respect to user selected sample
             self.ground_truth_index = self.cur_classes_names.index(
@@ -1407,13 +1404,10 @@ class UI_MainWindow(QWidget):
             self.click_array_x, self.click_array_y, len(self.all_rot_angles) * 2
         )
         length, angle = nero_interface_util.cart2pol(cart_x, cart_y)
-        # print(length, angle)
-        # print(self.all_axis_angles)
         axis_angle_index = np.where(self.all_axis_angles == angle)[0][0]
         rot_angle_index = int(length)
-        # print(axis_angle_index, rot_angle_index)
-        # exit()
-        # print(f'Index in result array: ({axis_angle_index}, {rot_angle_index})')
+        print(f'Axis rotation: {axis_angle_index}, Angle rotation: {rot_angle_index}')
+        print(f'Index in result array: ({axis_angle_index}, {rot_angle_index})')
         # all the probabilities of current selected sample
         self.cur_individual_plot_quantity_1 = self.all_outputs_1[
             self.cur_plane_index, axis_angle_index, rot_angle_index, self.point_cloud_index, :
@@ -1440,6 +1434,40 @@ class UI_MainWindow(QWidget):
         self.bar_plot_1.addItem(graph_1)
         self.bar_plot_2.clear()
         self.bar_plot_2.addItem(graph_2)
+
+    ################## Point Cloud Sample Visualization Related ##################
+    def init_point_cloud_vis_interface(self):
+        # point cloud visualization layout
+        point_cloud_vis_layout = QtWidgets.QGridLayout()
+        point_cloud_vis_layout.setAlignment(QtCore.Qt.AlignLeft)
+        point_cloud_vis_layout.setHorizontalSpacing(0)
+        point_cloud_vis_layout.setVerticalSpacing(0)
+
+        # widget and item
+        self.point_cloud_view = gl.GLViewWidget()
+        self.point_cloud_view.setBackgroundColor('black')
+        self.point_cloud_view.opts['distance'] = 10
+        self.point_cloud_view.show()
+        self.point_cloud_vis_item = gl.GLScatterPlotItem()
+        self.point_cloud_view.addItem(self.point_cloud_vis_item)
+        # add to layout
+        point_cloud_vis_layout.addWidget(self.point_cloud_view)
+        self.layout.addLayout(point_cloud_vis_layout, 0, 3, 3, 1)
+
+    def draw_point_cloud(self):
+        # load current point clouds
+        point_cloud = np.loadtxt(self.point_cloud_path, delimiter=',').astype(np.float32)
+        point_cloud_pos = point_cloud[:, :3]
+        point_cloud_normal = point_cloud[:500, 3:]
+        # point size
+        sizes = np.array([0.02] * len(point_cloud_pos))
+        # assign color
+        colors = np.atleast_2d([0.5, 0.5, 0.5, 0.5]).repeat(repeats=len(point_cloud_pos), axis=0)
+        # set data
+        # self.point_cloud_view.clear()
+        self.point_cloud_vis_item.setData(
+            pos=point_cloud_pos, color=colors, size=sizes, pxMode=False
+        )
 
     ################## All private functions ##################
     # dataset drop-down menu
@@ -1568,12 +1596,12 @@ class UI_MainWindow(QWidget):
         # update detail plot
         self.draw_point_cloud_detail_plot()
 
-    @QtCore.Slot()
-    def _realtime_inference_checkbox_clicked(self):
-        if self.realtime_inference_checkbox.isChecked():
-            self.realtime_inference = True
-        else:
-            self.realtime_inference = False
+    # @QtCore.Slot()
+    # def _realtime_inference_checkbox_clicked(self):
+    #     if self.realtime_inference_checkbox.isChecked():
+    #         self.realtime_inference = True
+    #     else:
+    #         self.realtime_inference = False
 
     @QtCore.Slot()
     # change different dimension reduction algorithms
@@ -1881,7 +1909,6 @@ class UI_MainWindow(QWidget):
         low_dim_scatter_item.sigClicked.connect(self._low_dim_scatter_clicked)
         low_dim_scatter_item.sigHovered.connect(self._low_dim_scatter_hovered)
         # add points to the plot
-        low_dim_scatter_plot.clear()
         low_dim_scatter_plot.addItem(low_dim_scatter_item)
 
     def _draw_individual_heatmap(self, data, heatmap, title=None):
