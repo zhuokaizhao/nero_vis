@@ -13,6 +13,22 @@ import quaternions
 import nero_utilities
 
 
+# convert from click array position to axis and rotation angles
+def click_to_rotation(click_image_x, click_image_y, all_axis_angles, all_rot_angles):
+    # transform from image coordinate to cartesian coordinate
+    print(f'Position in image coordinate:', click_image_x, click_image_y)
+    array_x, array_y = img2array(click_image_x, click_image_y, len(all_rot_angles) * 2 - 1)
+    # print('Position in array coordinate:', array_x, array_y)
+    # transform from cartesian coordinate to polar coordinate
+    length, angle = cart2pol(array_x, array_y)
+    # print('Position in polar coordinate:', length, angle)
+    # recover rotation axis angle and the actual rotate angle around that axis
+    axis_angle_index = np.where(all_axis_angles == angle)[0][0]
+    rot_angle_index = int(length)
+
+    return axis_angle_index, rot_angle_index
+
+
 # helper function on normalizing low dimension points within [-1, 1] sqaure
 def normalize_low_dim_result(low_dim):
     # to preserve shape, largest bound are taken from either axis
@@ -41,7 +57,7 @@ def draw_circle(painter, center_x, center_y, radius, color):
 
 def cart2pol(x, y):
     length = np.sqrt(x**2 + y**2)
-    angle = np.arctan2(y, x)
+    angle = math.degrees(np.arctan2(y, x))
     return (length, angle)
 
 
@@ -51,18 +67,22 @@ def pol2cart(length, angle):
     return (x, y)
 
 
-def cart2img(cart, img_size):
-    x_img = cart[0] + img_size // 2
-    y_img = cart[1] + img_size // 2
+def array2img(array_pos, img_size):
+    # in image coordinate, x are columns, y are rows
+    # in array coordinate, x are rows, y are columns
+    x_img = array_pos[1] + img_size // 2
+    y_img = array_pos[0] + img_size // 2
 
     return (x_img, y_img)
 
 
-def img2cart(x_img, y_img, img_size):
-    x_cart = x_img - img_size // 2
-    y_cart = y_img - img_size // 2
+def img2array(x_img, y_img, img_size):
+    # in image coordinate, x are columns, y are rows
+    # in array coordinate, x are rows, y are columns
+    x_array = x_img - (img_size // 2)
+    y_array = -y_img + (img_size // 2)   # because plot was reversed in y
 
-    return (x_cart, y_cart)
+    return (x_array, y_array)
 
 
 # create raster image that holds custom displacement of results
@@ -71,18 +91,18 @@ def process_point_cloud_result(accuracies, plane, all_axis_angles, all_rot_angle
     assert (
         len(all_axis_angles) == accuracies.shape[0] and len(all_rot_angles) == accuracies.shape[1]
     )
-
-    image_np = np.zeros((len(all_rot_angles) * 2, len(all_rot_angles) * 2))
+    # remove double 0
+    image_np = np.zeros((len(all_rot_angles) * 2 - 1, len(all_rot_angles) * 2 - 1))
     # outside place filled with NaN
-    quaternion_np = np.full((len(all_rot_angles) * 2, len(all_rot_angles) * 2, 4), np.nan)
+    quaternion_np = np.full((len(all_rot_angles) * 2 - 1, len(all_rot_angles) * 2 - 1, 4), np.nan)
 
     for i, cur_axis_angle in enumerate(all_axis_angles):
         for j, cur_rot_angle in enumerate(all_rot_angles):
             # coordinate in raster image
-            cartesian_coordinate = pol2cart(j, cur_axis_angle)
-            # cartesian coordinate to image coordinate
-            image_coordinate = cart2img(cartesian_coordinate, len(image_np))
-            image_np[image_coordinate] = accuracies[i, j]
+            array_pos = pol2cart(j, cur_axis_angle)
+            # array coordinate to image coordinate
+            image_pos = array2img(array_pos, len(image_np))
+            image_np[image_pos] = accuracies[i, j]
 
             # also save quaternion for each position
             # get corresponding axis from plane information and axis angle
@@ -118,12 +138,13 @@ def process_point_cloud_result(accuracies, plane, all_axis_angles, all_rot_angle
             # rotate corresponding start axis by corresponding rotation matrix
             cur_axis = np.squeeze(np.array(rot_matrix[plane] * start_axis[plane]))
             # convert axis-angle rotation to quaternion and save
-            quaternion_np[image_coordinate] = quaternions.axis_angle_to_quaternion(
+            quaternion_np[image_pos] = quaternions.axis_angle_to_quaternion(
                 cur_axis, cur_rot_angle, unit='degree'
             )
 
     # resize and convert to image
     image_np = np.kron(image_np, np.ones((block_size, block_size)))
+    # exit()
     quaternion_np = np.kron(quaternion_np, np.ones((block_size, block_size)))
 
     return image_np, quaternion_np

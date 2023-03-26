@@ -94,7 +94,7 @@ def load_model(mode, network_model, model_dir, cfg=None):
         model.to(device)
         loaded_model = torch.load(model_dir, map_location=device)
         model.load_state_dict(loaded_model['model_state_dict'])
-        print(f'{network_model} model loaded from {model_dir}')
+        print(f'\n{network_model} model loaded from {model_dir}')
 
     else:
         raise Exception(f'Unrecognized mode {mode}')

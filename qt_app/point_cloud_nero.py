@@ -67,9 +67,6 @@ class UI_MainWindow(QWidget):
         # heatmap and detailed image plot size
         self.plot_size = 320
 
-        # load/initialize program cache
-        self.use_cache = False
-
         # when we have an input cache path
         if cache_path != None:
             self.cache_path = cache_path
@@ -87,12 +84,6 @@ class UI_MainWindow(QWidget):
 
         # cache
         self.cache = dict(np.load(self.cache_path, allow_pickle=True))
-
-        # if we are doing real-time inference when dragging the field of view
-        # if torch.cuda.is_available():
-        #     self.realtime_inference = True
-        # else:
-        #     self.realtime_inference = False
 
         # define dataset path
         self.data_dir = f'./example_data/{self.mode}/modelnet_normal_resampled'
@@ -239,7 +230,6 @@ class UI_MainWindow(QWidget):
         # get data and classes names path from selected 1-based index
         self.cur_data_path = self.all_data_paths[self.dataset_index - 1]
         self.cur_name_path = self.all_names_paths[self.dataset_index - 1]
-        print(f'\nLoading data from {self.cur_data_path}')
         # load all the point cloud ids (such as airplane_0627)
         point_cloud_ids = [line.rstrip() for line in open(self.cur_data_path)]
         # point cloud ids have name_index format, load the names (such as airplane)
@@ -267,8 +257,9 @@ class UI_MainWindow(QWidget):
                     self.cur_class_indices.append(i)
 
         # dataset that can be converted to dataloader later
+        print(f'\nLoaded data from {self.cur_data_path}')
         print(
-            f'Loaded {len(self.point_cloud_paths)} point cloud samples belonging to {self.cur_num_classes} classes'
+            f'Data includes {len(self.point_cloud_paths)} point cloud samples belonging to {self.cur_num_classes} classes'
         )
 
     ################## Models Loading Related ##################
@@ -1012,7 +1003,7 @@ class UI_MainWindow(QWidget):
         # initialize selected index and the corresponding point cloud path
         self.point_cloud_index = 0
         self.point_cloud_path = self.point_cloud_paths[self.point_cloud_index][1]
-        print(f'Initialized selecting point cloud at {self.point_cloud_path}')
+        print(f'\nInitialized selecting point cloud at {self.point_cloud_path}')
 
         # dr plot for model 1
         self.low_dim_scatter_view_1 = pg.GraphicsLayoutWidget()
@@ -1252,8 +1243,15 @@ class UI_MainWindow(QWidget):
         self.highlighter_2.setSymbol('s')
 
         # initialize current selected position
-        self.click_array_x = len(self.all_rot_angles)
-        self.click_array_y = len(self.all_rot_angles)
+        self.click_image_x = len(self.all_rot_angles) - 1
+        self.click_image_y = len(self.all_rot_angles) - 1
+        # recover rotation axis angle and the actual rotate angle around that axis
+        self.axis_angle_index, self.rot_angle_index = nero_interface_util.click_to_rotation(
+            self.click_image_x,
+            self.click_image_y,
+            self.all_axis_angles,
+            self.all_rot_angles,
+        )
 
     def draw_point_cloud_individual_nero(self, highlighter_only=False):
         # highlighter_only is for when we only update the selection highlight
@@ -1320,8 +1318,10 @@ class UI_MainWindow(QWidget):
         rectangle_highlighter = [
             {
                 'pos': (
-                    self.click_array_x * self.block_size + self.block_size // 2,  # center pos
-                    self.click_array_y * self.block_size + self.block_size // 2,  # center pos
+                    self.click_image_x * self.block_size
+                    + self.block_size // 2,  # top left to center pos
+                    self.click_image_y * self.block_size
+                    + self.block_size // 2,  # top left to center pos
                 ),
                 'size': self.block_size,
                 'pen': {'color': 'red', 'width': 3},
@@ -1399,21 +1399,20 @@ class UI_MainWindow(QWidget):
         self.layout.addLayout(detail_plot_layout, 3, 3)
 
     def draw_point_cloud_detail_plot(self):
-        # convert selected clicking point to indices in results
-        cart_x, cart_y = nero_interface_util.img2cart(
-            self.click_array_x, self.click_array_y, len(self.all_rot_angles) * 2
-        )
-        length, angle = nero_interface_util.cart2pol(cart_x, cart_y)
-        axis_angle_index = np.where(self.all_axis_angles == angle)[0][0]
-        rot_angle_index = int(length)
-        print(f'Axis rotation: {axis_angle_index}, Angle rotation: {rot_angle_index}')
-        print(f'Index in result array: ({axis_angle_index}, {rot_angle_index})')
         # all the probabilities of current selected sample
         self.cur_individual_plot_quantity_1 = self.all_outputs_1[
-            self.cur_plane_index, axis_angle_index, rot_angle_index, self.point_cloud_index, :
+            self.cur_plane_index,
+            self.axis_angle_index,
+            self.rot_angle_index,
+            self.point_cloud_index,
+            :,
         ]
         self.cur_individual_plot_quantity_2 = self.all_outputs_2[
-            self.cur_plane_index, axis_angle_index, rot_angle_index, self.point_cloud_index, :
+            self.cur_plane_index,
+            self.axis_angle_index,
+            self.rot_angle_index,
+            self.point_cloud_index,
+            :,
         ]
         # make the bar plot
         graph_1 = pg.BarGraphItem(
@@ -1442,29 +1441,26 @@ class UI_MainWindow(QWidget):
         point_cloud_vis_layout.setAlignment(QtCore.Qt.AlignLeft)
         point_cloud_vis_layout.setHorizontalSpacing(0)
         point_cloud_vis_layout.setVerticalSpacing(0)
-
-        # widget and item
-        self.point_cloud_view = gl.GLViewWidget()
-        self.point_cloud_view.setBackgroundColor('black')
-        self.point_cloud_view.opts['distance'] = 10
-        self.point_cloud_view.show()
-        self.point_cloud_vis_item = gl.GLScatterPlotItem()
-        self.point_cloud_view.addItem(self.point_cloud_vis_item)
+        # widget
+        self.point_cloud_vis_widget = gl.GLViewWidget()
+        self.point_cloud_vis_widget.setBackgroundColor('black')
+        self.point_cloud_vis_widget.opts['distance'] = 10
         # add to layout
-        point_cloud_vis_layout.addWidget(self.point_cloud_view)
+        point_cloud_vis_layout.addWidget(self.point_cloud_vis_widget)
         self.layout.addLayout(point_cloud_vis_layout, 0, 3, 3, 1)
 
     def draw_point_cloud(self):
         # load current point clouds
         point_cloud = np.loadtxt(self.point_cloud_path, delimiter=',').astype(np.float32)
         point_cloud_pos = point_cloud[:, :3]
-        point_cloud_normal = point_cloud[:500, 3:]
         # point size
         sizes = np.array([0.02] * len(point_cloud_pos))
         # assign color
         colors = np.atleast_2d([0.5, 0.5, 0.5, 0.5]).repeat(repeats=len(point_cloud_pos), axis=0)
         # set data
-        # self.point_cloud_view.clear()
+        self.point_cloud_vis_widget.clear()
+        self.point_cloud_vis_item = gl.GLScatterPlotItem()
+        self.point_cloud_vis_widget.addItem(self.point_cloud_vis_item)
         self.point_cloud_vis_item.setData(
             pos=point_cloud_pos, color=colors, size=sizes, pxMode=False
         )
@@ -1608,7 +1604,7 @@ class UI_MainWindow(QWidget):
     def _dr_selection_changed(self, text):
         # update dimension reduction algorithm
         self.cur_dr_algorithm = text
-        print(f'DR algorithm changed to {self.cur_dr_algorithm}')
+        print(f'\nDR algorithm changed to {self.cur_dr_algorithm}')
         # update dr plot
         self.draw_dr_plot()
 
@@ -1616,14 +1612,14 @@ class UI_MainWindow(QWidget):
     @QtCore.Slot()
     def _mean_encoding_button_clicked(self):
         self.intensity_method = 'mean'
-        print(f'DR plots color encoded based on {self.intensity_method}')
+        print(f'\nDR plots color encoded based on {self.intensity_method}')
         # update dr plot
         self.draw_dr_plot()
 
     @QtCore.Slot()
     def _variance_encoding_button_clicked(self):
         self.intensity_method = 'variance'
-        print(f'DR plots color encoded based on {self.intensity_method}')
+        print(f'\nDR plots color encoded based on {self.intensity_method}')
         # update dr plot
         self.draw_dr_plot()
 
@@ -1674,7 +1670,7 @@ class UI_MainWindow(QWidget):
             # get the clicked scatter item's information
             self.point_cloud_index = self.sorted_class_indices_1[self.slider_1_selected_index]
             print(
-                f'slider 1 image index {self.point_cloud_index}, ranked position {self.slider_1_selected_index}'
+                f'\nSlider 1 image index {self.point_cloud_index}, ranked position {self.slider_1_selected_index}'
             )
             # update the text
             self._update_slider_1_text()
@@ -1696,7 +1692,7 @@ class UI_MainWindow(QWidget):
 
             # get the corresponding point cloud data path
             self.point_cloud_path = self.point_cloud_paths[self.point_cloud_index][1]
-            print(f'Selected point cloud at {self.point_cloud_path}')
+            print(f'\nSelected point cloud at {self.point_cloud_path}')
 
             # visualize point cloud
             self.draw_point_cloud()
@@ -1716,7 +1712,7 @@ class UI_MainWindow(QWidget):
             # get the clicked scatter item's information
             self.point_cloud_index = self.sorted_class_indices_2[self.slider_2_selected_index]
             print(
-                f'slider 2 image index {self.point_cloud_index}, ranked position {self.slider_2_selected_index}'
+                f'\nSlider 2 image index {self.point_cloud_index}, ranked position {self.slider_2_selected_index}'
             )
             # update the text
             self._update_slider_2_text()
@@ -1738,7 +1734,7 @@ class UI_MainWindow(QWidget):
 
             # get the corresponding point cloud data path
             self.point_cloud_path = self.point_cloud_paths[self.point_cloud_index][1]
-            print(f'Selected image at {self.point_cloud_path}')
+            print(f'\nSelected image at {self.point_cloud_path}')
 
             # visualize point cloud
             self.draw_point_cloud()
@@ -1778,7 +1774,7 @@ class UI_MainWindow(QWidget):
         # when item is not none, it is from real click
         # if item != None:
         self.point_cloud_index = int(item.opts['name'])
-        print(f'clicked image index {self.point_cloud_index}')
+        print(f'\nClicked image index {self.point_cloud_index}')
 
         # get the ranking in each colorbar and change its value while locking both sliders
         # slider 1
@@ -1801,7 +1797,7 @@ class UI_MainWindow(QWidget):
 
         # get the corresponding point cloud path
         self.point_cloud_path = self.point_cloud_paths[self.point_cloud_index][1]
-        print(f'Selected point cloud at {self.point_cloud_path}')
+        print(f'\nSelected point cloud at {self.point_cloud_path}')
 
         # visualize point cloud
         self.draw_point_cloud()
@@ -1940,9 +1936,19 @@ class UI_MainWindow(QWidget):
 
     def _individual_nero_clicked(self):
         # convert to data array position
-        self.click_array_x = self.click_pos_x // self.block_size
-        self.click_array_y = self.click_pos_y // self.block_size
-        print(f'Clicked on heatmap grid ({self.click_array_x}, {self.click_array_y})')
+        self.click_image_x = self.click_pos_x // self.block_size
+        self.click_image_y = self.click_pos_y // self.block_size
+        # recover rotation axis angle and the actual rotate angle around that axis
+        self.axis_angle_index, self.rot_angle_index = nero_interface_util.click_to_rotation(
+            self.click_image_x,
+            self.click_image_y,
+            self.all_axis_angles,
+            self.all_rot_angles,
+        )
+        print(
+            f'Axis rotation: {self.all_axis_angles[self.axis_angle_index]} (index {self.axis_angle_index}), Angle rotation: {self.all_rot_angles[self.rot_angle_index]} (index {self.rot_angle_index})'
+        )
+
         # update individual nero plot's highligher
         self.draw_point_cloud_individual_nero(highlighter_only=True)
         # plot detail plot
