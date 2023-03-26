@@ -67,6 +67,10 @@ class UI_MainWindow(QWidget):
         self.display_size = 320
         # heatmap and detailed image plot size
         self.plot_size = 320
+        # size of each block (rectangle)
+        self.block_size = 10
+        # scale when converting to polar image
+        self.polar_scale = 2
 
         # when we have an input cache path
         if cache_path != None:
@@ -800,8 +804,6 @@ class UI_MainWindow(QWidget):
                 self.cur_plane_index, :, :, self.cur_classes_names.index(self.class_selection)
             ]
 
-        # size of each block (rectangle)
-        self.block_size = 50
         # convert the result to polar plot data fit in rectangular array
         # model 1 results
         (
@@ -814,6 +816,7 @@ class UI_MainWindow(QWidget):
             self.all_axis_angles,
             self.all_rot_angles,
             block_size=self.block_size,
+            scale=self.polar_scale,
         )
         # model 2 results
         (
@@ -826,6 +829,7 @@ class UI_MainWindow(QWidget):
             self.all_axis_angles,
             self.all_rot_angles,
             block_size=self.block_size,
+            scale=self.polar_scale,
         )
         # initialize plot, we don't need interaction on aggregate plots
         self.aggregate_nero_1 = nero_custom_plots.NEROHeatmap(
@@ -1245,16 +1249,10 @@ class UI_MainWindow(QWidget):
         self.highlighter_2 = pg.ScatterPlotItem(pxMode=False)
         self.highlighter_2.setSymbol('s')
 
-        # initialize current selected position
-        self.click_image_x = len(self.all_rot_angles) - 1
-        self.click_image_y = len(self.all_rot_angles) - 1
+        # initialize selected position to be at center
+        self.click_image_x = len(self.all_rot_angles) * self.polar_scale - 1
+        self.click_image_y = len(self.all_rot_angles) * self.polar_scale - 1
         # recover rotation axis angle and the actual rotate angle around that axis
-        # self.axis_angle_index, self.rot_angle_index = nero_interface_util.click_to_rotation(
-        #     self.click_image_x,
-        #     self.click_image_y,
-        #     self.all_axis_angles,
-        #     self.all_rot_angles,
-        # )
         self.axis_angle_index, self.rot_angle_index = self.polar_assignment[
             (self.click_image_x, self.click_image_y)
         ]
@@ -1287,6 +1285,7 @@ class UI_MainWindow(QWidget):
                 self.all_axis_angles,
                 self.all_rot_angles,
                 block_size=self.block_size,
+                scale=self.polar_scale,
             )
             # model 2 results
             (
@@ -1299,6 +1298,7 @@ class UI_MainWindow(QWidget):
                 self.all_axis_angles,
                 self.all_rot_angles,
                 block_size=self.block_size,
+                scale=self.polar_scale,
             )
 
             # initialize plot
@@ -1978,12 +1978,6 @@ class UI_MainWindow(QWidget):
         self.click_image_x = self.click_pos_x // self.block_size
         self.click_image_y = self.click_pos_y // self.block_size
         # recover rotation axis angle and the actual rotate angle around that axis
-        # self.axis_angle_index, self.rot_angle_index = nero_interface_util.click_to_rotation(
-        #     self.click_image_x,
-        #     self.click_image_y,
-        #     self.all_axis_angles,
-        #     self.all_rot_angles,
-        # )
         self.axis_angle_index, self.rot_angle_index = self.polar_assignment[
             (self.click_image_x, self.click_image_y)
         ]
