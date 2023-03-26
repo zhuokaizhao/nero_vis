@@ -62,8 +62,8 @@ def cart2pol(x, y):
 
 
 def pol2cart(length, angle):
-    x = int(length * math.cos(math.radians(angle)))
-    y = int(length * math.sin(math.radians(angle)))
+    x = length * math.cos(math.radians(angle))
+    y = length * math.sin(math.radians(angle))
     return (x, y)
 
 
@@ -86,23 +86,37 @@ def img2array(x_img, y_img, img_size):
 
 
 # create raster image that holds custom displacement of results
-def process_point_cloud_result(accuracies, plane, all_axis_angles, all_rot_angles, block_size=1):
+def point_cloud_result_to_polar_image(
+    accuracies, plane, all_axis_angles, all_rot_angles, block_size=1, scale=1
+):
 
     assert (
         len(all_axis_angles) == accuracies.shape[0] and len(all_rot_angles) == accuracies.shape[1]
     )
-    # remove double 0
-    image_np = np.zeros((len(all_rot_angles) * 2 - 1, len(all_rot_angles) * 2 - 1))
     # outside place filled with NaN
-    quaternion_np = np.full((len(all_rot_angles) * 2 - 1, len(all_rot_angles) * 2 - 1, 4), np.nan)
-
+    image_np = np.full(
+        (len(all_rot_angles) * 2 * scale - 1, len(all_rot_angles) * 2 * scale - 1), np.nan
+    )
+    quaternion_np = np.full(
+        (len(all_rot_angles) * 2 * scale - 1, len(all_rot_angles) * 2 * scale - 1, 4), np.nan
+    )
+    # initialize assignment dictionary
+    assignment = {}
+    # assign the result to polar raster image
     for i, cur_axis_angle in enumerate(all_axis_angles):
         for j, cur_rot_angle in enumerate(all_rot_angles):
             # coordinate in raster image
             array_pos = pol2cart(j, cur_axis_angle)
+            array_pos = (round(array_pos[0] * scale), round(array_pos[1] * scale))
             # array coordinate to image coordinate
             image_pos = array2img(array_pos, len(image_np))
+            # when current position has been occupied by other, we skip
+            if not np.isnan(image_np[image_pos]):
+                continue
+            # assign value
             image_np[image_pos] = accuracies[i, j]
+            # save assignment for easier reverse tracking
+            assignment[image_pos] = (i, j)
 
             # also save quaternion for each position
             # get corresponding axis from plane information and axis angle
@@ -141,13 +155,11 @@ def process_point_cloud_result(accuracies, plane, all_axis_angles, all_rot_angle
             quaternion_np[image_pos] = quaternions.axis_angle_to_quaternion(
                 cur_axis, cur_rot_angle, unit='degree'
             )
-
     # resize and convert to image
     image_np = np.kron(image_np, np.ones((block_size, block_size)))
-    # exit()
     quaternion_np = np.kron(quaternion_np, np.ones((block_size, block_size)))
 
-    return image_np, quaternion_np
+    return image_np, quaternion_np, assignment
 
 
 def dimension_reduce(method, high_dim, target_dim):
