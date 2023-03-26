@@ -21,6 +21,7 @@ import nero_utilities
 import nero_run_model
 import nero_custom_plots
 import nero_interface_util
+import quaternions
 
 
 # globa configurations
@@ -1252,6 +1253,9 @@ class UI_MainWindow(QWidget):
             self.all_axis_angles,
             self.all_rot_angles,
         )
+        # initialize selected rotate axis and rotation angle (for point cloud vis)
+        self.cur_axis_angle = self.all_axis_angles[self.axis_angle_index]
+        self.cur_rot_angle = self.all_rot_angles[self.rot_angle_index]
 
     def draw_point_cloud_individual_nero(self, highlighter_only=False):
         # highlighter_only is for when we only update the selection highlight
@@ -1441,6 +1445,7 @@ class UI_MainWindow(QWidget):
         point_cloud_vis_layout.setAlignment(QtCore.Qt.AlignLeft)
         point_cloud_vis_layout.setHorizontalSpacing(0)
         point_cloud_vis_layout.setVerticalSpacing(0)
+        point_cloud_vis_layout.setRowMinimumHeight(0, 250)
         # widget
         self.point_cloud_vis_widget = gl.GLViewWidget()
         self.point_cloud_vis_widget.setBackgroundColor('black')
@@ -1450,20 +1455,47 @@ class UI_MainWindow(QWidget):
         self.layout.addLayout(point_cloud_vis_layout, 0, 3, 3, 1)
 
     def draw_point_cloud(self):
+        self.point_cloud_vis_widget.clear()
         # load current point clouds
         point_cloud = np.loadtxt(self.point_cloud_path, delimiter=',').astype(np.float32)
         point_cloud_pos = point_cloud[:, :3]
+        # rotate point clouds data according to selection on individual nero plot
+        if self.cur_axis_angle != 0 or self.cur_rot_angle != 0:
+            # start axis based on different plane
+            if self.cur_plane == 'xy':
+                start_axis = np.matrix([[1], [0], [0]])
+            elif self.cur_plane == 'xz':
+                start_axis = np.matrix([[1], [0], [0]])
+            elif self.cur_plane == 'yz':
+                start_axis = np.matrix([[0], [1], [0]])
+            rot_matrix = quaternions.get_rot_matrix(self.cur_plane, self.cur_axis_angle)
+            cur_axis = np.squeeze(np.array(rot_matrix * start_axis))
+            print(f'Rotating point cloud around axis {cur_axis}')
+            cur_axis = [cur_axis] * len(point_cloud_pos)
+            cur_angle = [self.cur_rot_angle] * len(point_cloud_pos)
+            point_cloud_pos = quaternions.rotate(point_cloud_pos, cur_axis, cur_angle)
         # point size
         sizes = np.array([0.02] * len(point_cloud_pos))
         # assign color
         colors = np.atleast_2d([0.5, 0.5, 0.5, 0.5]).repeat(repeats=len(point_cloud_pos), axis=0)
         # set data
-        self.point_cloud_vis_widget.clear()
         self.point_cloud_vis_item = gl.GLScatterPlotItem()
-        self.point_cloud_vis_widget.addItem(self.point_cloud_vis_item)
         self.point_cloud_vis_item.setData(
             pos=point_cloud_pos, color=colors, size=sizes, pxMode=False
         )
+        self.point_cloud_vis_widget.addItem(self.point_cloud_vis_item)
+        # set axis - x is blue, y is yellow, z is green
+        axis = gl.GLAxisItem()
+        axis_size = 1.2
+        axis.setSize(x=axis_size, y=axis_size, z=axis_size)
+        self.point_cloud_vis_widget.addItem(axis)
+        # set axis labels
+        x_label = gl.GLTextItem(pos=np.array([axis_size, 0, 0]), text='x', color='blue')
+        y_label = gl.GLTextItem(pos=np.array([0, axis_size, 0]), text='y', color='yellow')
+        z_label = gl.GLTextItem(pos=np.array([0, 0, axis_size]), text='z', color='green')
+        self.point_cloud_vis_widget.addItem(x_label)
+        self.point_cloud_vis_widget.addItem(y_label)
+        self.point_cloud_vis_widget.addItem(z_label)
 
     ################## All private functions ##################
     # dataset drop-down menu
@@ -1945,14 +1977,18 @@ class UI_MainWindow(QWidget):
             self.all_axis_angles,
             self.all_rot_angles,
         )
+        # update selected rotate axis and rotation angle (for point cloud vis)
+        self.cur_axis_angle = self.all_axis_angles[self.axis_angle_index]
+        self.cur_rot_angle = self.all_rot_angles[self.rot_angle_index]
         print(
-            f'Axis rotation: {self.all_axis_angles[self.axis_angle_index]} (index {self.axis_angle_index}), Angle rotation: {self.all_rot_angles[self.rot_angle_index]} (index {self.rot_angle_index})'
+            f'Axis rotation: {self.cur_axis_angle} (index {self.axis_angle_index}), Angle rotation: {self.cur_rot_angle} (index {self.rot_angle_index})'
         )
-
         # update individual nero plot's highligher
         self.draw_point_cloud_individual_nero(highlighter_only=True)
         # plot detail plot
         self.draw_point_cloud_detail_plot()
+        # update point cloud visualization
+        self.draw_point_cloud()
 
 
 if __name__ == '__main__':
