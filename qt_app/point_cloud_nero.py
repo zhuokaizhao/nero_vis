@@ -1254,7 +1254,7 @@ class UI_MainWindow(QWidget):
         self.click_image_y = len(self.all_rot_angles) * self.polar_scale - 1
         # recover rotation axis angle and the actual rotate angle around that axis
         self.axis_angle_index, self.rot_angle_index = self.polar_assignment[
-            (self.click_image_x, self.click_image_y)
+            (self.click_image_y, self.click_image_x)
         ]
         # initialize selected rotate axis and rotation angle (for point cloud vis)
         self.cur_axis_angle = self.all_axis_angles[self.axis_angle_index]
@@ -1948,7 +1948,8 @@ class UI_MainWindow(QWidget):
 
     def _draw_individual_heatmap(self, data, heatmap, title=None):
         # viewbox that contains the heatmap
-        view_box = pg.ViewBox(invertY=True)
+        # view_box = pg.ViewBox(invertY=True)
+        view_box = pg.ViewBox(invertY=False)
         view_box.setAspectLocked(lock=True)
         # set up heatmap plot, image and viewbox
         heatmap.setImage(data)
@@ -1974,12 +1975,14 @@ class UI_MainWindow(QWidget):
         return heatmap_plot
 
     def _individual_nero_clicked(self):
+        print(self.click_pos_y // self.block_size)
         # convert to data array position
         self.click_image_x = self.click_pos_x // self.block_size
         self.click_image_y = self.click_pos_y // self.block_size
+        # print(self.click_image_x, self.click_image_y)
         # recover rotation axis angle and the actual rotate angle around that axis
         self.axis_angle_index, self.rot_angle_index = self.polar_assignment[
-            (self.click_image_x, self.click_image_y)
+            (self.click_image_y, self.click_image_x)
         ]
         # update selected rotate axis and rotation angle (for point cloud vis)
         self.cur_axis_angle = self.all_axis_angles[self.axis_angle_index]

@@ -89,7 +89,6 @@ def img2array(x_img, y_img, img_size):
 def point_cloud_result_to_polar_image(
     accuracies, plane, all_axis_angles, all_rot_angles, block_size=1, scale=1
 ):
-
     assert (
         len(all_axis_angles) == accuracies.shape[0] and len(all_rot_angles) == accuracies.shape[1]
     )
